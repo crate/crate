@@ -77,6 +77,6 @@ public class MergeFilters implements Rule<Filter> {
         Filter childFilter = captures.get(child);
         Symbol parentQuery = plan.query();
         Symbol childQuery = childFilter.query();
-        return new Filter(childFilter.source(), AndOperator.of(parentQuery, childQuery));
+        return new Filter(groupReferenceResolver.apply(childFilter.source()), AndOperator.of(parentQuery, childQuery));
     }
 }

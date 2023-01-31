@@ -129,8 +129,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        LogicalPlan lhs = nl.sources().get(0);
-        LogicalPlan rhs = nl.sources().get(1);
+        LogicalPlan lhs = groupReferenceResolver.apply(nl.sources().get(0));
+        LogicalPlan rhs = groupReferenceResolver.apply(nl.sources().get(1));
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
 

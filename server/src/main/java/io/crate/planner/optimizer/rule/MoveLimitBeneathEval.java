@@ -61,6 +61,6 @@ public class MoveLimitBeneathEval implements Rule<Limit> {
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
         Eval eval = captures.get(evalCapture);
-        return transpose(limit, eval);
+        return transpose(limit, eval, groupReferenceResolver);
     }
 }

@@ -77,6 +77,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
+import io.crate.planner.optimizer.IterativeOptimizer;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
@@ -112,14 +113,14 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
 
-    private final Optimizer optimizer;
+    private final IterativeOptimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
 
     public LogicalPlanner(NodeContext nodeCtx, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
-        this.optimizer = new Optimizer(
+        this.optimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
             List.of(

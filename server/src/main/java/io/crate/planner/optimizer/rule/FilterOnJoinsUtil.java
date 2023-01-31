@@ -23,11 +23,13 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -43,11 +45,14 @@ final class FilterOnJoinsUtil {
         return splitQuery == null ? source : new Filter(source, splitQuery);
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query,
+                                          LogicalPlan join,
+                                          GroupReferenceResolver groupReferenceResolver) {
+        List<LogicalPlan> sources = Lists2.map(join.sources(), groupReferenceResolver::apply);
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0)),
-                getNewSource(query, join.sources().get(1))
+                getNewSource(query, sources.get(0)),
+                getNewSource(query, sources.get(1))
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -55,9 +60,9 @@ final class FilterOnJoinsUtil {
         if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
             return null;
         }
-        assert join.sources().size() == 2 : "Join operator must only have 2 children, LHS and RHS";
-        LogicalPlan lhs = join.sources().get(0);
-        LogicalPlan rhs = join.sources().get(1);
+        assert sources.size() == 2 : "Join operator must only have 2 children, LHS and RHS";
+        LogicalPlan lhs = sources.get(0);
+        LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);

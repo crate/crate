@@ -57,6 +57,6 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
-        return plan.source();
+        return groupReferenceResolver.apply(plan.source());
     }
 }

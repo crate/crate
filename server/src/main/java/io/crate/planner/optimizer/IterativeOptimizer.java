@@ -52,7 +52,7 @@ public class IterativeOptimizer {
 
         Memo memo = new Memo(plan);
 
-        GroupReferenceResolver lookup = node -> {
+        GroupReferenceResolver groupReferenceResolver = node -> {
             if (node instanceof GroupReference) {
                 return memo.resolve(((GroupReference) node).groupId());
             }
@@ -60,7 +60,7 @@ public class IterativeOptimizer {
             return node;
         };
 
-        exploreGroup(memo.getRootGroup(), new Context(memo, lookup, txnCtx, tableStats));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, txnCtx, tableStats));
 
         return memo.extract();
     }

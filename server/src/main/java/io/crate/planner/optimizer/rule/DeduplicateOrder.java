@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.common.collections.Lists2;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.optimizer.memo.GroupReferenceResolver;
@@ -34,6 +35,8 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import java.util.List;
 
 /**
  * Transforms
@@ -72,6 +75,7 @@ public final class DeduplicateOrder implements Rule<Order> {
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
         Order childOrder = captures.get(this.childOrder);
-        return plan.replaceSources(childOrder.sources());
+        List<LogicalPlan> sources = Lists2.map(childOrder.sources(), groupReferenceResolver::apply);
+        return plan.replaceSources(sources);
     }
 }

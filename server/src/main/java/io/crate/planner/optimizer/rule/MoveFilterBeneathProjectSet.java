@@ -86,7 +86,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
         if (toPushDown.isEmpty()) {
             return null;
         } else if (toKeep.isEmpty()) {
-            return transpose(filter, projectSet);
+            return transpose(filter, projectSet, groupReferenceResolver);
         } else {
             var newProjectSet = projectSet.replaceSources(
                 List.of(new Filter(projectSet.source(), AndOperator.join(toPushDown))));

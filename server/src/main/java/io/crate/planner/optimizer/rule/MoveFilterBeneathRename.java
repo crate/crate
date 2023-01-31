@@ -64,7 +64,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
                              GroupReferenceResolver groupReferenceResolver) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
-            rename.source(),
+            groupReferenceResolver.apply(rename.source()),
             FieldReplacer.replaceFields(plan.query(), rename::resolveField)
         );
         return rename.replaceSources(List.of(newFilter));

@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -97,11 +98,12 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         if (relationsInOrderBy.size() == 1) {
             RelationName relationInOrderBy = relationsInOrderBy.iterator().next();
             if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
-                LogicalPlan lhs = nestedLoop.sources().get(0);
+                var sources = Lists2.map(nestedLoop.sources(), groupReferenceResolver::apply);
+                LogicalPlan lhs = sources.get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
                 return new NestedLoopJoin(
                     newLhs,
-                    nestedLoop.sources().get(1),
+                    sources.get(1),
                     nestedLoop.joinType(),
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),

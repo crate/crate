@@ -21,7 +21,9 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
 import java.util.List;
 
@@ -33,9 +35,10 @@ public final class Util {
     /**
      * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)
      */
-    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child) {
+    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child, GroupReferenceResolver groupReferenceResolver) {
+        List<LogicalPlan> sources = Lists2.map(child.sources(), groupReferenceResolver::apply);
         return child.replaceSources(List.of(
-            parent.replaceSources(child.sources())
+            parent.replaceSources(sources)
         ));
     }
 }

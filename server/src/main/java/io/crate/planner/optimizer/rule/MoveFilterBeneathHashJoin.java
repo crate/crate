@@ -61,6 +61,6 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
         HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin);
+        return moveQueryBelowJoin(filter.query(), hashJoin, groupReferenceResolver);
     }
 }

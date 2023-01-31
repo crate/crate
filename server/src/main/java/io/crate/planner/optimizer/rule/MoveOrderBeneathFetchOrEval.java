@@ -63,13 +63,14 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             GroupReferenceResolver resolver) {
+                             GroupReferenceResolver groupReferenceResolver) {
         Eval eval = captures.get(fetchCapture);
-        List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
+        LogicalPlan sources = groupReferenceResolver.apply(eval.source());
+        List<Symbol> outputsOfSourceOfFetch = sources.outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();
         if (outputsOfSourceOfFetch.containsAll(orderBySymbols)
             || outputsOfSourceOfFetch.containsAll(extractColumns(orderBySymbols))) {
-            return transpose(plan, eval);
+            return transpose(plan, eval, groupReferenceResolver);
         }
         return null;
     }

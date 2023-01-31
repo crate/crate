@@ -84,6 +84,6 @@ public final class MoveFilterBeneathOrder implements Rule<Filter> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
-        return transpose(filter, captures.get(orderCapture));
+        return transpose(filter, captures.get(orderCapture), groupReferenceResolver);
     }
 }

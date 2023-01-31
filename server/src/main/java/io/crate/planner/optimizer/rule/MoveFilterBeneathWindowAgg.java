@@ -121,7 +121,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
          * Filter (id = 1)
          */
         if (remainingFilterSymbols.isEmpty()) {
-            return transpose(filter, windowAgg);
+            return transpose(filter, windowAgg, groupReferenceResolver);
         }
 
         /* WHERE `ROW_NUMBER() OVER(PARTITION BY id) = 2 AND id = 1`

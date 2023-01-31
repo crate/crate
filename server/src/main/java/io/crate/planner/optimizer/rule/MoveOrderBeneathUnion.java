@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -63,7 +64,7 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
         Union union = captures.get(unionCapture);
-        List<LogicalPlan> unionSources = union.sources();
+        List<LogicalPlan> unionSources = Lists2.map(union.sources(), groupReferenceResolver::apply);
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";
         Order lhsOrder = updateSources(order, unionSources.get(0));
         Order rhsOrder = updateSources(order, unionSources.get(1));

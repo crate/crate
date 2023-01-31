@@ -98,7 +98,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
         }
         GroupHashAggregate groupBy = captures.get(groupByCapture);
         if (withoutAggregates.size() == parts.size()) {
-            return transpose(filter, groupBy);
+            return transpose(filter, groupBy, groupReferenceResolver);
         }
 
         /* HAVING `count(*) > 1 AND x = 10`
