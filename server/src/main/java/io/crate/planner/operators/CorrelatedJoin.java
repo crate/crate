@@ -137,7 +137,8 @@ public class CorrelatedJoin implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return this;
+        assert sources.size() == 1;
+        return new CorrelatedJoin(sources.get(0), this.selectSymbol, this.subQueryPlan);
     }
 
     @Override
