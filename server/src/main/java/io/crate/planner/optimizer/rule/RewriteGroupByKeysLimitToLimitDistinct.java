@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import io.crate.metadata.NodeContext;
+
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
@@ -54,7 +55,7 @@ import io.crate.types.DataTypes;
  * This optimization is more efficient the lower the limit and the higher the cardinality ratio. (E.g. a unique column).
  * On a ENUM style column that only has like 5 distinct values in a large table, this {@link LimitDistinct}
  * operator could cause a slow down:
- *
+ * <p>
  * The "early terminate" case wouldn't happen; It would process almost all rows.
  * In that case our "optimized group by iterator" is more efficient as it contains a ordinal optimization.
  * (It already knows which values are unique and skips everything else)
@@ -73,11 +74,14 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 typeOf(GroupHashAggregate.class)
                     .capturedAs(groupCapture)
                     .with(groupAggregate -> groupAggregate.aggregates().isEmpty())
-                );
+            );
     }
 
-    private static boolean eagerTerminateIsLikely(Limit limit, GroupHashAggregate groupAggregate) {
-        if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
+    private static boolean eagerTerminateIsLikely(Limit limit,
+                                                  GroupHashAggregate groupAggregate,
+                                                  GroupReferenceResolver groupReferenceResolver) {
+        if (groupAggregate.outputs().size() > 1 ||
+            !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
             // because a regular GROUP BY would have to do at least the same amount of work in any case.
@@ -92,7 +96,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = groupAggregate.source().numExpectedRows();
+        long sourceRows = groupReferenceResolver.apply(groupAggregate.source()).numExpectedRows();
         if (sourceRows == 0) {
             return false;
         }
@@ -168,7 +172,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              NodeContext nodeCtx,
                              GroupReferenceResolver groupReferenceResolver) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, groupReferenceResolver)) {
             return null;
         }
         return new LimitDistinct(

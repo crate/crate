@@ -186,7 +186,7 @@ public final class CopyToPlan implements Plan {
                                                          match.captures(),
                                                          tableStats,
                                                          context.transactionContext(),
-                                                         context.nodeContext(), x -> x);
+                                                         context.nodeContext());
             return plan == null ? collect : plan;
         }
         return collect;
