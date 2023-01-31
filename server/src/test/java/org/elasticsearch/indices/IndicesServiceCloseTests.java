@@ -47,8 +47,8 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
@@ -64,7 +64,6 @@ public class IndicesServiceCloseTests extends ESTestCase {
             .put(Environment.PATH_SHARED_DATA_SETTING.getKey(), createTempDir().getParent())
             .put(Node.NODE_NAME_SETTING.getKey(), nodeName)
             .put(EsExecutors.PROCESSORS_SETTING.getKey(), 1) // limit the number of threads created
-            .put("transport.type", getTestTransportType())
             .put(Node.NODE_DATA_SETTING.getKey(), true)
             .put(NodeEnvironment.NODE_ID_SEED_SETTING.getKey(), random().nextLong())
             // default the watermarks low values to prevent tests from failing on nodes without enough disk space
