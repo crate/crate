@@ -1079,38 +1079,38 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getSnapshotGlobalMetadata(final SnapshotId snapshotId, ActionListener<Metadata> listener) {
+    public CompletableFuture<Metadata> getSnapshotGlobalMetadata(final SnapshotId snapshotId) {
         try {
-            listener.onResponse(GLOBAL_METADATA_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
+            return CompletableFuture.completedFuture(GLOBAL_METADATA_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
         } catch (NoSuchFileException ex) {
-            listener.onFailure(new SnapshotMissingException(metadata.name(), snapshotId, ex));
+            return CompletableFuture.failedFuture(new SnapshotMissingException(metadata.name(), snapshotId, ex));
         } catch (IOException ex) {
-            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex));
+            return CompletableFuture.failedFuture(new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex));
         }
     }
 
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index, ActionListener<IndexMetadata> listener) {
+    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index) {
         try {
             IndexMetadata result = INDEX_METADATA_FORMAT.read(indexContainer(index),
                 repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry);
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 
 
     @Override
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds) {
         try {
-            var result = new ArrayList<IndexMetadata>();
+            var result = new ArrayList<IndexMetadata>(indexIds.size());
             for (IndexId index : indexIds) {
                 result.add(INDEX_METADATA_FORMAT.read(indexContainer(index),
                     repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry));
             }
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 

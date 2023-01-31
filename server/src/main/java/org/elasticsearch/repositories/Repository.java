@@ -105,9 +105,8 @@ public interface Repository extends LifecycleComponent {
      * Returns global metadata associated with the snapshot.
      *
      * @param snapshotId the snapshot id to load the global metadata from
-     * @param listener   listener invoked on completion
      */
-    void getSnapshotGlobalMetadata(SnapshotId snapshotId, ActionListener<Metadata> listener);
+    CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId);
 
     /**
      * Returns the index metadata associated with the snapshot.
@@ -116,7 +115,7 @@ public interface Repository extends LifecycleComponent {
      * @param indexId    the {@link IndexId} to load the metadata from
      * @param listener   listener invoked on completion
      */
-    void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId indexId, ActionListener<IndexMetadata> listener);
+    CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId indexId);
 
 
     /**
@@ -126,7 +125,7 @@ public interface Repository extends LifecycleComponent {
      * @param indexIds   the Collection of {@link IndexId} to load the metadata from
      * @param listener   listener invoked on completion
      */
-    void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener);
+    CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds);
 
 
     /**
