@@ -30,9 +30,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import com.carrotsearch.hppc.ObjectLookupContainer;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -56,6 +53,9 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import com.carrotsearch.hppc.ObjectLookupContainer;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
 import io.crate.common.collections.Sets;
 
 /**
@@ -71,7 +71,7 @@ public class DiskThresholdMonitor {
     private final Client client;
     private final Supplier<ClusterState> clusterStateSupplier;
     private final LongSupplier currentTimeMillisSupplier;
-    private final RerouteService rerouteService;
+    private final Supplier<RerouteService> rerouteService;
     private final AtomicLong lastRunTimeMillis = new AtomicLong(Long.MIN_VALUE);
     private final AtomicBoolean checkInProgress = new AtomicBoolean();
 
@@ -98,7 +98,7 @@ public class DiskThresholdMonitor {
                                 ClusterSettings clusterSettings,
                                 Client client,
                                 LongSupplier currentTimeMillisSupplier,
-                                RerouteService rerouteService) {
+                                Supplier<RerouteService> rerouteService) {
         this.clusterStateSupplier = clusterStateSupplier;
         this.currentTimeMillisSupplier = currentTimeMillisSupplier;
         this.rerouteService = rerouteService;
@@ -252,7 +252,7 @@ public class DiskThresholdMonitor {
 
         if (reroute) {
             LOGGER.debug("rerouting shards: [{}]", explanation);
-            rerouteService.reroute("disk threshold monitor", Priority.HIGH, ActionListener.wrap(reroutedClusterState -> {
+            rerouteService.get().reroute("disk threshold monitor", Priority.HIGH, ActionListener.wrap(reroutedClusterState -> {
 
                 for (DiskUsage diskUsage : usagesOverHighThreshold) {
                     final RoutingNode routingNode = reroutedClusterState.getRoutingNodes().node(diskUsage.getNodeId());
