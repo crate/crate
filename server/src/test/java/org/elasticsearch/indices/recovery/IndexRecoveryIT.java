@@ -22,21 +22,14 @@
 package org.elasticsearch.indices.recovery;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -48,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -174,33 +168,33 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     private void assertRecoveryStateWithoutStage(RecoveryState state, int shardId, RecoverySource recoverySource, boolean primary,
                                                  String sourceNode, String targetNode) {
-        assertThat(state.getShardId().getId(), equalTo(shardId));
-        assertThat(state.getRecoverySource(), equalTo(recoverySource));
-        assertThat(state.getPrimary(), equalTo(primary));
+        assertThat(state.getShardId().getId()).isEqualTo(shardId);
+        assertThat(state.getRecoverySource()).isEqualTo(recoverySource);
+        assertThat(state.getPrimary()).isEqualTo(primary);
         if (sourceNode == null) {
             assertNull(state.getSourceNode());
         } else {
             assertNotNull(state.getSourceNode());
-            assertThat(state.getSourceNode().getName(), equalTo(sourceNode));
+            assertThat(state.getSourceNode().getName()).isEqualTo(sourceNode);
         }
         if (targetNode == null) {
             assertNull(state.getTargetNode());
         } else {
             assertNotNull(state.getTargetNode());
-            assertThat(state.getTargetNode().getName(), equalTo(targetNode));
+            assertThat(state.getTargetNode().getName()).isEqualTo(targetNode);
         }
     }
 
     private void assertRecoveryState(RecoveryState state, int shardId, RecoverySource type, boolean primary, RecoveryState.Stage stage,
                                      String sourceNode, String targetNode) {
         assertRecoveryStateWithoutStage(state, shardId, type, primary, sourceNode, targetNode);
-        assertThat(state.getStage(), equalTo(stage));
+        assertThat(state.getStage()).isEqualTo(stage);
     }
 
     private void assertOnGoingRecoveryState(RecoveryState state, int shardId, RecoverySource type, boolean primary,
                                             String sourceNode, String targetNode) {
         assertRecoveryStateWithoutStage(state, shardId, type, primary, sourceNode, targetNode);
-        assertThat(state.getStage(), not(equalTo(RecoveryState.Stage.DONE)));
+        assertThat(state.getStage()).isNotEqualTo(RecoveryState.Stage.DONE);
     }
 
     private void slowDownRecovery(long shardSizeBytes) {
@@ -264,15 +258,15 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("REFRESH TABLE " + name);
         execute("OPTIMIZE TABLE " + name);
         execute("SELECT COUNT(*) FROM " + name);
-        assertThat(response.rows()[0][0], is((long) numDocs));
+        assertThat(response).hasRows(new Object[] { (long) numDocs });
     }
 
     private void validateIndexRecoveryState(RecoveryState.Index indexState) {
-        assertThat(indexState.time(), greaterThanOrEqualTo(0L));
-        assertThat(indexState.recoveredFilesPercent(), greaterThanOrEqualTo(0.0f));
-        assertThat(indexState.recoveredFilesPercent(), lessThanOrEqualTo(100.0f));
-        assertThat(indexState.recoveredBytesPercent(), greaterThanOrEqualTo(0.0f));
-        assertThat(indexState.recoveredBytesPercent(), lessThanOrEqualTo(100.0f));
+        assertThat(indexState.time()).isGreaterThanOrEqualTo(0L);
+        assertThat(indexState.recoveredFilesPercent()).isGreaterThanOrEqualTo(0.0f);
+        assertThat(indexState.recoveredFilesPercent()).isLessThanOrEqualTo(100.0f);
+        assertThat(indexState.recoveredBytesPercent()).isGreaterThanOrEqualTo(0.0f);
+        assertThat(indexState.recoveredBytesPercent()).isLessThanOrEqualTo(100.0f);
     }
 
     @Test
@@ -289,11 +283,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> request recoveries");
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
-        assertThat(response.shardRecoveryStates().size(), equalTo(SHARD_COUNT));
-        assertThat(response.shardRecoveryStates().get(indexName).size(), equalTo(1));
+        assertThat(response.shardRecoveryStates()).hasSize(SHARD_COUNT);
+        assertThat(response.shardRecoveryStates().get(indexName)).hasSize(1);
 
         List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
-        assertThat(recoveryStates.size(), equalTo(1));
+        assertThat(recoveryStates).hasSize(1);
 
         RecoveryState recoveryState = recoveryStates.get(0);
 
@@ -316,7 +310,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> request recoveries");
         execute("SELECT * FROM sys.shards WHERE table_name = '" + INDEX_NAME + "'" +
                 " AND recovery['stage'] != 'DONE'");
-        assertThat(response.rowCount(), is(0L));  // Should not expect any responses back
+        assertThat(response).hasRowCount(0L);  // Should not expect any responses back
     }
 
     @Test
@@ -342,15 +336,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         refresh();
         execute("SELECT COUNT(*) FROM " + INDEX_NAME);
-        assertThat(response.rows()[0][0], is((long) numOfDocs));
-
-        // We do not support ALTER on a closed table
-        //final boolean closedIndex = randomBoolean();
-        final boolean closedIndex = false;
-        if (closedIndex) {
-            execute("ALTER TABLE " + INDEX_NAME + " CLOSE");
-            ensureGreen();
-        }
+        assertThat(response).hasRows(new Object[] { (long) numOfDocs });
 
         // force a shard recovery from nodeA to nodeB
         final String nodeB = cluster().startNode();
@@ -360,28 +346,24 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         // we should now have two total shards, one primary and one replica
         execute("SELECT * FROM sys.shards WHERE table_name = '" + INDEX_NAME + "'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         final RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         // we should now have two total shards, one primary and one replica
         List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
-        assertThat(recoveryStates.size(), equalTo(2));
+        assertThat(recoveryStates).hasSize(2);
 
         List<RecoveryState> nodeAResponses = findRecoveriesForTargetNode(nodeA, recoveryStates);
-        assertThat(nodeAResponses.size(), equalTo(1));
+        assertThat(nodeAResponses).hasSize(1);
         List<RecoveryState> nodeBResponses = findRecoveriesForTargetNode(nodeB, recoveryStates);
-        assertThat(nodeBResponses.size(), equalTo(1));
+        assertThat(nodeBResponses).hasSize(1);
 
         // validate node A recovery
         final RecoveryState nodeARecoveryState = nodeAResponses.get(0);
         final RecoverySource expectedRecoverySource;
-        if (closedIndex == false) {
-            expectedRecoverySource = RecoverySource.EmptyStoreRecoverySource.INSTANCE;
-        } else {
-            expectedRecoverySource = RecoverySource.ExistingStoreRecoverySource.INSTANCE;
-        }
+        expectedRecoverySource = RecoverySource.EmptyStoreRecoverySource.INSTANCE;
         assertRecoveryState(nodeARecoveryState, 0, expectedRecoverySource, true, RecoveryState.Stage.DONE, null, nodeA);
         validateIndexRecoveryState(nodeARecoveryState.getIndex());
 
@@ -392,11 +374,8 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         cluster().stopRandomNode(TestCluster.nameFilter(nodeA));
 
-        if (closedIndex) {
-            execute("ALTER TABLE " + INDEX_NAME + " OPEN");
-        }
         var res = execute("SELECT COUNT(*) FROM " + INDEX_NAME);
-        assertThat(res.rows()[0][0], is((long) numOfDocs));
+        assertThat(res).hasRows(new Object[] { (long) numOfDocs });
     }
 
     @Test
@@ -420,7 +399,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         // do sync flush to gen sync id
         execute("OPTIMIZE TABLE " + INDEX_NAME);
-        //assertThat(client().admin().indices().prepareSyncedFlush(INDEX_NAME).get().failedShards(), equalTo(0));
+        //assertThat(client().admin().indices().prepareSyncedFlush(INDEX_NAME).get().failedShards()).isEqualTo(0));
 
         // hold peer recovery on phase 2 after nodeB down
         CountDownLatch phase1ReadyBlocked = new CountDownLatch(1);
@@ -450,7 +429,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
                     List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
                     List<RecoveryState> nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
-                    assertThat(nodeCRecoveryStates.size(), equalTo(1));
+                    assertThat(nodeCRecoveryStates).hasSize(1);
 
                     assertOnGoingRecoveryState(nodeCRecoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE,
                                                false, nodeA, nodeC);
@@ -468,12 +447,12 @@ public class IndexRecoveryIT extends IntegTestCase {
         // make sure nodeA has primary and nodeB has replica
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         List<ShardRouting> startedShards = state.routingTable().shardsWithState(ShardRoutingState.STARTED);
-        assertThat(startedShards.size(), equalTo(2));
+        assertThat(startedShards).hasSize(2);
         for (ShardRouting shardRouting : startedShards) {
             if (shardRouting.primary()) {
-                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(nodeA));
+                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(nodeA);
             } else {
-                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(nodeB));
+                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(nodeB);
             }
         }
     }
@@ -503,11 +482,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         final Index index = resolveIndex(IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
         assertBusy(() -> {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeA);
-            assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource(),
-                       equalTo(1));
+            assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource())
+                .isEqualTo(1);
             indicesService = cluster().getInstance(IndicesService.class, nodeB);
-            assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsTarget(),
-                       equalTo(1));
+            assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsTarget())
+                .isEqualTo(1);
         });
 
         logger.info("--> request recoveries");
@@ -515,9 +494,9 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(index.getName());
         List<RecoveryState> nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
-        assertThat(nodeARecoveryStates.size(), equalTo(1));
+        assertThat(nodeARecoveryStates).hasSize(1);
         List<RecoveryState> nodeBRecoveryStates = findRecoveriesForTargetNode(nodeB, recoveryStates);
-        assertThat(nodeBRecoveryStates.size(), equalTo(1));
+        assertThat(nodeBRecoveryStates).hasSize(1);
 
         assertRecoveryState(nodeARecoveryStates.get(0), 0, RecoverySource.EmptyStoreRecoverySource.INSTANCE, true,
                             RecoveryState.Stage.DONE, null, nodeA);
@@ -530,14 +509,22 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         IndicesService indicesServiceNodeA = cluster().getInstance(IndicesService.class, nodeA);
         var recoveryStatsNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0).recoveryStats();
-        assertThat("node A should have ongoing recovery as source", recoveryStatsNodeA.currentAsSource(), equalTo(1));
-        assertThat("node A should not have ongoing recovery as target", recoveryStatsNodeA.currentAsTarget(), equalTo(0));
+        assertThat(recoveryStatsNodeA.currentAsSource())
+            .as("node A should have ongoing recovery as source")
+            .isEqualTo(1);
+        assertThat(recoveryStatsNodeA.currentAsTarget())
+            .as("node A should not have ongoing recovery as target")
+            .isEqualTo(0);
         long nodeAThrottling = recoveryStatsNodeA.throttleTime().millis();
 
         IndicesService indicesServiceNodeB = cluster().getInstance(IndicesService.class, nodeB);
         var recoveryStatsNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0).recoveryStats();
-        assertThat("node B should not have ongoing recovery as source", recoveryStatsNodeB.currentAsSource(), equalTo(0));
-        assertThat("node B should have ongoing recovery as target", recoveryStatsNodeB.currentAsTarget(), equalTo(1));
+        assertThat(recoveryStatsNodeB.currentAsSource())
+            .as("node B should not have ongoing recovery as source")
+            .isEqualTo(0);
+        assertThat( recoveryStatsNodeB.currentAsTarget())
+            .as("node B should have ongoing recovery as target")
+            .isEqualTo(1);
         long nodeBThrottling = recoveryStatsNodeB.throttleTime().millis();
 
         logger.info("--> checking throttling increases");
@@ -546,10 +533,12 @@ public class IndexRecoveryIT extends IntegTestCase {
         var indexShardNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0);
         var indexShardNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0);
         assertBusy(() -> {
-            assertThat("node A throttling should increase", indexShardNodeA.recoveryStats().throttleTime().millis(),
-                    greaterThan(finalNodeAThrottling));
-            assertThat("node B throttling should increase", indexShardNodeB.recoveryStats().throttleTime().millis(),
-                    greaterThan(finalNodeBThrottling));
+            assertThat(indexShardNodeA.recoveryStats().throttleTime().millis())
+                .as("node A throttling should increase")
+                .isGreaterThan(finalNodeAThrottling);
+            assertThat(indexShardNodeB.recoveryStats().throttleTime().millis())
+                .as("node B throttling should increase")
+                .isGreaterThan(finalNodeBThrottling);
         });
 
 
@@ -561,16 +550,18 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
-        assertThat(recoveryStates.size(), equalTo(1));
+        assertThat(recoveryStates).hasSize(1);
 
         assertRecoveryState(recoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE, true, RecoveryState.Stage.DONE, nodeA, nodeB);
         validateIndexRecoveryState(recoveryStates.get(0).getIndex());
         Consumer<String> assertNodeHasThrottleTimeAndNoRecoveries = nodeName ->  {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             var recoveryStats = indicesService.indexServiceSafe(index).getShard(0).recoveryStats();
-            assertThat(recoveryStats.currentAsSource(), equalTo(0));
-            assertThat(recoveryStats.currentAsTarget(), equalTo(0));
-            assertThat(nodeName + " throttling should be >0", recoveryStats.throttleTime().millis(), greaterThan(0L));
+            assertThat(recoveryStats.currentAsSource()).isEqualTo(0);
+            assertThat(recoveryStats.currentAsTarget()).isEqualTo(0);
+            assertThat(recoveryStats.throttleTime().millis())
+                .as(nodeName + " throttling should be >0")
+                .isGreaterThan(0L);
         };
         // we have to use assertBusy as recovery counters are decremented only when the last reference to the RecoveryTarget
         // is decremented, which may happen after the recovery was done.
@@ -603,11 +594,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         recoveryStates = response.shardRecoveryStates().get(index.getName());
 
         nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
-        assertThat(nodeARecoveryStates.size(), equalTo(1));
+        assertThat(nodeARecoveryStates).hasSize(1);
         nodeBRecoveryStates = findRecoveriesForTargetNode(nodeB, recoveryStates);
-        assertThat(nodeBRecoveryStates.size(), equalTo(1));
+        assertThat(nodeBRecoveryStates).hasSize(1);
         List<RecoveryState> nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
-        assertThat(nodeCRecoveryStates.size(), equalTo(1));
+        assertThat(nodeCRecoveryStates).hasSize(1);
 
         assertRecoveryState(nodeARecoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE, false, RecoveryState.Stage.DONE, nodeB, nodeA);
         validateIndexRecoveryState(nodeARecoveryStates.get(0).getIndex());
@@ -628,11 +619,11 @@ public class IndexRecoveryIT extends IntegTestCase {
             recoveryStates = response.shardRecoveryStates().get(index.getName());
 
             nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
-            assertThat(nodeARecoveryStates.size(), equalTo(0));
+            assertThat(nodeARecoveryStates).hasSize(0);
             nodeBRecoveryStates = findRecoveriesForTargetNode(nodeB, recoveryStates);
-            assertThat(nodeBRecoveryStates.size(), equalTo(1));
+            assertThat(nodeBRecoveryStates).hasSize(1);
             nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
-            assertThat(nodeCRecoveryStates.size(), equalTo(1));
+            assertThat(nodeCRecoveryStates).hasSize(1);
 
             assertRecoveryState(nodeBRecoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE, true, RecoveryState.Stage.DONE, nodeA, nodeB);
             validateIndexRecoveryState(nodeBRecoveryStates.get(0).getIndex());
@@ -649,11 +640,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         recoveryStates = response.shardRecoveryStates().get(index.getName());
 
         nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
-        assertThat(nodeARecoveryStates.size(), equalTo(0));
+        assertThat(nodeARecoveryStates).hasSize(0);
         nodeBRecoveryStates = findRecoveriesForTargetNode(nodeB, recoveryStates);
-        assertThat(nodeBRecoveryStates.size(), equalTo(1));
+        assertThat(nodeBRecoveryStates).hasSize(1);
         nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
-        assertThat(nodeCRecoveryStates.size(), equalTo(1));
+        assertThat(nodeCRecoveryStates).hasSize(1);
 
         assertRecoveryState(nodeBRecoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE, true, RecoveryState.Stage.DONE, nodeA, nodeB);
         validateIndexRecoveryState(nodeBRecoveryStates.get(0).getIndex());
@@ -681,7 +672,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("CREATE SNAPSHOT " + snapshotName + " ALL WITH (wait_for_completion=true)");
 
         execute("SELECT state FROM sys.snapshots WHERE name = '" + SNAP_NAME + "'");
-        assertThat(response.rows()[0][0], is("SUCCESS"));
+        assertThat(response).hasRows("SUCCESS\n");
 
         execute("ALTER TABLE " + INDEX_NAME + " CLOSE");
 
@@ -699,12 +690,12 @@ public class IndexRecoveryIT extends IntegTestCase {
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         Repository repository = cluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
-        final RepositoryData repositoryData = PlainActionFuture.get(repository::getRepositoryData);
+        RepositoryData repositoryData = repository.getRepositoryData().get(5, TimeUnit.SECONDS);
         for (Map.Entry<String, List<RecoveryState>> indexRecoveryStates : response.shardRecoveryStates().entrySet()) {
 
-            assertThat(indexRecoveryStates.getKey(), equalTo(indexName));
+            assertThat(indexRecoveryStates.getKey()).isEqualTo(indexName);
             List<RecoveryState> recoveryStates = indexRecoveryStates.getValue();
-            assertThat(recoveryStates.size(), equalTo(SHARD_COUNT));
+            assertThat(recoveryStates).hasSize(SHARD_COUNT);
 
             for (RecoveryState recoveryState : recoveryStates) {
                 RecoverySource.SnapshotRecoverySource recoverySource = new RecoverySource.SnapshotRecoverySource(
@@ -734,7 +725,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
-        assertThat(response.isTimedOut(), is(false));
+        assertThat(response.isTimedOut()).isFalse();
 
         execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
@@ -767,7 +758,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
-        assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+        assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
         String[] recoveryActions = new String[]{
             PeerRecoveryTargetService.Actions.PREPARE_TRANSLOG,
@@ -813,10 +804,9 @@ public class IndexRecoveryIT extends IntegTestCase {
                     ")");
 
             ensureGreen();
-            // TODO: ES will use the shard routing preference here to prefer `_local` shards on that node
             var nodeRedExecutor = executor(redNodeName);
             searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc." + indexName);
-            assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+            assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
         } finally {
             blueTransportService.clearAllRules();
             redTransportService.clearAllRules();
@@ -916,7 +906,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
-        assertThat(response.isTimedOut(), is(false));
+        assertThat(response.isTimedOut()).isFalse();
 
         execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
@@ -939,7 +929,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
-        assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+        assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
         String[] recoveryActions = new String[]{
             PeerRecoverySourceService.Actions.START_RECOVERY,
@@ -997,10 +987,9 @@ public class IndexRecoveryIT extends IntegTestCase {
         redMockTransportService.clearAllRules();
 
         ensureGreen();
-        // TODO: ES will use the shard routing preference here to prefer `_local` shards on that node
         var nodeRedExecutor = executor(redNodeName);
         searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc." + indexName);
-        assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+        assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
     }
 
     private class RecoveryActionBlocker implements StubbableTransport.SendRequestBehavior {
@@ -1068,7 +1057,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM test");
-        assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+        assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
         MockTransportService masterTransportService =
             (MockTransportService) cluster().getInstance(TransportService.class, masterNodeName);
@@ -1087,10 +1076,17 @@ public class IndexRecoveryIT extends IntegTestCase {
                 if (PeerRecoverySourceService.Actions.START_RECOVERY.equals(action) && count.incrementAndGet() == 1) {
                     // ensures that it's considered as valid recovery attempt by source
                     try {
-                        assertBusy(() -> assertThat(
-                            "Expected there to be some initializing shards",
-                            client(blueNodeName).admin().cluster().state(new ClusterStateRequest().local(true)).get()
-                                .getState().getRoutingTable().index(indexName).shard(0).getAllInitializingShards(), not(empty())));
+                        assertBusy(() -> {
+                            ClusterStateRequest stateRequest = new ClusterStateRequest().local(true);
+                            List<ShardRouting> initializingShards = client(blueNodeName).admin().cluster().state(stateRequest).get()
+                                .getState()
+                                .getRoutingTable()
+                                .index(indexName)
+                                .shard(0).getAllInitializingShards();
+                            assertThat(initializingShards)
+                                .as("Expected there to be some initializing shards")
+                                .isNotEmpty();
+                        });
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -1152,7 +1148,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         for (int i = 0; i < 10; i++) {
             searchResponse = execute("SELECT COUNT(*) FROM test");
-            assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+            assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
         }
     }
 
@@ -1212,9 +1208,9 @@ public class IndexRecoveryIT extends IntegTestCase {
         final List<RecoveryState> recoveryStates = recoveryResponse.shardRecoveryStates().get(indexName);
         recoveryStates.removeIf(r -> r.getTimer().getStartNanoTime() <= desyncNanoTime);
 
-        assertThat(recoveryStates, hasSize(1));
-        assertThat(recoveryStates.get(0).getIndex().totalFileCount(), is(0));
-        assertThat(recoveryStates.get(0).getTranslog().recoveredOperations(), greaterThan(0));
+        assertThat(recoveryStates).hasSize(1);
+        assertThat(recoveryStates.get(0).getIndex().totalFileCount()).isEqualTo(0);
+        assertThat(recoveryStates.get(0).getTranslog().recoveredOperations()).isGreaterThan(0);
     }
 
     @Test
@@ -1254,7 +1250,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM test");
-        assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
+        assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
     }
 
     /** Makes sure the new master does not repeatedly fetch index metadata from recovering replicas */
@@ -1318,15 +1314,15 @@ public class IndexRecoveryIT extends IntegTestCase {
         for (ShardStats shardStats : indicesStats.getIndex(indexName).getShards()) {
             shardId = shardStats.getShardRouting().shardId();
             if (shardStats.getShardRouting().primary() == false) {
-                assertThat(shardStats.getCommitStats().getNumDocs(), equalTo(numDocs));
+                assertThat(shardStats.getCommitStats().getNumDocs()).isEqualTo(numDocs);
                 SequenceNumbers.CommitInfo commitInfo = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(
                     shardStats.getCommitStats().getUserData().entrySet());
-                assertThat(commitInfo.localCheckpoint, equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));
-                assertThat(commitInfo.maxSeqNo, equalTo(shardStats.getSeqNoStats().getMaxSeqNo()));
+                assertThat(commitInfo.localCheckpoint).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
+                assertThat(commitInfo.maxSeqNo).isEqualTo(shardStats.getSeqNoStats().getMaxSeqNo());
             }
         }
         SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId);
-        assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards(), equalTo(0)));
+        assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards()).isEqualTo(0));
         execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
         ensureGreen(indexName);
         // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
@@ -1334,7 +1330,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         Set<String> syncIds = Stream.of(indicesStats.getIndex(indexName).getShards())
             .map(shardStats -> shardStats.getCommitStats().syncId())
             .collect(Collectors.toSet());
-        assertThat(syncIds, hasSize(1));
+        assertThat(syncIds).hasSize(1);
     }
 
     @Test
@@ -1358,7 +1354,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen(indexName);
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
-        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId).successfulShards(), equalTo(2));
+        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId).successfulShards()).isEqualTo(2);
 
         final ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
@@ -1412,9 +1408,9 @@ public class IndexRecoveryIT extends IntegTestCase {
                 if (action.equals(PeerRecoverySourceService.Actions.START_RECOVERY)) {
                     final RecoveryState recoveryState = cluster().getInstance(IndicesService.class, failingNode)
                         .getShardOrNull(new ShardId(resolveIndex(indexName), 0)).recoveryState();
-                    assertThat(recoveryState.getTranslog().recoveredOperations(), equalTo(recoveryState.getTranslog().totalLocal()));
+                    assertThat(recoveryState.getTranslog().recoveredOperations()).isEqualTo(recoveryState.getTranslog().totalLocal());
                     if (startRecoveryRequestFuture.isDone()) {
-                        assertThat(recoveryState.getTranslog().totalLocal(), equalTo(0));
+                        assertThat(recoveryState.getTranslog().totalLocal()).isEqualTo(0);
                         recoveryState.getTranslog().totalLocal(localRecoveredOps.get());
                         recoveryState.getTranslog().incrementRecoveredOperations(localRecoveredOps.get());
                     } else {
@@ -1447,17 +1443,19 @@ public class IndexRecoveryIT extends IntegTestCase {
                     startRecoveryRequest.metadataSnapshot().getCommitUserData());
         SequenceNumbers.CommitInfo commitInfoAfterLocalRecovery = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(
             startRecoveryRequest.metadataSnapshot().getCommitUserData().entrySet());
-        assertThat(commitInfoAfterLocalRecovery.localCheckpoint, equalTo(lastSyncedGlobalCheckpoint));
-        assertThat(commitInfoAfterLocalRecovery.maxSeqNo, equalTo(lastSyncedGlobalCheckpoint));
-        assertThat(startRecoveryRequest.startingSeqNo(), equalTo(lastSyncedGlobalCheckpoint + 1));
+        assertThat(commitInfoAfterLocalRecovery.localCheckpoint).isEqualTo(lastSyncedGlobalCheckpoint);
+        assertThat(commitInfoAfterLocalRecovery.maxSeqNo).isEqualTo(lastSyncedGlobalCheckpoint);
+        assertThat(startRecoveryRequest.startingSeqNo()).isEqualTo(lastSyncedGlobalCheckpoint + 1);
         ensureGreen(indexName);
-        assertThat((long) localRecoveredOps.get(), equalTo(lastSyncedGlobalCheckpoint - localCheckpointOfSafeCommit));
+        assertThat((long) localRecoveredOps.get()).isEqualTo(lastSyncedGlobalCheckpoint - localCheckpointOfSafeCommit);
         for (var recoveryState : client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get().shardRecoveryStates().get(indexName)) {
             if (startRecoveryRequest.targetNode().equals(recoveryState.getTargetNode())) {
-                assertThat("expect an operation-based recovery", recoveryState.getIndex().fileDetails().values(), empty());
-                assertThat("total recovered translog operations must include both local and remote recovery",
-                           recoveryState.getTranslog().recoveredOperations(),
-                           greaterThanOrEqualTo(Math.toIntExact(maxSeqNo - localCheckpointOfSafeCommit)));
+                assertThat(recoveryState.getIndex().fileDetails().values())
+                    .as("expect an operation-based recovery")
+                    .isEmpty();
+                assertThat(recoveryState.getTranslog().recoveredOperations())
+                    .as("total recovered translog operations must include both local and remote recovery")
+                    .isGreaterThanOrEqualTo(Math.toIntExact(maxSeqNo - localCheckpointOfSafeCommit));
             }
         }
         for (String node : nodes) {
@@ -1518,7 +1516,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
-        assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
+        assertThat(recoveryState.getIndex().totalFileCount()).isGreaterThan(0);
     }
 
     @Test
@@ -1584,7 +1582,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
-        assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
+        assertThat(recoveryState.getIndex().totalFileCount()).isGreaterThan(0);
     }
 
     @Test
@@ -1635,8 +1633,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
-        assertThat(shardStats.getStats().docs.getDeleted(), equalTo(0L));
-        assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1, equalTo(docCount));
+        assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
+        assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1).isEqualTo(docCount);
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
@@ -1703,7 +1701,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
-        assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
+        assertThat(recoveryState.getIndex().totalFileCount()).isGreaterThan(0);
     }
 
     @Test
@@ -1731,7 +1729,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final IndexShard primary = cluster().getInstance(IndicesService.class,
                                                                  discoveryNodes.get(indexShardRoutingTable.primaryShard().currentNodeId()).getName()).getShardOrNull(shardId);
         final long maxSeqNoBeforeRecovery = primary.seqNoStats().getMaxSeqNo();
-        assertBusy(() -> assertThat(primary.getLastSyncedGlobalCheckpoint(), equalTo(maxSeqNoBeforeRecovery)));
+        assertBusy(() -> assertThat(primary.getLastSyncedGlobalCheckpoint()).isEqualTo(maxSeqNoBeforeRecovery));
         execute("OPTIMIZE TABLE doc.test"); // makes a safe commit
 
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
@@ -1743,8 +1741,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
-        assertThat((long)recoveryState.getTranslog().recoveredOperations(),
-                   lessThanOrEqualTo(maxSeqNoAfterRecovery - maxSeqNoBeforeRecovery));
+        assertThat((long) recoveryState.getTranslog().recoveredOperations())
+            .isLessThanOrEqualTo(maxSeqNoAfterRecovery - maxSeqNoBeforeRecovery);
     }
 
     public static final class TestAnalysisPlugin extends Plugin implements AnalysisPlugin {
