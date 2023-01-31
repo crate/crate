@@ -82,7 +82,6 @@ import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
-import org.elasticsearch.cluster.routing.LazilyInitializedRerouteService;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -374,14 +373,14 @@ public class Node implements Closeable {
             );
             resourcesToClose.add(clusterService);
 
-            final LazilyInitializedRerouteService lazilyInitializedRerouteService = new LazilyInitializedRerouteService();
+            SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
                 settings,
                 clusterService::state,
                 clusterService.getClusterSettings(),
                 client,
                 threadPool::relativeTimeInMillis,
-                lazilyInitializedRerouteService
+                rerouteServiceReference::get
             );
             final SetOnce<RepositoriesService> repositoriesServiceReference = new SetOnce<>();
             final ClusterInfoService clusterInfoService = newClusterInfoService(
@@ -428,7 +427,6 @@ public class Node implements Closeable {
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
                                                                      threadPool);
-            SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             InternalSnapshotsInfoService snapshotsInfoService = new InternalSnapshotsInfoService(
                 settings,
                 clusterService,
@@ -694,7 +692,6 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService()::reroute
             );
             rerouteServiceReference.set(rerouteService);
-            lazilyInitializedRerouteService.setRerouteService(rerouteService);
             final DiscoveryModule discoveryModule = new DiscoveryModule(
                 this.settings,
                 transportService,
