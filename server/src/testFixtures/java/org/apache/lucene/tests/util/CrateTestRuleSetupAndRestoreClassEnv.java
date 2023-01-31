@@ -27,7 +27,7 @@ import java.util.TimeZone;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene94.Lucene94Codec;
+import org.apache.lucene.codecs.lucene95.Lucene95Codec;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.tests.codecs.asserting.AssertingCodec;
 import org.apache.lucene.tests.codecs.asserting.AssertingDocValuesFormat;
@@ -180,9 +180,9 @@ final class CrateTestRuleSetupAndRestoreClassEnv extends AbstractBeforeAfterRule
         } else if ("Compressing".equals(CrateLuceneTestCase.TEST_CODEC)
                    || ("random".equals(CrateLuceneTestCase.TEST_CODEC) && randomVal == 6 && !shouldAvoidCodec("Compressing"))) {
             codec = CompressingCodec.randomInstance(random);
-        } else if ("Lucene94".equals(CrateLuceneTestCase.TEST_CODEC)
-                   || ("random".equals(CrateLuceneTestCase.TEST_CODEC) && randomVal == 5 && !shouldAvoidCodec("Lucene94"))) {
-            codec = new Lucene94Codec(RandomPicks.randomFrom(random, Lucene94Codec.Mode.values()));
+        } else if ("Lucene95".equals(CrateLuceneTestCase.TEST_CODEC)
+                   || ("random".equals(CrateLuceneTestCase.TEST_CODEC) && randomVal == 5 && !shouldAvoidCodec("Lucene95"))) {
+            codec = new Lucene95Codec(RandomPicks.randomFrom(random, Lucene95Codec.Mode.values()));
         } else if (!"random".equals(CrateLuceneTestCase.TEST_CODEC)) {
             codec = Codec.forName(CrateLuceneTestCase.TEST_CODEC);
         } else if ("random".equals(CrateLuceneTestCase.TEST_POSTINGSFORMAT)) {

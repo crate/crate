@@ -60,6 +60,7 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -117,25 +118,23 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void start() {
-        RetryRunnable runnable;
-        synchronized (this) {
-            assert isActive == false : "MetadataTracker is already started";
-            assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
-            runnable = new RetryRunnable(
-                threadPool,
-                ThreadPool.Names.LOGICAL_REPLICATION,
-                this::run,
-                BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
-            );
-            cancellable = runnable;
-            isActive = true;
-        }
+        assert isActive == false : "MetadataTracker is already started";
+        assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
+        RetryRunnable runnable = new RetryRunnable(
+            threadPool,
+            ThreadPool.Names.LOGICAL_REPLICATION,
+            this::run,
+            BackoffPolicy.exponentialBackoff(replicationSettings.pollDelay(), 8)
+        );
+        cancellable = runnable;
+        isActive = true;
         runnable.run();
     }
 
     private void stop() {
-        if (cancellable != null) {
-            cancellable.cancel();
+        Cancellable currentCancellable = cancellable;
+        if (currentCancellable != null) {
+            currentCancellable.cancel();
         }
         isActive = false;
     }

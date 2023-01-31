@@ -19,6 +19,11 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.function.Supplier;
+
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
@@ -42,11 +47,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BitSetIterator;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.function.Supplier;
 
 final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
     RecoverySourcePruneMergePolicy(String recoverySourceField, Supplier<Query> retainSourceQuerySupplier, MergePolicy in) {
@@ -205,8 +205,8 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
             }
 
             @Override
-            public void visitDocument(int docID, StoredFieldVisitor visitor) throws IOException {
-                in.visitDocument(docID, visitor);
+            public void document(int docID, StoredFieldVisitor visitor) throws IOException {
+                in.document(docID, visitor);
             }
 
             @Override
@@ -230,11 +230,11 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
             }
 
             @Override
-            public void visitDocument(int docID, StoredFieldVisitor visitor) throws IOException {
+            public void document(int docID, StoredFieldVisitor visitor) throws IOException {
                 if (recoverySourceToKeep != null && recoverySourceToKeep.get(docID)) {
-                    super.visitDocument(docID, visitor);
+                    super.document(docID, visitor);
                 } else {
-                    super.visitDocument(docID, new FilterStoredFieldVisitor(visitor) {
+                    super.document(docID, new FilterStoredFieldVisitor(visitor) {
                         @Override
                         public Status needsField(FieldInfo fieldInfo) throws IOException {
                             if (recoverySourceField.equals(fieldInfo.name)) {

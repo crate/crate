@@ -1201,14 +1201,10 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     private NodeConfigurationSource getNodeConfigSource() {
-        Settings.Builder initialNodeSettings = Settings.builder();
-        initialNodeSettings.put(NetworkModule.TRANSPORT_TYPE_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
         return new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
-                return Settings.builder()
-                    .put(initialNodeSettings.build())
-                    .put(IntegTestCase.this.nodeSettings(nodeOrdinal)).build();
+                return IntegTestCase.this.nodeSettings(nodeOrdinal);
             }
 
             @Override
