@@ -66,8 +66,7 @@ QUOTED_STRING
     ;
 
 UNQUOTED_STRING
-    : CHAR+ (' ')* CHAR+
-    | CHAR+
+    : CHAR+ ((' ')+ CHAR+)*
     ;
 
 fragment CHAR
