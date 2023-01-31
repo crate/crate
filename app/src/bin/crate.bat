@@ -96,9 +96,6 @@ if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
     set JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=%CRATE_HEAP_DUMP_PATH%
 )
 
-REM See https://github.com/elastic/elasticsearch/issues/90526
-set JAVA_OPTS=%JAVA_OPTS% --enable-preview
-
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/*
 ) else (
