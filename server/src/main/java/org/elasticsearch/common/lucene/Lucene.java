@@ -19,6 +19,16 @@
 
 package org.elasticsearch.common.lucene;
 
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -48,23 +58,15 @@ import org.apache.lucene.store.Lock;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.ExceptionsHelper;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.Iterables;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Iterables;
 
 public class Lucene {
-    public static final String LATEST_CODEC = "Lucene94";
+    public static final String LATEST_CODEC = "Lucene95";
 
     public static final String SOFT_DELETES_FIELD = "__soft_deletes";
 
