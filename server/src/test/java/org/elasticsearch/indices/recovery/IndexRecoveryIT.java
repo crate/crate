@@ -793,7 +793,14 @@ public class IndexRecoveryIT extends IntegTestCase {
             }
         };
         TransientReceiveRejected handlingBehavior =
-            new TransientReceiveRejected(recoveryActionToBlock, recoveryStarted, finalizeReceived, connectionBreaker);
+            new TransientReceiveRejected(recoveryActionToBlock, recoveryStarted, connectionBreaker);
+        redTransportService.addRequestHandlingBehavior(
+            PeerRecoveryTargetService.Actions.FINALIZE,
+            (handler, request, channel) -> {
+                finalizeReceived.set(true);
+                handler.messageReceived(request, channel);
+            }
+        );
         redTransportService.addRequestHandlingBehavior(recoveryActionToBlock, handlingBehavior);
 
         try {
@@ -817,17 +824,14 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         private final String actionName;
         private final AtomicBoolean recoveryStarted;
-        private final AtomicBoolean finalizeReceived;
         private final Runnable connectionBreaker;
         private final AtomicInteger blocksRemaining;
 
         private TransientReceiveRejected(String actionName,
                                          AtomicBoolean recoveryStarted,
-                                         AtomicBoolean finalizeReceived,
                                          Runnable connectionBreaker) {
             this.actionName = actionName;
             this.recoveryStarted = recoveryStarted;
-            this.finalizeReceived = finalizeReceived;
             this.connectionBreaker = connectionBreaker;
             this.blocksRemaining = new AtomicInteger(randomIntBetween(1, 3));
         }
@@ -837,9 +841,6 @@ public class IndexRecoveryIT extends IntegTestCase {
                                     TransportRequest request,
                                     TransportChannel channel) throws Exception {
             recoveryStarted.set(true);
-            if (actionName.equals(PeerRecoveryTargetService.Actions.FINALIZE)) {
-                finalizeReceived.set(true);
-            }
             if (blocksRemaining.getAndUpdate(i -> i == 0 ? 0 : i - 1) != 0) {
                 String rejected = "rejected";
                 String circuit = "circuit";
