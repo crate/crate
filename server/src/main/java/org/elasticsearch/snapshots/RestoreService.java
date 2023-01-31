@@ -227,7 +227,7 @@ public class RestoreService implements ClusterStateApplier {
                             || request.includeGlobalSettings()
                             || request.allTemplates()
                             || (request.templates() != null && request.templates().length > 0)) {
-                            repository.getSnapshotGlobalMetadata(snapshotId, globalMetadataListener);
+                            repository.getSnapshotGlobalMetadata(snapshotId).whenComplete(globalMetadataListener);
                         } else {
                             globalMetadataListener.onResponse(Metadata.EMPTY_METADATA);
                         }
@@ -235,7 +235,7 @@ public class RestoreService implements ClusterStateApplier {
                             var metadataBuilder = Metadata.builder(globalMetadata);
                             var indexIdsInSnapshot = repositoryData.resolveIndices(indicesInSnapshot);
                             var snapshotIndexMetadataListener = new StepListener<Collection<IndexMetadata>>();
-                            repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot, snapshotIndexMetadataListener);
+                            repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot).whenComplete(snapshotIndexMetadataListener);
                             snapshotIndexMetadataListener.whenComplete(snapshotIndexMetadata -> {
                                 for (IndexMetadata indexMetadata : snapshotIndexMetadata) {
                                     metadataBuilder.put(indexMetadata, false);

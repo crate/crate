@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -78,7 +79,6 @@ import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
-import java.util.Set;
 
 public final class BlobStoreTestUtil {
 
@@ -225,7 +225,7 @@ public final class BlobStoreTestUtil {
                 assertThat(indexContainer.listBlobs(),
                     hasKey(String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT,
                         repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, indexId))));
-                final IndexMetadata indexMetadata = PlainActionFuture.get(x -> repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexId, x));
+                IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexId).get();
                 for (Map.Entry<String, BlobContainer> entry : indexContainer.children().entrySet()) {
                     // Skip Lucene MockFS extraN directory
                     if (entry.getKey().startsWith("extra")) {
