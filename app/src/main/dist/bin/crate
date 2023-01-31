@@ -164,9 +164,6 @@ if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
     JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
 fi
 
-# See https://github.com/elastic/elasticsearch/issues/90526
-JAVA_OPTS="$JAVA_OPTS --enable-preview"
-
 if [ "$(uname -s)" = "Darwin" ]; then
     JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
 else
