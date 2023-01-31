@@ -311,7 +311,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         long count = 1;
         // See ScrollMode description
         if (direction == null) {
-            scrollMode = Fetch.ScrollMode.RELATIVE;
+            scrollMode = Fetch.ScrollMode.MOVE;
         } else if (direction.FIRST() != null) {
             scrollMode = Fetch.ScrollMode.ABSOLUTE;
             count = 1;
@@ -321,15 +321,21 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         } else if (direction.ABSOLUTE() != null) {
             scrollMode = Fetch.ScrollMode.ABSOLUTE;
             count = Long.parseLong(direction.integerLiteral().getText());
+        } else if (direction.RELATIVE() != null) {
+            scrollMode = ScrollMode.RELATIVE;
+            count = Long.parseLong(direction.integerLiteral().getText());
+            if (direction.MINUS() != null) {
+                count *= -1;
+            }
         } else {
-            scrollMode = Fetch.ScrollMode.RELATIVE;
+            scrollMode = Fetch.ScrollMode.MOVE;
             if (direction.ALL() != null) {
                 count = Long.MAX_VALUE;
             } else if (direction.integerLiteral() != null) {
                 count = Long.parseLong(direction.integerLiteral().getText());
             }
             if (direction.BACKWARD() != null) {
-                count = count * -1;
+                count *= -1;
             }
         }
         return new Fetch(scrollMode, count, cursorName);

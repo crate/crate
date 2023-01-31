@@ -164,10 +164,12 @@ public final class Cursor implements AutoCloseable {
             lCount = - Integer.MAX_VALUE;
         }
         int count = (int) lCount;
-        boolean moveForward = mode == ScrollMode.RELATIVE && count >= 0 || mode == ScrollMode.ABSOLUTE && count > cursorPosition;
+        boolean moveForward = ((mode == ScrollMode.MOVE || mode == ScrollMode.RELATIVE) && count >= 0) ||
+                              mode == ScrollMode.ABSOLUTE && count > cursorPosition;
         if (!moveForward && !scroll) {
             throw new IllegalArgumentException("Cannot move backward if cursor was created with NO SCROLL");
         }
+        resetCursorToMaxBufferedRowsPlus1();
 
         if (mode == ScrollMode.ABSOLUTE) {
             // Absolute jumps to a position and returns that row (or none if before start; after end)
@@ -191,8 +193,26 @@ public final class Cursor implements AutoCloseable {
                     }
                 });
             }
+        } else if (mode == ScrollMode.RELATIVE) {
+            // Relative jumps to a position relative to cursorPosition
+            // and returns that row (or none if before start; after end)
+
+            int newCursorPosition = newCursorPosition(count);
+            if (newCursorPosition < rows.size()) {
+                cursorPosition = Math.max(newCursorPosition, 0);
+                consumer.accept(bufferedRowOrNone(cursorPosition - 1), null);
+            } else {
+                int steps = newCursorPosition - cursorPosition + 1;
+                fullResult.move(steps, row -> {}, err -> {
+                    if (err == null) {
+                        cursorPosition = newCursorPosition;
+                        consumer.accept(bufferedRowOrNone(cursorPosition - 1), null);
+                    } else {
+                        consumer.accept(null, err);
+                    }
+                });
+            }
         } else if (moveForward) {
-            resetCursorToMaxBufferedRowsPlus1();
             if (count == 0) {
                 int idx = cursorPosition - 1;
                 if (cursorPosition > rows.size()) {
@@ -215,7 +235,6 @@ public final class Cursor implements AutoCloseable {
             cursorPosition = newCursorPosition(count);
             consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
         } else {
-            resetCursorToMaxBufferedRowsPlus1();
             int start = cursorPosition + count;
             assert start < cursorPosition : "count must be negative";
             List<Object[]> items = Lists2.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
