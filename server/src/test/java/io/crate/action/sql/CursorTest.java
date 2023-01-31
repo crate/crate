@@ -157,7 +157,7 @@ public class CursorTest extends ESTestCase {
             List.of()
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             """
                 1| 11
@@ -167,7 +167,7 @@ public class CursorTest extends ESTestCase {
         consumer.completionFuture().complete(null);
 
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        cursor.fetch(consumer, ScrollMode.MOVE, 3);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             """
                 3| 33
@@ -197,7 +197,7 @@ public class CursorTest extends ESTestCase {
             List.of(new InputColumn(0, DataTypes.INTEGER))
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             """
                 1
@@ -231,12 +231,12 @@ public class CursorTest extends ESTestCase {
             List.of(new InputColumn(0, DataTypes.INTEGER))
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, -5);
+        cursor.fetch(consumer, ScrollMode.MOVE, -5);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
         assertThat(cursor.cursorPosition).isZero();
 
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        cursor.fetch(consumer, ScrollMode.MOVE, 3);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             """
                 1
@@ -252,7 +252,7 @@ public class CursorTest extends ESTestCase {
     }
 
     @Test
-    public void test_fetching_absolute_exceeding_last_row() throws Exception {
+    public void test_fetching_absolute_exceeding_first_and_last_row() throws Exception {
         CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
@@ -264,11 +264,52 @@ public class CursorTest extends ESTestCase {
                 List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
-        final TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.ABSOLUTE, 6);
-        assertThatThrownBy(consumer::getBucket)
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Cannot return row: 6, total rows: 5");
+        final TestingRowConsumer errorConsumer = new TestingRowConsumer();
+        cursor.fetch(errorConsumer, ScrollMode.ABSOLUTE, 6);
+        assertThatThrownBy(errorConsumer::getBucket)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot return row: 6, total rows: 5");
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.ABSOLUTE, -5);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
+
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
+    }
+
+    @Test
+    public void test_fetching_relative_exceeding_first_and_last_row() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+        BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
+        Cursor cursor = new Cursor(
+            new NoopCircuitBreaker("dummy"),
+            true,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(rows),
+            result,
+            List.of(new InputColumn(0, DataTypes.INTEGER))
+        );
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 6);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.MOVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+            5
+            4
+            3
+            """
+        );
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
+
         assertThat(result).isNotCompleted();
         cursor.close();
         assertThat(result).isCompleted();
@@ -289,7 +330,7 @@ public class CursorTest extends ESTestCase {
 
         // Move forward to last row
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 5);
+        cursor.fetch(consumer, ScrollMode.MOVE, 5);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 1
@@ -303,7 +344,7 @@ public class CursorTest extends ESTestCase {
 
         // FETCH BACKWARD ALL
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, - Long.MAX_VALUE);
+        cursor.fetch(consumer, ScrollMode.MOVE, - Long.MAX_VALUE);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 4
@@ -316,7 +357,7 @@ public class CursorTest extends ESTestCase {
 
         // Move fwd, exceeding last row
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 100);
+        cursor.fetch(consumer, ScrollMode.MOVE, 100);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 1
@@ -330,7 +371,7 @@ public class CursorTest extends ESTestCase {
 
         // FETCH BACKWARD ALL
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, - Integer.MAX_VALUE);
+        cursor.fetch(consumer, ScrollMode.MOVE, - Integer.MAX_VALUE);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 5
@@ -362,7 +403,7 @@ public class CursorTest extends ESTestCase {
 
         // Move forward to last row
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, Long.MAX_VALUE);
+        cursor.fetch(consumer, ScrollMode.MOVE, Long.MAX_VALUE);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             """
             1
@@ -399,7 +440,7 @@ public class CursorTest extends ESTestCase {
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 1
@@ -407,7 +448,7 @@ public class CursorTest extends ESTestCase {
                 """
         );
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        cursor.fetch(consumer, ScrollMode.MOVE, 3);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 3
@@ -417,7 +458,7 @@ public class CursorTest extends ESTestCase {
         );
 
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        cursor.fetch(consumer, ScrollMode.MOVE, -3);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 4
@@ -432,7 +473,7 @@ public class CursorTest extends ESTestCase {
 
         // Exceed total rows
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 10);
+        cursor.fetch(consumer, ScrollMode.MOVE, 10);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 1
@@ -443,7 +484,7 @@ public class CursorTest extends ESTestCase {
                 """
         );
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        cursor.fetch(consumer, ScrollMode.MOVE, -3);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 5
@@ -457,7 +498,7 @@ public class CursorTest extends ESTestCase {
         cursor.fetch(consumer, ScrollMode.ABSOLUTE, -20);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 1
@@ -467,7 +508,7 @@ public class CursorTest extends ESTestCase {
 
         // Continue moving fwd
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 3
@@ -477,7 +518,7 @@ public class CursorTest extends ESTestCase {
 
         // Continue moving fwd
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        cursor.fetch(consumer, ScrollMode.MOVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 5
@@ -486,7 +527,7 @@ public class CursorTest extends ESTestCase {
 
         // Moving bwd
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
+        cursor.fetch(consumer, ScrollMode.MOVE, -2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 5
@@ -496,11 +537,76 @@ public class CursorTest extends ESTestCase {
 
         // Continue moving bwd
         consumer = new TestingRowConsumer();
-        cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
+        cursor.fetch(consumer, ScrollMode.MOVE, -2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
                 """
                 3
                 2
+                """
+        );
+
+        // Relative fwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                4
+                """
+        );
+
+        // Relative fwd - exceed last row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
+
+        // Relative bwd - include last row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                4
+                """
+        );
+
+        // Continue relative bwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                    1
+                    """
+        );
+
+        // Relative bwd - exceed first row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
+
+        // Relative fwd - include first row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                3
+                """
+        );
+
+        // Absolute bwd to start
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.ABSOLUTE, 1);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+                1
+                """
+        );
+
+
+        // Relative fwd excluding first
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+                4
                 """
         );
 

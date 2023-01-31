@@ -140,6 +140,7 @@ public class TestStatementBuilder {
         printStatement("FETCH FORWARD 4 FROM c1");
         printStatement("FETCH ABSOLUTE 3 FROM c1");
         printStatement("FETCH BACKWARD 4 FROM c1");
+        printStatement("FETCH RELATIVE -12 FROM c1");
 
         Fetch fetch = (Fetch) SqlParser.createStatement("FETCH FORWARD 3 FROM c1");
         assertThat(fetch.count()).isEqualTo(3L);

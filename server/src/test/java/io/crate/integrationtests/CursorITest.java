@@ -202,6 +202,16 @@ public class CursorITest extends IntegTestCase {
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(4);
             assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH RELATIVE -2 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(2);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH RELATIVE 7 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(9);
+            assertThat(result.next()).isFalse();
         }
     }
 
