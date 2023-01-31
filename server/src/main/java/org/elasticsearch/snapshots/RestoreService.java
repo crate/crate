@@ -227,7 +227,7 @@ public class RestoreService implements ClusterStateApplier {
                             || request.includeGlobalSettings()
                             || request.allTemplates()
                             || (request.templates() != null && request.templates().length > 0)) {
-                            repository.getSnapshotGlobalMetadata(snapshotId, globalMetadataListener);
+                            repository.getSnapshotGlobalMetadata(snapshotId).whenComplete(globalMetadataListener);
                         } else {
                             globalMetadataListener.onResponse(Metadata.EMPTY_METADATA);
                         }

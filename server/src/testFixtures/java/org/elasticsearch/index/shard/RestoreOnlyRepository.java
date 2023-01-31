@@ -72,9 +72,9 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void getSnapshotGlobalMetadata(SnapshotId snapshotId,
-                                          ActionListener<Metadata> listener) {
-
+    public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
+        return CompletableFuture.failedFuture(
+            new UnsupportedOperationException("getSnapshotGlobalMetadata not supported in RestoreOnlyRepository"));
     }
 
     public void getSnapshotIndexMetadata(RepositoryData repositoryData,
