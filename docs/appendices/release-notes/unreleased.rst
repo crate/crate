@@ -68,6 +68,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed behaviour of :ref:`FETCH RELATIVE <sql-fetch>`, which previously behaved
+  identically to `FETCH FORWARD` and `FETCH BACKWARD`, whereas it should behave
+  similarly to `FETCH ABSOLUTE`, with the difference that the position of the 1
+  row to return is calculated relatively to the current cursor position.
+
 - Fixed an issue that caused accounted memory not to be released when using
   :ref:`cursors <sql-fetch>`, even if the ``CURSOR`` was explicitly or
   automatically (session terminated) closed.
