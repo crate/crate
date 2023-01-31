@@ -110,3 +110,7 @@ Fixes
   This caused metadata corruptions leading to ``StartupExceptions`` and data
   losses. Corrupted metadata recovery is in place to prevent the exceptions
   but not all data can be recovered.
+
+- Fixed an issue in the PostgreSQL wire protocol that would cause
+  de-serialization of arrays to fail if they contained unquoted strings
+  consisting of more than 2 words.
