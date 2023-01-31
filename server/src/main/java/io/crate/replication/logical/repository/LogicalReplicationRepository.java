@@ -27,7 +27,9 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -72,6 +74,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -156,11 +159,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
         return getPublicationsState()
-            .thenCompose(stateResponse -> {
-                var indices = stateResponse.concreteIndices().toArray(new String[0]);
-                var templates = stateResponse.concreteTemplates().toArray(new String[0]);
-                return getRemoteClusterState(false, true, indices, templates);
-            })
+            .thenCompose(resp -> getRemoteClusterState(false, true, resp.concreteIndices(), resp.concreteTemplates()))
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
@@ -229,20 +228,17 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
-        StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
-        responseStepListener.whenComplete(stateResponse -> {
-            StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-            getRemoteClusterState(
-                false,
-                false,
-                clusterStateStepListener,
-                stateResponse.concreteIndices().toArray(new String[0]),
-                stateResponse.concreteTemplates().toArray(new String[0])
-            );
-            clusterStateStepListener.whenComplete(remoteClusterState -> {
+        getRepositoryData().whenComplete(listener);
+    }
+
+    @Override
+    public CompletableFuture<RepositoryData> getRepositoryData() {
+        return getPublicationsState()
+            .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenApply(remoteStateResp -> {
+                var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
                 var shardGenerations = ShardGenerations.builder();
-
                 var it = remoteMetadata.getIndices().valuesIt();
                 while (it.hasNext()) {
                     var indexMetadata = it.next();
@@ -251,16 +247,15 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         shardGenerations.put(indexId, i, "dummy");
                     }
                 }
-                var repositoryData = RepositoryData.EMPTY.addSnapshot(SNAPSHOT_ID,
-                                                                      SnapshotState.SUCCESS,
-                                                                      Version.CURRENT,
-                                                                      shardGenerations.build(),
-                                                                      null,
-                                                                      null);
-                listener.onResponse(repositoryData);
-            }, listener::onFailure);
-        }, listener::onFailure);
-        getPublicationsState().whenComplete((ActionListener<Response>) responseStepListener);
+                return RepositoryData.EMPTY.addSnapshot(
+                    SNAPSHOT_ID,
+                    SnapshotState.SUCCESS,
+                    Version.CURRENT,
+                    shardGenerations.build(),
+                    null,
+                    null
+                );
+            });
     }
 
     @Override
@@ -360,9 +355,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      RecoveryState recoveryState,
                                                      ActionListener<Void> listener) {
         // 1. Get all the files info from the publisher cluster for this shardId
-        StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-        getRemoteClusterState(true, true, clusterStateStepListener, new String[]{indexId.getName()}, Strings.EMPTY_ARRAY);
-        clusterStateStepListener.whenComplete(publisherClusterState -> {
+        var remoteClusterState = getRemoteClusterState(true, true, List.of(indexId.getName()), List.of());
+        remoteClusterState.whenComplete((resp, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(err));
+                return;
+            }
+            ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
                     snapshotShardId.getIndexName(),
@@ -441,7 +440,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     multiChunkTransfer.start();
                 }
             }, listener::onFailure);
-        }, listener::onFailure);
+        });
     }
 
     private Client getRemoteClient() {
@@ -449,33 +448,23 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(String... remoteIndices) {
-        return getRemoteClusterState(false, true, remoteIndices, Strings.EMPTY_ARRAY);
+        return getRemoteClusterState(false, true, Arrays.asList(remoteIndices), List.of());
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
                                                                           boolean includeRouting,
-                                                                          String[] remoteIndices,
-                                                                          String[] remoteTemplates) {
+                                                                          List<String> remoteIndices,
+                                                                          List<String> remoteTemplates) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
-            .indices(remoteIndices)
-            .templates(remoteTemplates)
+            .indices(remoteIndices.toArray(new String[0]))
+            .templates(remoteTemplates.toArray(new String[0]))
             .metadata(true)
             .nodes(includeNodes)
             .routingTable(includeRouting)
             .indicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
         return remoteClient.admin().cluster().state(clusterStateRequest);
-    }
-
-    private void getRemoteClusterState(boolean includeNodes,
-                                       boolean includeRouting,
-                                       ActionListener<ClusterState> listener,
-                                       String[] remoteIndices,
-                                       String[] remoteTemplates) {
-        getRemoteClusterState(includeNodes, includeRouting, remoteIndices, remoteTemplates)
-            .thenApply(response -> response.getState())
-            .whenComplete(listener);
     }
 
     private CompletableFuture<Response> getPublicationsState() {
