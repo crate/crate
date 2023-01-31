@@ -41,6 +41,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -71,12 +72,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
@@ -139,46 +140,43 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return metadata;
     }
 
-    public void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
+    @Override
+    public CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
-        getPublicationsState(responseStepListener);
-        responseStepListener.whenComplete(stateResponse -> {
-            listener.onResponse(
-                new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT)
-            );
-        }, listener::onFailure);
+        return getPublicationsState()
+            .thenApply(stateResponse ->
+                new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT));
     }
 
     @Override
-    public void getSnapshotGlobalMetadata(SnapshotId snapshotId, ActionListener<Metadata> listener) {
-        StepListener<PublicationsStateAction.Response> responseStepListener = new StepListener<>();
-        getPublicationsState(responseStepListener);
-        responseStepListener.whenComplete(stateResponse -> {
-            var indices = stateResponse.concreteIndices().toArray(new String[0]);
-            var templates = stateResponse.concreteTemplates().toArray(new String[0]);
-            StepListener<ClusterState> clusterStateStepListener = new StepListener<>();
-            getRemoteClusterState(false, true, clusterStateStepListener, indices, templates);
-            clusterStateStepListener.whenComplete(
-                remoteClusterState -> {
-                    var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
-                    for (var cursor : remoteClusterState.metadata().templates().values()) {
-                        // Add subscription name as a setting value which can be used to restrict operations on
-                        // partitioned tables (e.g. forbid writes/creating new partitions)
-                        var settings = Settings.builder()
-                            .put(cursor.value.settings())
-                            .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
-                            .build();
-                        var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value)
-                            .settings(settings);
-                        metadataBuilder.put(templateMetadata);
-                    }
+    public void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
+        getSnapshotInfo(snapshotId).whenComplete(listener);
+    }
 
-                    listener.onResponse(metadataBuilder.build());
-                },
-                listener::onFailure
-            );
-        }, listener::onFailure);
+    @Override
+    public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
+        return getPublicationsState()
+            .thenCompose(stateResponse -> {
+                var indices = stateResponse.concreteIndices().toArray(new String[0]);
+                var templates = stateResponse.concreteTemplates().toArray(new String[0]);
+                return getRemoteClusterState(false, true, indices, templates);
+            })
+            .thenApply(remoteClusterStateResp -> {
+                ClusterState remoteClusterState = remoteClusterStateResp.getState();
+                var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
+                for (var cursor : remoteClusterState.metadata().templates().values()) {
+                    // Add subscription name as a setting value which can be used to restrict operations on
+                    // partitioned tables (e.g. forbid writes/creating new partitions)
+                    var settings = Settings.builder()
+                        .put(cursor.value.settings())
+                        .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
+                        .build();
+                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value)
+                        .settings(settings);
+                    metadataBuilder.put(templateMetadata);
+                }
+                return metadataBuilder.build();
+            });
     }
 
     @Override
@@ -268,7 +266,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 listener.onResponse(repositoryData);
             }, listener::onFailure);
         }, listener::onFailure);
-        getPublicationsState(responseStepListener);
+        getPublicationsState().whenComplete((ActionListener<Response>) responseStepListener);
     }
 
     @Override
@@ -460,11 +458,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         getRemoteClusterState(false, true, listener, remoteIndices, Strings.EMPTY_ARRAY);
     }
 
-    private void getRemoteClusterState(boolean includeNodes,
-                                       boolean includeRouting,
-                                       ActionListener<ClusterState> listener,
-                                       String[] remoteIndices,
-                                       String[] remoteTemplates) {
+    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
+                                                                          boolean includeRouting,
+                                                                          String[] remoteIndices,
+                                                                          String[] remoteTemplates) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
             .indices(remoteIndices)
@@ -474,27 +471,26 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .routingTable(includeRouting)
             .indicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
-        remoteClient.admin().cluster().state(clusterStateRequest)
-            .whenComplete((response, err) -> {
-                if (err == null) {
-                    ClusterState remoteState = response.getState();
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Successfully fetched the cluster state from remote repository {}", remoteState);
-                    }
-                    listener.onResponse(remoteState);
-                } else {
-                    listener.onFailure(Exceptions.toException(err));
-                }
-            });
+        return remoteClient.admin().cluster().state(clusterStateRequest);
     }
 
-    private void getPublicationsState(ActionListener<PublicationsStateAction.Response> listener) {
-        getRemoteClient().execute(
+    private void getRemoteClusterState(boolean includeNodes,
+                                       boolean includeRouting,
+                                       ActionListener<ClusterState> listener,
+                                       String[] remoteIndices,
+                                       String[] remoteTemplates) {
+        getRemoteClusterState(includeNodes, includeRouting, remoteIndices, remoteTemplates)
+            .thenApply(response -> response.getState())
+            .whenComplete(listener);
+    }
+
+    private CompletableFuture<Response> getPublicationsState() {
+        return getRemoteClient().execute(
             PublicationsStateAction.INSTANCE,
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            )).whenComplete(listener);
+            ));
     }
 
     private void releasePublisherResources(Client remoteClient,
