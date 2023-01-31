@@ -46,5 +46,9 @@ public abstract class Pattern<T> {
         return new CapturePattern<>(capture, this);
     }
 
+    public Match<T> accept(Object object, Captures captures) {
+        return accept(object, captures, x -> x);
+    }
+
     public abstract Match<T> accept(Object object, Captures captures, GroupReferenceResolver groupReferenceResolver);
 }

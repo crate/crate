@@ -103,7 +103,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
                 NULLABLE_REF
             ),
             DataTypes.BOOLEAN);
-        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty(), x -> x);
+        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertTrue(match.isPresent());
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
         Symbol expected = new Function(
@@ -136,7 +136,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             List.of(functionToOptimize),
             DataTypes.BOOLEAN
         );
-        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty(), x -> x);
+        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertTrue(match.isPresent());
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, dummyParent);
         assertThat(optimizedFunction, is(nullValue()));
@@ -151,7 +151,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
                 NOT_NULLABLE_REF
             ),
             DataTypes.BOOLEAN);
-        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty(), x -> x);
+        Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertTrue(match.isPresent());
         // function to optimize has no parent
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
@@ -181,7 +181,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
                     DataTypes.BOOLEAN)
             ),
             DataTypes.BOOLEAN);
-        Match<Function> match = RULE.pattern().accept(func.arguments().get(0), Captures.empty(), x -> x);
+        Match<Function> match = RULE.pattern().accept(func.arguments().get(0), Captures.empty());
         assertTrue(match.isPresent());
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, func);
         assertThat(optimizedFunction, is(Literal.BOOLEAN_TRUE));

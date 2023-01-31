@@ -68,7 +68,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty(), x -> x);
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -96,7 +96,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty(), x -> x);
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -124,7 +124,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty(), x -> x);
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -156,7 +156,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty(), x -> x);
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -189,7 +189,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty(), x -> x);
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));

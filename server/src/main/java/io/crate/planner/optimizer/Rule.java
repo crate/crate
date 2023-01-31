@@ -34,6 +34,14 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
+    default LogicalPlan apply(T plan,
+                              Captures captures,
+                              TableStats tableStats,
+                              TransactionContext txnCtx,
+                              NodeContext nodeCtx) {
+        return apply(plan, captures, tableStats, txnCtx, nodeCtx, x -> x);
+    }
+
     LogicalPlan apply(T plan,
                       Captures captures,
                       TableStats tableStats,

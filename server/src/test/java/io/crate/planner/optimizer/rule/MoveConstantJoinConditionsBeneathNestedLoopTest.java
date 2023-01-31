@@ -74,7 +74,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false);
         var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
-        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty(), x -> x);
+        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
         assertThat(match.value(), Matchers.is(nl));
@@ -83,8 +83,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
                                                 match.captures(),
                                                 new TableStats(),
                                                 CoordinatorTxnCtx.systemTransactionContext(),
-                                                sqlExpressions.nodeCtx,
-                                                x -> x);
+                                                sqlExpressions.nodeCtx);
 
         assertThat(result.joinCondition(), is(nonConstantPart));
         assertThat(result.lhs(), is(c1));
