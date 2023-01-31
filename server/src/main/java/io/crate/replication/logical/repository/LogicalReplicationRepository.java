@@ -180,17 +180,14 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getSnapshotIndexMetadata(
-        RepositoryData repositoryData,
-        SnapshotId snapshotId,
-        Collection<IndexId> indexIds,
-        ActionListener<Collection<IndexMetadata>> listener) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                                                                 SnapshotId snapshotId,
+                                                                                 Collection<IndexId> indexIds) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         var remoteIndices = indexIds.stream().map(IndexId::getName).toArray(String[]::new);
-        StepListener<ClusterState> stepListener = new StepListener<>();
-        getRemoteClusterState(stepListener, remoteIndices);
-        stepListener.whenComplete(remoteClusterState -> {
+        return getRemoteClusterState(remoteIndices).thenApply(response -> {
             var result = new ArrayList<IndexMetadata>();
+            ClusterState remoteClusterState = response.getState();
             for (var i : remoteClusterState.metadata().indices()) {
                 if (remoteClusterState.routingTable().index(i.key).allPrimaryShardsActive() == false) {
                     // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
@@ -207,19 +204,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
                 result.add(indexMdBuilder.build());
             }
-            listener.onResponse(result);
-        }, listener::onFailure);
+            return result;
+        });
     }
 
-    public void getSnapshotIndexMetadata(
-        RepositoryData repositoryData,
-        SnapshotId snapshotId,
-        IndexId index,
-        ActionListener<IndexMetadata> listener) {
+    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                                                     SnapshotId snapshotId,
+                                                                     IndexId index) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        StepListener<ClusterState> stepListener = new StepListener<>();
-        getRemoteClusterState(stepListener, index.getName());
-        stepListener.whenComplete(remoteClusterState -> {
+        return getRemoteClusterState(index.getName()).thenApply(response -> {
+            ClusterState remoteClusterState = response.getState();
             var indexMetadata = remoteClusterState.metadata().index(index.getName());
             // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
             var builder = Settings.builder().put(indexMetadata.getSettings());
@@ -229,8 +223,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
-            listener.onResponse(indexMdBuilder.build());
-        }, listener::onFailure);
+            return indexMdBuilder.build();
+        });
     }
 
     @Override
@@ -454,8 +448,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return remoteClusters.getClient(subscriptionName);
     }
 
-    private void getRemoteClusterState(ActionListener<ClusterState> listener, String... remoteIndices) {
-        getRemoteClusterState(false, true, listener, remoteIndices, Strings.EMPTY_ARRAY);
+    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(String... remoteIndices) {
+        return getRemoteClusterState(false, true, remoteIndices, Strings.EMPTY_ARRAY);
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,

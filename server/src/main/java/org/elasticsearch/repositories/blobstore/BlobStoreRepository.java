@@ -1089,28 +1089,28 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index, ActionListener<IndexMetadata> listener) {
+    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index) {
         try {
             IndexMetadata result = INDEX_METADATA_FORMAT.read(indexContainer(index),
                 repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry);
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 
 
     @Override
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds) {
         try {
-            var result = new ArrayList<IndexMetadata>();
+            var result = new ArrayList<IndexMetadata>(indexIds.size());
             for (IndexId index : indexIds) {
                 result.add(INDEX_METADATA_FORMAT.read(indexContainer(index),
                     repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry));
             }
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 
