@@ -146,6 +146,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.collections.Tuple;
@@ -311,7 +312,7 @@ public class TranslogTests extends ESTestCase {
         boolean validPathString;
         do {
             validPathString = false;
-            string = randomRealisticUnicodeOfCodepointLength(randomIntBetween(min, max));
+            string = RandomizedTest.randomRealisticUnicodeOfCodepointLength(randomIntBetween(min, max));
             try {
                 final Path resolved = translogDir.resolve(string);
                 // some strings (like '/' , '..') do not refer to a file, which we this method should return
@@ -2070,7 +2071,7 @@ public class TranslogTests extends ESTestCase {
                         case CREATE:
                         case INDEX:
                             op = new Translog.Index(threadId + "_" + opCount, seqNoGenerator.getAndIncrement(),
-                                primaryTerm.get(), randomUnicodeOfLengthBetween(1, 20 * 1024).getBytes("UTF-8"));
+                                primaryTerm.get(), RandomizedTest.randomUnicodeOfLengthBetween(1, 20 * 1024).getBytes("UTF-8"));
                             break;
                         case DELETE:
                             op = new Translog.Delete(
