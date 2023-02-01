@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.index.shard;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.common.lucene.Lucene.cleanLuceneIndex;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -1496,7 +1497,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testScheduledRefresh() throws IOException, InterruptedException {
+    public void testScheduledRefresh() throws Exception {
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
@@ -1521,7 +1522,7 @@ public class IndexShardTests extends IndexShardTestCase {
         assertThat(primary.scheduledRefresh(), is(false));
         assertThat(lastSearchAccess, is(primary.getLastSearcherAccess()));
         // wait until the thread-pool has moved the timestamp otherwise we can't assert on this below
-        awaitBusy(() -> primary.getThreadPool().relativeTimeInMillis() > lastSearchAccess);
+        assertBusy(() -> assertThat(primary.getThreadPool().relativeTimeInMillis()).isGreaterThan(lastSearchAccess));
         CountDownLatch latch = new CountDownLatch(10);
         for (int i = 0; i < 10; i++) {
             primary.awaitShardSearchActive(refreshed -> {
