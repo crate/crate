@@ -90,16 +90,8 @@ public interface Repository extends LifecycleComponent {
      * Reads snapshot description from repository.
      *
      * @param snapshotId  snapshot id
-     * @param listener   listener invoked on completion
-     * @deprecated Use {@link #getSnapshotInfo(SnapshotId) instead
      */
-    void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener);
-
-    default CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
-        FutureActionListener<SnapshotInfo, SnapshotInfo> future = FutureActionListener.newInstance();
-        getSnapshotInfo(snapshotId, future);
-        return future;
-    }
+    CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId);
 
     /**
      * Returns global metadata associated with the snapshot.
