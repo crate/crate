@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.Relation;
 
 public class RelationAnalysisContext {
 
@@ -71,22 +72,7 @@ public class RelationAnalysisContext {
         joinPairs.add(joinType);
     }
 
-    void addJoinType(JoinType joinType, @Nullable Symbol joinCondition) {
-        int size = sources.size();
-        assert size >= 2 : "sources must be added first, cannot add join type for only 1 source";
-        Iterator<RelationName> it = sources.keySet().iterator();
-        RelationName left = null;
-        RelationName right = null;
-        int idx = 0;
-        while (it.hasNext()) {
-            RelationName sourceName = it.next();
-            if (idx == size - 2) {
-                left = sourceName;
-            } else if (idx == size - 1) {
-                right = sourceName;
-            }
-            idx++;
-        }
+    void addJoinType(AnalyzedRelation left, AnalyzedRelation right, JoinType joinType, @Nullable Symbol joinCondition) {
         addJoinPair(JoinPair.of(left, right, joinType, joinCondition));
     }
 

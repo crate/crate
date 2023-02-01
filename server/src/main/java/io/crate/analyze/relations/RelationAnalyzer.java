@@ -312,8 +312,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
 
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
-        return null;
+        relationContext.addJoinType(leftRel, rightRel, JoinType.values()[node.getType().ordinal()], joinCondition);
+        return new QueriedSelectRelation(
+            false,
+            new ArrayList(relationContext.sources().keySet()),
+            relationContext.joinPairs(),
+            leftRel.outputs(),
+            Literal.BOOLEAN_TRUE,
+            List.of(),
+            null,
+            null,
+            null,
+            null);
     }
 
     @Override
