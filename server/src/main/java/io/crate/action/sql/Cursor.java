@@ -212,10 +212,7 @@ public final class Cursor implements AutoCloseable {
                 delegate = CompositeBatchIterator.seqComposite(bufferedBi, fullResult);
             }
 
-            cursorPosition = cursorPosition + count;
-            if (cursorPosition < 0) { // overflow
-                cursorPosition = Integer.MAX_VALUE;
-            }
+            cursorPosition = newCursorPosition(count);
             consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
         } else {
             resetCursorToMaxBufferedRowsPlus1();
@@ -233,6 +230,16 @@ public final class Cursor implements AutoCloseable {
     private void resetCursorToMaxBufferedRowsPlus1() {
         if (cursorPosition > rows.size() + 1) {
             cursorPosition = rows.size() + 1;
+        }
+    }
+
+    private int newCursorPosition(int count) {
+        // Code copied from Math.addExact(int x, int y)
+        int newCursorPosition = cursorPosition + count;
+        if (((cursorPosition ^ newCursorPosition) & (count ^ newCursorPosition)) < 0) {
+            return Integer.MAX_VALUE;
+        } else {
+            return newCursorPosition;
         }
     }
 
