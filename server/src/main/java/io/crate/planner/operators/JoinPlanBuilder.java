@@ -83,12 +83,13 @@ public class JoinPlanBuilder {
                 break;
             }
         }
-        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(allJoinPairs);
+        // TODO: implement hashCode equals in QueriedSelectRelation
+        LinkedHashMap<Set<AnalyzedRelation>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(allJoinPairs);
         Iterator<RelationName> it;
         if (optimizeOrder) {
             Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
                 Lists2.map(from, AnalyzedRelation::relationName),
-                joinPairsByRelations.keySet(),
+                joinPairsByRelations.keySet(), // Collect all relations names from AnalyzedRelation, maybe create a new utility visitor for that
                 queryParts.keySet()
             );
             it = orderedRelationNames.iterator();
@@ -280,7 +281,7 @@ public class JoinPlanBuilder {
                                             LogicalPlan source,
                                             AnalyzedRelation nextRel,
                                             Set<RelationName> joinNames,
-                                            Map<Set<RelationName>, JoinPair> joinPairs,
+                                            Map<Set<AnalyzedRelation>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
                                             AnalyzedRelation leftRelation,
                                             boolean hashJoinEnabled) {
@@ -328,8 +329,19 @@ public class JoinPlanBuilder {
     }
 
     @Nullable
-    private static <V> V removeMatch(Map<Set<RelationName>, V> valuesByNames, Set<RelationName> names, RelationName nextName) {
+    private static <V> V removeMatch(Map<Set<AnalyzedRelation>, V> valuesByNames, Set<RelationName> names, RelationName nextName) {
+        // JoinNames here is a set with exactly 2 RelationNames: 2 next tables from the "optimally ordered list"
+//        See code in JoinOperators:
+//        final RelationName lhsName = it.next();
+//        final RelationName rhsName = it.next();
+//        Set<RelationName> joinNames = new HashSet<>();
+//        joinNames.add(lhsName);
+//        joinNames.add(rhsName);
         for (RelationName name : names) {
+            // valuesByNames key used to be a single RelationName from the joinPair left/right sides.
+            // we cannot use AnalyzedRelation here as a map key.
+            // to reflect old logic we should check that left/right are DocTableRelations and they aggreagted outpus is (Set.of(name, nextName))
+
             V v = valuesByNames.remove(Set.of(name, nextName));
             if (v != null) {
                 return v;

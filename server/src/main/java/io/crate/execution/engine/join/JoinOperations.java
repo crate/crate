@@ -21,7 +21,9 @@
 
 package io.crate.execution.engine.join;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -30,6 +32,8 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
@@ -102,8 +106,8 @@ public final class JoinOperations {
     }
 
 
-    public static LinkedHashMap<Set<RelationName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
-        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
+    public static LinkedHashMap<Set<AnalyzedRelation>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
+        LinkedHashMap<Set<AnalyzedRelation>, JoinPair> joinPairsMap = new LinkedHashMap<>();
         for (JoinPair joinPair : joinPairs) {
             if (joinPair.condition() == null) {
                 continue;
@@ -141,6 +145,14 @@ public final class JoinOperations {
                 for (int i = 0; i < explicitJoinPairs.size(); i++) {
                     JoinPair joinPair = explicitJoinPairs.get(i);
                     if (relations.contains(joinPair.left()) && relations.contains(joinPair.right())) {
+                        // relation.size() is 2 here, see relations.size() check and corresponding comment above.
+                        // prev logic was "check whether implicit join condition has exactly 2 tables involved and they are exactly left/right.
+                        // However, after the joinPair update, joinPair.left() and joinPair.right() are QueriedSelectRelation-s created in RelationAnalyzer.visitJoin
+                        // To reflect here old logic we need to ensure that:
+                        //  1. joinPair.left.outputs.size ==1
+                        //  2. joinPair.right.outputs.size ==1
+                        //  3. relations.contains(joinPair.left().get(0))
+                        //  4. relations.contains(joinPair.right().get(0))
                         existingJoinPairIdx = i;
                         // If a JoinPair with the involved relations already exists then depending on the JoinType:
                         //  - INNER JOIN:  the implicit join condition can be "AND joined" with
@@ -169,7 +181,9 @@ public final class JoinOperations {
                 }
                 if (newJoinPair == null) {
                     Iterator<RelationName> namesIter = relations.iterator();
-                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
+                    var l = new TableRelation(namesIter.next()) //TODO: create TableRelations from RelationName
+                    var r = new TableRelation(namesIter.next()) //TODO: create TableRelations from RelationName
+                    newJoinPair = JoinPair.of(l, r, JoinType.INNER, implicitJoinCondition);
                     queryIterator.remove();
                     newJoinPairs.add(newJoinPair);
                 } else {
