@@ -129,11 +129,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         var prevMetadata = event.previousState().metadata();
         var newMetadata = event.state().metadata();
 
-        SubscriptionsMetadata prevSubscriptionsMetadata = prevMetadata.custom(SubscriptionsMetadata.TYPE);
-        SubscriptionsMetadata newSubscriptionsMetadata = newMetadata.custom(SubscriptionsMetadata.TYPE);
+        SubscriptionsMetadata prevSubscriptionsMetadata = SubscriptionsMetadata.get(prevMetadata);
+        SubscriptionsMetadata newSubscriptionsMetadata = SubscriptionsMetadata.get(newMetadata);
 
-        if ((prevSubscriptionsMetadata == null && newSubscriptionsMetadata != null)
-            || (prevSubscriptionsMetadata != null && prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false)) {
+        if (prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false) {
             currentSubscriptionsMetadata = newSubscriptionsMetadata;
             handleRepositoriesForChangedSubscriptions(prevSubscriptionsMetadata, newSubscriptionsMetadata);
         }
