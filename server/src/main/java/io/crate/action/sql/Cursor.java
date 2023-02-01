@@ -31,6 +31,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
@@ -58,7 +59,8 @@ public final class Cursor implements AutoCloseable {
     private final ArrayRow sharedRow = new ArrayRow();
     private final RowAccounting<Object[]> rowAccounting;
     private boolean exhausted = false;
-    private int cursorPosition = 0;
+    @VisibleForTesting
+    int cursorPosition = 0;
 
     public Cursor(CircuitBreaker circuitBreaker,
                   boolean scroll,
@@ -210,12 +212,11 @@ public final class Cursor implements AutoCloseable {
                 delegate = CompositeBatchIterator.seqComposite(bufferedBi, fullResult);
             }
 
-            consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
-
             cursorPosition = cursorPosition + count;
             if (cursorPosition < 0) { // overflow
                 cursorPosition = Integer.MAX_VALUE;
             }
+            consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
         } else {
             resetCursorToMaxBufferedRowsPlus1();
             int start = cursorPosition + count;
