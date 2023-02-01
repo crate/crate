@@ -32,7 +32,6 @@ import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -50,7 +50,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -194,85 +193,78 @@ public class RestoreService implements ClusterStateApplier {
      * @param listener restore listener
      */
     public void restoreSnapshot(final RestoreRequest request, final ActionListener<RestoreCompletionResponse> listener) {
+        final String repositoryName = request.repositoryName;
+        Repository repository;
         try {
             // Read snapshot info and metadata from the repository
-            final String repositoryName = request.repositoryName;
-            Repository repository = repositoriesService.repository(repositoryName);
-
-            repository.getRepositoryData().whenComplete((repositoryData, err) -> {
-                if (err != null) {
-                    listener.onFailure(Exceptions.toException(err));
-                    return;
-                }
-                final String snapshotName = request.snapshotName;
-                final Optional<SnapshotId> matchingSnapshotId = repositoryData.getSnapshotIds().stream()
-                    .filter(s -> snapshotName.equals(s.getName())).findFirst();
-                if (matchingSnapshotId.isPresent() == false) {
-                    throw new SnapshotRestoreException(repositoryName, snapshotName, "snapshot does not exist");
-                }
-
-                final SnapshotId snapshotId = matchingSnapshotId.get();
-                repository.getSnapshotInfo(snapshotId).whenComplete((snapshotInfo, err1) -> {
-                    if (err1 != null) {
-                        listener.onFailure(Exceptions.toException(err1));
-                        return;
-                    }
-                    final Snapshot snapshot = new Snapshot(repositoryName, snapshotId);
-
-                    // Make sure that we can restore from this snapshot
-                    validateSnapshotRestorable(repositoryName, snapshotInfo);
-
-                    // Resolve the indices from the snapshot that need to be restored
-                    final List<String> indicesInSnapshot = request.includeIndices()
-                        ? filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions())
-                        : List.of();
-
-                    final StepListener<Metadata> globalMetadataListener = new StepListener<>();
-                    if (request.includeCustomMetadata()
-                        || request.includeGlobalSettings()
-                        || request.allTemplates()
-                        || (request.templates() != null && request.templates().length > 0)) {
-                        repository.getSnapshotGlobalMetadata(snapshotId).whenComplete(globalMetadataListener);
-                    } else {
-                        globalMetadataListener.onResponse(Metadata.EMPTY_METADATA);
-                    }
-                    globalMetadataListener.whenComplete(globalMetadata -> {
-                        var metadataBuilder = Metadata.builder(globalMetadata);
-                        var indexIdsInSnapshot = repositoryData.resolveIndices(indicesInSnapshot);
-                        var snapshotIndexMetadataListener = new StepListener<Collection<IndexMetadata>>();
-                        repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot).whenComplete(snapshotIndexMetadataListener);
-                        snapshotIndexMetadataListener.whenComplete(snapshotIndexMetadata -> {
-                            for (IndexMetadata indexMetadata : snapshotIndexMetadata) {
-                                metadataBuilder.put(indexMetadata, false);
-                            }
-                            final Metadata metadata = metadataBuilder.build();
-                            // Apply renaming on index names, returning a map of names where
-                            // the key is the renamed index and the value is the original name
-                            final Map<String, String> indices = renamedIndices(request, indicesInSnapshot);
-
-                            // Now we can start the actual restore process by adding shards to be recovered in the cluster state
-                            // and updating cluster metadata (global and index) as needed
-                            RestoreSnapshotUpdateTask updateTask = new RestoreSnapshotUpdateTask(
-                                snapshotInfo,
-                                snapshotId,
-                                repositoryData,
-                                snapshot,
-                                listener,
-                                request,
-                                indices,
-                                metadata
-                            );
-                            clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
-                        }, listener::onFailure);
-                    }, listener::onFailure);
-                });
-            });
-
-
+            repository = repositoriesService.repository(repositoryName);
         } catch (Exception e) {
             LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", request.repositoryName + ":" + request.snapshotName), e);
             listener.onFailure(e);
+            return;
         }
+        repository.getRepositoryData().thenCompose(repositoryData -> {
+            final String snapshotName = request.snapshotName;
+            final Optional<SnapshotId> matchingSnapshotId = repositoryData.getSnapshotIds().stream()
+                .filter(s -> snapshotName.equals(s.getName())).findFirst();
+            if (matchingSnapshotId.isPresent() == false) {
+                throw new SnapshotRestoreException(repositoryName, snapshotName, "snapshot does not exist");
+            }
+
+            final SnapshotId snapshotId = matchingSnapshotId.get();
+            return repository.getSnapshotInfo(snapshotId).thenCompose(snapshotInfo -> {
+                final Snapshot snapshot = new Snapshot(repositoryName, snapshotId);
+
+                // Make sure that we can restore from this snapshot
+                validateSnapshotRestorable(repositoryName, snapshotInfo);
+
+                // Resolve the indices from the snapshot that need to be restored
+                final List<String> indicesInSnapshot = request.includeIndices()
+                    ? filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions())
+                    : List.of();
+
+                CompletableFuture<Metadata> futureGlobalMetadata;
+                if (request.includeCustomMetadata()
+                    || request.includeGlobalSettings()
+                    || request.allTemplates()
+                    || (request.templates() != null && request.templates().length > 0)) {
+                    futureGlobalMetadata = repository.getSnapshotGlobalMetadata(snapshotId);
+                } else {
+                    futureGlobalMetadata = CompletableFuture.completedFuture(Metadata.EMPTY_METADATA);
+                }
+                return futureGlobalMetadata.thenCompose(globalMetadata -> {
+                    var metadataBuilder = Metadata.builder(globalMetadata);
+                    var indexIdsInSnapshot = repositoryData.resolveIndices(indicesInSnapshot);
+                    var futureSnapshotIndexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot);
+                    return futureSnapshotIndexMetadata.thenAccept(snapshotIndexMetadata -> {
+                        for (IndexMetadata indexMetadata : snapshotIndexMetadata) {
+                            metadataBuilder.put(indexMetadata, false);
+                        }
+                        final Metadata metadata = metadataBuilder.build();
+                        // Apply renaming on index names, returning a map of names where
+                        // the key is the renamed index and the value is the original name
+                        final Map<String, String> indices = renamedIndices(request, indicesInSnapshot);
+
+                        // Now we can start the actual restore process by adding shards to be recovered in the cluster state
+                        // and updating cluster metadata (global and index) as needed
+                        RestoreSnapshotUpdateTask updateTask = new RestoreSnapshotUpdateTask(
+                            snapshotInfo,
+                            snapshotId,
+                            repositoryData,
+                            snapshot,
+                            listener,
+                            request,
+                            indices,
+                            metadata
+                        );
+                        clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
+                    });
+                });
+            });
+        }).exceptionally(t -> {
+            listener.onFailure(Exceptions.toException(t));
+            return null;
+        });
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
