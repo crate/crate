@@ -1396,4 +1396,17 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows()), is(""));
         // (t1,t3) is skipped
     }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_join_on_triple() {
+        // to be replaced by a unit test
+        execute("CREATE TABLE j1 (x INT)");
+        execute("CREATE TABLE j2 (x INT)");
+        execute("CREATE TABLE j3 (x INT)");
+        execute("SELECT * from j1 " +
+            "join j2 ON j1.x = j2.x " +
+            "join j3 on array_length(array_unique(ARRAY[j1.x, j2.x, j3.x]), 1) > 2"); //
+        assertThat(printedTable(response.rows()), is(""));
+    }
 }
