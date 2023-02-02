@@ -38,7 +38,7 @@ import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.types.StringType;
 
-public class MixedCaseSchemaAndRelationNamesIntegrationTest extends IntegTestCase {
+public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
 
     @Override
     @Before
@@ -52,42 +52,42 @@ public class MixedCaseSchemaAndRelationNamesIntegrationTest extends IntegTestCas
     }
 
     @Test
-    public void test_mixed_cased_identifiers_are_persisted_to_metadata() {
-        execute("create table \"Abc\".\"T\" (a int) partitioned by (a)");
-        execute("insert into \"Abc\".\"T\" values (1)");
-        execute("create view \"Abc\".v1 as select a from \"Abc\".\"T\"");
-        execute("CREATE FUNCTION \"Abc\".func(string) RETURNS STRING LANGUAGE dummy_lang AS 'DUMMY EATS text'");
+    public void test_mixed_cased_identifiers_starting_with_underscore_are_persisted_to_metadata() {
+        execute("create table \"_Abc\".\"_T\" (a int) partitioned by (a)");
+        execute("insert into \"_Abc\".\"_T\" values (1)");
+        execute("create view \"_Abc\".v1 as select a from \"_Abc\".\"_T\"");
+        execute("CREATE FUNCTION \"_Abc\".func(string) RETURNS STRING LANGUAGE dummy_lang AS 'DUMMY EATS text'");
         refresh();
 
         // check index/template names
         var meta = clusterService().state().metadata();
-        assertThat(meta.indices().keysIt().next()).isEqualTo("Abc..partitioned.T.04132");
-        assertThat(meta.templates().keysIt().next()).isEqualTo("Abc..partitioned.T.");
+        assertThat(meta.indices().keysIt().next()).isEqualTo("_Abc..partitioned._T.04132");
+        assertThat(meta.templates().keysIt().next()).isEqualTo("_Abc..partitioned._T.");
 
         // check viewMetadata names as well as its target query
         ViewsMetadata viewsMetadata = meta.custom(ViewsMetadata.TYPE);
-        ViewMetadata viewMetadata = viewsMetadata.getView(new RelationName("Abc", "v1"));
+        ViewMetadata viewMetadata = viewsMetadata.getView(new RelationName("_Abc", "v1"));
         assertThat(viewMetadata).isNotNull();
         assertThat(viewMetadata.stmt()).isEqualTo(
             """
                 SELECT "a"
-                FROM "Abc"."T"
+                FROM "_Abc"."_T"
                 """
         );
 
         // check udfMetadata for proper schema name
         UserDefinedFunctionsMetadata userDefinedFunctionsMetadata = meta.custom(UserDefinedFunctionsMetadata.TYPE);
-        assertThat(userDefinedFunctionsMetadata.contains("Abc", "func", List.of(StringType.INSTANCE))).isTrue();
+        assertThat(userDefinedFunctionsMetadata.contains("_Abc", "func", List.of(StringType.INSTANCE))).isTrue();
 
         // a little more complex scenario involving schema names with upper cases
-        execute("create table Abc.\"T\" (b string, c string as \"Abc\".func(b)) partitioned by (c)");
-        execute("insert into Abc.\"T\"(b) values ('Abc')"); // NOTE: here failed before due to - Unknown function: abc.func(abc.t.b)
+        execute("create table Abc.\"_T\" (b string, c string as \"_Abc\".func(b))");
+        execute("insert into Abc.\"_T\"(b) values ('Abc')"); // NOTE: here failed before due to - Unknown function: _abc.func(abc."_T".b)
         refresh();
 
-        execute("select * from Abc.\"T\"");
+        execute("select * from Abc.\"_T\"");
         assertThat(printedTable(response.rows())).isEqualTo("Abc| DUMMY EATS text\n");
 
-        assertThatThrownBy(() -> execute("drop function \"Abc\".func(string)"))
-            .hasMessageContaining("Cannot drop function 'Abc.func(text)', it is still in use by 'abc.T.c AS \"Abc\".func(b)'");
+        assertThatThrownBy(() -> execute("drop function \"_Abc\".func(string)"))
+            .hasMessageContaining("Cannot drop function '_Abc.func(text)', it is still in use by 'abc._T.c AS \"_Abc\".func(b)'");
     }
 }
