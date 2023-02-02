@@ -30,7 +30,10 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.LogicalPlanMatcher;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.matcher.Matcher;
+import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.memo.GroupReference;
 import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.planner.optimizer.memo.Memo;
@@ -59,22 +62,23 @@ public class IterativeOptimizer {
             // not a group reference, return same node
             return node;
         };
+        Matcher matcher = new LogicalPlanMatcher(groupReferenceResolver);
 
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, txnCtx, tableStats));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, txnCtx, tableStats), matcher);
 
         return memo.extract();
     }
 
-    private boolean exploreGroup(int group, Context context) {
+    private boolean exploreGroup(int group, Context context, Matcher matcher) {
         // tracks whether this group or any children groups change as
         // this method executes
-        boolean progress = exploreNode(group, context);
+        boolean progress = exploreNode(group, context, matcher);
 
-        while (exploreChildren(group, context)) {
+        while (exploreChildren(group, context, matcher)) {
             progress = true;
             // if children changed, try current group again
             // in case we can match additional rules
-            if (!exploreNode(group, context)) {
+            if (!exploreNode(group, context, matcher)) {
                 // no additional matches, so bail out
                 break;
             }
@@ -82,7 +86,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreNode(int group, Context context) {
+    private boolean exploreNode(int group, Context context, Matcher matcher) {
         var node = context.memo().resolve(group);
 
         var done = false;
@@ -91,14 +95,16 @@ public class IterativeOptimizer {
         while (!done) {
             done = true;
             for (Rule rule : rules) {
+                System.out.println("Try rule :" + rule.getClass().getSimpleName());
+
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty(), context.groupReferenceResolver);
+                Pattern pattern = rule.pattern();
+                Match<?> match = matcher.match(pattern, node, Captures.empty());
                 if (match.isPresent()) {
-                    @SuppressWarnings("unchecked")
                     LogicalPlan transformed = rule.apply(
-                        node,
+                        match.value(),
                         match.captures(),
                         context.tableStats(),
                         context.txnCtx,
@@ -118,7 +124,7 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private boolean exploreChildren(int group, Context context) {
+    private boolean exploreChildren(int group, Context context, Matcher matcher) {
         boolean progress = false;
 
         LogicalPlan expression = context.memo().resolve(group);
@@ -126,7 +132,7 @@ public class IterativeOptimizer {
             if (!(child instanceof GroupReference)) {
                 throw new IllegalStateException("Expected child to be a group reference. Found: " + child.getClass().getName());
             }
-            if (exploreGroup(((GroupReference) child).groupId(), context)) {
+            if (exploreGroup(((GroupReference) child).groupId(), context, matcher)) {
                 progress = true;
             }
         }

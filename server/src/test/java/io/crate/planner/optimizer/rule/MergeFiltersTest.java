@@ -21,14 +21,18 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -36,8 +40,17 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
+import io.crate.planner.operators.Union;
+import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
+import io.crate.planner.optimizer.matcher.LogicalPlanMatcher;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.memo.GroupReference;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -63,12 +76,104 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 
         MergeFilters mergeFilters = new MergeFilters();
-        Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
+        Match<Filter> match = mergeFilters.pattern().accept(DefaultMatcher.DEFAULT_MATCHER,
+                                                            parentFilter,
+                                                            Captures.empty());
 
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(parentFilter);
 
-        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx, x -> x);
+        Filter mergedFilter = (Filter) mergeFilters.apply(match.value(),
+                                                          match.captures(),
+                                                          new TableStats(),
+                                                          CoordinatorTxnCtx.systemTransactionContext(),
+                                                          e.nodeCtx);
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
+    }
+
+    @Test
+    public void test_matching_no_match() {
+        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        LogicalPlan groupReference = new GroupReference(1, source.outputs());
+        Order order = new Order(groupReference, new OrderBy(List.of()));
+
+        GroupReferenceResolver groupReferenceResolver = node -> {
+            if (node instanceof GroupReference) {
+                return source;
+            }
+            return node;
+        };
+
+        MergeFilters mergeFilters = new MergeFilters();
+        Match<Filter> match = new LogicalPlanMatcher(groupReferenceResolver).match(mergeFilters.pattern(), order, Captures.empty());
+        assertThat(match.isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_matching_match() {
+        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
+        LogicalPlan groupReference = new GroupReference(1, sourceFilter.outputs());
+        Order order = new Order(groupReference, new OrderBy(List.of()));
+
+        GroupReferenceResolver groupReferenceResolver = node -> {
+            if (node instanceof GroupReference) {
+                return sourceFilter;
+            }
+            return node;
+        };
+        MergeFilters mergeFilters = new MergeFilters();
+        Match<Filter> match = new LogicalPlanMatcher(groupReferenceResolver).match(mergeFilters.pattern(), order, Captures.empty());
+        assertThat(match.isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_merging_union() {
+        Collect source1 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source2 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        LogicalPlan groupReferenceSource1 = new GroupReference(1, source1.outputs());
+        LogicalPlan groupReferenceSource2 = new GroupReference(2, source2.outputs());
+        Union union = new Union(groupReferenceSource1, groupReferenceSource2, groupReferenceSource1.outputs());
+        LogicalPlan groupReference3 = new GroupReference(3, union.outputs());
+        Order order = new Order(groupReference3, new OrderBy(List.of()));
+
+        GroupReferenceResolver groupReferenceResolver = node -> {
+            if (node instanceof GroupReference g) {
+                switch(g.groupId()) {
+                    case 1 -> {
+                        return source1;
+                    }
+                    case 2 -> {
+                        return source2;
+                    }
+                    case 3 -> {
+                        return union;
+                    }
+                }
+            }
+            return node;
+        };
+        MoveOrderBeneathUnion moveFilterBeneathUnion = new MoveOrderBeneathUnion();
+        Match<Order> match = new LogicalPlanMatcher(groupReferenceResolver).match(moveFilterBeneathUnion.pattern(), order, Captures.empty());
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isInstanceOf(Order.class);
+        assertThat(match.captures().get(new Capture<Union>())).isInstanceOf(Union.class);
+    }
+
+    @Test
+    public void test_merging_union_default() {
+        Collect source1 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source2 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Union union = new Union(source1, source2, source1.outputs());
+        Order order = new Order(union, new OrderBy(List.of()));
+
+        Capture<Union> unionCapture = new Capture<>();
+        Pattern<Order> pattern = typeOf(Order.class).with(source(), typeOf(Union.class).capturedAs(unionCapture));
+
+        Match<Order> match = new DefaultMatcher().match(pattern, order, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isInstanceOf(Order.class);
+        assertThat(match.captures().get(unionCapture)).isInstanceOf(Union.class);
     }
 }

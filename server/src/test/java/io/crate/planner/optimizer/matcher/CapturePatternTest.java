@@ -27,9 +27,11 @@ import static org.mockito.Mockito.mock;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.rule.MergeFilters;
 
 public class CapturePatternTest {
 
@@ -41,8 +43,17 @@ public class CapturePatternTest {
         Pattern<Filter> filterPattern = Pattern.typeOf(Filter.class).capturedAs(captureFilter);
         CapturePattern<Filter> pattern = new CapturePattern<>(captureFilter, filterPattern);
 
-        Match<Filter> match = pattern.accept(filter, Captures.empty());
+        Match<Filter> match = pattern.accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
         Filter capturedFilter = match.captures().get(captureFilter);
         assertThat(capturedFilter, Matchers.sameInstance(filter));
     }
+
+//    public void test1() {
+//
+//        MergeFilters mergeFilters = new MergeFilters();
+//        OrderBy orderBy = new OrderBy(Symbols)
+//
+//    }
+
+
 }

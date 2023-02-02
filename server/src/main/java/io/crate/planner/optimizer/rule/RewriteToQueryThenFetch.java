@@ -46,6 +46,8 @@ import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
+import io.crate.planner.optimizer.matcher.LogicalPlanMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.memo.GroupReferenceResolver;
@@ -101,11 +103,11 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
 
 
     public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
-        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
+        Match<?> match = ORDER_COLLECT.accept(DefaultMatcher.DEFAULT_MATCHER, plan, Captures.empty());
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }
-        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
+        match = RENAME_ORDER_COLLECT.accept(DefaultMatcher.DEFAULT_MATCHER, plan, Captures.empty());
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }

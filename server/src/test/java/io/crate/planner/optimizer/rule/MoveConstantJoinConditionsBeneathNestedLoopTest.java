@@ -42,6 +42,7 @@ import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -74,7 +75,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false);
         var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
-        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
+        Match<NestedLoopJoin> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, nl, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
         assertThat(match.value(), Matchers.is(nl));

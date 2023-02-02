@@ -54,7 +54,7 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
         this.pattern = typeOf(Function.class)
             .with(f -> LIKE_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
-            .with((f, s) -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> f.arguments().get(0) instanceof Reference ref && ref.valueType().id() == StringType.ID)
             );

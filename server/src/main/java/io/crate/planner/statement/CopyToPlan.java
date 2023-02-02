@@ -74,6 +74,7 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.sql.tree.Assignment;
@@ -180,7 +181,7 @@ public final class CopyToPlan implements Plan {
 
     private static LogicalPlan optimizeCollect(PlannerContext context, TableStats tableStats, LogicalPlan collect) {
         OptimizeCollectWhereClauseAccess rewriteCollectToGet = new OptimizeCollectWhereClauseAccess();
-        Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
+        Match<Collect> match = rewriteCollectToGet.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
                                                          match.captures(),

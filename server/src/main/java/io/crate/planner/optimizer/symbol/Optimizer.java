@@ -41,6 +41,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.symbol.rule.MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators;
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference;
@@ -117,7 +118,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty(), x -> x);
+                Match<?> match = DefaultMatcher.DEFAULT_MATCHER.match(rule.pattern(), node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");

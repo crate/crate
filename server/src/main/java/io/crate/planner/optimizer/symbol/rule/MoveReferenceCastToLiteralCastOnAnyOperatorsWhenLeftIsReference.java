@@ -39,7 +39,6 @@ import java.util.Optional;
 
 import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 
 public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference implements Rule<Function> {
@@ -54,7 +53,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
-            .with((f, s) -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );

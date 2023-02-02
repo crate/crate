@@ -28,7 +28,7 @@ import io.crate.planner.operators.LogicalPlan;
 /**
  * The GroupReferenceResolver resolves a GroupReference to the referenced LogicalPlan
  */
-public interface GroupReferenceResolver {
+public interface GroupReferenceResolver extends Function<LogicalPlan, LogicalPlan> {
 
     LogicalPlan apply(LogicalPlan node);
 

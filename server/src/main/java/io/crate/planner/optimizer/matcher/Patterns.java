@@ -22,10 +22,8 @@
 package io.crate.planner.optimizer.matcher;
 
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public final class Patterns {
@@ -33,9 +31,9 @@ public final class Patterns {
     private Patterns() {
     }
 
-    public static BiFunction<LogicalPlan, GroupReferenceResolver, Optional<LogicalPlan>> source() {
-        return (plan, resolver) -> plan.sources().size() == 1
-            ? Optional.of(resolver.apply(plan.sources().get(0)))
+    public static Function<LogicalPlan, Optional<LogicalPlan>> source() {
+        return plan -> plan.sources().size() == 1
+            ? Optional.of(plan.sources().get(0))
             : Optional.empty();
     }
 }

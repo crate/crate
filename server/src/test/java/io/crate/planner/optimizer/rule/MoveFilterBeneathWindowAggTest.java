@@ -40,6 +40,7 @@ import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -68,7 +69,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+        Match<Filter> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -78,8 +79,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            x -> x
+            e.nodeCtx
         );
 
         assertThat(newPlan, nullValue());
@@ -96,7 +96,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+        Match<Filter> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -106,8 +106,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            x -> x
+            e.nodeCtx
         );
 
         assertThat(newPlan, nullValue());
@@ -124,7 +123,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+        Match<Filter> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -134,8 +133,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            x -> x
+            e.nodeCtx
         );
         var expectedPlan =
             "WindowAgg[id, row_number() OVER (PARTITION BY id)]\n" +
@@ -156,7 +154,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+        Match<Filter> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -166,8 +164,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            x -> x
+            e.nodeCtx
         );
         var expectedPlan =
             "Filter[((row_number() OVER (PARTITION BY id) = 2) AND (x = 1))]\n" +
@@ -189,7 +186,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         Filter filter = new Filter(windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
-        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+        Match<Filter> match = rule.pattern().accept(DefaultMatcher.DEFAULT_MATCHER, filter, Captures.empty());
 
         assertThat(match.isPresent(), is(true));
         assertThat(match.value(), Matchers.sameInstance(filter));
@@ -199,8 +196,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            x -> x
+            e.nodeCtx
         );
         assertThat(newPlan, nullValue());
     }

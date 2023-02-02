@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,36 +21,16 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import java.util.Optional;
-import java.util.function.Function;
+public interface Matcher {
 
-class WithPattern<T, U, V> extends Pattern<T> {
+    <T> Match<T> match(Pattern<T> pattern, Object object, Captures captures);
 
-    private final Pattern<T> firstPattern;
-    private final Function<? super T, Optional<U>> getProperty;
-    private final Pattern<V> propertyPattern;
+    <T> Match<T> matchTypeOf(TypeOfPattern<T> typeOfPattern, Object object, Captures captures);
 
-    WithPattern(Pattern<T> firstPattern, Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
-        this.firstPattern = firstPattern;
-        this.getProperty = getProperty;
-        this.propertyPattern = propertyPattern;
-    }
+    <T, U, V> Match<T> matchWith(WithPattern<T, U, V> withPattern, Object object, Captures captures);
 
-    public Function<? super T, Optional<U>> getProperty() {
-        return getProperty;
-    }
+    <T> Match<T> matchWithProperty(WithPropertyPattern<T> withPropertyPattern, Object object, Captures captures);
 
-    public Pattern<V> propertyPattern() {
-        return propertyPattern;
-    }
-
-    public Pattern<T> firstPattern() {
-        return firstPattern;
-    }
-
-    @Override
-    public Match<T> accept(Matcher matcher, Object object, Captures captures) {
-        return matcher.matchWith(this, object, captures);
-    }
+    <T> Match<T> matchCapture(CapturePattern<T> capturePattern, Object object, Captures captures);
 
 }

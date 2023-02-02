@@ -28,6 +28,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.DefaultMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 import org.apache.logging.log4j.LogManager;
@@ -100,7 +101,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty());
+                Match<?> match = DefaultMatcher.DEFAULT_MATCHER.match(rule.pattern(), plan, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
