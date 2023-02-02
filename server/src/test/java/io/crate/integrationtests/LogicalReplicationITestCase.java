@@ -22,11 +22,10 @@
 package io.crate.integrationtests;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -49,20 +48,18 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 
@@ -165,17 +162,16 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     private void dropSubscriptions() throws Exception {
         var state = subscriberCluster.client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        SubscriptionsMetadata subscriptionsMetadata = state.metadata().custom(SubscriptionsMetadata.TYPE);
-        if (subscriptionsMetadata == null) {
-            return;
-        }
+        SubscriptionsMetadata subscriptionsMetadata = SubscriptionsMetadata.get(state.metadata());
         for (var subscriptionName : subscriptionsMetadata.subscription().keySet()) {
             subscriberSqlExecutor.exec("DROP SUBSCRIPTION " + subscriptionName);
         }
         assertBusy(() -> {
             for (var logicalReplicationService : subscriberCluster.getInstances(LogicalReplicationService.class)) {
-                assertThat(logicalReplicationService.subscriptions().keySet(), Matchers.empty());
-                assertThat(logicalReplicationService.isActive(), is(false));
+                assertThat(logicalReplicationService.subscriptions()).isEmpty();
+                assertThat(logicalReplicationService.isActive())
+                    .as("LogicalReplicationService must not be active after dropping all subscriptions")
+                    .isFalse();
             }
         });
     }
@@ -228,7 +224,6 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         // disables a port scan for other nodes by setting seeds to an empty list
         builder.putList(DISCOVERY_SEED_HOSTS_SETTING.getKey());
         builder.putList(DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), "file");
-        builder.put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
         return new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
@@ -276,16 +271,11 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     protected void ensureGreenOnSubscriber() throws Exception {
         assertBusy(() -> {
-            try {
-                var response = executeOnSubscriber(
-                    "SELECT health, count(*) FROM sys.health GROUP BY 1");
-                assertThat(response.rowCount(), is(1L));
-                assertThat(response.rows()[0][0], is("GREEN"));
-            } catch (Exception e) {
-                fail();
-            }
+            var response = executeOnSubscriber(
+                "SELECT health, count(*) FROM sys.health GROUP BY 1");
+            assertThat(response).hasRowCount(1L);
+            assertThat(response.rows()[0][0]).isEqualTo("GREEN");
         }, 10, TimeUnit.SECONDS);
-
     }
 
     /**

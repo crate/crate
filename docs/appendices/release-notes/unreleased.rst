@@ -72,8 +72,29 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed behaviour of :ref:`FETCH RELATIVE <sql-fetch>`, which previously behaved
+  identically to `FETCH FORWARD` and `FETCH BACKWARD`, whereas it should behave
+  similarly to `FETCH ABSOLUTE`, with the difference that the position of the 1
+  row to return is calculated relatively to the current cursor position.
+
+- Fixed an issue that caused accounted memory not to be released when using
+  :ref:`cursors <sql-fetch>`, even if the ``CURSOR`` was explicitly or
+  automatically (session terminated) closed.
+
 - Fixed an issue that caused the returned column names to be missing the
   subscripts when querying sub-columns of nested object arrays.
+
+- Fixed an issue that caused ``ClassCastException`` when accessing a sub-column
+  of a nested object array where the sub-column resolves to a nested array.
+  An example ::
+
+    CREATE TABLE test (
+      "a" ARRAY(OBJECT AS (
+        "b" ARRAY(OBJECT AS (
+          "s" STRING
+        )))));
+    INSERT INTO test (a) VALUES ([{b=[{s='1'}, {s='2'}, {s='3'}]}]);
+    SELECT a['b'] FROM test; // a['b'] is type of array(array(object))
 
 - Added validation to reject inner column names containing whitespace characters
   to avoid invalid schema definitions.
@@ -98,3 +119,7 @@ Fixes
   This caused metadata corruptions leading to ``StartupExceptions`` and data
   losses. Corrupted metadata recovery is in place to prevent the exceptions
   but not all data can be recovered.
+
+- Fixed an issue in the PostgreSQL wire protocol that would cause
+  de-serialization of arrays to fail if they contained unquoted strings
+  consisting of more than 2 words.

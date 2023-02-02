@@ -21,11 +21,12 @@
 
 package io.crate.concurrent;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+
+import javax.annotation.Nonnull;
 
 /**
  * A future acting as a FutureCallback. It is set when once numCalls have been made to the callback.
@@ -45,7 +46,10 @@ public class CountdownFutureCallback extends CompletableFuture<Void> implements 
     }
 
     public void onFailure(@Nonnull Throwable t) {
-        lastFailure.set(t);
+        Throwable previousFailure = lastFailure.getAndSet(t);
+        if (previousFailure != null) {
+            t.addSuppressed(previousFailure);
+        }
         countdown();
     }
 

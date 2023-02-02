@@ -24,12 +24,12 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.List;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
@@ -91,7 +91,7 @@ class FetchCollector {
                     if (readerContext == null) {
                         if (collectSequential) {
                             var storedFieldReader = sequentialStoredFieldReader(subReaderContext);
-                            readerContext = new ReaderContext(subReaderContext, storedFieldReader::visitDocument);
+                            readerContext = new ReaderContext(subReaderContext, storedFieldReader::document);
                         } else {
                             readerContext = new ReaderContext(subReaderContext);
                         }

@@ -50,7 +50,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakGroup;
 
-import io.crate.action.FutureActionListener;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -335,17 +334,14 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         BlobStoreRepository repository = (BlobStoreRepository) repositoriesService.repository(repositoryName);
         RepositoryData repositoryData = getRepositoryData(repository);
 
-
-        List<FutureActionListener<IndexMetadata, IndexMetadata>> listeners = new ArrayList<>(snapshotInfo.indices().size());
+        List<CompletableFuture<IndexMetadata>> listeners = new ArrayList<>(snapshotInfo.indices().size());
         for (String index : snapshotInfo.indices()) {
             IndexId indexId = repositoryData.resolveIndexId(index);
-            FutureActionListener<IndexMetadata, IndexMetadata> indexMetadataListener = FutureActionListener.newInstance();
-            listeners.add(indexMetadataListener);
-            repository.getSnapshotIndexMetadata(repositoryData, snapshotInfo.snapshotId(), indexId, indexMetadataListener);
+            listeners.add(repository.getSnapshotIndexMetadata(repositoryData, snapshotInfo.snapshotId(), indexId));
         }
-
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();
-        for (IndexMetadata indexMetadata : CompletableFutures.allAsList(listeners).get(10, TimeUnit.SECONDS)) {
+        List<IndexMetadata> indexMetadataList = CompletableFutures.allAsList(listeners).get(10, TimeUnit.SECONDS);
+        for (IndexMetadata indexMetadata : indexMetadataList) {
             if (indexMetadata != null) {
                 int numberOfShards = indexMetadata.getNumberOfShards();
                 for (int i = 0; i < numberOfShards; i++) {

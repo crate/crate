@@ -73,8 +73,6 @@ public interface TransportMessageListener {
      * @param requestId the request id for this response
      * @param context the response context or null if the context was already processed ie. due to a timeout.
      */
-    @SuppressWarnings("rawtypes")
-    default void onResponseReceived(long requestId, Transport.ResponseContext context) {
+    default void onResponseReceived(long requestId, Transport.ResponseContext<?> context) {
     }
-
 }

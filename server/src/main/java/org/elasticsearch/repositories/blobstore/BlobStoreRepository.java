@@ -142,6 +142,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.InvalidArgumentException;
 
 
@@ -1066,51 +1067,51 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getSnapshotInfo(final SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
+    public CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
         try {
-            listener.onResponse(SNAPSHOT_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
+            return CompletableFuture.completedFuture(SNAPSHOT_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
         } catch (NoSuchFileException ex) {
-            listener.onFailure(new SnapshotMissingException(metadata.name(), snapshotId, ex));
+            return CompletableFuture.failedFuture(new SnapshotMissingException(metadata.name(), snapshotId, ex));
         } catch (IOException | NotXContentException ex) {
-            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to get snapshots", ex));
+            return CompletableFuture.failedFuture(new SnapshotException(metadata.name(), snapshotId, "failed to get snapshots", ex));
         } catch (Exception e) {
-            listener.onFailure(e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 
     @Override
-    public void getSnapshotGlobalMetadata(final SnapshotId snapshotId, ActionListener<Metadata> listener) {
+    public CompletableFuture<Metadata> getSnapshotGlobalMetadata(final SnapshotId snapshotId) {
         try {
-            listener.onResponse(GLOBAL_METADATA_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
+            return CompletableFuture.completedFuture(GLOBAL_METADATA_FORMAT.read(blobContainer(), snapshotId.getUUID(), namedXContentRegistry));
         } catch (NoSuchFileException ex) {
-            listener.onFailure(new SnapshotMissingException(metadata.name(), snapshotId, ex));
+            return CompletableFuture.failedFuture(new SnapshotMissingException(metadata.name(), snapshotId, ex));
         } catch (IOException ex) {
-            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex));
+            return CompletableFuture.failedFuture(new SnapshotException(metadata.name(), snapshotId, "failed to read global metadata", ex));
         }
     }
 
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index, ActionListener<IndexMetadata> listener) {
+    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index) {
         try {
             IndexMetadata result = INDEX_METADATA_FORMAT.read(indexContainer(index),
                 repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry);
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 
 
     @Override
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds) {
         try {
-            var result = new ArrayList<IndexMetadata>();
+            var result = new ArrayList<IndexMetadata>(indexIds.size());
             for (IndexId index : indexIds) {
                 result.add(INDEX_METADATA_FORMAT.read(indexContainer(index),
                     repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedXContentRegistry));
             }
-            listener.onResponse(result);
+            return CompletableFuture.completedFuture(result);
         } catch (IOException ex) {
-            listener.onFailure(ex);
+            return CompletableFuture.failedFuture(ex);
         }
     }
 
@@ -1466,17 +1467,18 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         }, () -> filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap))),
                     snapshotIdsWithoutVersion.size());
                 for (SnapshotId snapshotId : snapshotIdsWithoutVersion) {
-                    threadPool().executor(ThreadPool.Names.SNAPSHOT)
-                        .execute(ActionRunnable.run(
-                            loadAllVersionsListener,
-                            () -> {
-                                ActionListener<SnapshotInfo> snapshotInfoListener = ActionListener.delegateFailure(
-                                    loadAllVersionsListener, (delegate, snapshotInfo) -> {
-                                        updatedVersionMap.put(snapshotId, snapshotInfo.version());
-                                        delegate.onResponse(null);
-                                    });
-                                getSnapshotInfo(snapshotId, snapshotInfoListener);
-                            }));
+                    threadPool().executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.run(
+                        loadAllVersionsListener,
+                        () -> {
+                            getSnapshotInfo(snapshotId).whenComplete((snapshotInfo, err) -> {
+                                if (err == null) {
+                                    updatedVersionMap.put(snapshotId, snapshotInfo.version());
+                                    loadAllVersionsListener.onResponse(null);
+                                } else {
+                                    loadAllVersionsListener.onFailure(Exceptions.toException(err));
+                                }
+                            });
+                        }));
                 }
             } else {
                 filterRepositoryDataStep.onResponse(repositoryData);

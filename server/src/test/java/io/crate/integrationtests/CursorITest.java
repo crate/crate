@@ -29,14 +29,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Properties;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase.AwaitsFix;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PostgresNetty;
 
-@AwaitsFix(bugUrl = "https://github.com/crate/crate/pull/13492")
 public class CursorITest extends IntegTestCase {
 
     private Properties properties;
@@ -203,6 +201,16 @@ public class CursorITest extends IntegTestCase {
             assertThat(result.getInt(1)).isEqualTo(5);
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH RELATIVE -2 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(2);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH RELATIVE 7 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(9);
             assertThat(result.next()).isFalse();
         }
     }

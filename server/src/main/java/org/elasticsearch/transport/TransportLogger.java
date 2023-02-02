@@ -23,13 +23,8 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressorFactory;
-import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.network.CloseableChannel;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 import io.crate.common.io.IOUtils;
 
@@ -47,59 +42,6 @@ public final class TransportLogger {
                 LOGGER.warn("an exception occurred formatting a READ trace message", e);
             }
         }
-    }
-
-    private static String format(CloseableChannel channel, BytesReference message, String event) throws IOException {
-        final StringBuilder sb = new StringBuilder();
-        sb.append(channel);
-        int messageLengthWithHeader = HEADER_SIZE + message.length();
-        // This is a ping
-        if (message.length() == 0) {
-            sb.append(" [ping]").append(' ').append(event).append(": ").append(messageLengthWithHeader).append('B');
-        } else {
-            boolean success = false;
-            StreamInput streamInput = message.streamInput();
-            try {
-                final long requestId = streamInput.readLong();
-                final byte status = streamInput.readByte();
-                final boolean isRequest = TransportStatus.isRequest(status);
-                final String type = isRequest ? "request" : "response";
-                final Version version = Version.fromId(streamInput.readInt());
-                streamInput.setVersion(version);
-                sb.append(" [length: ").append(messageLengthWithHeader);
-                sb.append(", request id: ").append(requestId);
-                sb.append(", type: ").append(type);
-                sb.append(", version: ").append(version);
-
-                if (version.onOrAfter(TcpHeader.VERSION_WITH_HEADER_SIZE)) {
-                    sb.append(", header size: ").append(streamInput.readInt()).append('B');
-                } else {
-                    streamInput = decompressingStream(status, streamInput);
-                    InboundHandler.assertRemoteVersion(streamInput, version);
-                }
-
-                // read and discard headers
-                ThreadContext.bwcReadHeaders(streamInput);
-
-                if (isRequest) {
-                    if (streamInput.getVersion().onOrAfter(Version.V_4_3_0)) {
-                        // discard features
-                        streamInput.readStringArray();
-                    }
-                    sb.append(", action: ").append(streamInput.readString());
-                }
-                sb.append(']');
-                sb.append(' ').append(event).append(": ").append(messageLengthWithHeader).append('B');
-                success = true;
-            } finally {
-                if (success) {
-                    IOUtils.close(streamInput);
-                } else {
-                    IOUtils.closeWhileHandlingException(streamInput);
-                }
-            }
-        }
-        return sb.toString();
     }
 
     private static String format(CloseableChannel channel, InboundMessage message, String event) throws IOException {
@@ -140,17 +82,5 @@ public final class TransportLogger {
             }
         }
         return sb.toString();
-    }
-
-    private static StreamInput decompressingStream(byte status, StreamInput streamInput) throws IOException {
-        if (TransportStatus.isCompress(status) && streamInput.available() > 0) {
-            try {
-                return new InputStreamStreamInput(CompressorFactory.COMPRESSOR.threadLocalInputStream(streamInput));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalStateException("stream marked as compressed, but is missing deflate header");
-            }
-        } else {
-            return streamInput;
-        }
     }
 }

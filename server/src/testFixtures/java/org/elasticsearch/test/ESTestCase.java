@@ -24,7 +24,6 @@ import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.Security;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +32,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -43,7 +41,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -57,6 +54,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.status.StatusConsoleListener;
 import org.apache.logging.log4j.status.StatusData;
@@ -80,6 +78,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.logging.Loggers;
@@ -110,7 +109,6 @@ import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -134,6 +132,7 @@ import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
 
 import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
+import io.crate.testing.Asserts;
 
 /**
  * Base testcase for randomized unit testing with Elasticsearch
@@ -164,7 +163,11 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
 
     private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
 
+    /**
+     * @deprecated use {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)
+     */
     @Rule
+    @Deprecated
     public ExpectedException expectedException = ExpectedException.none();
 
     @AfterClass
@@ -186,8 +189,9 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
 
         String leakLoggerName = "io.netty.util.ResourceLeakDetector";
         Logger leakLogger = LogManager.getLogger(leakLoggerName);
-        Appender leakAppender = new AbstractAppender(leakLoggerName, null,
-            PatternLayout.newBuilder().withPattern("%m").build()) {
+        PatternLayout layout = PatternLayout.newBuilder().withPattern("%m").build();
+        Appender leakAppender = new AbstractAppender(leakLoggerName, null, layout, true, Property.EMPTY_ARRAY) {
+
             @Override
             public void append(LogEvent event) {
                 String message = event.getMessage().getFormattedMessage();
@@ -304,15 +308,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         PathUtilsForTesting.teardown();
     }
 
-    @BeforeClass
-    public static void ensureSupportedLocale() {
-        if (isUnusableLocale()) {
-            Logger logger = LogManager.getLogger(ESTestCase.class);
-            logger.warn("Attempting to run tests in an unusable locale in a FIPS JVM. Certificate expiration validation will fail, " +
-                "switching to English. See: https://github.com/bcgit/bc-java/issues/405");
-            Locale.setDefault(Locale.ENGLISH);
-        }
-    }
 
     @Before
     public final void before()  {
@@ -578,16 +573,18 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
 
     /** A random integer from 0..max (inclusive). */
     public static int randomInt(int max) {
-        return RandomizedTest.randomInt(max);
+        return RandomNumbers.randomIntBetween(random(), 0, max);
     }
 
     /** Pick a random object from the given array. The array must not be empty. */
-    public static <T> T randomFrom(T... array) {
+    @SafeVarargs
+    public final static <T> T randomFrom(T... array) {
         return randomFrom(random(), array);
     }
 
     /** Pick a random object from the given array. The array must not be empty. */
-    public static <T> T randomFrom(Random random, T... array) {
+    @SafeVarargs
+    public final static <T> T randomFrom(Random random, T... array) {
         return RandomPicks.randomFrom(random, array);
     }
 
@@ -607,15 +604,11 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     }
 
     public static String randomAlphaOfLengthBetween(int minCodeUnits, int maxCodeUnits) {
-        return RandomizedTest.randomAsciiOfLengthBetween(minCodeUnits, maxCodeUnits);
+        return RandomStrings.randomAsciiLettersOfLengthBetween(random(), minCodeUnits, maxCodeUnits);
     }
 
     public static String randomAlphaOfLength(int codeUnits) {
-        return RandomizedTest.randomAsciiOfLength(codeUnits);
-    }
-
-    public static String randomUnicodeOfLengthBetween(int minCodeUnits, int maxCodeUnits) {
-        return RandomizedTest.randomUnicodeOfLengthBetween(minCodeUnits, maxCodeUnits);
+        return RandomizedTest.randomAsciiLettersOfLength(codeUnits);
     }
 
     public static String randomUnicodeOfLength(int codeUnits) {
@@ -626,20 +619,12 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         return RandomizedTest.randomUnicodeOfCodepointLengthBetween(minCodePoints, maxCodePoints);
     }
 
-    public static String randomUnicodeOfCodepointLength(int codePoints) {
-        return RandomizedTest.randomUnicodeOfCodepointLength(codePoints);
-    }
-
     public static String randomRealisticUnicodeOfLengthBetween(int minCodeUnits, int maxCodeUnits) {
         return RandomizedTest.randomRealisticUnicodeOfLengthBetween(minCodeUnits, maxCodeUnits);
     }
 
     public static String randomRealisticUnicodeOfCodepointLengthBetween(int minCodePoints, int maxCodePoints) {
         return RandomizedTest.randomRealisticUnicodeOfCodepointLengthBetween(minCodePoints, maxCodePoints);
-    }
-
-    public static String randomRealisticUnicodeOfCodepointLength(int codePoints) {
-        return RandomizedTest.randomRealisticUnicodeOfCodepointLength(codePoints);
     }
 
     public static String[] generateRandomStringArray(int maxArraySize, int stringSize, boolean allowNull, boolean allowEmpty) {
@@ -649,7 +634,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         int arraySize = randomIntBetween(allowEmpty ? 0 : 1, maxArraySize);
         String[] array = new String[arraySize];
         for (int i = 0; i < arraySize; i++) {
-            array[i] = RandomStrings.randomAsciiOfLength(random(), stringSize);
+            array[i] = RandomStrings.randomAsciiLettersOfLength(random(), stringSize);
         }
         return array;
     }
@@ -735,30 +720,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         }
     }
 
-    public static boolean awaitBusy(BooleanSupplier breakSupplier) throws InterruptedException {
-        return awaitBusy(breakSupplier, 10, TimeUnit.SECONDS);
-    }
-
-    // After 1s, we stop growing the sleep interval exponentially and just sleep 1s until maxWaitTime
-    private static final long AWAIT_BUSY_THRESHOLD = 1000L;
-
-    public static boolean awaitBusy(BooleanSupplier breakSupplier, long maxWaitTime, TimeUnit unit) throws InterruptedException {
-        long maxTimeInMillis = TimeUnit.MILLISECONDS.convert(maxWaitTime, unit);
-        long timeInMillis = 1;
-        long sum = 0;
-        while (sum + timeInMillis < maxTimeInMillis) {
-            if (breakSupplier.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(timeInMillis);
-            sum += timeInMillis;
-            timeInMillis = Math.min(AWAIT_BUSY_THRESHOLD, timeInMillis * 2);
-        }
-        timeInMillis = maxTimeInMillis - sum;
-        Thread.sleep(Math.max(timeInMillis, 0));
-        return breakSupplier.getAsBoolean();
-    }
-
     public static boolean terminate(ExecutorService... services) {
         boolean terminated = true;
         for (ExecutorService service : services) {
@@ -827,7 +788,8 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     /**
      * Returns size random values
      */
-    public static <T> List<T> randomSubsetOf(int size, T... values) {
+    @SafeVarargs
+    public final static <T> List<T> randomSubsetOf(int size, T... values) {
         List<T> list = arrayAsArrayList(values);
         return randomSubsetOf(size, list);
     }
@@ -869,10 +831,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         return things;
     }
 
-    public static String getTestTransportType() {
-        return Netty4Plugin.NETTY_TRANSPORT_NAME;
-    }
-
     /**
      * Randomly shuffles the fields inside objects in the {@link XContentBuilder} passed in.
      * Recursively goes through inner objects and also shuffles them. Exceptions for this
@@ -910,14 +868,14 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
 
     // shuffle fields of objects in the list, but not the list itself
     @SuppressWarnings("unchecked")
-    private static List<Object> shuffleList(List<Object> list, Set<String> exceptFields) {
+    private static List<Object> shuffleList(List<?> list, Set<String> exceptFields) {
         List<Object> targetList = new ArrayList<>();
         for(Object value : list) {
             if (value instanceof Map) {
                 LinkedHashMap<String, Object> valueMap = (LinkedHashMap<String, Object>) value;
                 targetList.add(shuffleMap(valueMap, exceptFields));
-            } else if(value instanceof List) {
-                targetList.add(shuffleList((List) value, exceptFields));
+            } else if(value instanceof List<?> values) {
+                targetList.add(shuffleList(values, exceptFields));
             }  else {
                 targetList.add(value);
             }
@@ -935,8 +893,8 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
             if (value instanceof Map && exceptFields.contains(key) == false) {
                 LinkedHashMap<String, Object> valueMap = (LinkedHashMap<String, Object>) value;
                 targetMap.put(key, shuffleMap(valueMap, exceptFields));
-            } else if(value instanceof List && exceptFields.contains(key) == false) {
-                targetMap.put(key, shuffleList((List) value, exceptFields));
+            } else if(value instanceof List<?> values && exceptFields.contains(key) == false) {
+                targetMap.put(key, shuffleList(values, exceptFields));
             } else {
                 targetMap.put(key, value);
             }
@@ -952,23 +910,10 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      */
     public static <T extends Writeable> T copyWriteable(T original, NamedWriteableRegistry namedWriteableRegistry,
             Writeable.Reader<T> reader) throws IOException {
-        return copyWriteable(original, namedWriteableRegistry, reader, Version.CURRENT);
-    }
-
-    /**
-     * Same as {@link #copyWriteable(Writeable, NamedWriteableRegistry, Writeable.Reader)} but also allows to provide
-     * a {@link Version} argument which will be used to write and read back the object.
-     */
-    public static <T extends Writeable> T copyWriteable(T original, NamedWriteableRegistry namedWriteableRegistry,
-                                                        Writeable.Reader<T> reader, Version version) throws IOException {
-        return copyInstance(original, namedWriteableRegistry, (out, value) -> value.writeTo(out), reader, version);
-    }
-
-    protected static <T> T copyInstance(T original, NamedWriteableRegistry namedWriteableRegistry, Writeable.Writer<T> writer,
-                                      Writeable.Reader<T> reader, Version version) throws IOException {
+        Version version = Version.CURRENT;
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             output.setVersion(version);
-            writer.write(output, original);
+            ((Writer<T>) (out, value) -> value.writeTo(out)).write(output, original);
             try (StreamInput in = new NamedWriteableAwareStreamInput(output.bytes().streamInput(), namedWriteableRegistry)) {
                 in.setVersion(version);
                 return reader.read(in);
@@ -1042,14 +987,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     public static TestAnalysis createTestAnalysis(Index index, Settings settings, AnalysisPlugin... analysisPlugins)
         throws IOException {
         Settings nodeSettings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), createTempDir()).build();
-        return createTestAnalysis(index, nodeSettings, settings, analysisPlugins);
-    }
-
-    /**
-     * Creates an TestAnalysis with all the default analyzers configured.
-     */
-    public static TestAnalysis createTestAnalysis(Index index, Settings nodeSettings, Settings settings,
-                                                  AnalysisPlugin... analysisPlugins) throws IOException {
         Settings indexSettings = Settings.builder().put(settings)
                 .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                 .build();
@@ -1091,16 +1028,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
             this.tokenizer = tokenizer;
             this.charFilter = charFilter;
         }
-    }
-
-    private static boolean isUnusableLocale() {
-        return inFipsJvm() && (Locale.getDefault().toLanguageTag().equals("th-TH")
-            || Locale.getDefault().toLanguageTag().equals("ja-JP-u-ca-japanese-x-lvariant-JP")
-            || Locale.getDefault().toLanguageTag().equals("th-TH-u-nu-thai-x-lvariant-TH"));
-    }
-
-    public static boolean inFipsJvm() {
-        return Security.getProviders()[0].getName().toLowerCase(Locale.ROOT).contains("fips");
     }
 
     /**

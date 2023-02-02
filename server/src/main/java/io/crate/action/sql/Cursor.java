@@ -31,6 +31,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
@@ -51,22 +52,26 @@ public final class Cursor implements AutoCloseable {
 
     private final Hold hold;
     private final CompletableFuture<BatchIterator<Row>> queryIterator;
+    private final CompletableFuture<Void> finalResult;
     private final List<Symbol> outputs;
     private final boolean scroll;
     private final List<Object[]> rows = new ArrayList<>();
     private final ArrayRow sharedRow = new ArrayRow();
     private final RowAccounting<Object[]> rowAccounting;
     private boolean exhausted = false;
-    private int cursorPosition = 0;
+    @VisibleForTesting
+    int cursorPosition = 0;
 
     public Cursor(CircuitBreaker circuitBreaker,
                   boolean scroll,
                   Hold hold,
                   CompletableFuture<BatchIterator<Row>> queryIterator,
+                  CompletableFuture<Void> finalResult,
                   List<Symbol> outputs) {
         this.scroll = scroll;
         this.hold = hold;
         this.queryIterator = queryIterator;
+        this.finalResult = finalResult;
         this.outputs = outputs;
         this.rowAccounting = new RowCellsAccountingWithEstimators(
             Symbols.typeView(outputs),
@@ -159,10 +164,12 @@ public final class Cursor implements AutoCloseable {
             lCount = - Integer.MAX_VALUE;
         }
         int count = (int) lCount;
-        boolean moveForward = mode == ScrollMode.RELATIVE && count >= 0 || mode == ScrollMode.ABSOLUTE && count > cursorPosition;
+        boolean moveForward = ((mode == ScrollMode.MOVE || mode == ScrollMode.RELATIVE) && count >= 0) ||
+                              mode == ScrollMode.ABSOLUTE && count > cursorPosition;
         if (!moveForward && !scroll) {
             throw new IllegalArgumentException("Cannot move backward if cursor was created with NO SCROLL");
         }
+        resetCursorToMaxBufferedRowsPlus1();
 
         if (mode == ScrollMode.ABSOLUTE) {
             // Absolute jumps to a position and returns that row (or none if before start; after end)
@@ -186,8 +193,26 @@ public final class Cursor implements AutoCloseable {
                     }
                 });
             }
+        } else if (mode == ScrollMode.RELATIVE) {
+            // Relative jumps to a position relative to cursorPosition
+            // and returns that row (or none if before start; after end)
+
+            int newCursorPosition = newCursorPosition(count);
+            if (newCursorPosition < rows.size()) {
+                cursorPosition = Math.max(newCursorPosition, 0);
+                consumer.accept(bufferedRowOrNone(cursorPosition - 1), null);
+            } else {
+                int steps = newCursorPosition - cursorPosition + 1;
+                fullResult.move(steps, row -> {}, err -> {
+                    if (err == null) {
+                        cursorPosition = newCursorPosition;
+                        consumer.accept(bufferedRowOrNone(cursorPosition - 1), null);
+                    } else {
+                        consumer.accept(null, err);
+                    }
+                });
+            }
         } else if (moveForward) {
-            resetCursorToMaxBufferedRowsPlus1();
             if (count == 0) {
                 int idx = cursorPosition - 1;
                 if (cursorPosition > rows.size()) {
@@ -207,14 +232,9 @@ public final class Cursor implements AutoCloseable {
                 delegate = CompositeBatchIterator.seqComposite(bufferedBi, fullResult);
             }
 
+            cursorPosition = newCursorPosition(count);
             consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
-
-            cursorPosition = cursorPosition + count;
-            if (cursorPosition < 0) { // overflow
-                cursorPosition = Integer.MAX_VALUE;
-            }
         } else {
-            resetCursorToMaxBufferedRowsPlus1();
             int start = cursorPosition + count;
             assert start < cursorPosition : "count must be negative";
             List<Object[]> items = Lists2.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
@@ -229,6 +249,16 @@ public final class Cursor implements AutoCloseable {
     private void resetCursorToMaxBufferedRowsPlus1() {
         if (cursorPosition > rows.size() + 1) {
             cursorPosition = rows.size() + 1;
+        }
+    }
+
+    private int newCursorPosition(int count) {
+        // Code copied from Math.addExact(int x, int y)
+        int newCursorPosition = cursorPosition + count;
+        if (((cursorPosition ^ newCursorPosition) & (count ^ newCursorPosition)) < 0) {
+            return Integer.MAX_VALUE;
+        } else {
+            return newCursorPosition;
         }
     }
 
@@ -254,10 +284,16 @@ public final class Cursor implements AutoCloseable {
         rowAccounting.release();
         if (queryIterator.isDone() && !queryIterator.isCompletedExceptionally()) {
             queryIterator.join().close();
+            finalResult.complete(null);
         } else {
             queryIterator.whenComplete((bi, err) -> {
                 if (bi != null) {
                     bi.close();
+                }
+                if (err == null) {
+                    finalResult.complete(null);
+                } else {
+                    finalResult.completeExceptionally(err);
                 }
             });
         }

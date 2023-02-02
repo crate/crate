@@ -19,8 +19,6 @@
 
 package org.elasticsearch.index.translog;
 
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -134,6 +132,9 @@ final class TranslogHeader {
                     new InputStreamStreamInput(java.nio.channels.Channels.newInputStream(channel), channel.size()),
                     path.toString());
             final int version = readHeaderVersion(path, channel, in);
+            if (version == VERSION_CHECKPOINTS) {
+                throw new IllegalStateException("pre CrateDB 4.0 translog found [" + path + "]");
+            }
             // Read the translogUUID
             final int uuidLen = in.readInt();
             if (uuidLen > channel.size()) {
@@ -146,18 +147,9 @@ final class TranslogHeader {
             uuid.length = uuidLen;
             in.read(uuid.bytes, uuid.offset, uuid.length);
             // Read the primary term
-            final long primaryTerm;
-            if (version == VERSION_PRIMARY_TERM) {
-                primaryTerm = in.readLong();
-            } else {
-                // This can be dropped with 5.0 as BWC with older versions is not required anymore
-                assert version == VERSION_CHECKPOINTS : "Unknown header version [" + version + "]";
-                primaryTerm = UNASSIGNED_PRIMARY_TERM;
-            }
-            // Verify the checksum (can be always verified on >= 5.0 as version must be primary term based without BWC)
-            if (version >= VERSION_PRIMARY_TERM) {
-                Translog.verifyChecksum(in);
-            }
+            assert version == VERSION_PRIMARY_TERM;
+            final long primaryTerm = in.readLong();
+            Translog.verifyChecksum(in);
             assert primaryTerm >= 0 : "Primary term must be non-negative [" + primaryTerm + "]; translog path [" + path + "]";
 
             final int headerSizeInBytes = headerSizeInBytes(version, uuid.length);

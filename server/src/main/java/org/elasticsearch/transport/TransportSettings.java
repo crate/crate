@@ -26,7 +26,6 @@ import static org.elasticsearch.common.settings.Setting.intSetting;
 import static org.elasticsearch.common.settings.Setting.listSetting;
 import static org.elasticsearch.common.settings.Setting.timeSetting;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -106,15 +105,6 @@ public final class TransportSettings {
         intSetting("transport.connections_per_node.state", 1, 1, Setting.Property.NodeScope);
     public static final Setting<Integer> CONNECTIONS_PER_NODE_PING =
         intSetting("transport.connections_per_node.ping", 1, 1, Setting.Property.NodeScope);
-
-    // Tracer settings
-
-    public static final Setting<List<String>> TRACE_LOG_INCLUDE_SETTING =
-        listSetting("transport.tracer.include", emptyList(), Function.identity(), STRING_ARRAY, Setting.Property.Dynamic, Setting.Property.NodeScope);
-    public static final Setting<List<String>> TRACE_LOG_EXCLUDE_SETTING =
-        listSetting("transport.tracer.exclude",
-            Arrays.asList("internal:coordination/fault_detection/*"),
-            Function.identity(), STRING_ARRAY, Setting.Property.Dynamic, Setting.Property.NodeScope);
 
     // Time that processing an inbound message on a transport thread may take at the most before a warning is logged
     public static final Setting<TimeValue> SLOW_OPERATION_THRESHOLD_SETTING =

@@ -38,12 +38,12 @@ settings can be applied to a cluster using ``PERSISTENT`` and ``TRANSIENT``
 keywords to set a persistent level.
 
 ``SET/SET SESSION`` may affect the current session if the setting is supported.
-Setting the unsupported settings will be ignored and logged with the ``WARN``
+Setting the unsupported settings will be ignored and logged with the ``INFO``
 logging level. See :ref:`search_path <conf-session-search-path>`, to get an
 overview of the supported session setting parameters.
 
 ``SET LOCAL`` does not have any effect on CrateDB configurations. All ``SET
-LOCAL`` statements will be ignored by CrateDB and logged with the ``WARN``
+LOCAL`` statements will be ignored by CrateDB and logged with the ``INFO``
 logging level.
 
 ``SET SESSION/LOCAL`` are introduced to be compliant with third-party

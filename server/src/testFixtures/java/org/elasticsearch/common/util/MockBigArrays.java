@@ -19,11 +19,10 @@
 
 package org.elasticsearch.common.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -40,8 +39,6 @@ import org.elasticsearch.test.ESTestCase;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 
-import io.crate.common.collections.Sets;
-
 public class MockBigArrays extends BigArrays {
 
     /**
@@ -53,35 +50,12 @@ public class MockBigArrays extends BigArrays {
     private static final ConcurrentMap<Object, Object> ACQUIRED_ARRAYS = new ConcurrentHashMap<>();
 
     public static void ensureAllArraysAreReleased() throws Exception {
-        final Map<Object, Object> masterCopy = new HashMap<>(ACQUIRED_ARRAYS);
-        if (!masterCopy.isEmpty()) {
-            // not empty, we might be executing on a shared cluster that keeps on obtaining
-            // and releasing arrays, lets make sure that after a reasonable timeout, all master
-            // copy (snapshot) have been released
-            boolean success = ESTestCase.awaitBusy(() -> Sets.haveEmptyIntersection(masterCopy.keySet(), ACQUIRED_ARRAYS.keySet()));
-            if (!success) {
-                masterCopy.keySet().retainAll(ACQUIRED_ARRAYS.keySet());
-                ACQUIRED_ARRAYS.keySet().removeAll(masterCopy.keySet()); // remove all existing master copy we will report on
-                if (!masterCopy.isEmpty()) {
-                    Iterator<Object> causes = masterCopy.values().iterator();
-                    Object firstCause = causes.next();
-                    RuntimeException exception = new RuntimeException(masterCopy.size() + " arrays have not been released",
-                            firstCause instanceof Throwable ? (Throwable) firstCause : null);
-                    while (causes.hasNext()) {
-                        Object cause = causes.next();
-                        if (cause instanceof Throwable) {
-                            exception.addSuppressed((Throwable) cause);
-                        }
-                    }
-                    throw exception;
-                }
-            }
-        }
+        ESTestCase.assertBusy(() -> {
+            assertThat(ACQUIRED_ARRAYS).isEmpty();
+        });
     }
 
     private final Random random;
-    private final PageCacheRecycler recycler;
-    private final CircuitBreakerService breakerService;
 
     public MockBigArrays(PageCacheRecycler recycler, CircuitBreakerService breakerService) {
         this(recycler, breakerService, false);
@@ -89,8 +63,6 @@ public class MockBigArrays extends BigArrays {
 
     private MockBigArrays(PageCacheRecycler recycler, CircuitBreakerService breakerService, boolean checkBreaker) {
         super(recycler, breakerService, CircuitBreaker.REQUEST, checkBreaker);
-        this.recycler = recycler;
-        this.breakerService = breakerService;
         long seed;
         try {
             seed = SeedUtils.parseSeed(RandomizedContext.current().getRunnerSeedAsString());

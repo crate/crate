@@ -48,6 +48,7 @@ public final class Fetch extends Statement {
      * </pre>
      */
     public enum ScrollMode {
+        MOVE,
         RELATIVE,
         ABSOLUTE
     }

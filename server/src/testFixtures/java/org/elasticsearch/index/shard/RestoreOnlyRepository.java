@@ -67,27 +67,28 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void getSnapshotInfo(SnapshotId snapshotId, ActionListener<SnapshotInfo> listener) {
-        listener.onResponse(null);
+    public CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public void getSnapshotGlobalMetadata(SnapshotId snapshotId,
-                                          ActionListener<Metadata> listener) {
-
+    public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
+        return CompletableFuture.failedFuture(
+            new UnsupportedOperationException("getSnapshotGlobalMetadata not supported in RestoreOnlyRepository"));
     }
 
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData,
-                                         SnapshotId snapshotId,
-                                         IndexId indexId,
-                                         ActionListener<IndexMetadata> listener) {
+    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                                                     SnapshotId snapshotId,
+                                                                     IndexId indexId) {
+        return CompletableFuture.failedFuture(
+            new UnsupportedOperationException("getSnapshotIndexMetadata is not supported in RestoreOnlyRepository"));
     }
 
-
-    public void getSnapshotIndexMetadata(RepositoryData repositoryData,
-                                         SnapshotId snapshotId,
-                                         Collection<IndexId> indexIds,
-                                         ActionListener<Collection<IndexMetadata>> listener) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                                                                 SnapshotId snapshotId,
+                                                                                 Collection<IndexId> indexIds) {
+        return CompletableFuture.failedFuture(
+            new UnsupportedOperationException("getSnapshotIndexMetadata is not supported in RestoreOnlyRepository"));
     }
 
     @Override

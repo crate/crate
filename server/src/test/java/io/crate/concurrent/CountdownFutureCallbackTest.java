@@ -19,70 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-grammar PgArray;
+package io.crate.concurrent;
 
-/**
-The grammar is used to parse PG array text
-representations. E.g.:
+import static org.assertj.core.api.Assertions.assertThat;
 
-  numeric PG arrays:
-    {10, NULL, NULL, 20, 30}
-    {"10", NULL, NULL, "20", "30"}
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-  multi-dimentsional PG arrays:
-    {{"10", "20"}, {"30", NULL, "40"}}
+import org.junit.Test;
 
-  json PG arrays:
-    {"{\"x\": 10}", "{\"y\": 20}"}
-    {\"{\\\"x\\\": 10}\", \"{\\\"y\\\": 20}\"}
-*/
+public class CountdownFutureCallbackTest {
 
+    @Test
+    public void test_tracks_multiple_failures() throws Exception {
+        CountdownFutureCallback cb = new CountdownFutureCallback(2);
+        IllegalStateException dummy1 = new IllegalStateException("dummy1");
+        IllegalStateException dummy2 = new IllegalStateException("dummy2");
+        cb.onFailure(dummy1);
+        cb.onFailure(dummy2);
 
-
-array
-    : '{' item (',' item)* '}'
-    | '{' '}'
-    ;
-
-item
-    : string
-    | array
-    ;
-
-string
-    : QUOTED_STRING     #quotedString
-    | NULL              #null
-    | UNQUOTED_STRING   #unquotedString
-    ;
-
-
-NULL
-    : [nN] [uU] [lL] [lL]
-    ;
-
-
-QUOTED_STRING
-    : '"' (ESC | ~["\\])* '"'
-    ;
-
-UNQUOTED_STRING
-    : CHAR+ ((' ')+ CHAR+)*
-    ;
-
-fragment CHAR
-    : ~[,"\\{} \t\n\r]
-    ;
-
-fragment ESC
-    : '\\' (["\\/bfnrt] | UNICODE)
-    ;
-
-fragment UNICODE
-    : 'u' HEX HEX HEX HEX
-    ;
-
-fragment HEX
-    : [0-9a-fA-F]
-    ;
-
-WS: [ \t\n\r]+ -> skip;
+        assertThat(cb).failsWithin(0, TimeUnit.SECONDS)
+            .withThrowableOfType(ExecutionException.class)
+            .havingRootCause()
+            .isSameAs(dummy2)
+            .satisfies(t -> assertThat(t.getSuppressed()).contains(dummy1));
+    }
+}

@@ -131,7 +131,6 @@ tasks.withType(Test) {
         test.dependsOn jdks.runtime
         test.executable = jdks.runtime.getBinJavaPath()
     }
-    jvmArgs = ["--enable-preview"]
 
     // by default `-D` arguments are "caught" in the gradle process
     // and not passed-through to the test process.
