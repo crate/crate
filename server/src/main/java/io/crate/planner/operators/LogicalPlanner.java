@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import io.crate.analyze.relations.*;
+import io.crate.auth.AccessControlImpl;
 import org.elasticsearch.Version;
 
 import io.crate.analyze.AnalyzedInsertStatement;
@@ -39,15 +41,6 @@ import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.AnalyzedView;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.relations.UnionSelect;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -353,6 +346,22 @@ public class LogicalPlanner {
                 tableStats
             );
         }
+
+        @Override
+        public LogicalPlan visitJoin(AnalyzedJoinRelation analyzedJoinRelation, List<Symbol> outputs) {
+            var lhs = analyzedJoinRelation.left().accept(this, outputs);
+            var rhs = analyzedJoinRelation.right().accept(this, outputs);
+            return JoinPlanBuilder.createJoinPlan(
+                lhs,
+                rhs,
+                analyzedJoinRelation.joinType(),
+                analyzedJoinRelation.joinCondition(),
+                analyzedJoinRelation.left(),
+                false,
+                txnCtx.sessionSettings().hashJoinsEnabled()
+            );
+        }
+
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {

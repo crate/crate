@@ -21,7 +21,12 @@
 
 package io.crate.execution.engine.join;
 
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -29,12 +34,15 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,7 +117,7 @@ public final class JoinOperations {
                 continue;
             }
             // Left/right sides of a join pair have to be consistent with the key set, we ensure that left side is always first in the set.
-            JoinPair prevPair = joinPairsMap.put(new LinkedHashSet<>(List.of(joinPair.left(), joinPair.right())), joinPair);
+            JoinPair prevPair = joinPairsMap.put(new LinkedHashSet<>(List.of(joinPair.left().relationName(), joinPair.right().relationName())), joinPair);
             if (prevPair != null) {
                 throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
             }
@@ -141,7 +149,7 @@ public final class JoinOperations {
                 int existingJoinPairIdx = -1;
                 for (int i = 0; i < explicitJoinPairs.size(); i++) {
                     JoinPair joinPair = explicitJoinPairs.get(i);
-                    if (relations.contains(joinPair.left()) && relations.contains(joinPair.right())) {
+                    if (relations.contains(joinPair.left().relationName()) && relations.contains(joinPair.right().relationName())) {
                         existingJoinPairIdx = i;
                         // If a JoinPair with the involved relations already exists then depending on the JoinType:
                         //  - INNER JOIN:  the implicit join condition can be "AND joined" with
@@ -170,7 +178,7 @@ public final class JoinOperations {
                 }
                 if (newJoinPair == null) {
                     Iterator<RelationName> namesIter = relations.iterator();
-                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
+                    newJoinPair = JoinPair.of(new JoinPairRelation(namesIter.next()), new JoinPairRelation(namesIter.next()), JoinType.INNER, implicitJoinCondition);
                     queryIterator.remove();
                     newJoinPairs.add(newJoinPair);
                 } else {
@@ -179,6 +187,43 @@ public final class JoinOperations {
             }
         }
         return newJoinPairs;
+    }
+
+
+    /**
+     * This class is created solely for wrapping RelationName into AnalyzedRelation
+     * to be able use RelationName as a left or right side of the JoinPair.
+     */
+    private static class JoinPairRelation implements AnalyzedRelation {
+
+        private final RelationName relationName;
+
+        public JoinPairRelation(RelationName relationName) {
+            this.relationName = relationName;
+
+        }
+
+        @Override
+        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+            throw new IllegalStateException("accept() shouldn't be called in JoinPairRelation");
+        }
+
+        @Nullable
+        @Override
+        public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+            throw new IllegalStateException("getField() shouldn't be called in JoinPairRelation");
+        }
+
+        @Override
+        public RelationName relationName() {
+            return relationName;
+        }
+
+        @Nonnull
+        @Override
+        public List<Symbol> outputs() {
+            throw new IllegalStateException("outputs() shouldn't be called in JoinPairRelation");
+        }
     }
 
     private static Symbol mergeJoinConditions(@Nullable Symbol condition1, Symbol condition2) {

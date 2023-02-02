@@ -37,6 +37,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(unionSelect, context);
     }
 
+    public R visitJoin(AnalyzedJoinRelation analyzedJoinRelation, C context) {
+        return visitAnalyzedRelation(analyzedJoinRelation, context);
+    }
+
     public R visitTableRelation(TableRelation tableRelation, C context) {
         return visitAnalyzedRelation(tableRelation, context);
     }

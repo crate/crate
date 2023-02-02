@@ -1346,4 +1346,19 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(stmt);
         assertThat(printedTable(response.rows()), is("2| bazinga\n"));
     }
+
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_debug_nested_join() {
+        execute("CREATE TABLE j1 (x INT)");
+        execute("CREATE TABLE j2 (x INT)");
+        execute("CREATE TABLE j3 (x INT)");
+        execute("SELECT * " +
+             "    FROM j1 " +
+             "    JOIN (j2 JOIN j3 ON j2.x = j3.x) " +
+             "    ON j1.x = j2.x");
+    }
+
+
 }

@@ -77,6 +77,7 @@ import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AnalyzedJoinRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -179,6 +180,13 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", relation));
+        }
+
+        @Override
+        public Void visitJoin(AnalyzedJoinRelation analyzedJoinRelation, RelationContext context) {
+            analyzedJoinRelation.left().accept(this, context);
+            analyzedJoinRelation.right().accept(this, context);
+            return null;
         }
 
         @Override

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedJoinRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -69,6 +70,13 @@ public class Relations {
 
         static void traverse(AnalyzedRelation relation, Consumer<? super Symbol> consumer) {
             relation.accept(INSTANCE, consumer);
+        }
+
+        @Override
+        public Void visitJoin(AnalyzedJoinRelation analyzedJoinRelation, Consumer<? super Symbol> consumer) {
+            analyzedJoinRelation.left().accept(this, consumer);
+            analyzedJoinRelation.right().accept(this, consumer);
+            return null;
         }
 
         @Override

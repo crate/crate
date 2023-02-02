@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
 
 import javax.annotation.Nullable;
@@ -32,29 +31,29 @@ public class JoinPair {
 
     private final JoinType joinType;
 
-    private final RelationName left;
-    private final RelationName right;
+    private final AnalyzedRelation left;
+    private final AnalyzedRelation right;
 
     @Nullable
     private final Symbol condition;
 
-    public static JoinPair of(RelationName left, RelationName right, JoinType joinType, Symbol condition) {
+    public static JoinPair of(AnalyzedRelation left, AnalyzedRelation right, JoinType joinType, Symbol condition) {
         assert condition != null || joinType == JoinType.CROSS : "condition must be present unless it's a cross-join";
         return new JoinPair(left, right, joinType, condition);
     }
 
-    private JoinPair(RelationName left, RelationName right, JoinType joinType, @Nullable Symbol condition) {
+    private JoinPair(AnalyzedRelation left, AnalyzedRelation right, JoinType joinType, @Nullable Symbol condition) {
         this.left = left;
         this.right = right;
         this.joinType = joinType;
         this.condition = condition;
     }
 
-    public RelationName left() {
+    public AnalyzedRelation left() {
         return left;
     }
 
-    public RelationName right() {
+    public AnalyzedRelation right() {
         return right;
     }
 

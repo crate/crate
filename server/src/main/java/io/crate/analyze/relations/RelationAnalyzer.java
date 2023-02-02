@@ -312,8 +312,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
 
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
-        return null;
+        relationContext.addJoinType(leftRel, rightRel, JoinType.values()[node.getType().ordinal()], joinCondition);
+        var joinRelation = new AnalyzedJoinRelation(leftRel, rightRel, JoinType.values()[node.getType().ordinal()], joinCondition);
+
+        // We created a "virtual" table to represent join and this "virtual" table, in turn, might be joined with another relation.
+        // Hence, JoinPlanBuilder will try to get next table to join from sources and thus context has to contain this table as well.
+        statementContext.currentRelationContext().addSourceRelation(joinRelation);
+        return joinRelation;
     }
 
     @Override

@@ -34,6 +34,7 @@ import io.crate.types.DataTypes;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -79,5 +80,21 @@ public class DummyRelation implements AnalyzedRelation {
     @Override
     public List<Symbol> outputs() {
         return List.of();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DummyRelation that = (DummyRelation) o;
+
+        if (!name.equals(that.name)) return false;
+        return columnReferences.equals(that.columnReferences);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, columnReferences);
     }
 }

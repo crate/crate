@@ -165,21 +165,22 @@ public class JoinPlanBuilder {
         boolean[] hasAdditionalDependencies = {false};
         FieldsVisitor.visitFields(condition, scopedSymbol -> {
             RelationName relation = scopedSymbol.relation();
-            if (!relation.equals(joinPair.left()) && !relation.equals(joinPair.right())) {
+            if (!relation.equals(joinPair.left().relationName()) && !relation.equals(joinPair.right().relationName())) {
                 hasAdditionalDependencies[0] = true;
             }
         });
         return hasAdditionalDependencies[0];
     }
 
-    private static LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
-                                              LogicalPlan rhsPlan,
-                                              JoinType joinType,
-                                              Symbol joinCondition,
-                                              AnalyzedRelation lhs,
-                                              Symbol query,
-                                              boolean hashJoinEnabled) {
-        if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
+
+    public static LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
+                                             LogicalPlan rhsPlan,
+                                             JoinType joinType,
+                                             @Nullable Symbol joinCondition,
+                                             AnalyzedRelation lhs,
+                                             boolean isNestedLoopFiltered,
+                                             boolean hashJoinEnabled) {
+        if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition) && joinCondition != null) {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
@@ -191,10 +192,20 @@ public class JoinPlanBuilder {
                 rhsPlan,
                 joinType,
                 joinCondition,
-                !query.symbolType().isValueSymbol(),
+                isNestedLoopFiltered,
                 lhs,
                 false);
         }
+    }
+
+    private static LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
+                                              LogicalPlan rhsPlan,
+                                              JoinType joinType,
+                                              Symbol joinCondition,
+                                              AnalyzedRelation lhs,
+                                              Symbol query,
+                                              boolean hashJoinEnabled) {
+        return createJoinPlan(lhsPlan, rhsPlan, joinType, joinCondition, lhs, !query.symbolType().isValueSymbol(), hashJoinEnabled);
     }
 
     private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
