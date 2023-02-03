@@ -23,6 +23,9 @@ package io.crate.expression.operator;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
 
 import org.junit.Test;
 
@@ -91,5 +94,15 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null between 1 and null");
         assertEvaluateNull("null between null and 10");
         assertEvaluateNull("null between null and null");
+    }
+
+    @Test
+    public void test_comparison_for_intervals_is_not_allowed() {
+        for (String op : List.of(">", ">=", "<", "<=")) {
+            assertThatThrownBy(() -> assertEvaluate("INTERVAL '1' DAY " + op + " INTERVAL '2' HOUR", null))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessageStartingWith("Unknown function: ('P1D'::interval " + op + " 'PT2H'::interval), " +
+                                        "no overload found for matching argument types: (interval, interval).");
+        }
     }
 }

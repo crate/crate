@@ -29,7 +29,7 @@ public final class LteOperator {
     public static final String NAME = "op_<=";
 
     public static void register(OperatorModule module) {
-        for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
+        for (var supportedType : DataTypes.PRIMITIVE_TYPES_WITHOUT_INTERVAL) {
             module.register(
                 Signature.scalar(
                     NAME,
