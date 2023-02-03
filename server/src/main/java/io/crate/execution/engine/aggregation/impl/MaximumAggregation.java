@@ -63,7 +63,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     public static final String NAME = "max";
 
     public static void register(AggregationImplModule mod) {
-        for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
+        for (var supportedType : DataTypes.PRIMITIVE_TYPES_WITHOUT_INTERVAL) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
             mod.register(
                 Signature.aggregate(
