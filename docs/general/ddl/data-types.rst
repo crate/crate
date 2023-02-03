@@ -2041,6 +2041,11 @@ to days and hours::
         SELECT 1 row in set (... sec)
 
 
+.. NOTE::
+
+    Comparisons between intervals except for equality (``=``) and
+    inequality(``<>``) are not allowed.
+
 .. _data-types-bit-strings:
 
 Bit strings
