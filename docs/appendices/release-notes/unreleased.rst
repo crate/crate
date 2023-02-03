@@ -79,3 +79,6 @@ Fixes
   :ref:`INTERVAL <type-interval>` type, and return an error message about
   unsupported type during analysis of a query.
 
+- Disallowed comparison operators between :ref:`INTERVAL <type-interval>` types,
+  except for ``=`` and ``<>``, Previously, ``null`` was returned in any of the
+  ``>``, ``>=``, ``<``, ``<=``, comparisons.
