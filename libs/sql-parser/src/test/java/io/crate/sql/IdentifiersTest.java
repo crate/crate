@@ -59,7 +59,6 @@ public class IdentifiersTest {
 
     @Test
     public void testQuoteIfNeeded() {
-        assertThat(Identifiers.quoteIfNeeded("")).isEqualTo("\"\"");
         assertThat(Identifiers.quoteIfNeeded("\"")).isEqualTo("\"\"\"\"");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");
@@ -78,7 +77,6 @@ public class IdentifiersTest {
     @Test
     public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() {
         for (String candidate : List.of(
-            (""),
             ("\""),
             ("fhjgadhjgfhs"),
             ("fhjgadhjgfhsÖ"),
@@ -105,5 +103,10 @@ public class IdentifiersTest {
     @Test
     public void test_quote_expression_quotes_keywords() {
         assertThat(Identifiers.maybeQuoteExpression("select")).isEqualTo("\"select\""); // keyword
+    }
+
+    @Test
+    public void test_quote_expression_quotes_empty_ident() {
+        assertThat(Identifiers.maybeQuoteExpression("")).isEqualTo("\"\"");
     }
 }
