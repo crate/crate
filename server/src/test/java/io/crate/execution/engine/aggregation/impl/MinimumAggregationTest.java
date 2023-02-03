@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -58,67 +57,63 @@ public class MinimumAggregationTest extends AggregationTestCase {
     @Test
     public void testDouble() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.8d}, {0.3d}});
-
-        assertEquals(0.3d, result);
+        assertThat(result).isEqualTo(0.3d);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.8f}, {0.3f}});
-
-        assertEquals(0.3f, result);
+        assertThat(result).isEqualTo(0.3f);
     }
 
     @Test
     public void test_aggregate_double_zero() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.0}, {0.0}});
-        assertThat(result, is(0.0d));
+        assertThat(result).isEqualTo((0.0d));
     }
 
     @Test
     public void test_aggregate_float_zero() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.0f}, {0.0f}});
-        assertThat(result, is(0.0f));
+        assertThat(result).isEqualTo((0.0f));
     }
 
     @Test
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{8}, {3}});
-
-        assertEquals(3, result);
+        assertThat(result).isEqualTo(3);
     }
 
     @Test
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, new Object[][]{{8L}, {3L}});
-
-        assertEquals(3L, result);
+        assertThat(result).isEqualTo(3L);
     }
 
     @Test
     public void testShort() throws Exception {
         Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 8}, {(short) 3}});
-
-        assertEquals((short) 3, result);
+        assertThat(result).isEqualTo((short) 3);
     }
 
     @Test
     public void test_min_with_byte_argument_type() throws Exception {
-        assertThat(executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 0}}), is((byte) 0));
+        assertThat(executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 0}})).isEqualTo(((byte) 0));
     }
 
     @Test
     public void testString() throws Exception {
         Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
-
-        assertEquals("Ruben", result);
+        assertThat(result).isEqualTo("Ruben");
     }
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: min(INPUT(0))," +
-                                        " no overload found for matching argument types: (object).");
-        executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
+        assertThatThrownBy(() -> executeAggregation(DataTypes.INTERVAL, new Object[][]{{new Object()}}))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Unknown function: min(INPUT(0)), no overload found for matching argument types: (interval).");
+        assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Unknown function: min(INPUT(0)), no overload found for matching argument types: (object).");
     }
 }
