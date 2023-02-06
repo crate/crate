@@ -99,7 +99,11 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
 
             @Override
             public void onResponse(T r) {
-                bc.accept(delegate, r);
+                try {
+                    bc.accept(delegate, r);
+                } catch (Throwable t) {
+                    delegate.onFailure(Exceptions.toException(t));
+                }
             }
 
             @Override
