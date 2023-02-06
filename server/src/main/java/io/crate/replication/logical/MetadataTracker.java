@@ -243,7 +243,7 @@ public final class MetadataTracker implements Closeable {
                     return false;
                 });
             } else {
-                return updateClusterState(subscriptionName, subscription, response);
+                return updateClusterState(subscriptionName, response);
             }
         });
 
@@ -295,9 +295,7 @@ public final class MetadataTracker implements Closeable {
         });
     }
 
-    private CompletableFuture<Boolean> updateClusterState(String subscriptionName,
-                                                          Subscription subscription,
-                                                          Response response) {
+    private CompletableFuture<Boolean> updateClusterState(String subscriptionName, Response response) {
         var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AckMetadataUpdateRequest()) {
 
             @Override
@@ -305,6 +303,14 @@ public final class MetadataTracker implements Closeable {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
                 }
+
+                Metadata localMetadata = localClusterState.metadata();
+                Subscription subscription = SubscriptionsMetadata.get(localMetadata).get(subscriptionName);
+                if (subscription == null) {
+                    LOGGER.warn("Subscription {} disappeared", subscriptionName);
+                    return localClusterState;
+                }
+
                 localClusterState = processDroppedTablesOrPartitions(
                     subscriptionName,
                     subscription,
