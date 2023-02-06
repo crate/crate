@@ -24,29 +24,37 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.testing.Asserts.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
+import io.crate.planner.operators.TableFunction;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.DefaultMatcher;
-import io.crate.planner.optimizer.matcher.LogicalPlanMatcher;
+import io.crate.planner.optimizer.matcher.GroupReferencedMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.memo.GroupReference;
@@ -105,7 +113,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         };
 
         MergeFilters mergeFilters = new MergeFilters();
-        Match<Filter> match = new LogicalPlanMatcher(groupReferenceResolver).match(mergeFilters.pattern(), order, Captures.empty());
+        Match<Filter> match = new GroupReferencedMatcher(groupReferenceResolver).match(mergeFilters.pattern(), order, Captures.empty());
         assertThat(match.isPresent()).isFalse();
     }
 
@@ -116,14 +124,20 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan groupReference = new GroupReference(1, sourceFilter.outputs());
         Order order = new Order(groupReference, new OrderBy(List.of()));
 
+        Capture<Filter> child = new Capture<>();
+        Pattern<Filter> pattern = typeOf(Filter.class).with(source(), typeOf(Filter.class).capturedAs(child));
+
         GroupReferenceResolver groupReferenceResolver = node -> {
             if (node instanceof GroupReference) {
                 return sourceFilter;
             }
             return node;
         };
+
         MergeFilters mergeFilters = new MergeFilters();
-        Match<Filter> match = new LogicalPlanMatcher(groupReferenceResolver).match(mergeFilters.pattern(), order, Captures.empty());
+        Match<Filter> match = new GroupReferencedMatcher(groupReferenceResolver).match(mergeFilters.pattern(),
+                                                                                       order,
+                                                                                       Captures.empty());
         assertThat(match.isPresent()).isTrue();
     }
 
@@ -154,10 +168,10 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
             return node;
         };
         MoveOrderBeneathUnion moveFilterBeneathUnion = new MoveOrderBeneathUnion();
-        Match<Order> match = new LogicalPlanMatcher(groupReferenceResolver).match(moveFilterBeneathUnion.pattern(), order, Captures.empty());
+        Match<Order> match = new GroupReferencedMatcher(groupReferenceResolver).match(moveFilterBeneathUnion.pattern(), order, Captures.empty());
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isInstanceOf(Order.class);
-        assertThat(match.captures().get(new Capture<Union>())).isInstanceOf(Union.class);
+        assertThat(match.captures().get(moveFilterBeneathUnion.unionCapture())).isInstanceOf(Union.class);
     }
 
     @Test
@@ -175,5 +189,53 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isInstanceOf(Order.class);
         assertThat(match.captures().get(unionCapture)).isInstanceOf(Union.class);
+    }
+
+    @Test
+    public void test_merging_union_group_referenced() {
+
+        Collect source1 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source2 = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        LogicalPlan groupReferenceSource1 = new GroupReference(1, source1.outputs());
+        LogicalPlan groupReferenceSource2 = new GroupReference(2, source2.outputs());
+        Union union = new Union(groupReferenceSource1, groupReferenceSource2, groupReferenceSource1.outputs());
+        LogicalPlan groupReference3 = new GroupReference(3, union.outputs());
+        Order order = new Order(groupReference3, new OrderBy(List.of()));
+
+        var memo = new HashMap<Integer, LogicalPlan>();
+        memo.put(1, source1);
+        memo.put(2, source2);
+        memo.put(3, union);
+
+        GroupReferenceResolver groupReferenceResolver = node -> {
+            if (node instanceof GroupReference g) {
+               return memo.get(g.groupId());
+            }
+            return node;
+        };
+
+        Capture<Union> unionCapture = new Capture<>();
+        Pattern<Order> pattern = typeOf(Order.class).with(source(), typeOf(Union.class).capturedAs(unionCapture));
+
+        Match<Order> match = new GroupReferencedMatcher(groupReferenceResolver).match(pattern, order, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isInstanceOf(Order.class);
+        assertThat(match.captures().get(unionCapture)).isInstanceOf(Union.class);
+    }
+
+    public void test_insert() {
+        var tableFunction = new TableFunction(mock(TableFunctionRelation.class), List.of(), new WhereClause(null));
+        Insert insert = new Insert(tableFunction, mock(ColumnIndexWriterProjection.class), null);
+
+        Capture<TableFunction> capture = new Capture<>();
+        Pattern<Insert> pattern = typeOf(Insert.class).with(source(), typeOf(TableFunction.class).capturedAs(capture));
+
+        Match<Insert> match = new DefaultMatcher().match(pattern, insert, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isInstanceOf(Insert.class);
+        Assertions.assertThat(match.captures().get(capture)).isInstanceOf(TableFunction.class);
+
     }
 }

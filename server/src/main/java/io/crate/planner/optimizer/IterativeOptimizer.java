@@ -24,13 +24,15 @@ package io.crate.planner.optimizer;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.LogicalPlanMatcher;
+import io.crate.planner.optimizer.matcher.GroupReferencedMatcher;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Matcher;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -39,7 +41,13 @@ import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.planner.optimizer.memo.Memo;
 import io.crate.statistics.TableStats;
 
+/**
+ * Theis optimizer takes an operator tree of logical plans and creates an optimized plan.
+ * The optimization loop applies rules recursively until a fixpoint is reached.
+ */
 public class IterativeOptimizer {
+
+    private static final Logger LOGGER = LogManager.getLogger(IterativeOptimizer.class);
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -62,7 +70,7 @@ public class IterativeOptimizer {
             // not a group reference, return same node
             return node;
         };
-        Matcher matcher = new LogicalPlanMatcher(groupReferenceResolver);
+        Matcher matcher = new GroupReferencedMatcher(groupReferenceResolver);
 
         exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, txnCtx, tableStats), matcher);
 
@@ -87,6 +95,7 @@ public class IterativeOptimizer {
     }
 
     private boolean exploreNode(int group, Context context, Matcher matcher) {
+        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         var node = context.memo().resolve(group);
 
         var done = false;
@@ -95,14 +104,15 @@ public class IterativeOptimizer {
         while (!done) {
             done = true;
             for (Rule rule : rules) {
-                System.out.println("Try rule :" + rule.getClass().getSimpleName());
-
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
                 Pattern pattern = rule.pattern();
                 Match<?> match = matcher.match(pattern, node, Captures.empty());
                 if (match.isPresent()) {
+                    if (isTraceEnabled) {
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                    }
                     LogicalPlan transformed = rule.apply(
                         match.value(),
                         match.captures(),
@@ -112,6 +122,10 @@ public class IterativeOptimizer {
                         context.groupReferenceResolver
                     );
                     if (transformed != null) {
+                        if (isTraceEnabled) {
+                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
+                        }
+                        // the rule changed the plan, update group in memo
                         context.memo().replace(group, transformed);
                         node = transformed;
                         done = false;

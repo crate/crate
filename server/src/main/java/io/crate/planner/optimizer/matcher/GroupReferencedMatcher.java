@@ -22,36 +22,28 @@
 package io.crate.planner.optimizer.matcher;
 
 import java.util.Optional;
-import java.util.function.Function;
 
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.memo.GroupReference;
 import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
-public class LogicalPlanMatcher extends DefaultMatcher {
+public class GroupReferencedMatcher extends DefaultMatcher {
 
     private final GroupReferenceResolver groupReferenceResolver;
 
-    public LogicalPlanMatcher(GroupReferenceResolver groupReferenceResolver) {
+    public GroupReferencedMatcher(GroupReferenceResolver groupReferenceResolver) {
         this.groupReferenceResolver = groupReferenceResolver;
     }
 
     @Override
     public <T, U, V> Match<T> matchWith(WithPattern<T, U, V> withPattern, Object object, Captures captures) {
-        Object resolvedObject = object;
-        if (object instanceof GroupReference) {
-            resolvedObject = groupReferenceResolver.apply((LogicalPlan) object);
-        }
-        Match<T> match = withPattern.firstPattern().accept(this, resolvedObject, captures);
-        Function<? super T, Optional<U>> property = withPattern.getProperty();
-        Optional<?> propertyValue = property.apply((T) object);
-
-        Optional<?> resolvedValue = propertyValue
-            .map(value -> value instanceof GroupReference ? groupReferenceResolver.apply(((GroupReference) value)) : value);
-
-        Match<?> propertyMatch = resolvedValue
-            .map(value -> match(withPattern.propertyPattern(), value, captures))
-            .orElse(Match.empty());
-        return propertyMatch.map(ignored -> (T) object);
+        Match<T> match = withPattern.firstPattern().accept(this, object, captures);
+        return match.flatMap(matchedValue -> {
+            Optional<?> optProperty = withPattern.getProperty().apply(matchedValue)
+                .map(value -> value instanceof GroupReference groupReference ? groupReferenceResolver.apply(groupReference) : value);
+            Match<V> propertyMatch = optProperty
+                .map(property -> withPattern.propertyPattern().accept(this, property, match.captures()))
+                .orElse(Match.empty());
+            return propertyMatch.map(ignored -> match.value());
+        });
     }
 }

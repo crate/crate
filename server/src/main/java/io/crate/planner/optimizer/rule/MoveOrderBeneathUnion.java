@@ -56,6 +56,10 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
         return pattern;
     }
 
+    public Capture<Union> unionCapture() {
+        return unionCapture;
+    }
+
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,

@@ -23,8 +23,8 @@ package io.crate.planner.optimizer.matcher;
 
 class CapturePattern<T> extends Pattern<T> {
 
-    private final Capture<T> capture;
-    private final Pattern<T> pattern;
+    final Capture<T> capture;
+    final Pattern<T> pattern;
 
     CapturePattern(Capture<T> capture, Pattern<T> pattern) {
         this.capture = capture;

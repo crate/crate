@@ -25,11 +25,11 @@ import java.util.Optional;
 
 public class DefaultMatcher implements Matcher {
 
-    public static final Matcher DEFAULT_MATCHER = new DefaultMatcher();
+    public static final DefaultMatcher DEFAULT_MATCHER = new DefaultMatcher();
 
     @Override
     public <T> Match<T> match(Pattern<T> pattern, Object object, Captures captures) {
-            return pattern.accept(this, object, captures);
+        return pattern.accept(this, object, captures);
     }
 
     @Override
@@ -43,22 +43,22 @@ public class DefaultMatcher implements Matcher {
     }
 
     @Override
-    public  <T, U, V> Match<T> matchWith(WithPattern<T, U, V> withPattern, Object object, Captures captures) {
-            Match<T> match = withPattern.firstPattern().accept(this, object, captures);
-            return match.flatMap(matchedValue -> {
-                Optional<?> optProperty = withPattern.getProperty().apply(matchedValue);
-                Match<V> propertyMatch = optProperty
-                    .map(property -> withPattern.propertyPattern().accept(this, property, match.captures()))
-                    .orElse(Match.empty());
-                return propertyMatch.map(ignored -> match.value());
-            });
+    public <T, U, V> Match<T> matchWith(WithPattern<T, U, V> withPattern, Object object, Captures captures) {
+        Match<T> match = withPattern.firstPattern().accept(this, object, captures);
+        return match.flatMap(matchedValue -> {
+            Optional<?> optProperty = withPattern.getProperty().apply(matchedValue);
+            Match<V> propertyMatch = optProperty
+                .map(property -> withPattern.propertyPattern().accept(this, property, match.captures()))
+                .orElse(Match.empty());
+            return propertyMatch.map(ignored -> match.value());
+        });
     }
 
     @Override
     public <T> Match<T> matchWithProperty(WithPropertyPattern<T> withPropertyPattern,
                                           Object object,
                                           Captures captures) {
-        Match<T> match = withPropertyPattern.accept(this, object, captures);
+        Match<T> match = withPropertyPattern.pattern.accept(this, object, captures);
         return match.flatMap(matchedValue -> {
             if (withPropertyPattern.propertyPredicate.test(matchedValue)) {
                 return match;
@@ -70,7 +70,8 @@ public class DefaultMatcher implements Matcher {
 
     @Override
     public <T> Match<T> matchCapture(CapturePattern<T> capturePattern, Object object, Captures captures) {
-        return Match.of((T) object, captures.add(Captures.of(capturePattern.capture(), (T) object)));
+        Match<T> match = capturePattern.pattern.accept(this, object, captures);
+        return match.flatMap(val -> Match.of(val, captures.add(Captures.of(capturePattern.capture, val))));
     }
 
 }

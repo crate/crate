@@ -101,7 +101,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = DefaultMatcher.DEFAULT_MATCHER.match(rule.pattern(), plan, Captures.empty());
+                Match<?> match = DefaultMatcher.DEFAULT_MATCHER.match(rule.pattern(), node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
