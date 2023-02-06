@@ -72,7 +72,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
         Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
-        final Version minIndexCompatibilityVersion = currentState.getNodes().getMaxNodeVersion()
+        final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
             .minimumIndexCompatibilityVersion();
         for (IndexMetadata closedMetadata : indicesToOpen) {
             final String indexName = closedMetadata.getIndex().getName();

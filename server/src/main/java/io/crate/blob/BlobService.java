@@ -131,7 +131,7 @@ public class BlobService extends AbstractLifecycleComponent {
             clusterService.state(), index, null, digest, "_local");
 
         String localNodeId = clusterService.localNode().getId();
-        DiscoveryNodes nodes = clusterService.state().getNodes();
+        DiscoveryNodes nodes = clusterService.state().nodes();
         ShardRouting shard;
         while ((shard = shards.nextOrNull()) != null) {
             if (!shard.active()) {

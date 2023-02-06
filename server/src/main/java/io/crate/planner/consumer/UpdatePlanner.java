@@ -93,7 +93,7 @@ public final class UpdatePlanner {
                             SubqueryPlanner subqueryPlanner) {
 
         if (update.outputs() != null &&
-            !plannerCtx.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
+            !plannerCtx.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 

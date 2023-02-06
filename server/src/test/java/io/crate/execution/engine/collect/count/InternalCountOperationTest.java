@@ -71,7 +71,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         CountOperation countOperation = cluster().getDataNodeInstance(CountOperation.class);
         ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        Metadata metadata = clusterService.state().getMetadata();
+        Metadata metadata = clusterService.state().metadata();
         Index index = metadata.index(getFqn("t")).getIndex();
 
         IntArrayList shards = new IntArrayList(1);
@@ -102,7 +102,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         execute("insert into doc.t (name, p) values ('Foo', 1)");
         ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        Metadata metadata = clusterService.state().getMetadata();
+        Metadata metadata = clusterService.state().metadata();
         Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
         var countOperation = (InternalCountOperation) cluster().getDataNodeInstance(CountOperation.class);
         IndexService indexService = mock(IndexService.class);

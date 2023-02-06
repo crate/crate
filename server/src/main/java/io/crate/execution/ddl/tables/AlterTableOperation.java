@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.crate.metadata.GeneratedReference;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -65,6 +64,7 @@ import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -178,7 +178,7 @@ public class AlterTableOperation {
         if (partitionName != null) {
             partitionIndexName = partitionName.asIndexName();
         }
-        if (openTable || clusterService.state().getNodes().getMinNodeVersion().before(Version.V_4_3_0)) {
+        if (openTable || clusterService.state().nodes().getMinNodeVersion().before(Version.V_4_3_0)) {
             OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
                 relationName, partitionIndexName, openTable);
             return transportOpenCloseTableOrPartitionAction.execute(request, r -> -1L);

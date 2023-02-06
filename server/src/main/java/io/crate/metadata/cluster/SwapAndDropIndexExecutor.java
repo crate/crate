@@ -21,13 +21,14 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+
+import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 
 public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAndDropIndexRequest> {
 
@@ -39,7 +40,7 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
 
     @Override
     public ClusterState execute(ClusterState currentState, SwapAndDropIndexRequest request) throws Exception {
-        final Metadata metadata = currentState.getMetadata();
+        final Metadata metadata = currentState.metadata();
         final ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
         final Metadata.Builder mdBuilder = Metadata.builder(metadata);
         final RoutingTable.Builder routingBuilder = RoutingTable.builder(currentState.routingTable());

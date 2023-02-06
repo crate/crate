@@ -135,7 +135,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
             .hasSize(3);
-        IndexMetadata indexMetadata = clusterService.state().getMetadata().getIndices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
         assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
@@ -153,7 +153,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("type", "keyword")
             .containsEntry("doc_values", "false")
             .hasSize(3);
-        IndexMetadata indexMetadata = clusterService.state().getMetadata().getIndices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
         assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }

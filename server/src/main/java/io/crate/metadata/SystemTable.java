@@ -81,7 +81,7 @@ public final class SystemTable<T> implements TableInfo {
         this.supportedOperations = supportedOperations;
         this.rowGranularity = rowGranularity;
         this.getRouting = getRouting == null
-            ? (state, routingProvider, sessionSettings) -> Routing.forTableOnSingleNode(name, state.getNodes().getLocalNodeId())
+            ? (state, routingProvider, sessionSettings) -> Routing.forTableOnSingleNode(name, state.nodes().getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())

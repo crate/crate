@@ -110,7 +110,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             .build();
 
         return ClusterState.builder(oldClusterState).routingTable(routingTable)
-            .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
+            .metadata(metadataNewClusterState).version(oldClusterState.version() + 1).build();
     }
 
     private ClusterState clusterStateWithNonReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
@@ -132,7 +132,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             .build();
 
         return ClusterState.builder(oldClusterState).routingTable(routingTable)
-            .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
+            .metadata(metadataNewClusterState).version(oldClusterState.version() + 1).build();
     }
 
     private ClusterState clusterStateWithReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible, boolean assigned) {
@@ -167,7 +167,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         }
 
         return ClusterState.builder(oldClusterState).routingTable(routingTable)
-            .metadata(metadataNewClusterState).version(oldClusterState.getVersion() + 1).build();
+            .metadata(metadataNewClusterState).version(oldClusterState.version() + 1).build();
     }
 
     private DiscoveryNodes.Builder generateDiscoveryNodes(boolean masterEligible) {

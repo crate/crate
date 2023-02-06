@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
+
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -54,11 +55,11 @@ public class NodeAndClusterIdStateListener implements ClusterStateObserver.Liste
     }
 
     private static String getClusterUUID(ClusterState state) {
-        return state.getMetadata().clusterUUID();
+        return state.metadata().clusterUUID();
     }
 
     private static String getNodeId(ClusterState state) {
-        return state.getNodes().getLocalNodeId();
+        return state.nodes().getLocalNodeId();
     }
 
     @Override

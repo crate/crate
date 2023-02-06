@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -26,9 +29,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * The response for getting the cluster state.
@@ -118,7 +118,7 @@ public class ClusterStateResponse extends TransportResponse {
         if (clusterState == null) {
             return null;
         }
-        DiscoveryNodes nodes = clusterState.getNodes();
+        DiscoveryNodes nodes = clusterState.nodes();
         if (nodes != null) {
             return nodes.getMasterNodeId();
         } else {
@@ -128,7 +128,7 @@ public class ClusterStateResponse extends TransportResponse {
 
     private static Long getVersion(ClusterState clusterState) {
         if (clusterState != null) {
-            return clusterState.getVersion();
+            return clusterState.version();
         } else {
             return null;
         }

@@ -94,7 +94,7 @@ public class PlannerContext {
         this.jobId = jobId;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.fetchSize = fetchSize;
-        this.handlerNode = clusterState.getNodes().getLocalNodeId();
+        this.handlerNode = clusterState.nodes().getLocalNodeId();
         this.cursors = cursors;
         this.transactionState = transactionState;
     }

@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESTestCase;
@@ -54,7 +54,7 @@ import io.crate.user.User;
 public class RamAccountingQueueSinkTest extends ESTestCase {
 
     private ScheduledExecutorService scheduler;
-    private QueueSink logSink;
+    private QueueSink<NoopLog> logSink;
 
     private static class NoopLog implements ContextLog {
         NoopLog() {
@@ -108,7 +108,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
         }
 
         latch.await();
-        assertThat(ramAccountingQueue.size(), is(15_000));
+        assertThat(ramAccountingQueue).hasSize(15_000);
         for (Thread thread : threads) {
             thread.join();
         }
@@ -134,8 +134,8 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
             "select 1", 1L, User.CRATE_USER, classification), null, 7000L));
 
         TimeBasedQEviction.removeExpiredLogs(q, 10_000L, 5_000L);
-        assertThat(q.size(), is(1));
-        assertThat(q.iterator().next().id(), is(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03")));
+        assertThat(q).hasSize(1);
+        assertThat(q.iterator().next().id()).isEqualTo(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03"));
 
         task.cancel(true);
     }
@@ -154,8 +154,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
         for (int j = 0; j < 100; j++) {
             logSink.add(new NoopLog());
         }
-        assertThat(ramAccountingQueue.size(), is(100));
-        Thread.sleep(2000L);
-        assertThat(ramAccountingQueue.size(), is(0));
+        assertThat(ramAccountingQueue).hasSize(100);
+        assertBusy(() -> assertThat(ramAccountingQueue).isEmpty(), 10, TimeUnit.SECONDS);
     }
 }

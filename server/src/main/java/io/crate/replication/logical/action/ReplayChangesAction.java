@@ -53,7 +53,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -94,8 +93,6 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                   Request::new,
                   ThreadPool.Names.WRITE,
                   false);
-
-            TransportActionProxy.registerProxyAction(transportService, NAME, ReplicationResponse::new);
         }
 
         @Override
