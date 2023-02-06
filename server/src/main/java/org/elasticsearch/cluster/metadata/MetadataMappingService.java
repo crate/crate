@@ -34,7 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.cluster.AckedClusterStateTaskListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskConfig;
@@ -215,16 +215,20 @@ public class MetadataMappingService {
         );
     }
 
-    public class PutMappingExecutor implements ClusterStateTaskExecutor<PutMappingClusterStateUpdateRequest> {
+    public class PutMappingExecutor implements ClusterStateTaskExecutor<PutMappingRequest> {
         @Override
-        public ClusterTasksResult<PutMappingClusterStateUpdateRequest> execute(ClusterState currentState,
-                                                                               List<PutMappingClusterStateUpdateRequest> tasks) throws Exception {
+        public ClusterTasksResult<PutMappingRequest> execute(ClusterState currentState,
+                                                             List<PutMappingRequest> tasks) throws Exception {
             Map<Index, MapperService> indexMapperServices = new HashMap<>();
-            ClusterTasksResult.Builder<PutMappingClusterStateUpdateRequest> builder = ClusterTasksResult.builder();
+            ClusterTasksResult.Builder<PutMappingRequest> builder = ClusterTasksResult.builder();
             try {
-                for (PutMappingClusterStateUpdateRequest request : tasks) {
+                for (PutMappingRequest request : tasks) {
                     try {
-                        for (Index index : request.indices()) {
+                        Index concreteIndex = request.getConcreteIndex();
+                        Index[] concreteIndices = concreteIndex == null
+                            ? IndexNameExpressionResolver.concreteIndices(currentState, request)
+                            : new Index[] { concreteIndex };
+                        for (Index index : concreteIndices) {
                             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
                             if (indexMapperServices.containsKey(indexMetadata.getIndex()) == false) {
                                 MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
@@ -233,7 +237,12 @@ public class MetadataMappingService {
                                 mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
                             }
                         }
-                        currentState = applyRequest(currentState, request, indexMapperServices);
+                        currentState = applyMapping(
+                            currentState,
+                            request.source(),
+                            concreteIndices,
+                            indexMapperServices
+                        );
                         builder.success(request);
                     } catch (Exception e) {
                         builder.failure(request, e);
@@ -245,12 +254,14 @@ public class MetadataMappingService {
             }
         }
 
-        public ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
-                                          Map<Index, MapperService> indexMapperServices) throws Exception {
-            CompressedXContent mappingUpdateSource = new CompressedXContent(request.source());
+        public ClusterState applyMapping(ClusterState currentState,
+                                         String mapping,
+                                         Index[] indices,
+                                         Map<Index, MapperService> indexMapperServices) throws Exception {
+            CompressedXContent mappingUpdateSource = new CompressedXContent(mapping);
             final Metadata metadata = currentState.metadata();
             final List<IndexMetadata> updateList = new ArrayList<>();
-            for (Index index : request.indices()) {
+            for (Index index : indices) {
                 MapperService mapperService = indexMapperServices.get(index);
                 // IMPORTANT: always get the metadata from the state since it get's batched
                 // and if we pull it from the indexService we might miss an update etc.
@@ -347,38 +358,41 @@ public class MetadataMappingService {
 
     }
 
-    public void putMapping(final PutMappingClusterStateUpdateRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
-        clusterService.submitStateUpdateTask("put-mapping",
-                request,
-                ClusterStateTaskConfig.build(Priority.HIGH, request.masterNodeTimeout()),
-                putMappingExecutor,
-                new AckedClusterStateTaskListener() {
+    public void putMapping(PutMappingRequest request, ActionListener<ClusterStateUpdateResponse> listener) {
+        AckedClusterStateTaskListener updateListener = new AckedClusterStateTaskListener() {
 
-                    @Override
-                    public void onFailure(String source, Exception e) {
-                        listener.onFailure(e);
-                    }
+            @Override
+            public void onFailure(String source, Exception e) {
+                listener.onFailure(e);
+            }
 
-                    @Override
-                    public boolean mustAck(DiscoveryNode discoveryNode) {
-                        return true;
-                    }
+            @Override
+            public boolean mustAck(DiscoveryNode discoveryNode) {
+                return true;
+            }
 
-                    @Override
-                    public void onAllNodesAcked(@Nullable Exception e) {
-                        listener.onResponse(new ClusterStateUpdateResponse(e == null));
-                    }
+            @Override
+            public void onAllNodesAcked(@Nullable Exception e) {
+                listener.onResponse(new ClusterStateUpdateResponse(e == null));
+            }
 
-                    @Override
-                    public void onAckTimeout() {
-                        listener.onResponse(new ClusterStateUpdateResponse(false));
-                    }
+            @Override
+            public void onAckTimeout() {
+                listener.onResponse(new ClusterStateUpdateResponse(false));
+            }
 
-                    @Override
-                    public TimeValue ackTimeout() {
-                        return request.ackTimeout();
-                    }
-                });
+            @Override
+            public TimeValue ackTimeout() {
+                return request.ackTimeout();
+            }
+        };
+        clusterService.submitStateUpdateTask(
+            "put-mapping",
+            request,
+            ClusterStateTaskConfig.build(Priority.HIGH, request.masterNodeTimeout()),
+            putMappingExecutor,
+            updateListener
+        );
     }
 
     public static void populateColumnPositions(Map<String, Object> mapping, CompressedXContent mappingToReference) {

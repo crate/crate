@@ -40,7 +40,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -179,14 +178,13 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             }
         }
-
         String mappingDelta = addExistingMeta(request, currentMeta);
-        PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest(mappingDelta)
-            .ackTimeout(request.timeout())
-            .masterNodeTimeout(request.masterNodeTimeout())
-            .indices(concreteIndices);
-
-        return metadataMappingService.putMappingExecutor.applyRequest(currentState, updateRequest, indexMapperServices);
+        return metadataMappingService.putMappingExecutor.applyMapping(
+            currentState,
+            mappingDelta,
+            concreteIndices,
+            indexMapperServices
+        );
     }
 
     @SuppressWarnings("unchecked")
