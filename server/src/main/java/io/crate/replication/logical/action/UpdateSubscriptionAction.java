@@ -21,11 +21,8 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
-import io.crate.replication.logical.metadata.Subscription;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import java.io.IOException;
+import java.util.HashMap;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -44,11 +41,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.HashMap;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
 
@@ -124,7 +123,6 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
                   clusterService,
                   threadPool,
                   Request::new);
-            TransportActionProxy.registerProxyAction(transportService, NAME, AcknowledgedResponse::new);
         }
 
         @Override

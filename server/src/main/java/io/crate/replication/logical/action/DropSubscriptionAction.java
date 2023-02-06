@@ -21,12 +21,10 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
-import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
+import java.util.Collection;
+
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -44,12 +42,14 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collection;
-
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
 
@@ -120,7 +120,6 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 AcknowledgedResponse::new,
                 AcknowledgedResponse::new,
                 "drop-subscription");
-            TransportActionProxy.registerProxyAction(transportService, NAME, AcknowledgedResponse::new);
         }
 
         @Override
@@ -153,6 +152,5 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
         protected ClusterBlockException checkBlock(DropSubscriptionRequest request, ClusterState state) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-
     }
 }
