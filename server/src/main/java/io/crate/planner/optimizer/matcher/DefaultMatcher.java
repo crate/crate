@@ -25,7 +25,7 @@ import java.util.Optional;
 
 public class DefaultMatcher implements Matcher {
 
-    public static final DefaultMatcher DEFAULT_MATCHER = new DefaultMatcher();
+    static final DefaultMatcher DEFAULT_MATCHER = new DefaultMatcher();
 
     @Override
     public <T> Match<T> match(Pattern<T> pattern, Object object, Captures captures) {
