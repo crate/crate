@@ -130,6 +130,6 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
     private ImmutableOpenMap<String, IndexMetadata> getIndicesMetadataOnNode(String nodeName) {
         final Coordinator coordinator = (Coordinator) cluster().getInstance(Discovery.class, nodeName);
-        return coordinator.getApplierState().getMetadata().getIndices();
+        return coordinator.getApplierState().metadata().getIndices();
     }
 }

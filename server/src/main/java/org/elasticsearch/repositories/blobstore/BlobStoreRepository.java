@@ -1421,7 +1421,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         "] must be larger than latest known generation [" + latestKnownRepoGen.get() + "]";
                     return ClusterState.builder(currentState)
                         .metadata(
-                            Metadata.builder(currentState.getMetadata())
+                            Metadata.builder(currentState.metadata())
                                 .putCustom(
                                     RepositoriesMetadata.TYPE, currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
                                         .withUpdatedGeneration(repoName, safeGeneration, newGen)
@@ -1523,7 +1523,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                 "] after write to generation [" + newGen + "]");
                         }
                         return updateRepositoryGenerationsIfNecessary(stateFilter.apply(ClusterState.builder(currentState)
-                                .metadata(Metadata.builder(currentState.getMetadata()).putCustom(RepositoriesMetadata.TYPE,
+                                .metadata(Metadata.builder(currentState.metadata()).putCustom(RepositoriesMetadata.TYPE,
                                         currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
                                                 .withUpdatedGeneration(metadata.name(), newGen, newGen))).build()), expectedGen, newGen);
                     }
@@ -1630,7 +1630,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private RepositoryMetadata getRepoMetadata(ClusterState state) {
         final RepositoryMetadata result =
-            state.getMetadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).repository(metadata.name());
+            state.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).repository(metadata.name());
         assert result != null;
         return result;
     }

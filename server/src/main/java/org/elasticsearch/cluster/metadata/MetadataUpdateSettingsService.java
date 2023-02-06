@@ -19,6 +19,16 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static org.elasticsearch.index.IndexSettings.same;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -33,7 +43,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.ValidationException;
-
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -42,16 +51,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.elasticsearch.index.IndexSettings.same;
 
 /**
  * Service responsible for submitting update index settings requests
@@ -227,12 +226,12 @@ public class MetadataUpdateSettingsService {
                         updatedState = allocationService.reroute(updatedState, "settings update");
                         try {
                             for (Index index : openIndices) {
-                                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                                final IndexMetadata currentMetadata = currentState.metadata().getIndexSafe(index);
                                 final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
                                 indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);
                             }
                             for (Index index : closeIndices) {
-                                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                                final IndexMetadata currentMetadata = currentState.metadata().getIndexSafe(index);
                                 final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
                                 // Verifies that the current index settings can be updated with the updated dynamic settings.
                                 indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);

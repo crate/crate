@@ -19,12 +19,12 @@
 
 package org.elasticsearch.gateway;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -54,7 +54,8 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 
 public class LocalAllocateDangledIndices {
@@ -119,7 +120,7 @@ public class LocalAllocateDangledIndices {
                     Metadata.Builder metadata = Metadata.builder(currentState.metadata());
                     ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                     RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
-                    final Version minIndexCompatibilityVersion = currentState.getNodes().getMaxNodeVersion()
+                    final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
                         .minimumIndexCompatibilityVersion();
                     boolean importNeeded = false;
                     StringBuilder sb = new StringBuilder();

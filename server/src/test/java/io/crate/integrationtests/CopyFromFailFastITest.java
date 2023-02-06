@@ -136,7 +136,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().getMetadata().index("t");
+        var indexMetadata = clusterService().state().metadata().index("t");
         List<String> rows = new ArrayList<>();
         for (int i = 0; i < numDocs; i++) {
             String line;
@@ -208,7 +208,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().getMetadata().index("t");
+        var indexMetadata = clusterService().state().metadata().index("t");
         List<String> rows = new ArrayList<>();
         for (int i = 0; i < numDocs; i++) {
             String line;

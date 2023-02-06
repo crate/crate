@@ -21,6 +21,12 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+
+import org.elasticsearch.cluster.ClusterState;
+
 import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
@@ -29,13 +35,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-
-import org.elasticsearch.cluster.ClusterState;
-
-
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysSnapshotsTableInfo {
 
@@ -65,6 +64,6 @@ public class SysSnapshotsTableInfo {
     private static Routing getRouting(ClusterState state, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        return routingProvider.forRandomMasterOrDataNode(IDENT, state.getNodes());
+        return routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes());
     }
 }

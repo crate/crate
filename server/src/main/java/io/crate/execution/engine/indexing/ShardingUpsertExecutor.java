@@ -38,7 +38,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import io.crate.execution.dml.upsert.ShardUpsertAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -62,6 +61,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -122,7 +122,7 @@ public class ShardingUpsertExecutor
                            UpsertResultContext upsertResultContext,
                            Predicate<UpsertResults> earlyTerminationCondition,
                            Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
-        this.localNode = clusterService.state().getNodes().getLocalNodeId();
+        this.localNode = clusterService.state().nodes().getLocalNodeId();
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;

@@ -119,7 +119,7 @@ public final class MetadataTracker implements Closeable {
 
     private void start() {
         assert isActive == false : "MetadataTracker is already started";
-        assert clusterService.state().getNodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
+        assert clusterService.state().nodes().isLocalNodeElectedMaster() : "MetadataTracker must only be run on the master node";
         RetryRunnable runnable = new RetryRunnable(
             threadPool,
             ThreadPool.Names.LOGICAL_REPLICATION,

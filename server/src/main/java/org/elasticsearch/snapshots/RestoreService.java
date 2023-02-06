@@ -347,7 +347,7 @@ public class RestoreService implements ClusterStateApplier {
                 // We have some indices to restore
                 ImmutableOpenMap.Builder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder =
                     ImmutableOpenMap.builder();
-                final Version minIndexCompatibilityVersion = currentState.getNodes().getMaxNodeVersion()
+                final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
                     .minimumIndexCompatibilityVersion();
                 for (Map.Entry<String, String> indexEntry : indices.entrySet()) {
                     String index = indexEntry.getValue();
@@ -841,7 +841,7 @@ public class RestoreService implements ClusterStateApplier {
             if (changed == false) {
                 return resultBuilder.build(currentState);
             }
-            ImmutableOpenMap.Builder<String, ClusterState.Custom> builder = ImmutableOpenMap.builder(currentState.getCustoms());
+            ImmutableOpenMap.Builder<String, ClusterState.Custom> builder = ImmutableOpenMap.builder(currentState.customs());
             builder.put(RestoreInProgress.TYPE, restoreInProgressBuilder.build());
             ImmutableOpenMap<String, ClusterState.Custom> customs = builder.build();
             return resultBuilder.build(ClusterState.builder(currentState).customs(customs).build());
@@ -963,7 +963,7 @@ public class RestoreService implements ClusterStateApplier {
                 Index index = shard.key.getIndex();
                 if (indicesToCheck.contains(index)
                     && shard.value.state().completed() == false
-                    && currentState.getMetadata().index(index) != null) {
+                    && currentState.metadata().index(index) != null) {
                     indices.add(index);
                 }
             }

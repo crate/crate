@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.AnalyzedTableElements.toMapping;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,10 +34,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.execution.ddl.tables.AddColumnRequest;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedColumnDefinition;
@@ -46,6 +48,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -62,8 +65,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ObjectType;
-
-import static io.crate.analyze.AnalyzedTableElements.toMapping;
 
 public class AlterTableAddColumnPlan implements Plan {
 
@@ -84,7 +85,7 @@ public class AlterTableAddColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        if (plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_5_2_0)) {
+        if (plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_5_2_0)) {
 
             var addColumnRequest = createRequest(alterTable, dependencies.nodeContext(), plannerContext,
                                                                   params, subQueryResults, dependencies.fulltextAnalyzerResolver());

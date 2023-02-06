@@ -56,7 +56,7 @@ public class SysNodeChecksTableInfo {
             .add("passed", BOOLEAN, SysNodeCheck::isValid)
             .add("acknowledged", BOOLEAN, SysNodeCheck::acknowledged)
             .add(DocSysColumns.ID.name(), STRING, SysNodeCheck::rowId)
-            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
+            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .withSupportedOperations(SUPPORTED_OPERATIONS)
             .setPrimaryKeys(
                 new ColumnIdent("id"),

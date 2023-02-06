@@ -21,14 +21,14 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
-
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysOperationsLogTableInfo {
 
@@ -43,7 +43,7 @@ public class SysOperationsLogTableInfo {
             .add("ended", TIMESTAMPZ, OperationContextLog::ended)
             .add("used_bytes", LONG, OperationContextLog::usedBytes)
             .add("error", STRING, OperationContextLog::errorMessage)
-            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
+            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .build();
     }
 }

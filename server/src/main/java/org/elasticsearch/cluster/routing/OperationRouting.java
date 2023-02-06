@@ -19,21 +19,22 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 
 public class OperationRouting {
 
@@ -151,7 +152,7 @@ public class OperationRouting {
 
     protected IndexShardRoutingTable shards(ClusterState clusterState, String index, String id, String routing) {
         int shardId = generateShardId(indexMetadata(clusterState, index), id, routing);
-        return clusterState.getRoutingTable().shardRoutingTable(index, shardId);
+        return clusterState.routingTable().shardRoutingTable(index, shardId);
     }
 
     public static int generateShardId(IndexMetadata indexMetadata, @Nullable String id, @Nullable String routing) {

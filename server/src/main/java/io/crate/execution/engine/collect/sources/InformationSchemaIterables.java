@@ -363,10 +363,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
             if (changedCustomMetadataSet.contains(UserDefinedFunctionsMetadata.TYPE) == false) {
                 return;
             }
-            createMetadataBasedIterables(event.state().getMetadata());
+            createMetadataBasedIterables(event.state().metadata());
         } else {
             initialClusterStateReceived = true;
-            createMetadataBasedIterables(event.state().getMetadata());
+            createMetadataBasedIterables(event.state().metadata());
         }
     }
 

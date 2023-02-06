@@ -98,7 +98,7 @@ public class ShardLimitValidator {
 
     // package-private for testing
     static Optional<String> checkShardLimit(int newShards, ClusterState state, int maxShardsPerNodeSetting) {
-        int nodeCount = state.getNodes().getDataNodes().size();
+        int nodeCount = state.nodes().getDataNodes().size();
 
         // Only enforce the shard limit if we have at least one data node, so that we don't block
         // index creation during cluster setup
@@ -107,7 +107,7 @@ public class ShardLimitValidator {
         }
         int maxShardsPerNode = maxShardsPerNodeSetting;
         int maxShardsInCluster = maxShardsPerNode * nodeCount;
-        int currentOpenShards = state.getMetadata().getTotalOpenIndexShards();
+        int currentOpenShards = state.metadata().getTotalOpenIndexShards();
 
         if ((currentOpenShards + newShards) > maxShardsInCluster) {
             String errorMessage = "this action would add [" + newShards + "] total shards, but this cluster currently has [" +

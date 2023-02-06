@@ -21,8 +21,6 @@
 
 package io.crate.blob.transfer;
 
-import io.crate.blob.BlobTransferStatus;
-import io.crate.blob.BlobTransferTarget;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -31,6 +29,9 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.blob.BlobTransferStatus;
+import io.crate.blob.BlobTransferTarget;
 
 public class BlobHeadRequestHandler {
 
@@ -94,7 +95,7 @@ public class BlobHeadRequestHandler {
                 "Received GetBlobHeadRequest for transfer" + request.transferId.toString() +
                 "but don't have an activeTransfer with that id";
 
-            final DiscoveryNode recipientNode = clusterService.state().getNodes().get(request.senderNodeId);
+            final DiscoveryNode recipientNode = clusterService.state().nodes().get(request.senderNodeId);
             final long bytesToSend = request.endPos;
 
             blobTransferTarget.gotAGetBlobHeadRequest(request.transferId);

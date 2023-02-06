@@ -177,7 +177,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         });
         logger.info("--> wait until shard is failed and becomes unassigned again");
         assertBusy(() -> assertTrue(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
-            .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
+            .routingTable().index(indexName).allPrimaryShardsUnassigned()));
         assertEquals(2, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
 
@@ -211,14 +211,14 @@ public class PrimaryAllocationIT extends IntegTestCase {
         });
         logger.info("--> wait until shard is failed and becomes unassigned again");
         assertBusy(() -> assertTrue(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
-            .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
+            .routingTable().index(indexName).allPrimaryShardsUnassigned()));
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
         cluster().startDataOnlyNode(inSyncDataPathSettings);
         assertBusy(() -> assertTrue(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
-            .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
+            .routingTable().index(indexName).allPrimaryShardsUnassigned()));
     }
 
     @Test

@@ -19,6 +19,18 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -33,18 +45,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.Priority;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
 
 public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecutor.Task> {
 
@@ -126,7 +126,7 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
         Version minClusterNodeVersion = newState.nodes().getMinNodeVersion();
         Version maxClusterNodeVersion = newState.nodes().getMaxNodeVersion();
         // we only enforce major version transitions on a fully formed clusters
-        final boolean enforceMajorVersion = currentState.getBlocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false;
+        final boolean enforceMajorVersion = currentState.blocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false;
         // processing any joins
         Map<String, String> joiniedNodeNameIds = new HashMap<>();
         for (final Task joinTask : joiningNodes) {
@@ -143,7 +143,7 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
                     ensureNodesCompatibility(node.getVersion(), minClusterNodeVersion, maxClusterNodeVersion);
                     // we do this validation quite late to prevent race conditions between nodes joining and importing dangling indices
                     // we have to reject nodes that don't support all indices we have in this cluster
-                    ensureIndexCompatibility(node.getVersion(), currentState.getMetadata());
+                    ensureIndexCompatibility(node.getVersion(), currentState.metadata());
                     nodesBuilder.add(node);
                     nodesChanged = true;
                     minClusterNodeVersion = Version.min(minClusterNodeVersion, node.getVersion());
@@ -317,8 +317,8 @@ public class JoinTaskExecutor implements ClusterStateTaskExecutor<JoinTaskExecut
         Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators) {
         final Collection<BiConsumer<DiscoveryNode, ClusterState>> validators = new ArrayList<>();
         validators.add((node, state) -> {
-            ensureNodesCompatibility(node.getVersion(), state.getNodes());
-            ensureIndexCompatibility(node.getVersion(), state.getMetadata());
+            ensureNodesCompatibility(node.getVersion(), state.nodes());
+            ensureIndexCompatibility(node.getVersion(), state.metadata());
         });
         validators.addAll(onJoinValidators);
         return Collections.unmodifiableCollection(validators);

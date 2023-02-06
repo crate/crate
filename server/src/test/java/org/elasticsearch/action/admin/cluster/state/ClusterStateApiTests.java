@@ -42,7 +42,7 @@ public class ClusterStateApiTests extends IntegTestCase {
             assertThat(future1.isDone(), is(true));
         });
         assertThat(future1.get().isWaitForTimedOut(), is(false));
-        long metadataVersion = future1.get().getState().getMetadata().version();
+        long metadataVersion = future1.get().getState().metadata().version();
 
         // Verify that cluster state api returns after the cluster settings have been updated:
         clusterStateRequest = new ClusterStateRequest();
@@ -62,7 +62,7 @@ public class ClusterStateApiTests extends IntegTestCase {
         assertThat(response.getState().metadata().version(), equalTo(metadataVersion + 1));
 
         // Verify that the timed out property has been set"
-        metadataVersion = response.getState().getMetadata().version();
+        metadataVersion = response.getState().metadata().version();
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
         clusterStateRequest.waitForTimeout(TimeValue.timeValueSeconds(1)); // Fail fast
         CompletableFuture<ClusterStateResponse> future3 = client().admin().cluster().state(clusterStateRequest);

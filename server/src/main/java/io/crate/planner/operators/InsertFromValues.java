@@ -748,7 +748,7 @@ public class InsertFromValues implements LogicalPlan {
                                                                          Set<String> indices,
                                                                          ClusterService clusterService,
                                                                          UUID jobId) {
-        Metadata metadata = clusterService.state().getMetadata();
+        Metadata metadata = clusterService.state().metadata();
         List<String> indicesToCreate = new ArrayList<>();
         for (var index : indices) {
             if (IndexParts.isPartitioned(index) && metadata.hasIndex(index) == false) {

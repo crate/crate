@@ -119,8 +119,8 @@ public class SwapRelationsOperation {
     private UpdatedState applyRenameActions(ClusterState state,
                                             SwapRelationsRequest swapRelationsRequest) {
         HashSet<String> newIndexNames = new HashSet<>();
-        Metadata metadata = state.getMetadata();
-        Metadata.Builder updatedMetadata = Metadata.builder(state.getMetadata());
+        Metadata metadata = state.metadata();
+        Metadata.Builder updatedMetadata = Metadata.builder(state.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(state.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(state.blocks());
 

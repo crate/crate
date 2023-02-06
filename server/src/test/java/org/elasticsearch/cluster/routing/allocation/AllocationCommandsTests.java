@@ -605,7 +605,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         logger.info("start primary shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
-        Index index = clusterState.getMetadata().index("test").getIndex();
+        Index index = clusterState.metadata().index("test").getIndex();
         MoveAllocationCommand command = new MoveAllocationCommand(index.getName(), 0, "node1", "node2");
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());
@@ -644,7 +644,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         logger.info("start primary shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
-        Index index = clusterState.getMetadata().index("test").getIndex();
+        Index index = clusterState.metadata().index("test").getIndex();
         MoveAllocationCommand command = new MoveAllocationCommand(index.getName(), 0, "node2", "node1");
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());

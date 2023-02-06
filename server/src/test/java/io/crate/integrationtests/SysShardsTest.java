@@ -95,7 +95,7 @@ public class SysShardsTest extends IntegTestCase {
         assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        Metadata metadata = clusterService.state().getMetadata();
+        Metadata metadata = clusterService.state().metadata();
         IndexMetadata index = metadata.index(".blob_b2");
         String indexUUID = index.getIndexUUID();
 

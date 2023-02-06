@@ -47,12 +47,11 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.Test;
-
-import org.elasticsearch.test.IntegTestCase;
 
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
 public class FilteringAllocationIT extends IntegTestCase {
@@ -270,7 +269,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
-        for (ShardRouting shard : state.getRoutingTable().shardsWithState(ShardRoutingState.STARTED)) {
+        for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
             assertTrue("shard on " + node + " but should only be on the include node list: " +
@@ -293,7 +292,7 @@ public class FilteringAllocationIT extends IntegTestCase {
                    equalTo(Settings.builder().put("cluster.routing.allocation.exclude._name",
                                                   excludeNodeIdsAsString).build()));
 
-        for (ShardRouting shard : state.getRoutingTable().shardsWithState(ShardRoutingState.STARTED)) {
+        for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
             assertTrue("shard on " + node + " but should only be on the include node list: " +

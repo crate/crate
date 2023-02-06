@@ -19,13 +19,10 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static org.elasticsearch.cluster.coordination.JoinHelper.FollowerJoinAccumulator;
-import static org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
-import static org.elasticsearch.cluster.coordination.JoinHelper.JoinAccumulator;
-import static org.elasticsearch.cluster.coordination.JoinHelper.JoinCallback;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_ID;
 import static org.elasticsearch.gateway.ClusterStateUpdaters.hideStateIfNotRecovered;
 import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +60,10 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigE
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.coordination.CoordinationState.VoteCollection;
 import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequest;
+import org.elasticsearch.cluster.coordination.JoinHelper.FollowerJoinAccumulator;
+import org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
+import org.elasticsearch.cluster.coordination.JoinHelper.JoinAccumulator;
+import org.elasticsearch.cluster.coordination.JoinHelper.JoinCallback;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -99,7 +100,6 @@ import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.unit.TimeValue;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class Coordinator extends AbstractLifecycleComponent implements Discovery {
 
@@ -467,11 +467,11 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
             if (stateForJoinValidation.nodes().isLocalNodeElectedMaster()) {
                 onJoinValidators.forEach(a -> a.accept(joinRequest.getSourceNode(), stateForJoinValidation));
-                if (stateForJoinValidation.getBlocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false) {
+                if (stateForJoinValidation.blocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK) == false) {
                     // we do this in a couple of places including the cluster update thread. This one here is really just best effort
                     // to ensure we fail as fast as possible.
                     JoinTaskExecutor.ensureMajorVersionBarrier(joinRequest.getSourceNode().getVersion(),
-                        stateForJoinValidation.getNodes().getMinNodeVersion());
+                        stateForJoinValidation.nodes().getMinNodeVersion());
                 }
                 sendValidateJoinRequest(stateForJoinValidation, joinRequest, joinCallback);
             } else {
@@ -924,7 +924,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                                 .filter(e -> e.getNodeName().equals(VotingConfigExclusion.MISSING_VALUE_MARKER))
                                                 .map(VotingConfigExclusion::getNodeId)
                                                 .collect(Collectors.toSet());
-        for (DiscoveryNode node : clusterState.getNodes()) {
+        for (DiscoveryNode node : clusterState.nodes()) {
             if (node.isMasterEligibleNode() &&
                 (nodeIdsWithAbsentName.contains(node.getId()) || nodeNamesWithAbsentId.contains(node.getName()))) {
                 return false;
@@ -1070,7 +1070,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
                 final ClusterState clusterState = clusterChangedEvent.state();
 
-                assert getLocalNode().equals(clusterState.getNodes().get(getLocalNode().getId())) :
+                assert getLocalNode().equals(clusterState.nodes().get(getLocalNode().getId())) :
                     getLocalNode() + " should be in published " + clusterState;
 
                 final PublicationTransportHandler.PublicationContext publicationContext =

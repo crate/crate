@@ -126,6 +126,6 @@ public class JoinTaskExecutorTests extends ESTestCase {
         final ClusterStateTaskExecutor.TaskResult taskResult = result.executionResults.values().iterator().next();
         assertThat(taskResult.isSuccess()).isTrue();
 
-        assertThat(result.resultingState.getNodes().get(actualNode.getId()).getRoles()).isEqualTo(actualNode.getRoles());
+        assertThat(result.resultingState.nodes().get(actualNode.getId()).getRoles()).isEqualTo(actualNode.getRoles());
     }
 }

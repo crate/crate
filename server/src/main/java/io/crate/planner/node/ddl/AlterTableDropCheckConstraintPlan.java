@@ -21,6 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.AnalyzedTableElements.toMapping;
+
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedTableElements;
 import io.crate.analyze.BoundAddColumn;
@@ -35,12 +42,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.Map;
-
-import static io.crate.analyze.AnalyzedTableElements.toMapping;
 
 public class AlterTableDropCheckConstraintPlan implements Plan {
 
@@ -62,7 +63,7 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
 
-        if (plannerContext.clusterState().getNodes().getMinNodeVersion().before(Version.V_5_1_0)) {
+        if (plannerContext.clusterState().nodes().getMinNodeVersion().before(Version.V_5_1_0)) {
             // TODO: Remove this in 5.2
             dependencies.alterTableOperation()
                 .executeAlterTableAddColumn(bind(dropCheckConstraint))
