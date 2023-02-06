@@ -154,27 +154,16 @@ public final class MetadataTracker implements Closeable {
         );
     }
 
-    public boolean startTracking(String subscriptionName) {
+    public void update(Collection<String> subscriptionNames) {
         synchronized (this) {
-            var copy = new HashSet<>(subscriptionsToTrack);
-            var updated = copy.add(subscriptionName);
-            subscriptionsToTrack = copy;
-            if (updated && !isActive) {
-                start();
+            if (subscriptionNames.isEmpty()) {
+                stop();
+            } else {
+                subscriptionsToTrack = new HashSet<>(subscriptionNames);
+                if (!isActive) {
+                    start();
+                }
             }
-            return updated;
-        }
-    }
-
-    public boolean startTracking(Collection<String> subscriptionNames) {
-        synchronized (this) {
-            var copy = new HashSet<>(subscriptionsToTrack);
-            var updated = copy.addAll(subscriptionNames);
-            subscriptionsToTrack = copy;
-            if (updated && !isActive) {
-                start();
-            }
-            return updated;
         }
     }
 
