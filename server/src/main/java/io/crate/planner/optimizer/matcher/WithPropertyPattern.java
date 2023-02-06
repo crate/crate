@@ -25,23 +25,15 @@ import java.util.function.Predicate;
 
 public class WithPropertyPattern<T> extends Pattern<T> {
 
-    private final Pattern<T> pattern;
-    private final Predicate<? super T> propertyPredicate;
+    final Pattern<T> pattern;
+    final Predicate<? super T> propertyPredicate;
 
     WithPropertyPattern(Pattern<T> pattern, Predicate<? super T> propertyPredicate) {
         this.pattern = pattern;
         this.propertyPredicate = propertyPredicate;
     }
 
-    @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
-        return match.flatMap(matchedValue -> {
-            if (propertyPredicate.test(matchedValue)) {
-                return match;
-            } else {
-                return Match.empty();
-            }
-        });
+    public Match<T> accept(Matcher matcher, Object object, Captures captures) {
+        return matcher.matchWithProperty(this, object, captures);
     }
 }

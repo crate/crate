@@ -98,11 +98,11 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
 
 
     public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
-        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
+        Match<?> match = ORDER_COLLECT.match(plan, Captures.empty());
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }
-        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
+        match = RENAME_ORDER_COLLECT.match(plan, Captures.empty());
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }

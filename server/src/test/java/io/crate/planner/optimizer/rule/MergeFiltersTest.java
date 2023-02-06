@@ -63,7 +63,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 
         MergeFilters mergeFilters = new MergeFilters();
-        Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
+        Match<Filter> match = mergeFilters.pattern().match(parentFilter, Captures.empty());
 
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(parentFilter);

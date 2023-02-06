@@ -41,7 +41,7 @@ public class CapturePatternTest {
         Pattern<Filter> filterPattern = Pattern.typeOf(Filter.class).capturedAs(captureFilter);
         CapturePattern<Filter> pattern = new CapturePattern<>(captureFilter, filterPattern);
 
-        Match<Filter> match = pattern.accept(filter, Captures.empty());
+        Match<Filter> match = pattern.match(filter, Captures.empty());
         Filter capturedFilter = match.captures().get(captureFilter);
         assertThat(capturedFilter, Matchers.sameInstance(filter));
     }

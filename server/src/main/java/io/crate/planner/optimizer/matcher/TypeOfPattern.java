@@ -23,18 +23,13 @@ package io.crate.planner.optimizer.matcher;
 
 class TypeOfPattern<T> extends Pattern<T> {
 
-    private Class<T> expectedClass;
+    final Class<T> expectedClass;
 
     TypeOfPattern(Class<T> expectedClass) {
         this.expectedClass = expectedClass;
     }
 
-    @Override
-    public Match<T> accept(Object object, Captures captures) {
-        if (expectedClass.isInstance(object)) {
-            return Match.of(expectedClass.cast(object), captures);
-        } else {
-            return Match.empty();
-        }
+    public Match<T> accept(Matcher matcher, Object object, Captures captures) {
+        return matcher.matchTypeOf(this, object, captures);
     }
 }

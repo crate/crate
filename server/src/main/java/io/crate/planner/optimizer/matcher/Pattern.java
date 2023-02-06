@@ -27,6 +27,8 @@ import java.util.function.Predicate;
 
 public abstract class Pattern<T> {
 
+    private static final DefaultMatcher DEFAULT_MATCHER = new DefaultMatcher();
+
     public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
         return new TypeOfPattern<>(expectedClass);
     }
@@ -43,5 +45,10 @@ public abstract class Pattern<T> {
         return new CapturePattern<>(capture, this);
     }
 
-    public abstract Match<T> accept(Object object, Captures captures);
+    abstract Match<T> accept(Matcher matcher, Object object, Captures captures);
+
+    public Match<T> match(Object object, Captures captures) {
+        return DEFAULT_MATCHER.match(this, object, captures);
+    }
+
 }

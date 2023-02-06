@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,17 +21,16 @@
 
 package io.crate.planner.optimizer.matcher;
 
-class CapturePattern<T> extends Pattern<T> {
+public interface Matcher {
 
-    final Capture<T> capture;
-    final Pattern<T> pattern;
+    <T> Match<T> match(Pattern<T> pattern, Object object, Captures captures);
 
-    CapturePattern(Capture<T> capture, Pattern<T> pattern) {
-        this.capture = capture;
-        this.pattern = pattern;
-    }
+    <T> Match<T> matchTypeOf(TypeOfPattern<T> typeOfPattern, Object object, Captures captures);
 
-    public Match<T> accept(Matcher matcher, Object object, Captures captures) {
-        return matcher.matchCapture(this, object, captures);
-    }
+    <T, U, V> Match<T> matchWith(WithPattern<T, U, V> withPattern, Object object, Captures captures);
+
+    <T> Match<T> matchWithProperty(WithPropertyPattern<T> withPropertyPattern, Object object, Captures captures);
+
+    <T> Match<T> matchCapture(CapturePattern<T> capturePattern, Object object, Captures captures);
+
 }
