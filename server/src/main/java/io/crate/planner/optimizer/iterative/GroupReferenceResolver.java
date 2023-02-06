@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,26 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative;
 
 import java.util.function.Function;
 
 import io.crate.planner.operators.LogicalPlan;
 
-class TypeOfPattern<T> extends Pattern<T> {
+/**
+ * The GroupReferenceResolver resolves a GroupReference to the referenced LogicalPlan
+ */
+public interface GroupReferenceResolver extends Function<LogicalPlan, LogicalPlan> {
 
-    private Class<T> expectedClass;
-
-    TypeOfPattern(Class<T> expectedClass) {
-        this.expectedClass = expectedClass;
-    }
-
-    @Override
-    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        if (expectedClass.isInstance(object)) {
-            return Match.of(expectedClass.cast(object), captures);
-        } else {
-            return Match.empty();
-        }
+    static GroupReferenceResolver from(Function<GroupReference, LogicalPlan> resolver) {
+        return node -> {
+            if (node instanceof GroupReference groupRef) {
+                return resolver.apply(groupRef);
+            }
+            throw new IllegalStateException("Node is not a GroupReference");
+        };
     }
 }
