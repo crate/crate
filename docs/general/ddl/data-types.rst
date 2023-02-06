@@ -2043,8 +2043,14 @@ to days and hours::
 
 .. NOTE::
 
-    Comparisons between intervals except for equality (``=``) and
-    inequality(``<>``) are not allowed.
+    * Comparisons between intervals except for equality (``=``) and
+      inequality(``<>``) are not allowed.
+
+    * Intervals cannot be used in :ref:`ORDER BY <sql-select-order-by>` clause.
+
+    * Intervals cannot be used in :ref:`MIN <aggregation-min>` and
+      :ref:`MAX <aggregation-max>` aggregations.
+
 
 .. _data-types-bit-strings:
 
