@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
+import static org.elasticsearch.snapshots.RestoreService.restoreInProgress;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -31,8 +33,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.snapshots.RestoreService;
 
-import static org.elasticsearch.snapshots.RestoreService.restoreInProgress;
-
+/**
+ * Listener that fires once when a restore process finishes and removes itself from the clusterService
+ */
 public class RestoreClusterStateListener implements ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(RestoreClusterStateListener.class);
@@ -42,7 +45,8 @@ public class RestoreClusterStateListener implements ClusterStateListener {
     private final ActionListener<RestoreSnapshotResponse> listener;
 
 
-    public RestoreClusterStateListener(ClusterService clusterService, RestoreService.RestoreCompletionResponse response,
+    public RestoreClusterStateListener(ClusterService clusterService,
+                                       RestoreService.RestoreCompletionResponse response,
                                        ActionListener<RestoreSnapshotResponse> listener) {
         this.clusterService = clusterService;
         this.uuid = response.getUuid();
@@ -74,14 +78,5 @@ public class RestoreClusterStateListener implements ClusterStateListener {
         } else {
             // restore not completed yet, wait for next cluster state update
         }
-    }
-
-    /**
-     * Creates a cluster state listener and registers it with the cluster service. The listener passed as a
-     * parameter will be called when the restore is complete.
-     */
-    public static void createAndRegisterListener(ClusterService clusterService, RestoreService.RestoreCompletionResponse response,
-                                                 ActionListener<RestoreSnapshotResponse> listener) {
-        clusterService.addListener(new RestoreClusterStateListener(clusterService, response, listener));
     }
 }
