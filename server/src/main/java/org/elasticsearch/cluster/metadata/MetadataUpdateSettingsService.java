@@ -32,7 +32,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
@@ -80,7 +80,7 @@ public class MetadataUpdateSettingsService {
         this.shardLimitValidator = shardLimitValidator;
     }
 
-    public void updateSettings(final UpdateSettingsClusterStateUpdateRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
+    public void updateSettings(final UpdateSettingsRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
         final Settings normalizedSettings = Settings.builder().put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
         Settings.Builder settingsForClosedIndices = Settings.builder();
         Settings.Builder settingsForOpenIndices = Settings.builder();
@@ -91,7 +91,7 @@ public class MetadataUpdateSettingsService {
                 false, // don't validate dependencies here we check it below never allow to change the number of shards
                 true); // validate internal or private index settings
         for (String key : normalizedSettings.keySet()) {
-            Setting setting = indexScopedSettings.get(key);
+            Setting<?> setting = indexScopedSettings.get(key);
             boolean isWildcard = setting == null && Regex.isSimpleMatchPattern(key);
             assert setting != null // we already validated the normalized settings
                 || (isWildcard && normalizedSettings.hasValue(key) == false)
@@ -121,6 +121,7 @@ public class MetadataUpdateSettingsService {
 
                     @Override
                     public ClusterState execute(ClusterState currentState) {
+                        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(currentState, request);
 
                         RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
                         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
@@ -129,9 +130,9 @@ public class MetadataUpdateSettingsService {
                         // on an open index
                         Set<Index> openIndices = new HashSet<>();
                         Set<Index> closeIndices = new HashSet<>();
-                        final String[] actualIndices = new String[request.indices().length];
-                        for (int i = 0; i < request.indices().length; i++) {
-                            Index index = request.indices()[i];
+                        final String[] actualIndices = new String[concreteIndices.length];
+                        for (int i = 0; i < concreteIndices.length; i++) {
+                            Index index = concreteIndices[i];
                             actualIndices[i] = index.getName();
                             final IndexMetadata metadata = currentState.metadata().getIndexSafe(index);
                             if (metadata.getState() == IndexMetadata.State.OPEN) {
@@ -150,7 +151,7 @@ public class MetadataUpdateSettingsService {
                             final int updatedNumberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(openSettings);
                             if (preserveExisting == false) {
                                 // Verify that this won't take us over the cluster shard limit.
-                                int totalNewShards = Arrays.stream(request.indices())
+                                int totalNewShards = Arrays.stream(concreteIndices)
                                     .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
                                     .sum();
                                 Optional<String> error = shardLimitValidator.checkShardLimit(totalNewShards, currentState);

@@ -40,7 +40,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
@@ -301,10 +301,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     /**
-     * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsClusterStateUpdateRequest, ActionListener)}
+     * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}
      */
     private ClusterState updateSettings(final ClusterState currentState, final Settings settings, Index[] concreteIndices) {
-
         final Settings normalizedSettings = Settings.builder()
             .put(markArchivedSettings(settings))
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
@@ -315,7 +314,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         final Set<String> skippedSettings = new HashSet<>();
 
         for (String key : normalizedSettings.keySet()) {
-            Setting setting = indexScopedSettings.get(key);
+            Setting<?> setting = indexScopedSettings.get(key);
             boolean isWildcard = setting == null && Regex.isSimpleMatchPattern(key);
             assert setting != null // we already validated the normalized settings
                    || (isWildcard && normalizedSettings.hasValue(key) == false)
