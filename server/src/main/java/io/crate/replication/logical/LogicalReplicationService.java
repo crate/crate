@@ -231,9 +231,12 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 Subscription.State.FAILED,
                 message
             );
-            subscriptionStateFuture.whenComplete(
-                (stateResponse, ignoredErr) -> finalFuture.completeExceptionally(err)
-            );
+            subscriptionStateFuture.whenComplete((stateResponse, suppressedErr) -> {
+                if (suppressedErr != null) {
+                    err.addSuppressed(suppressedErr);
+                }
+                finalFuture.completeExceptionally(err);
+            });
         };
 
         remoteClusters.connect(subscriptionName, connectionInfo)
@@ -416,9 +419,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         return updateSubscriptionState(subscriptionName, oldSubscription, relations);
     }
 
-    public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
-                                                              Subscription subscription,
-                                                              Map<RelationName, Subscription.RelationState> relations) {
+    private CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
+                                                               Subscription subscription,
+                                                               Map<RelationName, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),
