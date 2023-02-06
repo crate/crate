@@ -21,23 +21,16 @@ package org.elasticsearch.cluster.metadata;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexClusterStateUpdateRequest;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -54,48 +47,25 @@ public class MetadataDeleteIndexService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataDeleteIndexService.class);
 
     private final Settings settings;
-    private final ClusterService clusterService;
     private final AllocationService allocationService;
 
     @Inject
     public MetadataDeleteIndexService(Settings settings,
-                                      ClusterService clusterService,
                                       AllocationService allocationService) {
         this.settings = settings;
-        this.clusterService = clusterService;
         this.allocationService = allocationService;
-    }
-
-    public void deleteIndices(final DeleteIndexClusterStateUpdateRequest request,
-            final ActionListener<ClusterStateUpdateResponse> listener) {
-        if (request.indices() == null || request.indices().length == 0) {
-            throw new IllegalArgumentException("Index name is required");
-        }
-
-        clusterService.submitStateUpdateTask(
-            "delete-index " + Arrays.toString(request.indices()),
-            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(Priority.URGENT, request, listener) {
-
-                @Override
-                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                    return new ClusterStateUpdateResponse(acknowledged);
-                }
-
-                @Override
-                public ClusterState execute(final ClusterState currentState) {
-                    return deleteIndices(currentState, settings, allocationService, Arrays.asList(request.indices()));
-                }
-            }
-        );
     }
 
     /**
      * Delete some indices from the cluster state.
      */
-    public ClusterState deleteIndices(ClusterState currentState, Set<Index> indices) {
+    public ClusterState deleteIndices(ClusterState currentState, Collection<Index> indices) {
         return deleteIndices(currentState, settings, allocationService, indices);
     }
 
+    /**
+     * Delete some indices from the cluster state.
+     */
     public static ClusterState deleteIndices(ClusterState currentState,
                                              Settings settings,
                                              AllocationService allocationService,
