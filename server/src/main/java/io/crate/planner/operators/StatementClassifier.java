@@ -107,7 +107,7 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     @Override
-    protected Void visitPlan(LogicalPlan logicalPlan, Set<String> context) {
+    public Void visitPlan(LogicalPlan logicalPlan, Set<String> context) {
         for (var source : logicalPlan.sources()) {
             source.accept(this, context);
         }

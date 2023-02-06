@@ -24,6 +24,8 @@ package io.crate.planner.optimizer.matcher;
 import java.util.Optional;
 import java.util.function.Function;
 
+import io.crate.planner.operators.LogicalPlan;
+
 class WithPattern<T, U, V> extends Pattern<T> {
 
     private final Pattern<T> firstPattern;
@@ -37,12 +39,13 @@ class WithPattern<T, U, V> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = firstPattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+        Match<T> match = firstPattern.accept(object, captures, resolvePlan);
         return match.flatMap(matchedValue -> {
-            Optional<?> optProperty = getProperty.apply(matchedValue);
+            Optional<?> optProperty = getProperty.apply(matchedValue)
+                .map(value -> value instanceof LogicalPlan logicalPlan ? resolvePlan.apply(logicalPlan) : value);
             Match<V> propertyMatch = optProperty
-                .map(property -> propertyPattern.accept(property, match.captures()))
+                .map(property -> propertyPattern.accept(property, match.captures(), resolvePlan))
                 .orElse(Match.empty());
             return propertyMatch.map(ignored -> match.value());
         });

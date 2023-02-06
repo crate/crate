@@ -25,6 +25,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import io.crate.planner.operators.LogicalPlan;
+
 public abstract class Pattern<T> {
 
     public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
@@ -43,5 +45,10 @@ public abstract class Pattern<T> {
         return new CapturePattern<>(capture, this);
     }
 
-    public abstract Match<T> accept(Object object, Captures captures);
+    public abstract Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan);
+
+    public Match<T> accept(Object object, Captures captures) {
+        return accept(object, captures, Function.identity());
+    }
+
 }
