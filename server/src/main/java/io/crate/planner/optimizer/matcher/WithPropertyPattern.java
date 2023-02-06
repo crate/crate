@@ -21,7 +21,10 @@
 
 package io.crate.planner.optimizer.matcher;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
+
+import io.crate.planner.operators.LogicalPlan;
 
 public class WithPropertyPattern<T> extends Pattern<T> {
 
@@ -34,8 +37,8 @@ public class WithPropertyPattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+        Match<T> match = pattern.accept(object, captures, resolvePlan);
         return match.flatMap(matchedValue -> {
             if (propertyPredicate.test(matchedValue)) {
                 return match;
