@@ -776,7 +776,7 @@ direction
     | FIRST
     | LAST
     | ABSOLUTE integerLiteral
-    | RELATIVE integerLiteral
+    | RELATIVE (MINUS)? integerLiteral
     | integerLiteral
     | ALL
     | FORWARD

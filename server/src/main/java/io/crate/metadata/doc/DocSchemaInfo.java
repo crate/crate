@@ -176,7 +176,7 @@ public class DocSchemaInfo implements SchemaInfo {
             try {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
                 RelationName ti = partitionName.relationName();
-                if (schemaName.equalsIgnoreCase(ti.schema())) {
+                if (schemaName.equals(ti.schema())) {
                     tables.add(ti.name());
                 }
             } catch (IllegalArgumentException e) {
@@ -388,7 +388,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private String getIndexName(String tableName) {
-        if (schemaName.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
+        if (schemaName.equals(Schemas.DOC_SCHEMA_NAME)) {
             return tableName;
         } else {
             return schemaName + "." + tableName;

@@ -1130,6 +1130,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testOrderByOnInterval() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .build();
+        assertThatThrownBy(() ->
+                executor.analyze("select INTERVAL '12' HOUR AS \"interval\" from sys.nodes order by 1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot ORDER BY ''PT12H'::interval AS interval': invalid data type 'interval'.");
+        assertThatThrownBy(() ->
+                               executor.analyze("select current_timestamp - process['probe_timestamp'] AS \"interval\" " +
+                                                "from sys.nodes order by 1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot ORDER BY '(CURRENT_TIMESTAMP - process['probe_timestamp']) AS interval': " +
+                        "invalid data type 'interval'.");
+    }
+
+    @Test
     public void testOrderByOnArray() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)

@@ -396,14 +396,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaName == null) {
             return true;
         }
-        if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
-            || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
-            || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
-            || schemaName.equalsIgnoreCase(PgCatalogSchemaInfo.NAME)
-            ) {
-            return false;
-        }
-        return true;
+        return !schemaName.equals(InformationSchemaInfo.NAME)
+               && !schemaName.equals(SysSchemaInfo.NAME)
+               && !schemaName.equals(BlobSchemaInfo.NAME)
+               && !schemaName.equals(PgCatalogSchemaInfo.NAME);
     }
 
     public boolean tableExists(RelationName relationName) {

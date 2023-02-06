@@ -251,7 +251,8 @@ Example::
 
 .. NOTE::
 
-  Key words and unquoted identifiers are case insensitive.
+  Key words and unquoted identifiers are case insensitive while quoted
+  identifiers are case sensitive.
 
 This means that::
 
@@ -264,6 +265,10 @@ is equivalent to::
 or::
 
   select FOO from t;
+
+To query a table named ``Foo``::
+
+  select "Foo" from t;
 
 A widely used convention is to write key words in uppercase and identifiers in
 lowercase, such as

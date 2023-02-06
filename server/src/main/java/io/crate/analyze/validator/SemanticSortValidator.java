@@ -45,7 +45,7 @@ public class SemanticSortValidator {
     // Instead of this we should probably have a property on DataType
     // that indicates if ordering is supported and encapsulate the required functionality somehow
     public static final Set<Integer> SUPPORTED_TYPES = Stream.concat(
-        DataTypes.PRIMITIVE_TYPES.stream(),
+        DataTypes.PRIMITIVE_TYPES_WITHOUT_INTERVAL.stream(),
         Stream.of(
             DataTypes.REGCLASS,
             DataTypes.REGPROC,

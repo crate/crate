@@ -1255,7 +1255,11 @@ public final class SqlFormatter {
                     builder.append(fetch.count());
                     builder.append(" ");
                 }
-            } else {
+            } else if (scrollMode == ScrollMode.RELATIVE) {
+                builder.append("RELATIVE ");
+                builder.append(fetch.count());
+                builder.append(" ");
+            } else if (scrollMode == ScrollMode.MOVE) {
                 if (count >= 0) {
                     builder.append("FORWARD ");
                 } else {

@@ -99,7 +99,7 @@ public final class ScopedSymbol implements Symbol {
     @Override
     public String toString(Style style) {
         if (style == Style.QUALIFIED) {
-            return relation.toString() + '.' + column.quotedOutputName();
+            return relation.sqlFqn() + '.' + column.quotedOutputName();
         }
         return column.quotedOutputName();
     }

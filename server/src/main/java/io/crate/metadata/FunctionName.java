@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.sql.Identifiers;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -102,7 +103,7 @@ public final class FunctionName implements Writeable, Accountable {
         if (schema == null) {
             return name;
         }
-        return schema + "." + name;
+        return Identifiers.quoteIfNeeded(schema) + "." + name;
     }
 
     public boolean isBuiltin() {
