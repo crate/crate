@@ -21,9 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -37,6 +34,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 
 @Singleton
 public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {

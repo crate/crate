@@ -20,19 +20,19 @@
 package org.elasticsearch.action.admin.indices.delete;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
@@ -88,23 +88,20 @@ public class TransportDeleteIndexAction extends TransportMasterNodeAction<Delete
             listener.onResponse(new AcknowledgedResponse(true));
             return;
         }
-        DeleteIndexClusterStateUpdateRequest deleteRequest = new DeleteIndexClusterStateUpdateRequest()
-            .ackTimeout(request.timeout())
-            .masterNodeTimeout(request.masterNodeTimeout())
-            .indices(concreteIndices);
-
-        deleteIndexService.deleteIndices(deleteRequest, new ActionListener<ClusterStateUpdateResponse>() {
+        String source = "delete-index " + Arrays.toString(request.indices());
+        var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.URGENT, request, listener) {
 
             @Override
-            public void onResponse(ClusterStateUpdateResponse response) {
-                listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
+            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                return new AcknowledgedResponse(acknowledged);
             }
 
             @Override
-            public void onFailure(Exception t) {
-                logger.debug(() -> new ParameterizedMessage("failed to delete indices [{}]", List.of(concreteIndices)), t);
-                listener.onFailure(t);
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(currentState, request);
+                return deleteIndexService.deleteIndices(currentState, Arrays.asList(concreteIndices));
             }
-        });
+        };
+        clusterService.submitStateUpdateTask(source, updateTask);
     }
 }
