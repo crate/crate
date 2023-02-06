@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.testing.Asserts.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -440,5 +442,52 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         // this query should never fail
         execute("select * from t1 order by x limit 50");
+    }
+
+    @Test
+    public void test_stress_partition_deletion_and_creation() throws Exception {
+        execute(
+            "create table tbl (x int, p int) " +
+            "clustered into 2 shards partitioned by (p) with (number_of_replicas = 0)");
+        int numOpsPerThread = randomIntBetween(100, 300);
+        int numInsertThreads = randomIntBetween(5, 10);
+        int numDeleteThreads = randomIntBetween(5, 10);
+        Phaser phaser = new Phaser(numInsertThreads + numDeleteThreads);
+        List<Thread> threads = new ArrayList<>(numInsertThreads + numDeleteThreads);
+        for (int t = 0; t < numInsertThreads; t++) {
+            Thread thread = new Thread(() -> {
+                phaser.arriveAndAwaitAdvance();
+                for (int index = 0; index < numOpsPerThread; index++) {
+                    int numRows = randomIntBetween(1, 10);
+                    Object[][] rows = new Object[numRows][];
+                    for (int i = 0; i < numRows; i++) {
+                        rows[i] = new Object[] { index, randomIntBetween(1, 10) };
+                    }
+                    execute("insert into tbl (x, p) values (?, ?)", rows);
+                }
+            });
+            thread.start();
+            threads.add(thread);
+        }
+        for (int t = 0; t < numDeleteThreads; t++) {
+            Thread thread = new Thread(() -> {
+                phaser.arriveAndAwaitAdvance();
+                for (int index = 0; index < numOpsPerThread; index++) {
+                    int partition = randomIntBetween(1, 10);
+                    execute("delete from tbl where p = ?", new Object[] { partition });
+                }
+            });
+            thread.start();
+            threads.add(thread);
+        }
+        for (var thread : threads) {
+            thread.join();
+        }
+        assertThat(execute("select distinct health from sys.health")).hasRows(
+            "GREEN\n"
+        );
+        assertThat(execute("select distinct current_state from sys.allocations")).hasRows(
+            "STARTED\n"
+        );
     }
 }

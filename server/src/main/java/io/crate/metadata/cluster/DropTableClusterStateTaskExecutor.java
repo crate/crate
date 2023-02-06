@@ -21,9 +21,10 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -31,9 +32,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
 
