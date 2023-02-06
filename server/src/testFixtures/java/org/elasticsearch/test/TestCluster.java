@@ -1940,7 +1940,7 @@ public final class TestCluster implements Closeable {
     public synchronized Set<String> nodesInclude(String index) {
         if (clusterService().state().routingTable().hasIndex(index)) {
             List<ShardRouting> allShards = clusterService().state().routingTable().allShards(index);
-            DiscoveryNodes discoveryNodes = clusterService().state().getNodes();
+            DiscoveryNodes discoveryNodes = clusterService().state().nodes();
             Set<String> nodes = new HashSet<>();
             for (ShardRouting shardRouting : allShards) {
                 if (shardRouting.assignedToNode()) {

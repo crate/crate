@@ -77,7 +77,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 List.of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
-            clusterService.state().getMetadata(),
+            clusterService.state().metadata(),
             relationName -> null,
             Collections.emptyList());
 

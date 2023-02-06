@@ -21,18 +21,20 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.Collections;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.RestoreInProgress;
+
 import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import org.elasticsearch.cluster.RestoreInProgress;
-
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.stream.StreamSupport;
-
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
 
 public class SysSnapshotRestoreTableInfo {
 
@@ -56,7 +58,7 @@ public class SysSnapshotRestoreTableInfo {
                 new ColumnIdent("name"),
                 new ColumnIdent("repository"))
             .withRouting((state, routingProvider, sessionSettings) ->
-                             routingProvider.forRandomMasterOrDataNode(IDENT, state.getNodes()))
+                             routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes()))
             .build();
     }
 

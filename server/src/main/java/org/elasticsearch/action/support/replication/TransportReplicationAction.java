@@ -703,7 +703,7 @@ public abstract class TransportReplicationAction<
                 assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
                     "request waitForActiveShards must be set in resolveRequest";
 
-                final ShardRouting primary = state.getRoutingTable().shardRoutingTable(request.shardId()).primaryShard();
+                final ShardRouting primary = state.routingTable().shardRoutingTable(request.shardId()).primaryShard();
                 if (primary == null || primary.active() == false) {
                     logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
                         + "cluster state version [{}]", request.shardId(), actionName, request, state.version());

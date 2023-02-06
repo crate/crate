@@ -88,7 +88,7 @@ public class AlterTableClusterStateExecutorTest {
                                                           (x, y) -> { },
                                                           indexScopedSettings);
 
-        IndexTemplateMetadata template = result.getMetadata().getTemplates().get(templateName);
+        IndexTemplateMetadata template = result.metadata().getTemplates().get(templateName);
         assertThat(template.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
     }
 

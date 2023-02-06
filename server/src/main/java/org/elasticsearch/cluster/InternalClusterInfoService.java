@@ -28,8 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import com.carrotsearch.hppc.ObjectContainer;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,6 +58,8 @@ import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
+
+import com.carrotsearch.hppc.ObjectContainer;
 
 import io.crate.common.unit.TimeValue;
 
@@ -190,7 +190,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
      */
     protected CountDownLatch updateNodeStats(final ActionListener<NodesStatsResponse> listener) {
         final CountDownLatch latch = new CountDownLatch(1);
-        ObjectContainer<DiscoveryNode> allDataNodes = clusterService.state().getNodes().getDataNodes().values();
+        ObjectContainer<DiscoveryNode> allDataNodes = clusterService.state().nodes().getDataNodes().values();
         final NodesStatsRequest nodesStatsRequest = new NodesStatsRequest(allDataNodes.toArray(DiscoveryNode.class));
         nodesStatsRequest.timeout(fetchTimeout);
         client.admin().cluster().nodesStats(nodesStatsRequest).whenComplete(new LatchedActionListener<>(listener, latch));

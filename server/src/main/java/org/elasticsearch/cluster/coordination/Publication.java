@@ -19,6 +19,13 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,16 +35,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterStatePublisher.AckListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
+import io.crate.common.unit.TimeValue;
 
 public abstract class Publication {
 
@@ -59,8 +60,8 @@ public abstract class Publication {
         this.currentTimeSupplier = currentTimeSupplier;
         startTime = currentTimeSupplier.getAsLong();
         applyCommitRequest = Optional.empty();
-        publicationTargets = new ArrayList<>(publishRequest.getAcceptedState().getNodes().getNodes().size());
-        publishRequest.getAcceptedState().getNodes().mastersFirstStream().forEach(n -> publicationTargets.add(new PublicationTarget(n)));
+        publicationTargets = new ArrayList<>(publishRequest.getAcceptedState().nodes().getNodes().size());
+        publishRequest.getAcceptedState().nodes().mastersFirstStream().forEach(n -> publicationTargets.add(new PublicationTarget(n)));
     }
 
     public void start(Set<DiscoveryNode> faultyNodes) {

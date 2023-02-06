@@ -458,14 +458,14 @@ public class GatewayIndexStateIT extends IntegTestCase {
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
 
-        final IndexMetadata metadata = state.getMetadata().index(tableName);
+        final IndexMetadata metadata = state.metadata().index(tableName);
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(Settings.builder().put(metadata.getSettings())
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT.minimumIndexCompatibilityVersion().internalId)
             // this is invalid but should be archived
             .put("index.similarity.BM25.type", "classic")
             // this one is not validated ahead of time and breaks allocation
             .put("index.analysis.filter.myCollator.type", "icu_collation"));
-        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.getMetadata()).put(brokenMeta)));
+        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.metadata()).put(brokenMeta)));
 
         // check that the cluster does not keep reallocating shards
         assertBusy(() -> {
@@ -487,8 +487,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
         state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
-        assertEquals(IndexMetadata.State.CLOSE, state.getMetadata().index(metadata.getIndex()).getState());
-        assertEquals("classic", state.getMetadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
+        assertEquals(IndexMetadata.State.CLOSE, state.metadata().index(metadata.getIndex()).getState());
+        assertEquals("classic", state.metadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
         // try to open it with the broken setting - fail again!
         assertThrowsMatches(
             () -> execute("alter table test open"),
@@ -547,10 +547,10 @@ public class GatewayIndexStateIT extends IntegTestCase {
         }
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
-        final IndexMetadata metadata = state.getMetadata().index(tableName);
+        final IndexMetadata metadata = state.metadata().index(tableName);
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(metadata.getSettings()
                 .filter((s) -> "index.analysis.analyzer.test.tokenizer".equals(s) == false));
-        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.getMetadata()).put(brokenMeta)));
+        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.metadata()).put(brokenMeta)));
 
         // check that the cluster does not keep reallocating shards
         assertBusy(() -> {
@@ -602,7 +602,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
 
-        final Metadata metadata = state.getMetadata();
+        final Metadata metadata = state.metadata();
         final Metadata brokenMeta = Metadata.builder(metadata).persistentSettings(Settings.builder()
                     .put(metadata.persistentSettings()).put("this.is.unknown", true)
                     .put(SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), "broken").build()).build();

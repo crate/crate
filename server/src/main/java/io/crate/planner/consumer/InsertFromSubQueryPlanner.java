@@ -59,7 +59,7 @@ public final class InsertFromSubQueryPlanner {
                                    SubqueryPlanner subqueryPlanner) {
 
         if (statement.outputs() != null &&
-            !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
+            !plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 

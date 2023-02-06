@@ -19,6 +19,16 @@
 
 package org.elasticsearch.indices.flush;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -36,7 +46,6 @@ import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
@@ -66,14 +75,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 public class SyncedFlushService implements IndexEventListener {
 
@@ -330,7 +331,7 @@ public class SyncedFlushService implements IndexEventListener {
     final IndexShardRoutingTable getShardRoutingTable(ShardId shardId, ClusterState state) {
         final IndexRoutingTable indexRoutingTable = state.routingTable().index(shardId.getIndexName());
         if (indexRoutingTable == null) {
-            IndexMetadata index = state.getMetadata().index(shardId.getIndex());
+            IndexMetadata index = state.metadata().index(shardId.getIndex());
             if (index != null && index.getState() == IndexMetadata.State.CLOSE) {
                 throw new IndexClosedException(shardId.getIndex());
             }

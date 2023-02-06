@@ -21,11 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.Templates;
-import io.crate.execution.ddl.tables.RenameTableRequest;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -41,6 +36,12 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
+
+import io.crate.execution.ddl.Templates;
+import io.crate.execution.ddl.tables.RenameTableRequest;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class RenameTableClusterStateExecutor {
 
@@ -63,7 +64,7 @@ public class RenameTableClusterStateExecutor {
         RelationName target = request.targetTableIdent();
         boolean isPartitioned = request.isPartitioned();
 
-        Metadata currentMetadata = currentState.getMetadata();
+        Metadata currentMetadata = currentState.metadata();
         Metadata.Builder newMetadata = Metadata.builder(currentMetadata);
 
         if (isPartitioned) {

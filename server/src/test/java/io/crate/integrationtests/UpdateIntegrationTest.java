@@ -30,12 +30,12 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1030,7 +1030,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update sys.node_checks set acknowledged = true where id = 1 " +
                 "returning id, UPPER(description) as description, acknowledged as ack");
 
-        long numberOfNodes = this.clusterService().state().getNodes().getSize();
+        long numberOfNodes = this.clusterService().state().nodes().getSize();
 
         assertThat((response.rowCount()), is(numberOfNodes));
         assertThat((response.cols()[0]), is("id"));

@@ -79,14 +79,14 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
     }
 
     private ClusterState addNode(ClusterState clusterState, String nodeName, boolean isMaster) {
-        DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder(clusterState.getNodes());
+        DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder(clusterState.nodes());
         nodeBuilder.add(newNode(nodeName, Collections.singleton(isMaster ? DiscoveryNodeRole.MASTER_ROLE : DiscoveryNodeRole.DATA_ROLE)));
         return ClusterState.builder(clusterState).nodes(nodeBuilder).build();
     }
 
     private ClusterState removeNode(ClusterState clusterState, String nodeName, AllocationService allocationService) {
         return allocationService.disassociateDeadNodes(ClusterState.builder(clusterState)
-            .nodes(DiscoveryNodes.builder(clusterState.getNodes()).remove(nodeName)).build(), true, "reroute");
+            .nodes(DiscoveryNodes.builder(clusterState.nodes()).remove(nodeName)).build(), true, "reroute");
     }
 
     private ClusterHealthStatus getClusterHealthStatus(ClusterState clusterState) {

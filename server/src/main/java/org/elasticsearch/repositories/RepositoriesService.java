@@ -297,8 +297,8 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     public void applyClusterState(ClusterChangedEvent event) {
         try {
             final ClusterState state = event.state();
-            RepositoriesMetadata oldMetadata = event.previousState().getMetadata().custom(RepositoriesMetadata.TYPE);
-            RepositoriesMetadata newMetadata = state.getMetadata().custom(RepositoriesMetadata.TYPE);
+            RepositoriesMetadata oldMetadata = event.previousState().metadata().custom(RepositoriesMetadata.TYPE);
+            RepositoriesMetadata newMetadata = state.metadata().custom(RepositoriesMetadata.TYPE);
 
             // Check if repositories got changed
             if ((oldMetadata == null && newMetadata == null) || (oldMetadata != null && oldMetadata.equalsIgnoreGenerations(newMetadata))) {

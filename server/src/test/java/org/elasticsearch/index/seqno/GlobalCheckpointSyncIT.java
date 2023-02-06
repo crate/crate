@@ -106,7 +106,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                 (indexName, client) -> {
                     // prevent global checkpoint syncs between all nodes
                     final DiscoveryNodes nodes = FutureUtils.get(client.admin().cluster()
-                        .state(new ClusterStateRequest())).getState().getNodes();
+                        .state(new ClusterStateRequest())).getState().nodes();
                     for (final DiscoveryNode node : nodes) {
                         for (final DiscoveryNode other : nodes) {
                             if (node == other) {
@@ -132,7 +132,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                     final DiscoveryNodes nodes = FutureUtils
                         .get(client.admin().cluster().state(new ClusterStateRequest()))
                         .getState()
-                        .getNodes();
+                        .nodes();
                     for (final DiscoveryNode node : nodes) {
                         for (final DiscoveryNode other : nodes) {
                             if (node == other) {

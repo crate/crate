@@ -1081,7 +1081,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                             ClusterStateRequest stateRequest = new ClusterStateRequest().local(true);
                             List<ShardRouting> initializingShards = client(blueNodeName).admin().cluster().state(stateRequest).get()
                                 .getState()
-                                .getRoutingTable()
+                                .routingTable()
                                 .index(indexName)
                                 .shard(0).getAllInitializingShards();
                             assertThat(initializingShards)

@@ -21,6 +21,21 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.CollectionUtils;
+import org.elasticsearch.node.Node;
+
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -44,21 +59,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
-
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.CollectionUtils;
-import org.elasticsearch.node.Node;
-
-import static java.util.concurrent.CompletableFuture.completedFuture;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
@@ -88,7 +88,7 @@ public class NodeStatsCollectSource implements CollectSource {
             return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
         Collection<DiscoveryNode> nodes = filterNodes(
-            CollectionUtils.iterableAsArrayList(clusterService.state().getNodes()),
+            CollectionUtils.iterableAsArrayList(clusterService.state().nodes()),
             collectPhase.where(),
             nodeCtx);
         if (nodes.isEmpty()) {

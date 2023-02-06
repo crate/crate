@@ -19,6 +19,12 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static java.util.stream.Collectors.toSet;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -39,12 +45,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Deletes indices.
@@ -133,7 +133,7 @@ public class MetadataDeleteIndexService {
         ClusterBlocks blocks = clusterBlocksBuilder.build();
 
         // update snapshot restore entries
-        ImmutableOpenMap<String, ClusterState.Custom> customs = currentState.getCustoms();
+        ImmutableOpenMap<String, ClusterState.Custom> customs = currentState.customs();
         final RestoreInProgress restoreInProgress = currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY);
         RestoreInProgress updatedRestoreInProgress = RestoreService.updateRestoreStateWithDeletedIndices(restoreInProgress, indicesToDelete);
         if (updatedRestoreInProgress != restoreInProgress) {

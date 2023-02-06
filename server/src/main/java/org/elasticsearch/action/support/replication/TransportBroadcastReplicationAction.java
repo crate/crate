@@ -19,7 +19,11 @@
 
 package org.elasticsearch.action.support.replication;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -40,10 +44,7 @@ import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
@@ -91,7 +92,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                 @Override
                 public void onFailure(Exception e) {
                     logger.trace("{}: got failure from {}", actionName, shardId);
-                    int totalNumCopies = clusterState.getMetadata().getIndexSafe(shardId.getIndex()).getNumberOfReplicas() + 1;
+                    int totalNumCopies = clusterState.metadata().getIndexSafe(shardId.getIndex()).getNumberOfReplicas() + 1;
                     ShardResponse shardResponse = newShardResponse();
                     ReplicationResponse.ShardInfo.Failure[] failures;
                     if (TransportActions.isShardNotAvailableException(e)) {
@@ -126,7 +127,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         for (String index : concreteIndices) {
             IndexMetadata indexMetadata = clusterState.metadata().getIndices().get(index);
             if (indexMetadata != null) {
-                for (IntObjectCursor<IndexShardRoutingTable> shardRouting : clusterState.getRoutingTable().indicesRouting().get(index).getShards()) {
+                for (IntObjectCursor<IndexShardRoutingTable> shardRouting : clusterState.routingTable().indicesRouting().get(index).getShards()) {
                     shardIds.add(shardRouting.value.shardId());
                 }
             }

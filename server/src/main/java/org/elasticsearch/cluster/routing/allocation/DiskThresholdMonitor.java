@@ -302,7 +302,7 @@ public class DiskThresholdMonitor {
             .spliterator(), false)
             .map(c -> c.key)
             .filter(index -> indicesNotToAutoRelease.contains(index) == false)
-            .filter(index -> state.getBlocks().hasIndexBlock(index, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
+            .filter(index -> state.blocks().hasIndexBlock(index, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
             .collect(Collectors.toSet());
 
         if (indicesToAutoRelease.isEmpty() == false) {
@@ -313,7 +313,7 @@ public class DiskThresholdMonitor {
             listener.onResponse(null);
         }
 
-        indicesToMarkReadOnly.removeIf(index -> state.getBlocks().indexBlocked(ClusterBlockLevel.WRITE, index));
+        indicesToMarkReadOnly.removeIf(index -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, index));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
             updateIndicesReadOnly(indicesToMarkReadOnly, listener, true);

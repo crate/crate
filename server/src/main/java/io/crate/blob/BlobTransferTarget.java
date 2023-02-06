@@ -163,7 +163,7 @@ public class BlobTransferTarget {
         LOGGER.trace("Restoring transferContext for PutChunkReplicaRequest with transferId {}",
                      request.transferId);
 
-        DiscoveryNodes nodes = clusterService.state().getNodes();
+        DiscoveryNodes nodes = clusterService.state().nodes();
         DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
         String senderNodeId = nodes.getLocalNodeId();
 

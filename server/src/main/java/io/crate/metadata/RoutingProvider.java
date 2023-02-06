@@ -21,9 +21,21 @@
 
 package io.crate.metadata;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.exceptions.UnavailableShardsException;
+import static io.crate.metadata.Routing.forTableOnSingleNode;
+import static org.elasticsearch.cluster.routing.OperationRouting.calculateScaledShardId;
+import static org.elasticsearch.cluster.routing.OperationRouting.generateShardId;
+import static org.elasticsearch.cluster.routing.OperationRouting.indexMetadata;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -37,19 +49,10 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 
-import static io.crate.metadata.Routing.forTableOnSingleNode;
-import static org.elasticsearch.cluster.routing.OperationRouting.calculateScaledShardId;
-import static org.elasticsearch.cluster.routing.OperationRouting.generateShardId;
-import static org.elasticsearch.cluster.routing.OperationRouting.indexMetadata;
+import io.crate.exceptions.UnavailableShardsException;
 
 /**
  * This component can be used to get the Routing for indices.
@@ -104,7 +107,7 @@ public final class RoutingProvider {
     public ShardRouting forId(ClusterState state, String index, String id, @Nullable String routing) {
         IndexMetadata indexMetadata = indexMetadata(state, index);
         ShardId shardId = new ShardId(indexMetadata.getIndex(), generateShardId(indexMetadata, id, routing));
-        IndexShardRoutingTable routingTable = state.getRoutingTable().shardRoutingTable(shardId);
+        IndexShardRoutingTable routingTable = state.routingTable().shardRoutingTable(shardId);
         ShardRouting shardRouting;
         if (awarenessAttributes.isEmpty()) {
             shardRouting = routingTable.activeInitializingShardsIt(seed).nextOrNull();
@@ -138,7 +141,7 @@ public final class RoutingProvider {
                         shardIt = shard.activeInitializingShardsIt(seed);
                     } else {
                         shardIt = shard.preferAttributesActiveInitializingShardsIt(
-                            awarenessAttributes, state.getNodes(), seed);
+                            awarenessAttributes, state.nodes(), seed);
                     }
                     break;
 

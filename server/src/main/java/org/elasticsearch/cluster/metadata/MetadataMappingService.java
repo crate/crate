@@ -254,7 +254,7 @@ public class MetadataMappingService {
                 MapperService mapperService = indexMapperServices.get(index);
                 // IMPORTANT: always get the metadata from the state since it get's batched
                 // and if we pull it from the indexService we might miss an update etc.
-                final IndexMetadata indexMetadata = currentState.getMetadata().getIndexSafe(index);
+                final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
                 // this is paranoia... just to be sure we use the exact same metadata tuple on the update that
                 // we used for the validation, it makes this mechanism little less scary (a little)

@@ -223,7 +223,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     private Set<ShardRouting> getShardRoutings(String nodeId, String indexName) {
         final Set<ShardRouting> shardRoutings = new HashSet<>();
         ClusterStateResponse clusterStateResponse = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest().routingTable(true)));
-        for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().getRoutingTable().index(indexName)) {
+        for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().routingTable().index(indexName)) {
             for (ShardRouting shard : indexShardRoutingTable.shards()) {
                 assertThat(shard.state()).isEqualTo(ShardRoutingState.STARTED);
                 if (shard.currentNodeId().equals(nodeId)) {
