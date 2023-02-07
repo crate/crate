@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -68,7 +69,12 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(parentFilter);
 
-        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx);
+        Filter mergedFilter = mergeFilters.apply(match.value(),
+                                                 match.captures(),
+                                                 new TableStats(),
+                                                 CoordinatorTxnCtx.systemTransactionContext(),
+                                                 e.nodeCtx,
+                                                 Function.identity());
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

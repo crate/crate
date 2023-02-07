@@ -254,7 +254,7 @@ public class MemoTest {
         return plan(ids.getAsInt(), children);
     }
 
-    private static class TestPlan implements LogicalPlan {
+    static class TestPlan implements LogicalPlan {
         private final List<LogicalPlan> sources;
         private final int id;
 
@@ -290,7 +290,7 @@ public class MemoTest {
 
         @Override
         public List<AbstractTableRelation<?>> baseTables() {
-            return null;
+            return List.of();
         }
 
 
@@ -310,7 +310,7 @@ public class MemoTest {
 
         @Override
         public Map<LogicalPlan, SelectSymbol> dependencies() {
-            return null;
+            return Map.of();
         }
 
         @Override

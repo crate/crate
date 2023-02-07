@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -78,7 +79,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            Function.identity()
         );
 
         assertThat(newPlan, nullValue());
@@ -105,7 +107,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            Function.identity()
         );
 
         assertThat(newPlan, nullValue());
@@ -132,7 +135,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            Function.identity()
         );
         var expectedPlan =
             "WindowAgg[id, row_number() OVER (PARTITION BY id)]\n" +
@@ -163,7 +167,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            Function.identity()
         );
         var expectedPlan =
             "Filter[((row_number() OVER (PARTITION BY id) = 2) AND (x = 1))]\n" +
@@ -195,7 +200,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             match.captures(),
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            Function.identity()
         );
         assertThat(newPlan, nullValue());
     }

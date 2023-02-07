@@ -33,6 +33,8 @@ import io.crate.statistics.TableStats;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.function.Function;
+
 public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert> {
 
     private final Capture<TableFunction> capture;
@@ -54,7 +56,8 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
         if (relation.function().name().equals(ValuesFunction.NAME)) {

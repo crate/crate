@@ -28,9 +28,9 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
@@ -66,7 +66,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());
@@ -93,6 +94,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     }
 
     private static boolean isTableFunction(Symbol s) {
-        return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.TABLE;
+        return s instanceof io.crate.expression.symbol.Function &&
+               ((io.crate.expression.symbol.Function) s).signature().getKind() == FunctionType.TABLE;
     }
 }
