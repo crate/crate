@@ -19,6 +19,7 @@
 package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.common.lucene.Lucene.cleanLuceneIndex;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -176,8 +177,10 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.Constants;
+import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
 import io.crate.metadata.doc.DocSysColumns;
 
 /**
@@ -1982,10 +1985,9 @@ public class IndexShardTests extends IndexShardTestCase {
         }
 
         if (Assertions.ENABLED && indexShard.routingEntry().isRelocationTarget() == false) {
-            assertThat(
-                expectThrows(
-                    AssertionError.class,
-                    () -> indexShard.acquireReplicaOperationPermit(
+            FutureActionListener<Object, Object> newInstance = FutureActionListener.newInstance();
+            assertThatThrownBy(
+                () -> indexShard.acquireReplicaOperationPermit(
                         pendingPrimaryTerm,
                         indexShard.getLastKnownGlobalCheckpoint(),
                         indexShard.getMaxSeqNoOfUpdatesOrDeletes(),
@@ -1997,12 +1999,14 @@ public class IndexShardTests extends IndexShardTestCase {
 
                             @Override
                             public void onFailure(Exception e) {
-                                fail();
+                                throw Exceptions.toRuntimeException(e);
                             }
                         },
                         ThreadPool.Names.WRITE,
-                        "")).getMessage(),
-                Matchers.containsString("in primary mode cannot be a replication target"));
+                        ""
+                    ))
+                .hasCauseInstanceOf(AssertionError.class)
+                .hasMessageContaining("in primary mode cannot be a replication target");
         }
 
         closeShards(indexShard);
