@@ -132,7 +132,7 @@ public final class IndexEnv implements AutoCloseable {
             new NoneCircuitBreakerService(),
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
-            new IndicesQueryCache(Settings.EMPTY),
+            IndicesQueryCache.createCache(Settings.EMPTY),
             mapperRegistry
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
