@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.cache.query;
 
+import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.index.AbstractIndexComponent;
@@ -32,17 +33,7 @@ public class DisabledQueryCache extends AbstractIndexComponent implements QueryC
     }
 
     @Override
-    public void close() {
-        // nothing to do here
-    }
-
-    @Override
     public Weight doCache(Weight weight, QueryCachingPolicy policy) {
         return weight;
-    }
-
-    @Override
-    public void clear(String reason) {
-        // nothing to do here
     }
 }

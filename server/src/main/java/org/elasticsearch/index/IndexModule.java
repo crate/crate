@@ -19,31 +19,6 @@
 
 package org.elasticsearch.index;
 
-import io.crate.types.DataTypes;
-import org.apache.lucene.store.MMapDirectory;
-import org.apache.lucene.util.Constants;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.cache.query.DisabledQueryCache;
-import org.elasticsearch.index.cache.query.IndexQueryCache;
-import org.elasticsearch.index.cache.query.QueryCache;
-import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.store.FsDirectoryFactory;
-import org.elasticsearch.indices.IndicesQueryCache;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
-import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,9 +30,31 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.lucene.search.QueryCache;
+import org.apache.lucene.store.MMapDirectory;
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.index.cache.query.DisabledQueryCache;
+import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexingOperationListener;
+import org.elasticsearch.index.store.FsDirectoryFactory;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.mapper.MapperRegistry;
+import org.elasticsearch.plugins.IndexStorePlugin;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.types.DataTypes;
 
 /**
  * IndexModule represents the central extension point for index level custom implementations like:
@@ -103,7 +100,6 @@ public final class IndexModule {
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
-    private final SetOnce<BiFunction<IndexSettings, IndicesQueryCache, QueryCache>> forceQueryCacheProvider = new SetOnce<>();
     private final List<IndexingOperationListener> indexOperationListeners = new ArrayList<>();
     private final AtomicBoolean frozen = new AtomicBoolean(false);
 
@@ -286,7 +282,7 @@ public final class IndexModule {
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,
-            IndicesQueryCache indicesQueryCache,
+            QueryCache indicesQueryCache,
             MapperRegistry mapperRegistry) throws IOException {
 
         final IndexEventListener eventListener = freeze();
@@ -294,12 +290,7 @@ public final class IndexModule {
         final IndexStorePlugin.DirectoryFactory directoryFactory = getDirectoryFactory(indexSettings, directoryFactories);
         final QueryCache queryCache;
         if (indexSettings.getValue(INDEX_QUERY_CACHE_ENABLED_SETTING)) {
-            BiFunction<IndexSettings, IndicesQueryCache, QueryCache> queryCacheProvider = forceQueryCacheProvider.get();
-            if (queryCacheProvider == null) {
-                queryCache = new IndexQueryCache(indexSettings, indicesQueryCache);
-            } else {
-                queryCache = queryCacheProvider.apply(indexSettings, indicesQueryCache);
-            }
+            queryCache = indicesQueryCache;
         } else {
             queryCache = new DisabledQueryCache(indexSettings);
         }
@@ -365,19 +356,6 @@ public final class IndexModule {
                 throw new UnsupportedOperationException("no index query shard context available");
             }
         );
-    }
-
-    /**
-     * Forces a certain query cache to use instead of the default one. If this is set
-     * and query caching is not disabled with {@code index.queries.cache.enabled}, then
-     * the given provider will be used.
-     * NOTE: this can only be set once
-     *
-     * @see #INDEX_QUERY_CACHE_ENABLED_SETTING
-     */
-    public void forceQueryCacheProvider(BiFunction<IndexSettings, IndicesQueryCache, QueryCache> queryCacheProvider) {
-        ensureNotFrozen();
-        this.forceQueryCacheProvider.set(queryCacheProvider);
     }
 
     private void ensureNotFrozen() {
