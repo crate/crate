@@ -436,6 +436,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void test_state_for_shards_of_closed_table() throws Exception {
         execute("create table doc.tbl (x int) clustered into 2 shards with(number_of_replicas=0)");
+        ensureGreen(); // All shards must be available before close; otherwise they're skipped
         execute("insert into doc.tbl values(1)");
         logger.info("---> Closing table doc.tbl");
         execute("alter table doc.tbl close");
@@ -449,8 +450,13 @@ public class SysShardsTest extends IntegTestCase {
     @UseJdbc(0)
     @Test
     public void testSelectFromClosedTableNotAllowed() throws Exception {
-        execute("create table doc.tbl (x int)");
+        int numberOfReplicas = numberOfReplicas();
+        execute(
+            "create table doc.tbl (x int) with (number_of_replicas = ?)",
+            new Object[] { numberOfReplicas }
+        );
         execute("insert into doc.tbl values(1)");
+        ensureGreen(); // All shards must be available before close; otherwise they're skipped
         execute("alter table doc.tbl close");
         assertBusy(() ->
             assertThat(execute("select closed from information_schema.tables where table_name = 'tbl'")).hasRows("true\n")
