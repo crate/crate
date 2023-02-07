@@ -155,30 +155,32 @@ public class CorruptedMetadataFixer {
         MappingMetadata mappingMetadata = indexMetadata.mapping();
         if (mappingMetadata != null && !IndexParts.isPartitioned(indexName) && indexParts.length == 2) {
             Map<String, Object> metaMap = Maps.get(mappingMetadata.sourceAsMap(), "_meta");
-            if (metaMap != null && metaMap.containsKey("partitioned_by")) {
+            if (metaMap != null) {
                 List<List<String>> partitionedByColumns = Maps.get(metaMap, "partitioned_by");
-                fixedMetadata.remove(indexName);
-                fixedMetadata.put(generatePartitionedIndexMetadata(indexName, indexMetadata, partitionedByColumns));
+                if (partitionedByColumns != null && partitionedByColumns.stream().mapToLong(List::size).sum() > 0) {
+                    fixedMetadata.remove(indexName);
+                    fixedMetadata.put(generatePartitionedIndexMetadata(indexName, indexMetadata, partitionedByColumns));
 
-                String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
-                ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-                mapBuilder.put(
-                    templateName,
-                    generateTemplateIndexMetadata(indexName, indexMetadata, mappingMetadata).build());
+                    String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
+                    ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
+                    mapBuilder.put(
+                        templateName,
+                        generateTemplateIndexMetadata(indexName, indexMetadata, mappingMetadata).build());
 
-                fixedMetadata.removeTemplate(templateName);
-                fixedMetadata.templates(mapBuilder.build());
-            } else {
-                /*
-                   ex) test_swap_table_partitioned_to_non_partitioned_3
-                   - index:
-                       "m7.t7" - not partitioned / contains column s
-                       "m7.s7" - partitioned by t
-                   - templates:
-                       "m7..partitioned.t7." - partitioned by t
-                   > since "m7.t7" is not partitioned, "m7..partitioned.t7." can be dropped.
-                */
-                fixedMetadata.removeTemplate(PartitionName.templateName(indexParts[0], indexParts[1]));
+                    fixedMetadata.removeTemplate(templateName);
+                    fixedMetadata.templates(mapBuilder.build());
+                } else {
+                    /*
+                       ex) test_swap_table_partitioned_to_non_partitioned_3
+                       - index:
+                           "m7.t7" - not partitioned / contains column s
+                           "m7.s7" - partitioned by t
+                       - templates:
+                           "m7..partitioned.t7." - partitioned by t
+                       > since "m7.t7" is not partitioned, "m7..partitioned.t7." can be dropped.
+                    */
+                    fixedMetadata.removeTemplate(PartitionName.templateName(indexParts[0], indexParts[1]));
+                }
             }
         }
     }

@@ -303,4 +303,34 @@ public class CorruptedMetadataFixerTest {
         IndexTemplateMetadata existingTemplate = fixedMetadata.getTemplate(invalidTemplateName);
         assertThat(existingTemplate).isNull();
     }
+
+    // bug: https://github.com/crate/crate/issues/13617
+    @Test
+    public void test_fixInconsistencyBetweenIndexAndTemplates_accounts_for_non_partitioned_index_but_containing_empty_partition_by_mapping() throws IOException {
+        IndexMetadata.Builder builder = IndexMetadata.builder("m7.s7");
+        var settings = Settings.builder();
+
+        // contains empty partitioned_by mapping
+        String mapping =
+            """
+                {"default":{"dynamic":"strict","_meta":{"partitioned_by":[[]]},
+                "properties":{"a":{"type":"integer","index":false,"position":1},"b":{"type":"integer","index":false,"position":2}}}}
+                """.strip();
+        settings.put(SETTING_NUMBER_OF_SHARDS, 1)
+            .put(SETTING_NUMBER_OF_REPLICAS, 1)
+            .put("index.version.created", org.elasticsearch.Version.CURRENT);
+        builder.putMapping(mapping);
+        builder.settings(settings);
+
+        IndexMetadata indexMetadata = builder.build();
+
+        Metadata.Builder upgradedMetadata = Metadata.builder();
+        upgradedMetadata.put(IndexMetadata.builder(indexMetadata));
+
+        fixInconsistencyBetweenIndexAndTemplates(indexMetadata, upgradedMetadata);
+
+        // since m7.s7 is a valid indexMetadata check that it is un-modified
+        // name un-modified implies nothing is modified
+        assertThat(upgradedMetadata.build().getConcreteAllIndices()).isEqualTo(new String[] {"m7.s7"});
+    }
 }
