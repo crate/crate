@@ -54,6 +54,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.IndexReader.CacheHelper;
+import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -146,7 +147,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final MapperRegistry mapperRegistry;
     private final NamedWriteableRegistry namedWriteableRegistry;
     private final IndexingMemoryController indexingMemoryController;
-    private final IndicesQueryCache indicesQueryCache;
+    private final QueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
@@ -186,7 +187,7 @@ public class IndicesService extends AbstractLifecycleComponent
         this.xContentRegistry = xContentRegistry;
         this.shardsClosedTimeout = settings.getAsTime(INDICES_SHARDS_CLOSED_TIMEOUT, new TimeValue(1, TimeUnit.DAYS));
         this.analysisRegistry = analysisRegistry;
-        this.indicesQueryCache = new IndicesQueryCache(settings);
+        this.indicesQueryCache = IndicesQueryCache.createCache(settings);
         this.mapperRegistry = mapperRegistry;
         this.namedWriteableRegistry = namedWriteableRegistry;
         indexingMemoryController = new IndexingMemoryController(
@@ -219,11 +220,7 @@ public class IndicesService extends AbstractLifecycleComponent
             @Override
             protected void closeInternal() {
                 try {
-                    IOUtils.close(
-                        analysisRegistry,
-                        indexingMemoryController,
-                        indicesQueryCache
-                    );
+                    IOUtils.close(analysisRegistry, indexingMemoryController);
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 } finally {
@@ -399,7 +396,7 @@ public class IndicesService extends AbstractLifecycleComponent
      */
     private synchronized IndexService createIndexService(IndexCreationContext indexCreationContext,
                                                          IndexMetadata indexMetadata,
-                                                         IndicesQueryCache indicesQueryCache,
+                                                         QueryCache indicesQueryCache,
                                                          List<IndexEventListener> builtInListeners,
                                                          IndexingOperationListener... indexingOperationListeners) throws IOException {
         final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
@@ -454,8 +451,7 @@ public class IndicesService extends AbstractLifecycleComponent
     public synchronized void verifyIndexMetadata(IndexMetadata metadata, IndexMetadata metadataUpdate) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
         try {
-            IndicesQueryCache indicesQueryCache = new IndicesQueryCache(settings);
-            closeables.add(indicesQueryCache);
+            QueryCache indicesQueryCache = IndicesQueryCache.createCache(settings);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
             final IndexService service = createIndexService(
                 IndexCreationContext.METADATA_VERIFICATION,
@@ -537,10 +533,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     public CircuitBreakerService getCircuitBreakerService() {
         return circuitBreakerService;
-    }
-
-    public IndicesQueryCache getIndicesQueryCache() {
-        return indicesQueryCache;
     }
 
     /**

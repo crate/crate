@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a performance regression for ``IS NOT NULL`` expressions on object
+  columns which was introduced in 5.0.3 and 5.1.1.
+
 - Fixed an issue that could cause ``DELETE FROM`` statements which match a large
   amount of records to cause a node to crash with an out of memory error.
 
