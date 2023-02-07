@@ -19,6 +19,17 @@
 
 package org.elasticsearch.cluster.action.shard;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -43,13 +54,10 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.FailedShard;
 import org.elasticsearch.cluster.routing.allocation.StaleShard;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
-
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
@@ -65,14 +73,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 public class ShardStateAction {
 
@@ -340,7 +341,7 @@ public class ShardStateAction {
                         }
                     }
 
-                    ShardRouting matched = currentState.getRoutingTable().getByAllocationId(task.shardId, task.allocationId);
+                    ShardRouting matched = currentState.routingTable().getByAllocationId(task.shardId, task.allocationId);
                     if (matched == null) {
                         Set<String> inSyncAllocationIds = indexMetadata.inSyncAllocationIds(task.shardId.id());
                         // mark shard copies without routing entries that are in in-sync allocations set only as stale if the reason why
@@ -538,7 +539,7 @@ public class ShardStateAction {
             List<ShardRouting> shardRoutingsToBeApplied = new ArrayList<>(tasks.size());
             Set<ShardRouting> seenShardRoutings = new HashSet<>(); // to prevent duplicates
             for (StartedShardEntry task : tasks) {
-                final ShardRouting matched = currentState.getRoutingTable().getByAllocationId(task.shardId, task.allocationId);
+                final ShardRouting matched = currentState.routingTable().getByAllocationId(task.shardId, task.allocationId);
                 if (matched == null) {
                     // tasks that correspond to non-existent shards are marked as successful. The reason is that we resend shard started
                     // events on every cluster state publishing that does not contain the shard as started yet. This means that old stale

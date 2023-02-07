@@ -171,7 +171,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
             if (expectedBlocks != null) {
                 for (ClusterBlockLevel level : expectedBlocks.levels()) {
                     assertTrue("node [" + node + "] does have level [" + level + "] in it's blocks",
-                        state.getBlocks().hasGlobalBlockWithLevel(level));
+                        state.blocks().hasGlobalBlockWithLevel(level));
                 }
             }
         }, maxWaitTime.getMillis(), TimeUnit.MILLISECONDS);

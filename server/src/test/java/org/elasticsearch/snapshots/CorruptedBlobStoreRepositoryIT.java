@@ -163,7 +163,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 @Override
                 public ClusterState execute(ClusterState currentState) {
                     return ClusterState.builder(currentState).metadata(
-                    Metadata.builder(currentState.getMetadata())
+                    Metadata.builder(currentState.metadata())
                     .putCustom(
                         RepositoriesMetadata.TYPE,
                         currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).withUpdatedGeneration(

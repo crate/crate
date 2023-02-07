@@ -107,7 +107,7 @@ public final class RelationName implements Writeable, Accountable {
 
     public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
-        if (schema != null && (schema.startsWith("_") || isInvalidSchemaOrRelationName(schema))) {
+        if (schema != null && (isInvalidSchemaOrRelationName(schema))) {
             throw new InvalidSchemaNameException(schema);
         }
         if (isInvalidSchemaOrRelationName(name)) {
@@ -167,9 +167,6 @@ public final class RelationName implements Writeable, Accountable {
     public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
         // Because of TableFunctionRelations such as '_values', '_pg_expandarray', RelationName can start with "_".
         // But it is not allowed to be used as part of DDL statements.
-        if (name.startsWith("_")) {
-            throw new InvalidRelationName(this.fqn());
-        }
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
         }

@@ -270,7 +270,7 @@ public class PublicationTransportHandler {
             discoveryNodes = clusterChangedEvent.state().nodes();
             newState = clusterChangedEvent.state();
             previousState = clusterChangedEvent.previousState();
-            sendFullVersion = previousState.getBlocks().disableStatePersistence();
+            sendFullVersion = previousState.blocks().disableStatePersistence();
         }
 
         void buildDiffAndSerializeStates() {

@@ -335,7 +335,7 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
-            clusterService.state().getNodes().getMinNodeVersion(),
+            clusterService.state().nodes().getMinNodeVersion(),
             indexVersionCreated
         );
     }
@@ -434,11 +434,11 @@ public class ProjectionToProjectorVisitor
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(),
+        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
@@ -495,11 +495,11 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(),
+        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
 
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize());
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
 
         return new ColumnIndexWriterProjector(
             clusterService,

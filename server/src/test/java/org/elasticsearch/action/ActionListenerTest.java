@@ -19,30 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.operator;
+package org.elasticsearch.action;
 
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public final class LteOperator {
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-    public static final String NAME = "op_<=";
+import org.junit.Test;
 
-    public static void register(OperatorModule module) {
-        for (var supportedType : DataTypes.PRIMITIVE_TYPES_WITHOUT_INTERVAL) {
-            module.register(
-                Signature.scalar(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ),
-                (signature, boundSignature) -> new CmpOperator(
-                    signature,
-                    boundSignature,
-                    cmpResult -> cmpResult <= 0
-                )
-            );
-        }
+import io.crate.action.FutureActionListener;
+
+public class ActionListenerTest {
+
+    @Test
+    public void test_delegate_failure_consumer_exception_triggers_listener() throws Exception {
+        FutureActionListener<Integer, Integer> listener = FutureActionListener.newInstance();
+        var listener2 = ActionListener.delegateFailure(listener, (delegateListener, result) -> {
+            throw new IllegalStateException("dummy");
+        });
+
+        listener2.onResponse(10);
+
+        assertThat(listener).failsWithin(0, TimeUnit.SECONDS)
+            .withThrowableOfType(ExecutionException.class)
+            .havingCause()
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .withMessage("dummy");
     }
 }

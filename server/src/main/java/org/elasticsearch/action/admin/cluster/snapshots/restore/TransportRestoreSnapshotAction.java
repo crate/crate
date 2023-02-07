@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -31,8 +33,6 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.RestoreService.RestoreCompletionResponse;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Transport action for restore snapshot operation
@@ -91,7 +91,7 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
             @Override
             public void onResponse(RestoreCompletionResponse restoreCompletionResponse) {
                 if (restoreCompletionResponse.getRestoreInfo() == null && request.waitForCompletion()) {
-                    RestoreClusterStateListener.createAndRegisterListener(clusterService, restoreCompletionResponse, listener);
+                    clusterService.addListener(new RestoreClusterStateListener(clusterService, restoreCompletionResponse, listener));
                 } else {
                     listener.onResponse(new RestoreSnapshotResponse(restoreCompletionResponse.getRestoreInfo()));
                 }

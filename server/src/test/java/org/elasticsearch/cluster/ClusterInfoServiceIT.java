@@ -103,7 +103,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             assertNotNull(dataPath);
 
             String nodeId = shard.currentNodeId();
-            DiscoveryNode discoveryNode = state.getNodes().get(nodeId);
+            DiscoveryNode discoveryNode = state.nodes().get(nodeId);
             IndicesService indicesService = internalTestCluster.getInstance(IndicesService.class, discoveryNode.getName());
             IndexService indexService = indicesService.indexService(shard.index());
             IndexShard indexShard = indexService.getShardOrNull(shard.id());

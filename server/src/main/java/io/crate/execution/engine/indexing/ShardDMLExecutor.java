@@ -104,7 +104,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             ) {
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.ramAccounting = ramAccounting;
-        this.localNode = clusterService.state().getNodes().getLocalNodeId();
+        this.localNode = clusterService.state().nodes().getLocalNodeId();
         this.jobId = jobId;
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;

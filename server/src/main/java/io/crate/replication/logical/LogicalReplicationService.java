@@ -28,7 +28,6 @@ import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -129,26 +128,23 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         var prevMetadata = event.previousState().metadata();
         var newMetadata = event.state().metadata();
 
+        PublicationsMetadata publicationsMetaData = newMetadata.custom(PublicationsMetadata.TYPE);
+        if (publicationsMetaData != null) {
+            currentPublicationsMetadata = publicationsMetaData;
+        }
+
         SubscriptionsMetadata prevSubscriptionsMetadata = SubscriptionsMetadata.get(prevMetadata);
         SubscriptionsMetadata newSubscriptionsMetadata = SubscriptionsMetadata.get(newMetadata);
 
-        if (prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false) {
+        boolean subscriptionsChanged = prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false;
+        if (subscriptionsChanged) {
             currentSubscriptionsMetadata = newSubscriptionsMetadata;
-            handleRepositoriesForChangedSubscriptions(prevSubscriptionsMetadata, newSubscriptionsMetadata);
+            addAndRemoveRepositories(prevSubscriptionsMetadata, newSubscriptionsMetadata);
         }
 
-        PublicationsMetadata prevPublicationsMetadata = prevMetadata.custom(PublicationsMetadata.TYPE);
-        PublicationsMetadata newPublicationsMetadata = newMetadata.custom(PublicationsMetadata.TYPE);
-
-        if ((prevPublicationsMetadata == null && newPublicationsMetadata != null)
-            || (prevPublicationsMetadata != null && prevPublicationsMetadata.equals(newPublicationsMetadata) == false)) {
-            currentPublicationsMetadata = newPublicationsMetadata;
-        }
-
-        if (event.nodesDelta().masterNodeChanged()) {
-            if (event.state().nodes().isLocalNodeElectedMaster()
-                && event.previousState().nodes().isLocalNodeElectedMaster() == false) {
-                metadataTracker.startTracking(currentSubscriptionsMetadata.subscription().keySet());
+        if (subscriptionsChanged || event.nodesDelta().masterNodeChanged()) {
+            if (event.localNodeMaster()) {
+                metadataTracker.update(newSubscriptionsMetadata.subscription().keySet());
             } else {
                 metadataTracker.close();
             }
@@ -159,10 +155,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
      * Register/unregister logical replication repositories.
      * If on a MASTER node, initial restore will be triggered.
      */
-    private void handleRepositoriesForChangedSubscriptions(@Nullable SubscriptionsMetadata prevSubscriptionsMetadata,
-                                                           SubscriptionsMetadata newSubscriptionsMetadata) {
-        Map<String, Subscription> oldSubscriptions = prevSubscriptionsMetadata == null
-            ? Collections.emptyMap() : prevSubscriptionsMetadata.subscription();
+    private void addAndRemoveRepositories(SubscriptionsMetadata prevSubscriptionsMetadata,
+                                          SubscriptionsMetadata newSubscriptionsMetadata) {
+        var oldSubscriptions = prevSubscriptionsMetadata.subscription();
         var newSubscriptions = newSubscriptionsMetadata.subscription();
 
         for (var entry : newSubscriptions.entrySet()) {
@@ -186,15 +181,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             : "RepositoriesService must be set immediately after LogicalReplicationService construction";
         LOGGER.debug("Adding new logical replication repository for subscription '{}'", subscriptionName);
         repositoriesService.registerInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName, TYPE);
-
-        if (clusterService.state().nodes().isLocalNodeElectedMaster()) {
-            remoteClusters.connect(subscriptionName, subscription.connectionInfo())
-                .thenAccept(ignored -> {
-                    metadataTracker.startTracking(subscriptionName);
-                });
-        } else {
-            remoteClusters.connect(subscriptionName, subscription.connectionInfo());
-        }
+        remoteClusters.connect(subscriptionName, subscription.connectionInfo());
     }
 
     private void removeSubscription(String subscriptionName) {
@@ -203,7 +190,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         LOGGER.debug("Removing logical replication repository for dropped subscription '{}'",
                      subscriptionName);
         repositoriesService.unregisterInternalRepository(REMOTE_REPOSITORY_PREFIX + subscriptionName);
-        metadataTracker.stopTracking(subscriptionName);
         remoteClusters.remove(subscriptionName);
     }
 
@@ -231,9 +217,12 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 Subscription.State.FAILED,
                 message
             );
-            subscriptionStateFuture.whenComplete(
-                (stateResponse, ignoredErr) -> finalFuture.completeExceptionally(err)
-            );
+            subscriptionStateFuture.whenComplete((stateResponse, suppressedErr) -> {
+                if (suppressedErr != null) {
+                    err.addSuppressed(suppressedErr);
+                }
+                finalFuture.completeExceptionally(err);
+            });
         };
 
         remoteClusters.connect(subscriptionName, connectionInfo)
@@ -416,9 +405,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         return updateSubscriptionState(subscriptionName, oldSubscription, relations);
     }
 
-    public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
-                                                              Subscription subscription,
-                                                              Map<RelationName, Subscription.RelationState> relations) {
+    private CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
+                                                               Subscription subscription,
+                                                               Map<RelationName, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),

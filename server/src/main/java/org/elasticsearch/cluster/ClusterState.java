@@ -158,10 +158,6 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         return this.version;
     }
 
-    public long getVersion() {
-        return version();
-    }
-
     /**
      * This stateUUID is automatically generated for for each version of cluster state. It is used to make sure that
      * we are applying diffs to the right previous state.
@@ -174,16 +170,8 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         return this.nodes;
     }
 
-    public DiscoveryNodes getNodes() {
-        return nodes();
-    }
-
     public Metadata metadata() {
         return this.metadata;
-    }
-
-    public Metadata getMetadata() {
-        return metadata();
     }
 
     public CoordinationMetadata coordinationMetadata() {
@@ -194,23 +182,11 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         return routingTable;
     }
 
-    public RoutingTable getRoutingTable() {
-        return routingTable();
-    }
-
     public ClusterBlocks blocks() {
         return this.blocks;
     }
 
-    public ClusterBlocks getBlocks() {
-        return blocks;
-    }
-
     public ImmutableOpenMap<String, Custom> customs() {
-        return this.customs;
-    }
-
-    public ImmutableOpenMap<String, Custom> getCustoms() {
         return this.customs;
     }
 

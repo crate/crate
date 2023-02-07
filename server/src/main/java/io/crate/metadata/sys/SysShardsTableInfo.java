@@ -253,10 +253,10 @@ public class SysShardsTableInfo {
 
         Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
         GroupShardsIterator<ShardIterator> groupShardsIterator =
-            clusterState.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true);
+            clusterState.routingTable().allAssignedShardsGrouped(concreteIndices, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
-            processShardRouting(clusterState.getNodes().getLocalNodeId(), locations, shardRouting, shardIt.shardId());
+            processShardRouting(clusterState.nodes().getLocalNodeId(), locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
     }

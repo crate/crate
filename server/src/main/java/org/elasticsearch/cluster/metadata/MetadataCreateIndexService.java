@@ -177,8 +177,8 @@ public class MetadataCreateIndexService {
                 "index or alias name [" + index + "] containing ':' is deprecated. CrateDB 4.x will read, " +
                     "but not allow creation of new indices containing ':'");
         }
-        if (index.charAt(0) == '_' || index.charAt(0) == '-' || index.charAt(0) == '+') {
-            throw exceptionCtor.apply(index, "must not start with '_', '-', or '+'");
+        if (index.charAt(0) == '-' || index.charAt(0) == '+') {
+            throw exceptionCtor.apply(index, "must not start with '-', or '+'");
         }
         int byteCount = 0;
         try {

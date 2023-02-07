@@ -490,7 +490,7 @@ public class CoordinationStateTests extends ESTestCase {
         assertThat(publishResponse.getVersion(), equalTo(state2.version()));
         assertThat(cs1.getLastAcceptedState(), equalTo(state2));
         assertThat(value(cs1.getLastAcceptedState()), equalTo(13L));
-        ClusterState state3 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(state2.getVersion() + 1, 20), node1,
+        ClusterState state3 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(state2.version() + 1, 20), node1,
             initialConfig, initialConfig, 13L);
         cs1.handlePublishRequest(new PublishRequest(state3));
     }

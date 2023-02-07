@@ -19,6 +19,14 @@
 
 package org.elasticsearch.cluster.health;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -27,14 +35,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.rest.RestStatus;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 
 public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, Writeable {
@@ -116,7 +116,7 @@ public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, W
         if (computeStatus.equals(ClusterHealthStatus.GREEN)) {
             this.activeShardsPercent = 100;
         } else {
-            List<ShardRouting> shardRoutings = clusterState.getRoutingTable().allShards();
+            List<ShardRouting> shardRoutings = clusterState.routingTable().allShards();
             int activeShardCount = 0;
             int totalShardCount = 0;
             for (ShardRouting shardRouting : shardRoutings) {

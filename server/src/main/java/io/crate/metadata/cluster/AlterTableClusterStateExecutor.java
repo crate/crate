@@ -40,7 +40,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsClusterStateUpdateRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -179,14 +178,13 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
             }
         }
-
         String mappingDelta = addExistingMeta(request, currentMeta);
-        PutMappingClusterStateUpdateRequest updateRequest = new PutMappingClusterStateUpdateRequest(mappingDelta)
-            .ackTimeout(request.timeout())
-            .masterNodeTimeout(request.masterNodeTimeout())
-            .indices(concreteIndices);
-
-        return metadataMappingService.putMappingExecutor.applyRequest(currentState, updateRequest, indexMapperServices);
+        return metadataMappingService.putMappingExecutor.applyMapping(
+            currentState,
+            mappingDelta,
+            concreteIndices,
+            indexMapperServices
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -452,12 +450,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         updatedState = allocationService.reroute(updatedState, "settings update");
         try {
             for (Index index : openIndices) {
-                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                final IndexMetadata currentMetadata = currentState.metadata().getIndexSafe(index);
                 final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
                 indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);
             }
             for (Index index : closeIndices) {
-                final IndexMetadata currentMetadata = currentState.getMetadata().getIndexSafe(index);
+                final IndexMetadata currentMetadata = currentState.metadata().getIndexSafe(index);
                 final IndexMetadata updatedMetadata = updatedState.metadata().getIndexSafe(index);
                 // Verifies that the current index settings can be updated with the updated dynamic settings.
                 indicesService.verifyIndexMetadata(currentMetadata, updatedMetadata);

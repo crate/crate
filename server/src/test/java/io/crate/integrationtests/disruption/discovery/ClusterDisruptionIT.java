@@ -369,7 +369,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         assertTrue(success.get());
 
         // the failed shard should be gone
-        List<ShardRouting> shards = clusterService().state().getRoutingTable()
+        List<ShardRouting> shards = clusterService().state().routingTable()
             .allShards(toIndexName(sqlExecutor.getCurrentSchema(), "t", null));
         for (ShardRouting shard : shards) {
             assertThat(shard.allocationId(), not(equalTo(failedShard.allocationId())));

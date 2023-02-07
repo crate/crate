@@ -104,9 +104,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final ShardId shardId = new ShardId(index, "_na_", 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, randomInt(5));
-        IndexMetadata indexMetadata = initialState.getMetadata().index(index);
+        IndexMetadata indexMetadata = initialState.metadata().index(index);
         final long primaryTerm = indexMetadata.primaryTerm(0);
-        final IndexShardRoutingTable indexShardRoutingTable = initialState.getRoutingTable().shardRoutingTable(shardId);
+        final IndexShardRoutingTable indexShardRoutingTable = initialState.routingTable().shardRoutingTable(shardId);
         ShardRouting primaryShard = indexShardRoutingTable.primaryShard();
         if (primaryShard.relocating() && randomBoolean()) {
             // simulate execution of the replication phase on the relocation target node after relocation source was marked as relocated
@@ -188,9 +188,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final ShardId shardId = new ShardId(index, "_na_", 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, randomInt(5));
-        IndexMetadata indexMetadata = initialState.getMetadata().index(index);
+        IndexMetadata indexMetadata = initialState.metadata().index(index);
         final long primaryTerm = indexMetadata.primaryTerm(0);
-        final IndexShardRoutingTable indexShardRoutingTable = initialState.getRoutingTable().shardRoutingTable(shardId);
+        final IndexShardRoutingTable indexShardRoutingTable = initialState.routingTable().shardRoutingTable(shardId);
         ShardRouting primaryShard = indexShardRoutingTable.primaryShard();
         if (primaryShard.relocating() && randomBoolean()) {
             // simulate execution of the replication phase on the relocation target node after relocation source was marked as relocated
@@ -288,9 +288,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final ShardId shardId = new ShardId(index, "_na_", 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, 1 + randomInt(2), randomInt(2));
-        IndexMetadata indexMetadata = initialState.getMetadata().index(index);
+        IndexMetadata indexMetadata = initialState.metadata().index(index);
         final long primaryTerm = indexMetadata.primaryTerm(0);
-        final IndexShardRoutingTable indexShardRoutingTable = initialState.getRoutingTable().shardRoutingTable(shardId);
+        final IndexShardRoutingTable indexShardRoutingTable = initialState.routingTable().shardRoutingTable(shardId);
         ShardRouting primaryShard = indexShardRoutingTable.primaryShard();
         if (primaryShard.relocating() && randomBoolean()) {
             // simulate execution of the replication phase on the relocation target node after relocation source was marked as relocated
@@ -379,7 +379,7 @@ public class ReplicationOperationTests extends ESTestCase {
         final ShardId shardId = new ShardId(index, "_na_", 0);
         final ClusterState initialState = stateWithActivePrimary(index, true, 0);
         Set<String> inSyncAllocationIds = initialState.metadata().index(index).inSyncAllocationIds(0);
-        IndexShardRoutingTable shardRoutingTable = initialState.getRoutingTable().shardRoutingTable(shardId);
+        IndexShardRoutingTable shardRoutingTable = initialState.routingTable().shardRoutingTable(shardId);
         Set<String> trackedShards = new HashSet<>();
         addTrackingInfo(shardRoutingTable, null, trackedShards, new HashSet<>());
         ReplicationGroup initialReplicationGroup = new ReplicationGroup(shardRoutingTable, inSyncAllocationIds, trackedShards, 0);
@@ -393,7 +393,7 @@ public class ReplicationOperationTests extends ESTestCase {
         }
 
         inSyncAllocationIds = stateWithAddedReplicas.metadata().index(index).inSyncAllocationIds(0);
-        shardRoutingTable = stateWithAddedReplicas.getRoutingTable().shardRoutingTable(shardId);
+        shardRoutingTable = stateWithAddedReplicas.routingTable().shardRoutingTable(shardId);
         trackedShards = new HashSet<>();
         addTrackingInfo(shardRoutingTable, null, trackedShards, new HashSet<>());
 
@@ -401,7 +401,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
         final AtomicReference<ReplicationGroup> replicationGroup = new AtomicReference<>(initialReplicationGroup);
         logger.debug("--> using initial replicationGroup:\n{}", replicationGroup.get());
-        final long primaryTerm = initialState.getMetadata().index(shardId.getIndexName()).primaryTerm(shardId.id());
+        final long primaryTerm = initialState.metadata().index(shardId.getIndexName()).primaryTerm(shardId.id());
         final ShardRouting primaryShard = updatedReplicationGroup.getRoutingTable().primaryShard();
         final TestPrimary primary = new TestPrimary(primaryShard, replicationGroup::get, threadPool) {
             @Override
@@ -499,9 +499,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final Request request = new Request(shardId);
 
         final ClusterState state = stateWithActivePrimary(index, true, 1, 0);
-        final IndexMetadata indexMetadata = state.getMetadata().index(index);
+        final IndexMetadata indexMetadata = state.metadata().index(index);
         final long primaryTerm = indexMetadata.primaryTerm(0);
-        final ShardRouting primaryRouting = state.getRoutingTable().shardRoutingTable(shardId).primaryShard();
+        final ShardRouting primaryRouting = state.routingTable().shardRoutingTable(shardId).primaryShard();
 
         final Set<String> inSyncAllocationIds = indexMetadata.inSyncAllocationIds(0);
         final IndexShardRoutingTable shardRoutingTable = state.routingTable().index(index).shard(shardId.id());

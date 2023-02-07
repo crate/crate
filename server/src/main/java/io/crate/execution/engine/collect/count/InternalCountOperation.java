@@ -21,21 +21,15 @@
 
 package io.crate.execution.engine.collect.count;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.JobKilledException;
-import io.crate.execution.support.ThreadPools;
-import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -53,15 +47,21 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.support.ThreadPools;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -93,7 +93,7 @@ public class InternalCountOperation implements CountOperation {
                                          Map<String, IntIndexedContainer> indexShardMap,
                                          Symbol filter) {
         List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
-        Metadata metadata = clusterService.state().getMetadata();
+        Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
             String indexName = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexName);

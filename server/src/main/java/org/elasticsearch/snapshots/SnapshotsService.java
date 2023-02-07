@@ -342,7 +342,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param state   current cluster state
      */
     private static void validate(String repositoryName, String snapshotName, ClusterState state) {
-        RepositoriesMetadata repositoriesMetadata = state.getMetadata().custom(RepositoriesMetadata.TYPE);
+        RepositoriesMetadata repositoriesMetadata = state.metadata().custom(RepositoriesMetadata.TYPE);
         if (repositoriesMetadata == null || repositoriesMetadata.repository(repositoryName) == null) {
             throw new RepositoryMissingException(repositoryName);
         }
@@ -749,7 +749,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     final ShardId shardId = shardStatus.key;
                     if (event.indexRoutingTableChanged(shardId.getIndexName())) {
                         IndexRoutingTable indexShardRoutingTable =
-                            event.state().getRoutingTable().index(shardId.getIndex());
+                            event.state().routingTable().index(shardId.getIndex());
                         if (indexShardRoutingTable == null) {
                             // index got removed concurrently and we have to fail WAITING state shards
                             return true;

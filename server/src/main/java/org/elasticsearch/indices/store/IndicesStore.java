@@ -19,6 +19,17 @@
 
 package org.elasticsearch.indices.store;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -35,14 +46,12 @@ import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
@@ -59,16 +68,8 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 
 public class IndicesStore implements ClusterStateListener, Closeable {
 
@@ -160,7 +161,7 @@ public class IndicesStore implements ClusterStateListener, Closeable {
                     IndexService indexService = indicesService.indexService(indexRoutingTable.getIndex());
                     final IndexSettings indexSettings;
                     if (indexService == null) {
-                        IndexMetadata indexMetadata = event.state().getMetadata().getIndexSafe(indexRoutingTable.getIndex());
+                        IndexMetadata indexMetadata = event.state().metadata().getIndexSafe(indexRoutingTable.getIndex());
                         indexSettings = new IndexSettings(indexMetadata, settings);
                     } else {
                         indexSettings = indexService.getIndexSettings();
@@ -221,7 +222,7 @@ public class IndicesStore implements ClusterStateListener, Closeable {
             requests.add(new Tuple<>(currentNode, new ShardActiveRequest(clusterName, indexUUID, shardRouting.shardId(), deleteShardTimeout)));
         }
 
-        ShardActiveResponseHandler responseHandler = new ShardActiveResponseHandler(indexShardRoutingTable.shardId(), state.getVersion(),
+        ShardActiveResponseHandler responseHandler = new ShardActiveResponseHandler(indexShardRoutingTable.shardId(), state.version(),
             requests.size());
         for (Tuple<DiscoveryNode, ShardActiveRequest> request : requests) {
             LOGGER.trace("{} sending shard active check to {}", request.v2().shardId, request.v1());
@@ -282,15 +283,15 @@ public class IndicesStore implements ClusterStateListener, Closeable {
             }
 
             ClusterState latestClusterState = clusterService.state();
-            if (clusterStateVersion != latestClusterState.getVersion()) {
-                LOGGER.trace("not deleting shard {}, the latest cluster state version[{}] is not equal to cluster state before shard active api call [{}]", shardId, latestClusterState.getVersion(), clusterStateVersion);
+            if (clusterStateVersion != latestClusterState.version()) {
+                LOGGER.trace("not deleting shard {}, the latest cluster state version[{}] is not equal to cluster state before shard active api call [{}]", shardId, latestClusterState.version(), clusterStateVersion);
                 return;
             }
 
             clusterService.getClusterApplierService().runOnApplierThread("indices_store ([" + shardId + "] active fully on other nodes)",
                 currentState -> {
-                    if (clusterStateVersion != currentState.getVersion()) {
-                        LOGGER.trace("not deleting shard {}, the update task state version[{}] is not equal to cluster state before shard active api call [{}]", shardId, currentState.getVersion(), clusterStateVersion);
+                    if (clusterStateVersion != currentState.version()) {
+                        LOGGER.trace("not deleting shard {}, the update task state version[{}] is not equal to cluster state before shard active api call [{}]", shardId, currentState.version(), clusterStateVersion);
                         return;
                     }
                     try {

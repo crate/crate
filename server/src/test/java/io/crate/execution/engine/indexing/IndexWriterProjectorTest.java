@@ -82,7 +82,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
 
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
         ClusterState state = clusterService().state();
-        Settings tableSettings = TableSettingsResolver.get(state.getMetadata(), bulkImportIdent, false);
+        Settings tableSettings = TableSettingsResolver.get(state.metadata(), bulkImportIdent, false);
         ThreadPool threadPool = cluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
@@ -95,7 +95,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             new NodeContext(cluster().getInstance(Functions.class), null),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
-            NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
+            NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize()),
             cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),

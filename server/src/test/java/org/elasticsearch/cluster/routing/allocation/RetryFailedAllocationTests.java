@@ -73,11 +73,11 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
     }
 
     private ShardRouting getPrimary() {
-        return clusterState.getRoutingTable().index(INDEX_NAME).shard(0).primaryShard();
+        return clusterState.routingTable().index(INDEX_NAME).shard(0).primaryShard();
     }
 
     private ShardRouting getReplica() {
-        return clusterState.getRoutingTable().index(INDEX_NAME).shard(0).replicaShards().get(0);
+        return clusterState.routingTable().index(INDEX_NAME).shard(0).replicaShards().get(0);
     }
 
     @Test

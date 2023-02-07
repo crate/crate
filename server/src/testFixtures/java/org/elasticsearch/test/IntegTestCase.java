@@ -110,7 +110,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -473,7 +472,7 @@ public abstract class IntegTestCase extends ESTestCase {
             TestCluster cluster = cluster();
             if (cluster != null) {
                 if (currentClusterScope != Scope.TEST) {
-                    Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().getMetadata();
+                    Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().metadata();
                     Set<String> persistent = metadata.persistentSettings().keySet();
                     assertThat(persistent)
                         .as("test does not leave persistent settings behind")
