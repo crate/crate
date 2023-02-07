@@ -19,6 +19,11 @@
 
 package org.elasticsearch.action.admin.indices.settings.put;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+
+import java.io.IOException;
+import java.util.Arrays;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -34,13 +39,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 public class TransportUpdateSettingsAction extends TransportMasterNodeAction<UpdateSettingsRequest, AcknowledgedResponse> {
 
@@ -90,15 +90,7 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
     protected void masterOperation(final UpdateSettingsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        final Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(state, request);
-        UpdateSettingsClusterStateUpdateRequest clusterStateUpdateRequest = new UpdateSettingsClusterStateUpdateRequest()
-                .indices(concreteIndices)
-                .settings(request.settings())
-                .setPreserveExisting(request.isPreserveExisting())
-                .ackTimeout(request.timeout())
-                .masterNodeTimeout(request.masterNodeTimeout());
-
-        updateSettingsService.updateSettings(clusterStateUpdateRequest, new ActionListener<ClusterStateUpdateResponse>() {
+        updateSettingsService.updateSettings(request, new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse response) {
                 listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
@@ -106,7 +98,7 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
 
             @Override
             public void onFailure(Exception t) {
-                logger.debug(() -> new ParameterizedMessage("failed to update settings on indices [{}]", (Object) concreteIndices), t);
+                logger.debug(() -> new ParameterizedMessage("failed to update settings on indices [{}]", Arrays.toString(request.indices())), t);
                 listener.onFailure(t);
             }
         });
