@@ -1255,7 +1255,6 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testOpenClosePartitionInformation() {
         execute("create table t (i int) partitioned by (i)");
-        ensureYellow();
 
         execute("insert into t values (1)");
         String partitionIdent = new PartitionName(
@@ -1264,7 +1263,7 @@ public class InformationSchemaTest extends IntegTestCase {
         ).ident();
 
         execute("insert into t values (2), (3)");
-        ensureYellow();
+        ensureGreen();
 
         execute("select closed from information_schema.table_partitions where table_name = 't'");
 
