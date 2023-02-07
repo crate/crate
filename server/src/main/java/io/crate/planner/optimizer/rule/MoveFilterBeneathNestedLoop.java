@@ -36,6 +36,8 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
 
+import java.util.function.Function;
+
 public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
 
     private final Capture<NestedLoopJoin> joinCapture;
@@ -63,7 +65,8 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         NestedLoopJoin join = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), join);
     }

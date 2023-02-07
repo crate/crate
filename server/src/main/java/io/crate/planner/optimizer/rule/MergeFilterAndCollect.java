@@ -38,6 +38,8 @@ import io.crate.statistics.TableStats;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.function.Function;
+
 public class MergeFilterAndCollect implements Rule<Filter> {
 
     private final Capture<Collect> collectCapture;
@@ -59,7 +61,8 @@ public class MergeFilterAndCollect implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         Collect collect = captures.get(collectCapture);
         Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
         WhereClause newWhere = collect.where().add(filter.query());

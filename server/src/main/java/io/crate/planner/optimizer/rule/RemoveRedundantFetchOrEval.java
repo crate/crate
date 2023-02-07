@@ -32,6 +32,8 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
+import java.util.function.Function;
+
 /**
  * Eliminates any Eval nodes that have the same output as their source
  */
@@ -54,7 +56,8 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         return plan.source();
     }
 }

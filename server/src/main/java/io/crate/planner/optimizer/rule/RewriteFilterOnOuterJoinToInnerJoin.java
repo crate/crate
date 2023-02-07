@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -119,7 +120,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();

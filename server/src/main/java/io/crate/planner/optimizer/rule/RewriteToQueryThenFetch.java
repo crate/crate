@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
@@ -78,7 +79,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }

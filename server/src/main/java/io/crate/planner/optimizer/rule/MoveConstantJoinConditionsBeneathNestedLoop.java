@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
@@ -65,7 +66,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
