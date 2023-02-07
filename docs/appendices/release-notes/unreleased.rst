@@ -65,6 +65,8 @@ Changes
   achieved by quoting the names. Unquoted names with upper case letters are
   converted to lower cases which has been the existing behaviour.
 
+- Allowed schema and table names to start with ``_``.
+
 Fixes
 =====
 

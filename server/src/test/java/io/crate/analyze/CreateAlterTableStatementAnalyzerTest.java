@@ -673,13 +673,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testTableStartWithUnderscore() {
-        expectedException.expect(InvalidRelationName.class);
-        expectedException.expectMessage("Relation name \"doc._invalid\" is invalid.");
-        analyze("create table _invalid (id integer primary key)");
-    }
-
-    @Test
     public void testHasColumnDefinition() {
         BoundCreateTable analysis = analyze(
             "create table my_table (" +

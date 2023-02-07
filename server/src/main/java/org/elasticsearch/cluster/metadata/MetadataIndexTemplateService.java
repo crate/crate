@@ -277,9 +277,6 @@ public class MetadataIndexTemplateService {
         if (request.name.contains("#")) {
             validationErrors.add("name must not contain a '#'");
         }
-        if (request.name.startsWith("_")) {
-            validationErrors.add("name must not start with '_'");
-        }
         for (String indexPattern : request.indexPatterns) {
             if (indexPattern.contains(" ")) {
                 validationErrors.add("template must not contain a space");
@@ -289,9 +286,6 @@ public class MetadataIndexTemplateService {
             }
             if (indexPattern.contains("#")) {
                 validationErrors.add("template must not contain a '#'");
-            }
-            if (indexPattern.startsWith("_")) {
-                validationErrors.add("template must not start with '_'");
             }
             if (!Strings.validFileNameExcludingAstrix(indexPattern)) {
                 validationErrors.add("template must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);

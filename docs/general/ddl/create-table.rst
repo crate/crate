@@ -157,8 +157,6 @@ length. They:
   - may not contain one of the following characters: ``\ / * ? " < > |
     <whitespace> , # .``
 
-  - may not *start* with an underscore: ``_``
-
   - should not exceed 255 bytes when encoded with ``utf-8`` (this
     limit applies on the optionally schema-qualified table name)
 

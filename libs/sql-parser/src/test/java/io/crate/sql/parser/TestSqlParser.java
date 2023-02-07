@@ -190,6 +190,13 @@ public class TestSqlParser {
     }
 
     @Test
+    public void test_idents_starting_with_underscore() {
+        var expected = new QualifiedNameReference(new QualifiedName(List.of("_", "_")));
+        assertThat(SqlParser.createExpression("_._")).isEqualTo(expected);
+        assertThat(SqlParser.createExpression("\"_\".\"_\"")).isEqualTo(expected);
+    }
+
+    @Test
     public void testEmptyStatement() {
         assertThatThrownBy(
             () -> SqlParser.createStatement(""))
