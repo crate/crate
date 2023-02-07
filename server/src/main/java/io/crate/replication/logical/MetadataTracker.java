@@ -305,30 +305,12 @@ public final class MetadataTracker implements Closeable {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Process cluster state for subscription {}", subscriptionName);
                 }
-
-                ArrayList<String> mutablePublications = new ArrayList<>(subscription.publications());
-                if (mutablePublications.removeAll(response.unknownPublications())) {
-                    LOGGER.info("Subscription {} will stop getting updates from publications: {} as they have been dropped.", subscriptionName, response.unknownPublications());
-                    localClusterState = UpdateSubscriptionAction.update(
-                        localClusterState,
-                        subscriptionName,
-                        new Subscription(
-                            subscription.owner(),
-                            subscription.connectionInfo(),
-                            mutablePublications,
-                            subscription.settings(),
-                            subscription.relations()
-                        )
-                    );
-                }
-
                 localClusterState = processDroppedTablesOrPartitions(
                     subscriptionName,
                     subscription,
                     localClusterState,
                     response.relationsInPublications()
                 );
-
                 return updateIndexMetadata(
                     subscriptionName,
                     subscription,
