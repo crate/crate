@@ -52,6 +52,8 @@ public class GroupReference implements LogicalPlan {
 
     private final int groupId;
     private final List<Symbol> outputs;
+    private static final String ERROR_MESSAGE =
+        "Operation is not supported in GroupReference, it needs to be resolved to it's referenced LogicalPlan";
 
     public GroupReference(int groupId, List<Symbol> outputs) {
         this.groupId = groupId;
@@ -64,19 +66,17 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public List<LogicalPlan> sources() {
-        return List.of();
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return this;
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        throw new UnsupportedOperationException(
-            "Operation is not supported in GroupReference, it needs to be resolved to it's referenced LogicalPlan"
-        );
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
@@ -86,12 +86,13 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public long numExpectedRows() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
+
     }
 
     @Override
     public long estimatedRowSize() {
-        return 0;
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
@@ -104,7 +105,6 @@ public class GroupReference implements LogicalPlan {
         return Set.of();
     }
 
-
     @Override
     public ExecutionPlan build(DependencyCarrier dependencyCarrier,
                                PlannerContext plannerContext,
@@ -116,7 +116,7 @@ public class GroupReference implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
@@ -126,6 +126,6 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        return List.of();
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 }

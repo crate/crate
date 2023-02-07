@@ -414,8 +414,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "Rename[id, name] AS u\n" +
             "  └ OrderBy[id ASC name ASC]\n" +
-            "    └ OrderBy[id ASC name ASC]\n" +
-            "      └ Get[doc.users | id, name | DocKeys{1::bigint} | (id = 1::bigint)]";
+            "    └ Get[doc.users | id, name | DocKeys{1::bigint} | (id = 1::bigint)]";
         assertThat(plan, isPlan(expectedPlan));
     }
 }

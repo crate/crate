@@ -24,6 +24,8 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.function.Function;
+
 import io.crate.metadata.NodeContext;
 import org.elasticsearch.Version;
 
@@ -75,7 +77,9 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 );
     }
 
-    private static boolean eagerTerminateIsLikely(Limit limit, GroupHashAggregate groupAggregate) {
+    private static boolean eagerTerminateIsLikely(Limit limit,
+                                                  GroupHashAggregate groupAggregate,
+                                                  Function<LogicalPlan, LogicalPlan> resolvePlan) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
@@ -91,7 +95,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = groupAggregate.source().numExpectedRows();
+        long sourceRows = resolvePlan.apply(groupAggregate.source()).numExpectedRows();
         if (sourceRows == 0) {
             return false;
         }
@@ -164,9 +168,10 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, resolvePlan)) {
             return null;
         }
         return new LimitDistinct(
