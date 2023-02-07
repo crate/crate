@@ -19,17 +19,23 @@
 
 package org.elasticsearch.index.cache.query;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
-import org.elasticsearch.index.AbstractIndexComponent;
-import org.elasticsearch.index.IndexSettings;
 
-public class DisabledQueryCache extends AbstractIndexComponent implements QueryCache {
+public class DisabledQueryCache implements QueryCache {
 
-    public DisabledQueryCache(IndexSettings indexSettings) {
-        super(indexSettings);
-        logger.debug("Using no query cache");
+    private static final Logger LOGGER = LogManager.getLogger(DisabledQueryCache.class);
+    private static final DisabledQueryCache INSTANCE = new DisabledQueryCache();
+
+    public static DisabledQueryCache instance() {
+        LOGGER.debug("Using no query cache");
+        return INSTANCE;
+    }
+
+    private DisabledQueryCache() {
     }
 
     @Override

@@ -511,7 +511,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                        ShardPath shardPath,
                                        IndexMetadata indexMetadata) throws IOException {
         var indexSettings = new IndexSettings(indexMetadata, Settings.EMPTY);
-        var queryCache = new DisabledQueryCache(indexSettings);
+        var queryCache = DisabledQueryCache.instance();
         var store = new Store(
             shardPath.getShardId(),
             indexSettings,
