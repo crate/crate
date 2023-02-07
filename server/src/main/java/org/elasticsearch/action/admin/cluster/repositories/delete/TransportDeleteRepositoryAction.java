@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.repositories.delete;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -31,8 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Transport action for unregister repository operation
@@ -69,9 +69,8 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
     protected void masterOperation(final DeleteRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        repositoriesService.unregisterRepository(
-            request, ActionListener.delegateFailure(listener,
-                (delegatedListener, unregisterRepositoryResponse) ->
-                    delegatedListener.onResponse(new AcknowledgedResponse(unregisterRepositoryResponse.isAcknowledged()))));
+        repositoriesService.unregisterRepository(request)
+            .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
+            .whenComplete(listener);
     }
 }

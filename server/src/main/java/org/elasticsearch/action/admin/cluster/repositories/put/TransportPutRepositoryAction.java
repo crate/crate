@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.repositories.put;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -31,8 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Transport action for register repository operation
@@ -69,9 +69,9 @@ public class TransportPutRepositoryAction extends TransportMasterNodeAction<PutR
     protected void masterOperation(final PutRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        repositoriesService.registerRepository(request, ActionListener.delegateFailure(listener,
-            (delegatedListener, response) -> delegatedListener.onResponse(new AcknowledgedResponse(response.isAcknowledged()))));
+        repositoriesService.registerRepository(request)
+            .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
+            .whenComplete(listener);
     }
-
 }
 
