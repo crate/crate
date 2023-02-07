@@ -94,6 +94,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -145,7 +146,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
     private final MapperRegistry mapperRegistry;
-    private final NamedWriteableRegistry namedWriteableRegistry;
     private final IndexingMemoryController indexingMemoryController;
     private final QueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
@@ -189,7 +189,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.analysisRegistry = analysisRegistry;
         this.indicesQueryCache = IndicesQueryCache.createCache(settings);
         this.mapperRegistry = mapperRegistry;
-        this.namedWriteableRegistry = namedWriteableRegistry;
         indexingMemoryController = new IndexingMemoryController(
             settings,
             threadPool,
@@ -451,12 +450,11 @@ public class IndicesService extends AbstractLifecycleComponent
     public synchronized void verifyIndexMetadata(IndexMetadata metadata, IndexMetadata metadataUpdate) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
         try {
-            QueryCache indicesQueryCache = IndicesQueryCache.createCache(settings);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
             final IndexService service = createIndexService(
                 IndexCreationContext.METADATA_VERIFICATION,
                 metadata,
-                indicesQueryCache,
+                DisabledQueryCache.instance(),
                 emptyList()
             );
             closeables.add(() -> service.close("metadata verification", false));

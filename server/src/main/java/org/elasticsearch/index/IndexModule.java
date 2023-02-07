@@ -292,7 +292,7 @@ public final class IndexModule {
         if (indexSettings.getValue(INDEX_QUERY_CACHE_ENABLED_SETTING)) {
             queryCache = indicesQueryCache;
         } else {
-            queryCache = new DisabledQueryCache(indexSettings);
+            queryCache = DisabledQueryCache.instance();
         }
         return new IndexService(
             indexSettings,

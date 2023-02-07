@@ -106,7 +106,7 @@ public final class IndexEnv implements AutoCloseable {
             indexMetadata.mapping().source(),
             MapperService.MergeReason.MAPPING_UPDATE
         );
-        queryCache = new DisabledQueryCache(idxSettings);
+        queryCache = DisabledQueryCache.instance();
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
