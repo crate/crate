@@ -24,6 +24,8 @@ import org.elasticsearch.cli.MultiCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.env.NodeRepurposeCommand;
 
+import io.crate.cluster.commands.FixCorruptedMetadataCommand;
+
 // NodeToolCli does not extend LoggingAwareCommand, because LoggingAwareCommand performs logging initialization
 // after LoggingAwareCommand instance is constructed.
 // It's too late for us, because before UnsafeBootstrapMasterCommand is added to the list of subcommands
@@ -41,6 +43,7 @@ public class NodeToolCli extends MultiCommand {
         subcommands.put("detach-cluster", new DetachClusterCommand());
         subcommands.put("remove-settings", new RemoveSettingsCommand());
         subcommands.put("remove-customs", new RemoveCustomsCommand());
+        subcommands.put("fix-metadata", new FixCorruptedMetadataCommand());
     }
 
     public static void main(String[] args) throws Exception {
