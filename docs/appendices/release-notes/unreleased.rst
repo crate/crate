@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed ``crate-node`` cli tool to work without asking for ``path.home`` and/or
+  ``path.conf`` parameters when run from inside the ``CrateDB`` distribution
+  directory, for Linux, MacOSX and Windows environments.
+
 - Removed the automatic fix mechanism, introduced in
   :ref:`5.2.1 <version_5.2.1>`, for corrupted metadata due to table swap
   statements like::
