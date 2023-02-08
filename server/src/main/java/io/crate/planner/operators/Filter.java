@@ -58,7 +58,7 @@ public final class Filter extends ForwardingLogicalPlan {
         return new Filter(source, query);
     }
 
-    private static boolean isMatchAll(Symbol query) {
+    public static boolean isMatchAll(Symbol query) {
         return query instanceof Literal && ((Literal<?>) query).value() == Boolean.TRUE;
     }
 
