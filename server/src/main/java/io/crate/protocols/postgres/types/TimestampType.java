@@ -21,7 +21,8 @@
 
 package io.crate.protocols.postgres.types;
 
-import javax.annotation.Nonnull;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -32,15 +33,16 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+import javax.annotation.Nonnull;
+
+import io.crate.types.Regproc;
 
 final class TimestampType extends BaseTimestampType {
 
-    public static final PGType INSTANCE = new TimestampType();
+    public static final TimestampType INSTANCE = new TimestampType();
 
     private static final int OID = 1114;
-    private static final String NAME = "timestamp without time zone";
+    private static final String NAME = "timestamp";
 
     private static final DateTimeFormatter PARSER_WITH_OPTIONAL_ERA = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
@@ -74,6 +76,16 @@ final class TimestampType extends BaseTimestampType {
     @Override
     public int typArray() {
         return PGArray.TIMESTAMP_ARRAY.oid();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of(NAME + "_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of(NAME + "_recv");
     }
 
     @Override
