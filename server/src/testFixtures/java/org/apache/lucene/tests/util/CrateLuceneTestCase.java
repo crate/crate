@@ -134,6 +134,8 @@ import org.apache.lucene.index.SimpleMergedSegmentWarmer;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.TermVectors;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
@@ -2442,9 +2444,11 @@ public abstract class CrateLuceneTestCase {
     public void assertStoredFieldsEquals(String info, IndexReader leftReader, IndexReader rightReader)
         throws IOException {
         assert leftReader.maxDoc() == rightReader.maxDoc();
+        StoredFields leftStoredFields = leftReader.storedFields();
+        StoredFields rightStoredFields = rightReader.storedFields();
         for (int i = 0; i < leftReader.maxDoc(); i++) {
-            Document leftDoc = leftReader.document(i);
-            Document rightDoc = rightReader.document(i);
+            Document leftDoc = leftStoredFields.document(i);
+            Document rightDoc = rightStoredFields.document(i);
 
             // TODO: I think this is bogus because we don't document what the order should be
             // from these iterators, etc. I think the codec/IndexReader should be free to order this stuff
@@ -2487,9 +2491,11 @@ public abstract class CrateLuceneTestCase {
     public void assertTermVectorsEquals(String info, IndexReader leftReader, IndexReader rightReader)
         throws IOException {
         assert leftReader.maxDoc() == rightReader.maxDoc();
+        TermVectors leftVectors = leftReader.termVectors();
+        TermVectors rightVectors = rightReader.termVectors();
         for (int i = 0; i < leftReader.maxDoc(); i++) {
-            Fields leftFields = leftReader.getTermVectors(i);
-            Fields rightFields = rightReader.getTermVectors(i);
+            Fields leftFields = leftVectors.get(i);
+            Fields rightFields = rightVectors.get(i);
 
             // Fields could be null if there are no postings,
             // but then it must be null for both

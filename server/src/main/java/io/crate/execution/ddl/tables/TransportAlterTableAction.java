@@ -21,9 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.cluster.AlterTableClusterStateExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -31,6 +28,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataMappingService;
+import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -40,6 +38,10 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.cluster.AlterTableClusterStateExecutor;
 
 @Singleton
 public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterTableRequest, AcknowledgedResponse> {
@@ -57,6 +59,7 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      AllocationService allocationService,
                                      IndexScopedSettings indexScopedSettings,
                                      MetadataCreateIndexService metadataCreateIndexService,
+                                     MetadataUpdateSettingsService updateSettingsService,
                                      ShardLimitValidator shardLimitValidator,
                                      NodeContext nodeContext) {
         super(ACTION_NAME,
@@ -73,6 +76,7 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
             allocationService,
             indexScopedSettings,
             metadataCreateIndexService,
+            updateSettingsService,
             shardLimitValidator,
             nodeContext
         );
