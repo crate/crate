@@ -21,12 +21,14 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-
-import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
+
+import javax.annotation.Nonnull;
+
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 class NumericType extends PGType<BigDecimal> {
 
@@ -59,6 +61,16 @@ class NumericType extends PGType<BigDecimal> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("numeric_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("numeric_recv");
     }
 
     @Override
