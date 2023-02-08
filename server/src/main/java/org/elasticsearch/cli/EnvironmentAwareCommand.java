@@ -76,6 +76,7 @@ public abstract class EnvironmentAwareCommand extends Command {
 
         putSystemPropertyIfSettingIsMissing(settings, "path.data", "es.path.data");
         putSystemPropertyIfSettingIsMissing(settings, "path.home", "es.path.home");
+        putSystemPropertyIfSettingIsMissing(settings, "path.conf", "es.path.conf");
         putSystemPropertyIfSettingIsMissing(settings, "path.logs", "es.path.logs");
 
         execute(terminal, options, createEnv(settings));
@@ -88,12 +89,12 @@ public abstract class EnvironmentAwareCommand extends Command {
 
     /** Create an {@link Environment} for the command to use. Overrideable for tests. */
     protected final Environment createEnv(final Settings baseSettings, final Map<String, String> settings) throws UserException {
-        final String esPathConf = System.getProperty("es.path.conf");
-        if (esPathConf == null) {
-            throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set. Specify with -Cpath.conf=<path>");
+        String pathConf = settings.get("path.conf");
+        if (pathConf == null) {
+            throw new UserException(ExitCodes.CONFIG, "the system property [path.conf] must be set. Specify with -Cpath.conf=<path>");
         }
         return InternalSettingsPreparer.prepareEnvironment(baseSettings, settings,
-            getConfigPath(esPathConf),
+            getConfigPath(pathConf),
             // HOSTNAME is set by elasticsearch-env and elasticsearch-env.bat so it is always available
             () -> System.getenv("HOSTNAME"));
     }
