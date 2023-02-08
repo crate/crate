@@ -21,13 +21,15 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.Regproc;
-import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
+
+import javax.annotation.Nonnull;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 public abstract class PGType<T> {
 

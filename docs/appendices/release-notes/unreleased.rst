@@ -64,6 +64,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+
+- Changed the ``typsend`` and ``typreceive`` values in the
+  ``pg_catalog.pg_type`` table to match PostgreSQL for improved compatibility.
+  Clients like ``Postgrex`` depend on this.
+
 - Fixed a race condition that could lead to an error reporting that a partition
   was not found when running ``DELETE FROM <table> WHERE partition_column = ?``
   statements.

@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 
 import io.crate.sql.tree.BitString;
+import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
 public class BitType extends PGType<BitString> {
@@ -55,6 +56,16 @@ public class BitType extends PGType<BitString> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("bit_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("bit_recv");
     }
 
     @Override

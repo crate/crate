@@ -21,12 +21,15 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
+
+import javax.annotation.Nonnull;
+
 import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
 
-import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 public class IntervalType extends PGType<Period> {
 
@@ -52,6 +55,16 @@ public class IntervalType extends PGType<Period> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("interval_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("interval_recv");
     }
 
     @Override

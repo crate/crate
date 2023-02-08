@@ -21,7 +21,13 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -29,11 +35,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 class JsonType extends PGType<Object> {
 
@@ -60,6 +63,16 @@ class JsonType extends PGType<Object> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("json_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("json_recv");
     }
 
     @Override
