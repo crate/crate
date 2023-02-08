@@ -124,8 +124,8 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     public static final String CONFIRMATION_MSG =
         DELIMITER +
         "\n" +
-        "You should only run this tool if you have ended up with correupted metadata\n" +
-        "because of a table swap like: ALTER CLUSTER SWAP TABLE \"myschema\".\"mytable\" TO \"myschema.mytable\".\n" +
+        "You should only run this tool if you have ended up with corrupted metadata\n" +
+        "because of a table swap like: ALTER CLUSTER SWAP TABLE \"schema\".\"table\" TO \"schema.table\".\n" +
         "\n" +
         "Do you want to proceed?\n";
 
