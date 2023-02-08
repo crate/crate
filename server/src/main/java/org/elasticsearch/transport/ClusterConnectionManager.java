@@ -19,9 +19,17 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.io.IOUtils;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
@@ -31,13 +39,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.ListenableFuture;
 import org.elasticsearch.common.util.concurrent.RunOnce;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import io.crate.common.io.IOUtils;
 
 /**
  * This class manages node connections within a cluster. The connection is opened by the underlying transport.
@@ -111,7 +113,7 @@ public class ClusterConnectionManager implements ConnectionManager {
         }
 
         if (connectingRefCounter.tryIncRef() == false) {
-            listener.onFailure(new IllegalStateException("connection manager is closed"));
+            listener.onFailure(new AlreadyClosedException("ConnectionManager is closed"));
             return;
         }
 
