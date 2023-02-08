@@ -21,11 +21,13 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.carrotsearch.hppc.ByteArrayList;
-import io.crate.data.Row;
-import io.netty.buffer.ByteBuf;
-
 import java.util.List;
+
+import com.carrotsearch.hppc.ByteArrayList;
+
+import io.crate.data.Row;
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 public class RecordType extends PGType<Row> {
 
@@ -54,6 +56,16 @@ public class RecordType extends PGType<Row> {
     @Override
     public String type() {
         return Type.PSEUDO.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of(NAME + "_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of(NAME + "_recv");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

@@ -31,6 +31,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 
 final class TimestampZType extends BaseTimestampType {
 
@@ -78,6 +79,16 @@ final class TimestampZType extends BaseTimestampType {
     @Override
     public int typArray() {
         return PGArray.TIMESTAMPZ_ARRAY.oid();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("timestamptz_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("timestamptz_recv");
     }
 
     @Override

@@ -21,14 +21,17 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
+import java.util.StringTokenizer;
+
+import javax.annotation.Nonnull;
+
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
-import java.util.StringTokenizer;
+import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 public final class PointType extends PGType<Point> {
 
@@ -55,6 +58,16 @@ public final class PointType extends PGType<Point> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("point_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("point_recv");
     }
 
     @Override

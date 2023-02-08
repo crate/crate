@@ -19,12 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.bugfix;
+package io.crate.cluster.commands;
 
-import static io.crate.metadata.bugfix.CorruptedMetadataFixer.fixInconsistencyBetweenIndexAndTemplates;
-import static io.crate.metadata.bugfix.CorruptedMetadataFixer.fixNameOfTemplateMetadata;
-import static io.crate.metadata.bugfix.CorruptedMetadataFixer.fixIndexName;
-import static io.crate.metadata.bugfix.CorruptedMetadataFixer.fixTemplateName;
+import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixInconsistencyBetweenIndexAndTemplates;
+import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixIndexName;
+import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixNameOfTemplateMetadata;
+import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixTemplateName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -43,7 +43,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
-public class CorruptedMetadataFixerTest {
+public class FixCorruptedMetadataCommandTest {
 
     @Test
     public void test_method_fixNameOfTemplateMetadata_fixes_corrupted_name_only() throws IOException {
@@ -64,9 +64,9 @@ public class CorruptedMetadataFixerTest {
         String fixedName = "m1..partitioned.s1.";
         IndexTemplateMetadata fixed = fixedMetadata.getTemplate(fixedName);
         assertThat(fixed).isNotNull();
-        assertThat(fixed.patterns().size()).isEqualTo(1);
+        assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping().toString()).isEqualTo(mapping);
+        assertThat(fixed.mapping().toString()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
     }
 
@@ -99,9 +99,9 @@ public class CorruptedMetadataFixerTest {
         String fixedName = "m1..partitioned.s1.";
         IndexTemplateMetadata fixed = fixedMetadata.getTemplate(fixedName);
         assertThat(fixed).isNotNull();
-        assertThat(fixed.patterns().size()).isEqualTo(1);
+        assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping().toString()).isEqualTo(mapping);
+        assertThat(fixed.mapping()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
     }
 
@@ -142,17 +142,17 @@ public class CorruptedMetadataFixerTest {
         String fixedName = "m1..partitioned.s1.";
         IndexTemplateMetadata fixed = fixedMetadata.getTemplate(fixedName);
         assertThat(fixed).isNotNull();
-        assertThat(fixed.patterns().size()).isEqualTo(1);
+        assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping().toString()).isEqualTo(mapping);
+        assertThat(fixed.mapping()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
 
         //dummy is untouched
         IndexTemplateMetadata dummyTemplate = fixedMetadata.getTemplate(dummyName);
         assertThat(dummyTemplate).isNotNull();
-        assertThat(dummyTemplate.patterns().size()).isEqualTo(1);
+        assertThat(dummyTemplate.patterns()).hasSize(1);
         assertThat(dummyTemplate.patterns().get(0)).isEqualTo(dummyName + "*");
-        assertThat(dummyTemplate.mapping().toString()).isEqualTo(dummyMapping);
+        assertThat(dummyTemplate.mapping()).hasToString(dummyMapping);
         assertThat(dummyTemplate.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("500ms");
     }
 
@@ -295,9 +295,9 @@ public class CorruptedMetadataFixerTest {
         fixInconsistencyBetweenIndexAndTemplates(nonPartitioned, fixedMetadata);
         var afterFix = fixedMetadata.get("m7.s7");
         assertThat(afterFix).isNotNull();
-        assertThat(afterFix.mapping().source().toString()).isEqualTo(mappingForNonPartitioned);
-        assertThat(afterFix.getSettings().getAsStructuredMap().toString())
-            .isEqualTo("{index={number_of_shards=1, number_of_replicas=1, version={created=8030099}}}");
+        assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
+        assertThat(afterFix.getSettings().getAsStructuredMap())
+            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=8030099}}}");
 
         // indexMetadata named 'm7.s7' and indexTemplateMetadata 'm7..partitioned.s7.' cannot co-exist.
         IndexTemplateMetadata existingTemplate = fixedMetadata.getTemplate(invalidTemplateName);
