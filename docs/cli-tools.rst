@@ -165,7 +165,7 @@ Synopsis
 ::
 
    sh$ bin/crate-node repurpose|unsafe-bootstrap|detach-cluster
-   [--ordinal <INT>] [-E <KV_PAIR>]
+   [--ordinal <INT>] [-C<key>=<value>]
    [-h, --help] ([-s, --silent] | [-v, --verbose])
 
 
@@ -212,8 +212,8 @@ Options
 | ``--ordinal <INT>`` | Specify which node to target if there is more than  |
 |                     | one node sharing a data path                        |
 +---------------------+-----------------------------------------------------+
-| ``-E <KV_PAIR>``    | Configures a setting using a key-value (*KV*) pair  |
-|                     |                                                     |
+| ``-C``              | Set a CrateDB :ref:`configuration <config>` value   |
+|                     | (overrides configuration file)                      |
 +---------------------+-----------------------------------------------------+
 | ``-h, --help``      | Return all of the command parameters                |
 +---------------------+-----------------------------------------------------+
