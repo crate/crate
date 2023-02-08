@@ -30,13 +30,19 @@ import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.lucene.tests.util.TestUtil;
+import org.elasticsearch.cli.MockTerminal;
+import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.cluster.commands.FixCorruptedMetadataCommand;
+import joptsimple.OptionParser;
+
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class CorruptedMetadataFixerIntegrationTest extends IntegTestCase {
+public class FixCorruptedMetadataCommandITest extends IntegTestCase {
 
     @Test
     public void test_swap_table_partitioned_to_partitioned_dotted_target() throws Exception {
@@ -426,8 +432,30 @@ public class CorruptedMetadataFixerIntegrationTest extends IntegTestCase {
         try (InputStream stream = Files.newInputStream(getDataPath(dataPath))) {
             TestUtil.unzip(stream, indexDir);
         }
-        Settings.Builder builder = Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath());
-        cluster().startNode(builder.build());
+        Settings settings =
+                Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath()).build();
+
+        Environment environment = TestEnvironment.newEnvironment(
+                Settings.builder().put(cluster().getDefaultSettings()).put(settings).build());
+        MockTerminal terminal = executeCommand(environment);
+        assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.CONFIRMATION_MSG);
+        assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.METADATA_FIXED_MSG);
+
+        cluster().startNode(settings);
         ensureGreen();
+    }
+
+    private MockTerminal executeCommand(Environment environment) throws Exception {
+        final MockTerminal terminal = new MockTerminal();
+        final String input = randomValueOtherThanMany(c -> c.equalsIgnoreCase("y"), () -> randomAlphaOfLength(1));
+
+        terminal.addTextInput(randomFrom("y", "Y"));
+        try (var command = new FixCorruptedMetadataCommand()) {
+            command.execute(terminal, new OptionParser().parse(), environment);
+        } finally {
+            assertThat(terminal.getOutput()).contains(ElasticsearchNodeCommand.STOP_WARNING_MSG);
+        }
+
+        return terminal;
     }
 }

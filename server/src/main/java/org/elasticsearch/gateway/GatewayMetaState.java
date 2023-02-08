@@ -71,7 +71,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.exceptions.Exceptions;
-import io.crate.metadata.bugfix.CorruptedMetadataFixer;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -198,7 +197,6 @@ public class GatewayMetaState implements Closeable {
     Metadata upgradeMetadataForNode(Metadata metadata,
                                     MetadataIndexUpgradeService metadataIndexUpgradeService,
                                     MetadataUpgrader metadataUpgrader) {
-        metadata = CorruptedMetadataFixer.fixCorruptionCausedBySwapTableBug(metadata);
         return upgradeMetadata(metadata, metadataIndexUpgradeService, metadataUpgrader);
     }
 
