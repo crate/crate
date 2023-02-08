@@ -195,6 +195,10 @@ Commands
 |                      | to be able to force a node to startup even when the  |
 |                      | node version is not compatible with the meta data.   |
 +----------------------+------------------------------------------------------+
+| ``fix-metadata``     | Fix corrupted metadata after running table swap      |
+|                      | like: ALTER CLUSTER SWAP TABLE "schema"."table" TO   |
+|                      | "schema.table";                                      |
++----------------------+------------------------------------------------------+
 
 
 .. _cli-crate-node-options:

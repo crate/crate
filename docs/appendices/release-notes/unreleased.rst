@@ -74,6 +74,16 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Removed the automatic fix mechanism, introduced in
+  :ref:`5.2.1 <version_5.2.1>`, for corrupted metadata due to table swap
+  statements like::
+
+    ALTER CLUSTER SWAP TABLE "myschema"."mytable" TO "myschema.mytable";
+
+  and provide a manual way to fix such issues by running::
+
+    bin/crate-node fix-metadata
+
 
 - Changed the ``typsend`` and ``typreceive`` values in the
   ``pg_catalog.pg_type`` table to match PostgreSQL for improved compatibility.
