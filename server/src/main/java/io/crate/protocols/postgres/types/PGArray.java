@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 import com.carrotsearch.hppc.ByteArrayList;
 
 import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
 public class PGArray extends PGType<List<Object>> {
@@ -67,6 +68,16 @@ public class PGArray extends PGType<List<Object>> {
         @Override
         public String typeCategory() {
             return TypeCategory.PSEUDO.code();
+        }
+
+        @Override
+        public Regproc typSend() {
+            return Regproc.of("anyarray_send");
+        }
+
+        @Override
+        public Regproc typReceive() {
+            return Regproc.of("anyarray_recv");
         }
     };
 

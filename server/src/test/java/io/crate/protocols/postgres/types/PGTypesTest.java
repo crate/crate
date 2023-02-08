@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -253,6 +255,45 @@ public class PGTypesTest extends ESTestCase {
         Entry entry = new Entry(type, dataGenerator.get());
         assertThat(writeAndReadBinary(entry, bitType), is(entry.value));
     }
+
+
+    @Test
+    public void test_typsend_and_receive_names_match_postgresql() throws Exception {
+        // Some types have `<name>send`, others `<name>_send`
+        // Needs to match PostgreSQL because clients may depend on this (concrete example is Postgrex)
+        Set<PGType> withUnderscore = Set.of(
+            TimestampType.INSTANCE,
+            BitType.INSTANCE,
+            DateType.INSTANCE,
+            IntervalType.INSTANCE,
+            JsonType.INSTANCE,
+            NumericType.INSTANCE,
+            PointType.INSTANCE,
+            TimestampZType.INSTANCE,
+            TimeTZType.INSTANCE,
+            RecordType.EMPTY_RECORD
+        );
+
+        for (var type : PGTypes.pgTypes()) {
+            if (type.oid() == 2277) {
+                assertThat(type.typSend().name()).isEqualTo("anyarray_send");
+                assertThat(type.typReceive().name()).isEqualTo("anyarray_recv");
+            } else if (type.oid() == 2276) {
+                assertThat(type.typSend().name()).isEqualTo("-");
+            } else if (type.typArray() == 0) {
+                assertThat(type.typSend().name()).isEqualTo("array_send");
+            } else {
+                if (withUnderscore.contains(type)) {
+                    assertThat(type.typSend().name()).isEqualTo(type.typName() + "_send");
+                    assertThat(type.typReceive().name()).isEqualTo(type.typName() + "_recv");
+                } else {
+                    assertThat(type.typSend().name()).isEqualTo(type.typName() + "send");
+                    assertThat(type.typReceive().name()).isEqualTo(type.typName() + "recv");
+                }
+            }
+        }
+    }
+
 
 
     private Object writeAndReadBinary(Entry entry, PGType pgType) {
