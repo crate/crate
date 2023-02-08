@@ -21,13 +21,12 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Percentage.withPercentage;
 
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.types.DataTypes;
@@ -35,13 +34,14 @@ import io.crate.types.DataTypes;
 public class AnalyzeITest extends IntegTestCase {
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
         execute("refresh table doc.tbl");
         execute("analyze");
         execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0], is(6.0f));
+        assertThat(response.rows()[0][0]).isEqualTo(6.0f);
 
         execute(
             "select " +
@@ -53,12 +53,12 @@ public class AnalyzeITest extends IntegTestCase {
             "   histogram_bounds " +
             "from pg_stats where tablename = 'tbl'");
         Object[] row = response.rows()[0];
-        assertThat(((Float) row[0]).doubleValue(), Matchers.closeTo(0.166, 0.01));
-        assertThat(row[1], is(DataTypes.INTEGER.fixedSize()));
-        assertThat(row[2], is(3.0f));
-        assertThat(((List<String>) row[3]), Matchers.empty());
-        assertThat(((List<Double>) row[4]), Matchers.empty());
-        assertThat(((List<String>) row[5]), Matchers.contains("1", "2", "3"));
+        assertThat(((Float) row[0]).doubleValue()).isCloseTo(0.166, withPercentage(1));
+        assertThat(row[1]).isEqualTo(DataTypes.INTEGER.fixedSize());
+        assertThat(row[2]).isEqualTo(3.0f);
+        assertThat(((List<String>) row[3])).isEmpty();
+        assertThat(((List<Double>) row[4])).isEmpty();
+        assertThat(((List<String>) row[5])).contains("1", "2", "3");
     }
 
     @Test
@@ -68,7 +68,7 @@ public class AnalyzeITest extends IntegTestCase {
         execute("refresh table doc.tbl");
         execute("analyze");
         execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0], is(1.0f));
+        assertThat(response.rows()[0][0]).isEqualTo(1.0f);
     }
 
     @Test
@@ -79,8 +79,8 @@ public class AnalyzeITest extends IntegTestCase {
         execute("ANALYZE");
         execute("SELECT attname, most_common_vals, histogram_bounds FROM pg_stats");
         Object[] row = response.rows()[0];
-        assertThat(row[0], is("val['id']"));
-        assertThat(row[1], is(List.of("[1]")));
-        assertThat(row[2], is(List.of()));
+        assertThat(row[0]).isEqualTo("val['id']");
+        assertThat(row[1]).isEqualTo(List.of("[1]"));
+        assertThat(row[2]).isEqualTo(List.of());
     }
 }
