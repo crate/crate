@@ -1,0 +1,75 @@
+
+=============
+Version 5.2.2
+=============
+
+Released on 2023-02-09.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.2.2.
+
+    We recommend that you upgrade to the latest 5.1 release before moving to
+    5.2.2.
+
+    A rolling upgrade from 5.1.x to 5.2.2 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.2.0` release notes for a full list of changes in the
+5.2 series.
+
+Fixes
+=====
+
+- Fixed ``crate-node`` cli tool to work without asking for ``path.home`` and/or
+  ``path.conf`` parameters when run from inside the ``CrateDB`` distribution
+  directory, for Linux, MacOSX and Windows environments.
+
+- Removed the automatic fix mechanism, introduced in
+  :ref:`5.2.1 <version_5.2.1>`, for corrupted metadata due to table swap
+  statements like::
+
+    ALTER CLUSTER SWAP TABLE "myschema"."mytable" TO "myschema.mytable";
+
+  and provide a manual way to fix such issues by running::
+
+    bin/crate-node fix-metadata
+
+
+- Changed the ``typsend`` and ``typreceive`` values in the
+  ``pg_catalog.pg_type`` table to match PostgreSQL for improved compatibility.
+  Clients like ``Postgrex`` depend on this.
+
+- Fixed a race condition that could lead to an error reporting that a partition
+  was not found when running ``DELETE FROM <table> WHERE partition_column = ?``
+  statements.
+
+- Fixed runtime ``ClassCastException`` when attempting to
+  :ref:`ORDER BY <sql-select-order-by>` an :ref:`INTERVAL <type-interval>` type,
+  or when attempting to use :ref:`MIN <aggregation-min>` or
+  :ref:`MAX <aggregation-max>` aggregations on an
+  :ref:`INTERVAL <type-interval>` type, and return an error message about
+  unsupported type during analysis of a query.
+
+- Disallowed comparison operators between :ref:`INTERVAL <type-interval>` types,
+  except for ``=`` and ``<>``, Previously, ``null`` was returned in any of the
+  ``>``, ``>=``, ``<``, ``<=``, comparisons.
