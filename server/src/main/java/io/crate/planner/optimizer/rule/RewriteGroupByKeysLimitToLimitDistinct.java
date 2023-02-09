@@ -77,7 +77,9 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 );
     }
 
-    private static boolean eagerTerminateIsLikely(Limit limit, GroupHashAggregate groupAggregate) {
+    private static boolean eagerTerminateIsLikely(Limit limit,
+                                                  GroupHashAggregate groupAggregate,
+                                                  Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
@@ -93,7 +95,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = groupAggregate.source().numExpectedRows();
+        long sourceRows = resolveLogicalPlan.apply(groupAggregate.source()).numExpectedRows();
         if (sourceRows == 0) {
             return false;
         }
@@ -169,7 +171,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, resolveLogicalPlan)) {
             return null;
         }
         return new LimitDistinct(

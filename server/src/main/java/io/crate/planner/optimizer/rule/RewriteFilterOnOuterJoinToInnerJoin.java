@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -129,8 +130,9 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        LogicalPlan lhs = nl.sources().get(0);
-        LogicalPlan rhs = nl.sources().get(1);
+        var sources = Lists2.map(nl.sources(), resolveLogicalPlan);
+        LogicalPlan lhs = sources.get(0);
+        LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
 

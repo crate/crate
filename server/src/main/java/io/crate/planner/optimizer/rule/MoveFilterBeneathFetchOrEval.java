@@ -65,7 +65,8 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(fetchOrEvalCapture);
-        List<Symbol> outputsOfFetchSource = eval.source().outputs();
+        var source = resolvePlan.apply(eval.source());
+        List<Symbol> outputsOfFetchSource = source.outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
             return transpose(plan, eval);
         }
