@@ -169,8 +169,16 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     public static Symbol join(Iterator<? extends Symbol> symbols) {
+        return join(symbols, Literal.BOOLEAN_TRUE);
+    }
+
+    public static Symbol join(Iterable<? extends Symbol> symbols, Symbol defaultSymbol) {
+        return join(symbols.iterator(), defaultSymbol);
+    }
+
+    public static Symbol join(Iterator<? extends Symbol> symbols, Symbol defaultSymbol) {
         if (!symbols.hasNext()) {
-            return Literal.BOOLEAN_TRUE;
+            return defaultSymbol;
         }
         Symbol first = symbols.next();
         while (symbols.hasNext()) {
