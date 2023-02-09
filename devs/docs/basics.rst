@@ -202,6 +202,31 @@ To run the `Forbidden APIs`_ tool::
     $ ./gradlew forbiddenApisMain
 
 
+Work with release branches
+==========================
+
+If you want to work on a release branch (e.g.: ``5.2``) you can use
+``git worktree`` to avoid checking out the branch in the same directory you've
+imported to your IDE as ``master``. This can be handy especially if the release
+branch uses older Java, Lucene, etc. or if there are changes in the layout of
+the projects, as you won't need to wait for your IDE to switch between the two
+branches (workspaces). Inside your crate repo::
+
+    $ git checkout -b 5.2 --track origin/5.2
+    $ git checkout master
+    $ git worktree add ../crate-5.2 5.2
+
+This way you can have a ``crate-5.2`` (or whatever name you choose) in the same
+directory level as your ``crate`` (master) repo. You can work on it
+independently of ``master`` and import it as a separate project in your IDE. Of
+course you can use the ``git worktree`` for any branch that you want to work on
+independently of ``master``. If you want to remove a worktree, simply issue the
+following from inside your main ``crate`` repo::
+
+    $ git worktree remove ../crate-5.2
+
+
+
 Troubleshooting
 ===============
 
