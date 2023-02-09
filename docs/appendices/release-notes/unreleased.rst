@@ -74,4 +74,14 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused correlated sub-queries to fail with an
+  `IllegalStateException` when the outer query contained multiple joins.
+  An example ::
+
+    CREATE TABLE a (x INT, y INT, z INT); // tables b, c, d created as a
+    SELECT
+      (SELECT 1 WHERE a.x=1 AND b.y=1 AND c.z=1)
+    FROM a, b, c, d;
+    IllegalStateException[OuterColumn `y` must appear in input of
+    CorrelatedJoin]
+
