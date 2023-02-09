@@ -76,6 +76,17 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         module.register(
             Signature.scalar(
                 NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)")
+            )
+                .withTypeVariableConstraints(typeVariable("E")),
+            ArrayAppendFunction::new
+        );
+
+        module.register(
+            Signature.scalar(
+                NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()

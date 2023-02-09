@@ -67,6 +67,10 @@ Changes
 
 - Allowed schema and table names to start with ``_``.
 
+- Added :ref:`concat(array, value) <scalar-concat>` as an alias for the
+  :ref:`array_append(array, value) <scalar-array_append>` scalar function for
+  improved compatibility with PostgreSQL.
+
 Fixes
 =====
 
