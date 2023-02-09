@@ -724,4 +724,35 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, instanceOf(Merge.class));
         assertThat(((Merge) plan).subPlan(), instanceOf(Join.class));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/13592
+     */
+    public void test_correlated_subquery_can_access_all_tables_from_outer_query_that_joins_multiple_tables() throws IOException {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("create table a (x int, y int, z int)")
+            .addTable("create table b (x int, y int, z int)")
+            .addTable("create table c (x int, y int, z int)")
+            .addTable("create table d (x int, y int, z int)")
+            .build();
+        LogicalPlan logicalPlan = executor.logicalPlan(
+            "select (select 1 where a.x=1 and b.x=1 and c.x=1) from a,b,c,d"
+        );
+        assertThat(logicalPlan, is(isPlan(
+            "Eval[(SELECT 1 FROM (empty_row))]\n" +
+            "  └ CorrelatedJoin[x, x, x, (SELECT 1 FROM (empty_row))]\n" +
+            "    └ NestedLoopJoin[CROSS]\n" +
+            "      ├ NestedLoopJoin[CROSS]\n" +
+            "      │  ├ NestedLoopJoin[CROSS]\n" +
+            "      │  │  ├ Collect[doc.a | [x] | true]\n" +
+            "      │  │  └ Collect[doc.b | [x] | true]\n" +
+            "      │  └ Collect[doc.c | [x] | true]\n" +
+            "      └ Collect[doc.d | [] | true]\n" +
+            "    └ SubPlan\n" +
+            "      └ Eval[1]\n" +
+            "        └ Limit[2::bigint;0::bigint]\n" +
+            "          └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]\n" +
+            "            └ TableFunction[empty_row | [] | true]"
+        )));
+    }
 }
