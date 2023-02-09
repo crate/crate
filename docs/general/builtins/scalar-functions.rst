@@ -62,7 +62,7 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
 .. TIP::
 
     The ``concat`` function can also be used for merging objects:
-    :ref:`concat(object, object) <scalar-concat-object>`
+    :ref:`concat(object, object) <scalar-concat-object>`.
 
 
 .. _scalar-concat-ws:
@@ -2733,6 +2733,18 @@ Returns: ``array``
     +--------------+
     SELECT 1 row in set (... sec)
 
+
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` to append
+values to an array::
+
+    cr> select
+    ...    [1,2,3] || 4 AS array_append;
+    +--------------+
+    | array_append |
+    +--------------+
+    | [1, 2, 3, 4] |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-array_cat:
 

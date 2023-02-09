@@ -56,10 +56,16 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
     }
 
     private final DataType<?> innerType;
+    private final boolean calledByOperator;
 
     ArrayAppendFunction(Signature signature, BoundSignature boundSignature) {
+        this(signature, boundSignature, false);
+    }
+
+    ArrayAppendFunction(Signature signature, BoundSignature boundSignature, boolean calledByOperator) {
         super(signature, boundSignature);
         this.innerType = ((ArrayType<?>) boundSignature.returnType()).innerType();
+        this.calledByOperator = calledByOperator;
     }
 
     @Override
@@ -73,6 +79,11 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
                 resultList.add(innerType.sanitizeValue(value));
             }
         }
+        if (valueToAdd == null && calledByOperator) {
+            // array || null -> array (null is ignored)
+            return resultList;
+        }
+
         resultList.add(innerType.sanitizeValue(valueToAdd));
         return resultList;
     }
