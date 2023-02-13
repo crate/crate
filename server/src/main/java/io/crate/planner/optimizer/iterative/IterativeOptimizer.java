@@ -75,6 +75,16 @@ public class IterativeOptimizer {
         return memo.extract();
     }
 
+    /**
+     *
+     * This processes a group by trying to apply all the rules of the optimizer to the given group and its children.
+     * If any children are changed by a rule, the given group will be reprocessed to check if additional rules
+     * can be matched until a fixpoint is reached.
+     *
+     * @param group the id of the group to explore
+     * @param context the context of the optimizer
+     * @return true if there were any changes of plans on the node or it's children or false if not
+     */
     private boolean exploreGroup(int group, Context context) {
         // tracks whether this group or any children groups change as
         // this method executes
