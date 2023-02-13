@@ -37,6 +37,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.functions.BoundSignature;
@@ -301,13 +302,13 @@ public class UserDefinedFunctionService {
 
         for (var indexParts : indices) {
             var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState);
-            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
+            var functionParameters = getAllReferencedColumnsOfGeneratedColumns(tableInfo.generatedColumns());
+            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(functionParameters, tableInfo.ident());
             CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
                 coordinatorTxnCtx, nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
             for (var ref : tableInfo.columns()) {
-                if (ref instanceof GeneratedReference) {
-                    var genRef = (GeneratedReference) ref;
+                if (ref instanceof GeneratedReference genRef) {
                     Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
                     try {
                         exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings()));
@@ -320,5 +321,13 @@ public class UserDefinedFunctionService {
                 }
             }
         }
+    }
+
+    private List<Reference> getAllReferencedColumnsOfGeneratedColumns(List<GeneratedReference> generatedReferences) {
+        List<Reference> referencedReferences = new ArrayList<>();
+        for (var generatedRef : generatedReferences) {
+            referencedReferences.addAll(generatedRef.referencedReferences());
+        }
+        return referencedReferences;
     }
 }
