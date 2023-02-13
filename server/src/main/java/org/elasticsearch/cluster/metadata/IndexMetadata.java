@@ -685,7 +685,10 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             builder.state(state);
             builder.settings(settings);
             builder.primaryTerms(primaryTerms);
-            builder.mappings.putAll(mappings.apply(part.mappings));
+            MappingMetadata appliedMapping = mappings.apply(part.mappings).get(Constants.DEFAULT_MAPPING_TYPE);
+            if (appliedMapping != null) {
+                builder.mapping = appliedMapping;
+            }
             builder.aliases.putAll(aliases.apply(part.aliases));
             builder.customMetadata.putAll(customData.apply(part.customData));
             builder.inSyncAllocationIds.putAll(inSyncAllocationIds.apply(part.inSyncAllocationIds));
@@ -774,7 +777,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         private long settingsVersion = 1;
         private long[] primaryTerms = null;
         private Settings settings = Settings.Builder.EMPTY_SETTINGS;
-        private final ImmutableOpenMap.Builder<String, MappingMetadata> mappings;
+        private MappingMetadata mapping;
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
         private final ImmutableOpenMap.Builder<String, DiffableStringMap> customMetadata;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
@@ -782,7 +785,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
         public Builder(String index) {
             this.index = index;
-            this.mappings = ImmutableOpenMap.builder();
             this.aliases = ImmutableOpenMap.builder();
             this.customMetadata = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
@@ -796,7 +798,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             this.settingsVersion = indexMetadata.settingsVersion;
             this.settings = indexMetadata.getSettings();
             this.primaryTerms = indexMetadata.primaryTerms.clone();
-            this.mappings = ImmutableOpenMap.builder(indexMetadata.mappings);
+            this.mapping = indexMetadata.mappings.get(Constants.DEFAULT_MAPPING_TYPE);
             this.aliases = ImmutableOpenMap.builder(indexMetadata.aliases);
             this.customMetadata = ImmutableOpenMap.builder(indexMetadata.customData);
             this.routingNumShards = indexMetadata.routingNumShards;
@@ -888,8 +890,8 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             return this;
         }
 
-        public MappingMetadata mapping(String type) {
-            return mappings.get(type);
+        public MappingMetadata mapping() {
+            return mapping;
         }
 
         public Builder putMapping(String source) throws IOException {
@@ -898,9 +900,8 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         }
 
         public Builder putMapping(MappingMetadata mappingMd) {
-            mappings.clear();
             if (mappingMd != null) {
-                mappings.put(Constants.DEFAULT_MAPPING_TYPE, mappingMd);
+                mapping = mappingMd;
             }
             return this;
         }
@@ -1104,7 +1105,9 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                 numberOfShards,
                 numberOfReplicas,
                 tmpSettings,
-                mappings.build(),
+                ImmutableOpenMap.<String, MappingMetadata>builder()
+                    .fPut(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                    .build(),
                 tmpAliases.build(),
                 customMetadata.build(),
                 filledInSyncAllocationIds.build(),
