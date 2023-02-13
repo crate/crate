@@ -179,19 +179,10 @@ public class MetadataMappingService {
         boolean dirty = false;
         String index = indexService.index().getName();
         try {
-            List<String> updatedTypes = new ArrayList<>();
             DocumentMapper mapper = indexService.mapperService().documentMapper();
-            if (mapper != null) {
-                final String type = mapper.type();
-                if (!mapper.mappingSource().equals(builder.mapping().source())) {
-                    updatedTypes.add(type);
-                }
-            }
-
-            // if a single type is not up-to-date, re-send everything
-            if (updatedTypes.isEmpty() == false) {
-                LOGGER.warn("[{}] re-syncing mappings with cluster state because of types [{}]", index, updatedTypes);
+            if (mapper != null && !mapper.mappingSource().equals(builder.mapping().source())) {
                 dirty = true;
+                LOGGER.warn("[{}] re-syncing mappings with cluster state", index);
                 if (mapper != null) {
                     builder.putMapping(new MappingMetadata(mapper));
                 }
@@ -316,11 +307,10 @@ public class MetadataMappingService {
                         updatedMapping = true;
                         // use the merged mapping source
                         if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("{} update_mapping [{}] with source [{}]", index, mergedMapper.type(), updatedSource);
+                            LOGGER.debug("{} update_mapping with source [{}]", index, updatedSource);
                         } else if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info("{} update_mapping [{}]", index, mergedMapper.type());
+                            LOGGER.info("{} update_mapping", index);
                         }
-
                     }
                 } else {
                     updatedMapping = true;

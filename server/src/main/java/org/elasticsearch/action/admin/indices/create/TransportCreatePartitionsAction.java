@@ -86,6 +86,7 @@ import org.joda.time.DateTimeZone;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
@@ -243,7 +244,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 DocumentMapper mapper = mapperService.documentMapper();
                 if (mapper != null) {
                     MappingMetadata mappingMd = new MappingMetadata(mapper);
-                    mappingsMetadata.put(mapper.type(), mappingMd);
+                    mappingsMetadata.put(Constants.DEFAULT_MAPPING_TYPE, mappingMd);
                 }
 
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
