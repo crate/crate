@@ -19,25 +19,6 @@
 
 package org.elasticsearch.common.xcontent.json;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonStreamContext;
-import com.fasterxml.jackson.core.base.GeneratorBase;
-import com.fasterxml.jackson.core.filter.FilteringGeneratorDelegate;
-import com.fasterxml.jackson.core.io.SerializedString;
-import com.fasterxml.jackson.core.json.JsonWriteContext;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.core.util.JsonGeneratorDelegate;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContent;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentGenerator;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.filtering.FilterPathBasedFilter;
-import io.crate.common.io.IOUtils;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +27,28 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Set;
+
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContent;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentGenerator;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.support.filtering.FilterPathBasedFilter;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonStreamContext;
+import com.fasterxml.jackson.core.base.GeneratorBase;
+import com.fasterxml.jackson.core.filter.FilteringGeneratorDelegate;
+import com.fasterxml.jackson.core.filter.TokenFilter.Inclusion;
+import com.fasterxml.jackson.core.io.SerializedString;
+import com.fasterxml.jackson.core.json.JsonWriteContext;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.core.util.JsonGeneratorDelegate;
+
+import io.crate.common.io.IOUtils;
 
 public class JsonXContentGenerator implements XContentGenerator {
 
@@ -86,12 +89,22 @@ public class JsonXContentGenerator implements XContentGenerator {
 
         boolean hasExcludes = excludes.isEmpty() == false;
         if (hasExcludes) {
-            generator = new FilteringGeneratorDelegate(generator, new FilterPathBasedFilter(excludes, false), true, true);
+            generator = new FilteringGeneratorDelegate(
+                generator,
+                new FilterPathBasedFilter(excludes, false),
+                Inclusion.INCLUDE_ALL_AND_PATH,
+                true
+            );
         }
 
         boolean hasIncludes = includes.isEmpty() == false;
         if (hasIncludes) {
-            generator = new FilteringGeneratorDelegate(generator, new FilterPathBasedFilter(includes, true), true, true);
+            generator = new FilteringGeneratorDelegate(
+                generator,
+                new FilterPathBasedFilter(includes, true),
+                Inclusion.INCLUDE_ALL_AND_PATH,
+                true
+            );
         }
 
         if (hasExcludes || hasIncludes) {
@@ -129,10 +142,10 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     private JsonGenerator getLowLevelGenerator() {
         if (isFiltered()) {
-            JsonGenerator delegate = filter.getDelegate();
-            if (delegate instanceof JsonGeneratorDelegate) {
+            JsonGenerator delegate = filter.delegate();
+            if (delegate instanceof JsonGeneratorDelegate generatorDelegate) {
                 // In case of combined inclusion and exclusion filters, we have one and only one another delegating level
-                delegate = ((JsonGeneratorDelegate) delegate).getDelegate();
+                delegate = generatorDelegate.delegate();
                 assert delegate instanceof JsonGeneratorDelegate == false;
             }
             return delegate;
