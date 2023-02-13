@@ -23,6 +23,7 @@ package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -682,6 +683,56 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         );
     }
 
+    @Test
+    public void testBackToBackQueuedDeletes() throws Exception {
+        final String masterName = cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        final String[] snapshots = createNSnapshots(repoName, 2);
+        final String snapshotOne = snapshots[0];
+        final String snapshotTwo = snapshots[1];
+
+        final CompletableFuture<AcknowledgedResponse> deleteSnapshotOne = startAndBlockOnDeleteSnapshot(repoName, snapshotOne);
+        final CompletableFuture<AcknowledgedResponse> deleteSnapshotTwo = startDelete(repoName, snapshotTwo);
+        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 2)));
+
+        unblockNode(repoName, masterName);
+        assertAcked(deleteSnapshotOne.get());
+        assertAcked(deleteSnapshotTwo.get());
+
+        final RepositoryData repositoryData = getRepositoryData(repoName);
+        assertThat(repositoryData.getSnapshotIds()).isEmpty();
+        // Two snapshots and two distinct delete operations move us 4 steps from -1 to 3
+        assertThat(repositoryData.getGenId()).isEqualTo(3L);
+    }
+
+    @Test
+    public void testQueuedOperationsAfterFinalizationFailure() throws Exception {
+        cluster().startMasterOnlyNodes(3);
+        cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+
+        final String[] snapshotNames = createNSnapshots(repoName, randomIntBetween(2, 5));
+
+        final CompletableFuture<SnapshotInfo> snapshotThree =
+            startAndBlockFailingFullSnapshot(repoName, "snap-other");
+
+        final String masterName = cluster().getMasterName();
+
+        final String snapshotOne = snapshotNames[0];
+        final CompletableFuture<AcknowledgedResponse> deleteSnapshotOne = startDelete(repoName, snapshotOne);
+        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+
+        unblockNode(repoName, masterName);
+
+        assertBusy(() -> assertThat(snapshotThree).isCompletedExceptionally());
+        assertAcked(deleteSnapshotOne.get());
+    }
+
     private int snapshotsInProgress(ClusterState state) {
         var snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
         return snapshotsInProgress.entries().size();
@@ -803,6 +854,14 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         );
         waitForBlock(cluster().getMasterName(), blockedRepoName, TimeValue.timeValueSeconds(30L));
         return future;
+    }
+
+    private CompletableFuture<AcknowledgedResponse> startAndBlockOnDeleteSnapshot(String repoName, String snapshotName) throws Exception {
+        final String masterName = cluster().getMasterName();
+        mockRepo(repoName, masterName).setBlockOnDeleteIndexFile();
+        final CompletableFuture<AcknowledgedResponse> fut = startDelete(cluster().masterClient(), repoName, snapshotName);
+        waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
+        return fut;
     }
 
     private void assertSuccessful(CompletableFuture<SnapshotInfo> future) throws Exception {
