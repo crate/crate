@@ -21,18 +21,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.RowAccounting;
-import io.crate.common.collections.Lists2;
-import io.crate.concurrent.KillableCompletionStage;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import io.crate.execution.engine.distribution.merge.PagingIterator;
-import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
-import io.crate.execution.support.ThreadPools;
-import org.elasticsearch.index.shard.ShardId;
+import static java.util.Collections.singletonList;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,7 +33,19 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import static java.util.Collections.singletonList;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.breaker.RowAccounting;
+import io.crate.common.collections.Lists2;
+import io.crate.concurrent.KillableCompletionStage;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
+import io.crate.execution.support.ThreadPools;
 
 /**
  * Factory to create a BatchIterator which is backed by 1 or more {@link OrderedDocCollector}.
@@ -54,7 +55,7 @@ public class OrderedLuceneBatchIteratorFactory {
 
     public static BatchIterator<Row> newInstance(List<OrderedDocCollector> orderedDocCollectors,
                                                  Comparator<Row> rowComparator,
-                                                 RowAccounting rowAccounting,
+                                                 RowAccounting<Row> rowAccounting,
                                                  Executor executor,
                                                  IntSupplier availableThreads,
                                                  boolean requiresScroll) {
