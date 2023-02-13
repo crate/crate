@@ -58,11 +58,11 @@ public class IterativeOptimizer {
     }
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
-        // Create a new memo for the given plan tree
         var memo = new Memo(plan);
 
-        // Resolves a Group Reference to it's referenced LogicalPlan.
-        // This is used inside the rules to manifest the LogicalPlan from the sources
+        // Memo is used to have a mutable view over the tree so it can change nodes without
+        // having to re-build the full tree all the time.`GroupReference` is used as place-holder
+        // or proxy that must be resolved to the real plan node
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver = node -> {
             if (node instanceof GroupReference g) {
                 return memo.resolve(g.groupId());
@@ -70,11 +70,8 @@ public class IterativeOptimizer {
             // not a group reference, return same node
             return node;
         };
-        // Remove rules from the applicable rule set if some are disabled by a session setting
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        // Start exploring from the root, root group is root node from the tree
         exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, tableStats));
-        // Return the final tree with all group references resolved
         return memo.extract();
     }
 
