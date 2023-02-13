@@ -21,7 +21,10 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.replication.logical.action.GetFileChunkAction;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -37,9 +40,7 @@ import org.elasticsearch.indices.recovery.MultiFileWriter;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.List;
+import io.crate.replication.logical.action.GetFileChunkAction;
 
 public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFileMetadata, RemoteClusterRepositoryFileChunk> {
 
@@ -50,7 +51,6 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
     private final String restoreUUID;
     private final ShardId remoteShardId;
     private final String localClusterName;
-    private final RecoveryState recoveryState;
     private final Client client;
     private final ThreadPool threadPool;
     private final ByteSizeValue chunkSize;
@@ -77,7 +77,6 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
         this.restoreUUID = restoreUUID;
         this.remoteNode = remoteNode;
         this.remoteShardId = remoteShardId;
-        this.recoveryState = recoveryState;
         this.client = client;
         this.threadPool = threadPool;
         this.chunkSize = chunkSize;

@@ -73,6 +73,8 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
+import io.crate.action.FutureActionListener;
+import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -390,13 +392,26 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 // 2. Request for individual files from publisher cluster for this shardId
                 // make sure the store is not released until we are done.
                 var fileMetadata = new ArrayList<>(metadataSnapshot.asMap().values());
+
+                FutureActionListener<Void, Void> chunkTransferCompleted = FutureActionListener.newInstance();
+                chunkTransferCompleted.whenComplete((result, throwable) -> {
+                    if (throwable == null) {
+                        LOGGER.info("Restore successful for {}", store.shardId());
+                        releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
+                        recoveryState.getIndex().setFileDetailsComplete();
+                        listener.onResponse(null);
+                    } else {
+                        LOGGER.error("Restore of " + store.shardId() + " failed due to ", throwable);
+                        releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
+                        listener.onFailure(Exceptions.toException(throwable));
+                    }
+                });
                 var multiChunkTransfer = new RemoteClusterMultiChunkTransfer(
                     LOGGER,
                     clusterService.getClusterName().value(),
                     store,
                     replicationSettings.maxConcurrentFileChunks(),
                     restoreUUID,
-                    //metadata,
                     publisherShardNode,
                     shardId,
                     fileMetadata,
@@ -404,23 +419,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     threadPool,
                     recoveryState,
                     replicationSettings.recoveryChunkSize(),
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(Void unused) {
-                            LOGGER.info("Restore successful for {}", store.shardId());
-                            releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
-                            recoveryState.getIndex().setFileDetailsComplete();
-                            listener.onResponse(null);
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            LOGGER.error("Restore of " + store.shardId() + " failed due to ", e);
-                            releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
-                            listener.onFailure(e);
-                        }
-                    }
+                    chunkTransferCompleted
                 );
+                chunkTransferCompleted.whenComplete((result, throwable) -> IOUtils.closeWhileHandlingException(multiChunkTransfer));
                 if (fileMetadata.isEmpty()) {
                     LOGGER.info("Initializing with empty store for shard: {}", shardId.getId());
                     try {
