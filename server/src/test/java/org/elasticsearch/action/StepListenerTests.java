@@ -19,9 +19,10 @@
 
 package org.elasticsearch.action;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +33,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 public class StepListenerTests extends ESTestCase {
     private ThreadPool threadPool;
@@ -46,6 +48,7 @@ public class StepListenerTests extends ESTestCase {
         terminate(threadPool);
     }
 
+    @Test
     public void testSimpleSteps() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         Consumer<Exception> onFailure = e -> {
@@ -59,10 +62,11 @@ public class StepListenerTests extends ESTestCase {
         step1.whenComplete(str -> executeAction(() -> step2.onResponse(str.length())), onFailure);
         step2.whenComplete(length -> executeAction(latch::countDown), onFailure);
         latch.await();
-        assertThat(step1.result(), equalTo("hello"));
-        assertThat(step2.result(), equalTo(5));
+        assertThat(step1.result()).isEqualTo("hello");
+        assertThat(step2.result()).isEqualTo(5);
     }
 
+    @Test
     public void testAbortOnFailure() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         int failedStep = randomBoolean() ? 1 : 2;
@@ -70,7 +74,7 @@ public class StepListenerTests extends ESTestCase {
         Consumer<Exception> onFailure = e -> {
             failureNotified.getAndIncrement();
             latch.countDown();
-            assertThat(e.getMessage(), equalTo("failed at step " + failedStep));
+            assertThat(e.getMessage()).isEqualTo("failed at step " + failedStep);
         };
 
         StepListener<String> step1 = new StepListener<>(); //[a]sync provide a string
@@ -91,17 +95,20 @@ public class StepListenerTests extends ESTestCase {
 
         step2.whenComplete(length -> latch.countDown(), onFailure);
         latch.await();
-        assertThat(failureNotified.get(), equalTo(1));
+        assertThat(failureNotified.get()).isEqualTo(1);
 
         if (failedStep == 1) {
-            assertThat(expectThrows(RuntimeException.class, step1::result).getMessage(),
-                       equalTo("failed at step 1"));
-            assertThat(expectThrows(RuntimeException.class, step2::result).getMessage(),
-                       equalTo("step is not completed yet"));
+            assertThatThrownBy(step1::result)
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("failed at step 1");
+            assertThatThrownBy(step2::result)
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("step is not completed yet");
         } else {
-            assertThat(step1.result(), equalTo("hello"));
-            assertThat(expectThrows(RuntimeException.class, step2::result).getMessage(),
-                       equalTo("failed at step 2"));
+            assertThat(step1.result()).isEqualTo("hello");
+            assertThatThrownBy(step2::result)
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("failed at step 2");
         }
     }
 
