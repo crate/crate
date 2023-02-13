@@ -22,11 +22,10 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +55,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
@@ -89,8 +90,13 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     private boolean[] reverseFlags = new boolean[]{true};
     private boolean[] nullsFirst = new boolean[]{true};
 
+    @Mock
+    public RowAccounting<Row> rowAccounting;
+
     @Before
     public void prepareSearchers() throws Exception {
+        MockitoAnnotations.openMocks(this);
+
         IndexWriter iw1 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         IndexWriter iw2 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
 
@@ -142,7 +148,6 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Test
     public void testSingleCollectorOrderedLuceneBatchIteratorTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccounting.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
@@ -161,7 +166,6 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Test
     public void testOrderedLuceneBatchIteratorWithMultipleCollectorsTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccountingWithEstimators.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
@@ -188,7 +192,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(luceneOrderedDocCollector),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            mock(RowAccounting.class),
+            rowAccounting,
             c -> {
                 var t = new Thread(c);
                 collectThread.set(t);
@@ -203,12 +207,12 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
         // Ensure that the collect thread is running
         latch.await(1, TimeUnit.SECONDS);
-        assertThat(collectThread.get().isAlive(), is(true));
+        assertThat(collectThread.get().isAlive()).isTrue();
 
         rowBatchIterator.kill(new InterruptedException("killed"));
 
-        expectedException.expect(InterruptedException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)
@@ -216,9 +220,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(rowBatchIterator, null);
 
-        expectedException.expect(exception.getClass());
-        expectedException.expectMessage(exception.getMessage());
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(exception.getClass())
+            .hasMessage(exception.getMessage());
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
