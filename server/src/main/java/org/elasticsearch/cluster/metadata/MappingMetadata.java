@@ -66,7 +66,7 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> sourceAsMap() throws ElasticsearchParseException {
-        Map<String, Object> mapping = XContentHelper.convertToMap(source.compressedReference(), true).map();
+        Map<String, Object> mapping = XContentHelper.convertToMap(source.compressedReference(), true, XContentType.JSON).map();
         if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
             // the type name is the root value, reduce it
             mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);

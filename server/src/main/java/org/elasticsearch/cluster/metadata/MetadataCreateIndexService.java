@@ -93,7 +93,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.Constants;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -460,12 +459,6 @@ public class MetadataCreateIndexService {
                 }
 
                 // now, update the mappings with the actual source
-                Map<String, MappingMetadata> mappingsMetadata = new HashMap<>();
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    MappingMetadata mappingMd = new MappingMetadata(mapper);
-                    mappingsMetadata.put(Constants.DEFAULT_MAPPING_TYPE, mappingMd);
-                }
 
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(request.index())
                     .settings(actualIndexSettings)
@@ -475,10 +468,10 @@ public class MetadataCreateIndexService {
                     indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));
                 }
 
-                for (MappingMetadata mappingMd : mappingsMetadata.values()) {
-                    indexMetadataBuilder.putMapping(mappingMd);
+                DocumentMapper mapper = mapperService.documentMapper();
+                if (mapper != null) {
+                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
                 }
-
                 for (AliasMetadata aliasMetadata : templatesAliases.values()) {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
