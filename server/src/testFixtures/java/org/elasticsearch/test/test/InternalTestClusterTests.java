@@ -20,14 +20,12 @@
  */
 package org.elasticsearch.test.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileNotExists;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -63,6 +61,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
@@ -75,9 +74,10 @@ import io.crate.common.io.IOUtils;
 public class InternalTestClusterTests extends ESTestCase {
 
     private static Collection<Class<? extends Plugin>> mockPlugins() {
-        return Arrays.asList(MockHttpTransport.TestPlugin.class);
+        return Arrays.asList(MockHttpTransport.TestPlugin.class, Netty4Plugin.class);
     }
 
+    @Test
     public void testInitializiationIsConsistent() {
         long clusterSeed = randomLong();
         boolean masterNodes = randomBoolean();
@@ -116,14 +116,15 @@ public class InternalTestClusterTests extends ESTestCase {
         Settings defaultSettings0 = cluster0.getDefaultSettings();
         Settings defaultSettings1 = cluster1.getDefaultSettings();
         assertSettings(defaultSettings0, defaultSettings1, checkClusterUniqueSettings);
-        assertThat(cluster0.numDataNodes(), equalTo(cluster1.numDataNodes()));
+        assertThat(cluster0.numDataNodes()).isEqualTo(cluster1.numDataNodes());
     }
 
     public static void assertSettings(Settings left, Settings right, boolean checkClusterUniqueSettings) {
         Set<String> keys0 = left.keySet();
         Set<String> keys1 = right.keySet();
-        assertThat("--> left:\n" + left.toDelimitedString('\n') +  "\n-->right:\n" + right.toDelimitedString('\n'),
-                   keys0.size(), equalTo(keys1.size()));
+        assertThat(keys0)
+            .as("--> left:\n" + left.toDelimitedString('\n') +  "\n-->right:\n" + right.toDelimitedString('\n'))
+            .hasSize(keys1.size());
         for (String key : keys0) {
             if (clusterUniqueSettings.contains(key) && checkClusterUniqueSettings == false) {
                 continue;
@@ -133,6 +134,7 @@ public class InternalTestClusterTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testBeforeTest() throws Exception {
         final boolean autoManageMinMasterNodes = randomBoolean();
         long clusterSeed = randomLong();
@@ -178,15 +180,34 @@ public class InternalTestClusterTests extends ESTestCase {
         };
 
         String nodePrefix = "foobar";
-
-        TestCluster cluster0 = new TestCluster(clusterSeed, createTempDir(), masterNodes,
-                                                               autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, "clustername", nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, mockPlugins());
+        TestCluster cluster0 = new TestCluster(
+            clusterSeed,
+            createTempDir(),
+            masterNodes,
+            autoManageMinMasterNodes,
+            minNumDataNodes,
+            maxNumDataNodes,
+            "clustername",
+            nodeConfigurationSource,
+            numClientNodes,
+            nodePrefix,
+            mockPlugins()
+        );
         cluster0.setBootstrapMasterNodeIndex(bootstrapMasterNodeIndex);
 
-        TestCluster cluster1 = new TestCluster(clusterSeed, createTempDir(), masterNodes,
-                                                               autoManageMinMasterNodes, minNumDataNodes, maxNumDataNodes, "clustername", nodeConfigurationSource, numClientNodes,
-                                                               nodePrefix, mockPlugins());
+        TestCluster cluster1 = new TestCluster(
+            clusterSeed,
+            createTempDir(),
+            masterNodes,
+            autoManageMinMasterNodes,
+            minNumDataNodes,
+            maxNumDataNodes,
+            "clustername",
+            nodeConfigurationSource,
+            numClientNodes,
+            nodePrefix,
+            mockPlugins()
+        );
         cluster1.setBootstrapMasterNodeIndex(bootstrapMasterNodeIndex);
 
         assertClusters(cluster0, cluster1, false);
@@ -214,6 +235,7 @@ public class InternalTestClusterTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDataFolderAssignmentAndCleaning() throws IOException, InterruptedException {
         long clusterSeed = randomLong();
         boolean masterNodes = randomBoolean();
@@ -243,9 +265,19 @@ public class InternalTestClusterTests extends ESTestCase {
         };
         String nodePrefix = "test";
         Path baseDir = createTempDir();
-        TestCluster cluster = new TestCluster(clusterSeed, baseDir, masterNodes,
-                                                              true, minNumDataNodes, maxNumDataNodes, clusterName1, nodeConfigurationSource, numClientNodes,
-                                                              nodePrefix, mockPlugins());
+        TestCluster cluster = new TestCluster(
+            clusterSeed,
+            baseDir,
+            masterNodes,
+            true,
+            minNumDataNodes,
+            maxNumDataNodes,
+            clusterName1,
+            nodeConfigurationSource,
+            numClientNodes,
+            nodePrefix,
+            mockPlugins()
+        );
         try {
             cluster.beforeTest(random());
             final int originalMasterCount = cluster.numMasterNodes();
@@ -265,32 +297,35 @@ public class InternalTestClusterTests extends ESTestCase {
             final String stableNode = randomFrom(cluster.getNodeNames());
             final Path stableDataPath = getNodePaths(cluster, stableNode)[0];
             final Path stableTestMarker = stableDataPath.resolve("stableTestMarker");
-            assertThat(stableDataPath, not(dataPath));
+            assertThat(stableDataPath).isNotEqualTo(dataPath);
             Files.createDirectories(stableTestMarker);
 
             final String newNode1 =  cluster.startNode();
-            assertThat(getNodePaths(cluster, newNode1)[0], not(dataPath));
+            assertThat(getNodePaths(cluster, newNode1)[0]).isNotEqualTo(dataPath);
             assertFileExists(testMarker); // starting a node should re-use data folders and not clean it
             final String newNode2 =  cluster.startNode();
             final Path newDataPath = getNodePaths(cluster, newNode2)[0];
             final Path newTestMarker = newDataPath.resolve("newTestMarker");
-            assertThat(newDataPath, not(dataPath));
+            assertThat(newDataPath).isNotEqualTo(dataPath);
             Files.createDirectories(newTestMarker);
             final String newNode3 =  cluster.startNode(poorNodeDataPathSettings);
-            assertThat(getNodePaths(cluster, newNode3)[0], equalTo(dataPath));
+            assertThat(getNodePaths(cluster, newNode3)[0]).isEqualTo(dataPath);
             cluster.beforeTest(random());
             assertFileNotExists(newTestMarker); // the cluster should be reset for a new test, cleaning up the extra path we made
             assertFileNotExists(testMarker); // a new unknown node used this path, it should be cleaned
             assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
-                assertThat("data paths for " + name + " changed", getNodePaths(cluster, name), equalTo(shardNodePaths.get(name)));
+                assertThat(getNodePaths(cluster, name))
+                    .as("data paths for " + name + " changed")
+                    .isEqualTo(shardNodePaths.get(name));
             }
 
             cluster.beforeTest(random());
             assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
-                assertThat("data paths for " + name + " changed", getNodePaths(cluster, name),
-                           equalTo(shardNodePaths.get(name)));
+                assertThat(getNodePaths(cluster, name))
+                    .as("data paths for " + name + " changed")
+                    .isEqualTo(shardNodePaths.get(name));
             }
         } finally {
             cluster.close();
@@ -306,6 +341,7 @@ public class InternalTestClusterTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDifferentRolesMaintainPathOnRestart() throws Exception {
         final Path baseDir = createTempDir();
         final int numNodes = 5;
@@ -375,9 +411,11 @@ public class InternalTestClusterTests extends ESTestCase {
                 }
             }
 
-            assertThat(result.size(), equalTo(pathsPerRole.size()));
+            assertThat(result).hasSize(pathsPerRole.size());
             for (DiscoveryNodeRole role : result.keySet()) {
-                assertThat("path are not the same for " + role, result.get(role), equalTo(pathsPerRole.get(role)));
+                assertThat(result.get(role))
+                    .as("path are not the same for " + role)
+                    .isEqualTo(pathsPerRole.get(role));
             }
         } finally {
             cluster.close();
