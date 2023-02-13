@@ -52,7 +52,6 @@ import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.indices.InvalidTypeNameException;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
@@ -275,33 +274,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return internalMerge(documentMapper, reason);
     }
 
-    static void validateTypeName(String type) {
-        if (type.length() == 0) {
-            throw new InvalidTypeNameException("mapping type name is empty");
-        }
-        if (type.length() > 255) {
-            throw new InvalidTypeNameException("mapping type name [" + type + "] is too long; limit is length 255 but was [" + type.length() + "]");
-        }
-        if (type.charAt(0) == '_' && SINGLE_MAPPING_NAME.equals(type) == false) {
-            throw new InvalidTypeNameException("mapping type name [" + type + "] can't start with '_' unless it is called [" + SINGLE_MAPPING_NAME + "]");
-        }
-        if (type.contains("#")) {
-            throw new InvalidTypeNameException("mapping type name [" + type + "] should not include '#' in it");
-        }
-        if (type.contains(",")) {
-            throw new InvalidTypeNameException("mapping type name [" + type + "] should not include ',' in it");
-        }
-        if (type.charAt(0) == '.') {
-            throw new IllegalArgumentException("mapping type name [" + type + "] must not start with a '.'");
-        }
-    }
-
     private synchronized DocumentMapper internalMerge(DocumentMapper mapper, MergeReason reason) {
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
 
         assert mapper != null;
-        // check naming
-        validateTypeName(mapper.type());
 
         // compute the merged DocumentMapper
         DocumentMapper oldMapper = this.mapper;

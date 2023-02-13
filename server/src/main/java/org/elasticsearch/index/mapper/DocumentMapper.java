@@ -107,8 +107,6 @@ public class DocumentMapper implements ToXContentFragment {
 
     private final MapperService mapperService;
 
-    private final String type;
-
     private final CompressedXContent mappingSource;
 
     private final Mapping mapping;
@@ -124,7 +122,6 @@ public class DocumentMapper implements ToXContentFragment {
 
     public DocumentMapper(MapperService mapperService, Mapping mapping) {
         this.mapperService = mapperService;
-        this.type = mapping.root().name();
         final IndexSettings indexSettings = mapperService.getIndexSettings();
         this.mapping = mapping;
         this.documentParser = new DocumentParser(indexSettings, mapperService.documentMapperParser(), this);
@@ -164,7 +161,7 @@ public class DocumentMapper implements ToXContentFragment {
         try {
             mappingSource = new CompressedXContent(this, XContentType.JSON, ToXContent.EMPTY_PARAMS);
         } catch (Exception e) {
-            throw new ElasticsearchGenerationException("failed to serialize source for type [" + type + "]", e);
+            throw new ElasticsearchGenerationException("failed to serialize source", e);
         }
 
         final Collection<String> deleteTombstoneMetadataFields = Arrays.asList(DocSysColumns.VERSION.name(), IdFieldMapper.NAME,
@@ -194,10 +191,6 @@ public class DocumentMapper implements ToXContentFragment {
         return mapping;
     }
 
-    public String type() {
-        return this.type;
-    }
-
     public CompressedXContent mappingSource() {
         return this.mappingSource;
     }
@@ -206,7 +199,6 @@ public class DocumentMapper implements ToXContentFragment {
         return mapping.root;
     }
 
-    @SuppressWarnings({"unchecked"})
     public <T extends MetadataFieldMapper> T metadataMapper(Class<T> type) {
         return mapping.metadataMapper(type);
     }

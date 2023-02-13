@@ -25,6 +25,8 @@ import java.util.Map;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.Constants;
+
 public class RootObjectMapper extends ObjectMapper {
 
     private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
@@ -44,6 +46,7 @@ public class RootObjectMapper extends ObjectMapper {
         @Override
         protected ObjectMapper createMapper(String name, int position, String fullPath, Dynamic dynamic,
                 Map<String, Mapper> mappers, Settings settings) {
+            assert name.equals(Constants.DEFAULT_MAPPING_TYPE) : "Name of root mapper must match `default`: " + name;
             return new RootObjectMapper(
                 name,
                 dynamic,
