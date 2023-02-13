@@ -157,23 +157,11 @@ public class IterativeOptimizer {
         return progress;
     }
 
-    private static class Context {
-        final Memo memo;
-        final Function<LogicalPlan, LogicalPlan> groupReferenceResolver;
-        final CoordinatorTxnCtx txnCtx;
-        final TableStats tableStats;
-        final List<Rule<?>> rules;
-
-        public Context(Memo memo,
-                       Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
-                       List<Rule<?>> rules,
-                       CoordinatorTxnCtx txnCtx,
-                       TableStats tableStats) {
-            this.memo = memo;
-            this.groupReferenceResolver = groupReferenceResolver;
-            this.txnCtx = txnCtx;
-            this.tableStats = tableStats;
-            this.rules = rules;
-        }
-    }
+    private record Context(
+        Memo memo,
+        Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
+        List<Rule<?>> rules,
+        CoordinatorTxnCtx txnCtx,
+        TableStats tableStats
+    ) {}
 }
