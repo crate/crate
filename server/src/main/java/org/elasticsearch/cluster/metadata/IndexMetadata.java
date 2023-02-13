@@ -64,9 +64,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
@@ -925,7 +926,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         }
 
         public Builder putMapping(String source) throws IOException {
-            putMapping(new MappingMetadata(XContentHelper.convertToMap(XContentFactory.xContent(source), source, true)));
+            putMapping(new MappingMetadata(XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, source, true)));
             return this;
         }
 
@@ -1172,7 +1173,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                 if (binary) {
                     builder.value(mmd.source().compressed());
                 } else {
-                    builder.map(XContentHelper.convertToMap(mmd.source().uncompressed(), true).map());
+                    builder.map(XContentHelper.convertToMap(mmd.source().uncompressed(), true, XContentType.JSON).map());
                 }
             }
             builder.endArray();
