@@ -32,7 +32,9 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import org.elasticsearch.transport.Netty4Plugin;
 
+import io.crate.auth.AuthenticationHttpAuthHandlerRegistry;
 import io.crate.auth.Protocol;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -45,8 +47,8 @@ import io.netty.handler.ssl.SslHandler;
  * The PipelineRegistry takes care of adding handlers to the existing
  * ES ChannelPipeline at the appropriate positions.
  *
- * This singleton is injected in the AuthenticationProvider (see users module)
- * and is provided by the {@link HttpTransportPlugin}.
+ * This singleton is injected in the {@link AuthenticationHttpAuthHandlerRegistry}
+ * and is provided by the {@link Netty4Plugin}.
  */
 @Singleton
 public class PipelineRegistry {
