@@ -19,16 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.bugfix;
+package io.crate.cluster.commands;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.elasticsearch.cli.Terminal;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -36,27 +41,31 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.gateway.PersistedClusterStateService;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Tuple;
 import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import joptsimple.OptionSet;
 
 /**
  * Class to fix metadata corruption caused by SWAP TABLE statements like
  *
  * <pre>
- *  ALTER CLUSTER SWAP TABLE "telegraf"."metrics_new" TO "telegraf.metrics";
+ *  ALTER CLUSTER SWAP TABLE "myschema"."mytable" TO "myschema.mytable";
  * </pre>
  *
  * <p>
- * Quoting the full name ("telegraf.metrics") instead of schema and table
- * separate ("telegraf"."metrics") corrupted the metadata. It assumed
- * "telegraf.metrics" is the table name, and used "doc" (or current schema from
+ * Quoting the full name ("myschema.mytable") instead of schema and table
+ * separate ("myschema"."mytable") corrupted the metadata. It assumed
+ * "myschema.mytable" is the table name, and used "doc" (or current schema from
  * search path) as schema. A `.` is used in the template and index name to encode schema, table
  * and partition name. Having a `.` within the table name part broke the
  * encoding.
@@ -96,12 +105,12 @@ import io.crate.metadata.RelationName;
  * Below lists the issues that could arise while swapping due to the invalid template name:
  * <ol>
  *  <li> The first step of the swap is to remove existing template/indices - indices are properly identified and remove while template cannot be found/removed.
- *  <p> See {@link CorruptedMetadataFixer#fixInconsistencyBetweenIndexAndTemplates} how the un-removed template is removed.
+ *  <p> See {@link FixCorruptedMetadataCommand#fixInconsistencyBetweenIndexAndTemplates} how the un-removed template is removed.
  *  <li> As part of the swap, there is a table that needs to be renamed to ".partitioned.m.t.[<ident>]" (corrupting both indices/template names)
- *  <p> See {@link CorruptedMetadataFixer#fixNameOfIndexMetadata} and {@link CorruptedMetadataFixer#fixNameOfTemplateMetadata} how the names are fixed.
+ *  <p> See {@link FixCorruptedMetadataCommand#fixNameOfIndexMetadata} and {@link FixCorruptedMetadataCommand#fixNameOfTemplateMetadata} how the names are fixed.
  *  <li> Lastly, m.t also needs to be renamed. Since there is no template named ".partitioned.m.t.", m.t is considered non-partitioned.
  *       Although all concrete indices for m.t are identified, they would overwrite one another and the last one to be renamed remains and is converted to non-partitioned index.
- *  <p> See {@link CorruptedMetadataFixer#fixInconsistencyBetweenIndexAndTemplates} how a partitioned table is recovered using the single remaining non-partitioned index.
+ *  <p> See {@link FixCorruptedMetadataCommand#fixInconsistencyBetweenIndexAndTemplates} how a partitioned table is recovered using the single remaining non-partitioned index.
  * </ol>
  *
  *
@@ -109,22 +118,59 @@ import io.crate.metadata.RelationName;
  * See https://github.com/crate/crate/issues/13380
  * </p>
  **/
-public class CorruptedMetadataFixer {
+public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
 
-    // https://github.com/crate/crate/issues/13380
-    public static Metadata fixCorruptionCausedBySwapTableBug(Metadata metadata) {
-        final Metadata.Builder fixedMetadata = Metadata.builder(metadata);
+    public static final String METADATA_FIXED_MSG = "Metadata has been fixed";
+    public static final String CONFIRMATION_MSG =
+        DELIMITER +
+        "\n" +
+        "You should only run this tool if you have ended up with corrupted metadata\n" +
+        "because of a table swap like: ALTER CLUSTER SWAP TABLE \"schema\".\"table\" TO \"schema.table\".\n" +
+        "\n" +
+        "Do you want to proceed?\n";
 
-        fixNameOfTemplateMetadata(metadata.templates(), fixedMetadata);
+    public FixCorruptedMetadataCommand() {
+        super("Fix corrupted metadata as a result of a table swap like: " +
+              "ALTER CLUSTER SWAP TABLE \"myschema\".\"mytable\" TO \"myschema.mytable\"");
+    }
 
-        for (var indexMetadata : metadata) {
+    @Override
+    public void processNodePaths(Terminal terminal,
+                                 Path[] dataPaths,
+                                 OptionSet options,
+                                 Environment env) throws IOException {
+
+        terminal.println(Terminal.Verbosity.VERBOSE, "Loading cluster state");
+
+        final PersistedClusterStateService persistedClusterStateService =
+            createPersistedClusterStateService(env.settings(), dataPaths);
+        final Tuple<Long, ClusterState> termAndClusterState =
+                loadTermAndClusterState(persistedClusterStateService, env);
+        final long currentTerm = termAndClusterState.v1();
+        final ClusterState oldClusterState = termAndClusterState.v2();
+        final Metadata oldMetadata = persistedClusterStateService.loadBestOnDiskState().metadata;
+        final Metadata.Builder fixedMetadata = Metadata.builder(oldMetadata);
+
+        fixNameOfTemplateMetadata(oldMetadata.templates(), fixedMetadata);
+
+        for (var indexMetadata : oldMetadata) {
             fixNameOfIndexMetadata(indexMetadata, fixedMetadata);
         }
-        for (var indexMetadata : metadata) {
+        for (var indexMetadata : oldMetadata) {
             fixInconsistencyBetweenIndexAndTemplates(indexMetadata, fixedMetadata);
         }
 
-        return fixedMetadata.build();
+        final ClusterState newClusterState = ClusterState.builder(oldClusterState)
+            .metadata(fixedMetadata.build()).build();
+
+        terminal.println(Terminal.Verbosity.VERBOSE,
+                         "[old cluster state = " + oldClusterState + ", new cluster state = " + newClusterState + "]");
+
+        confirm(terminal, CONFIRMATION_MSG);
+        try (PersistedClusterStateService.Writer writer = persistedClusterStateService.createWriter()) {
+            writer.writeFullStateAndCommit(currentTerm, newClusterState);
+        }
+        terminal.println(METADATA_FIXED_MSG);
     }
 
     /**

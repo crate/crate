@@ -2,6 +2,12 @@
 Git & Release workflow
 ======================
 
+Git worktree
+============
+
+See how you can use `git worktree`_ to work conveniently with release branches.
+
+
 Git workflow
 ============
 
@@ -109,3 +115,4 @@ checkbox, and then saving the changes.
 
 .. _Jenkins: http://jenkins-ci.org/
 .. _versions hosted on ReadTheDocs: https://readthedocs.org/projects/crate/versions/
+.. _git worktree: basics.rst#work-with-release-branches

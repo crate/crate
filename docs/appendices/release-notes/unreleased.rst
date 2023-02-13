@@ -74,17 +74,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed a race condition that could lead to an error reporting that a partition
-  was not found when running ``DELETE FROM <table> WHERE partition_column = ?``
-  statements.
-
-- Fixed runtime ``ClassCastException`` when attempting to
-  :ref:`ORDER BY <sql-select-order-by>` an :ref:`INTERVAL <type-interval>` type,
-  or when attempting to use :ref:`MIN <aggregation-min>` or
-  :ref:`MAX <aggregation-max>` aggregations on an
-  :ref:`INTERVAL <type-interval>` type, and return an error message about
-  unsupported type during analysis of a query.
-
-- Disallowed comparison operators between :ref:`INTERVAL <type-interval>` types,
-  except for ``=`` and ``<>``, Previously, ``null`` was returned in any of the
-  ``>``, ``>=``, ``<``, ``<=``, comparisons.
+None

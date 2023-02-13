@@ -21,16 +21,18 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.TimeTZ;
-import io.netty.buffer.ByteBuf;
-
-import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
-
 import static io.crate.types.TimeTZParser.formatTime;
 import static io.crate.types.TimeTZParser.parse;
 import static io.crate.types.TimeTZType.TYPE_SIZE;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+
+import javax.annotation.Nonnull;
+
+import io.crate.types.Regproc;
+import io.crate.types.TimeTZ;
+import io.netty.buffer.ByteBuf;
 
 
 final class TimeTZType extends PGType<TimeTZ> {
@@ -58,6 +60,16 @@ final class TimeTZType extends PGType<TimeTZ> {
     @Override
     public String type() {
         return Type.BASE.code();
+    }
+
+    @Override
+    public Regproc typSend() {
+        return Regproc.of("timetz_send");
+    }
+
+    @Override
+    public Regproc typReceive() {
+        return Regproc.of("timetz_recv");
     }
 
     @Override
