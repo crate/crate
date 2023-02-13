@@ -25,6 +25,7 @@ import static java.util.Collections.emptySet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NotifyOnceListener;
@@ -36,8 +37,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.SendRequestTransportException;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportService;
@@ -146,11 +149,17 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                                     // we opened a connection and successfully performed a low-level handshake, so we were definitely
                                     // talking to an Elasticsearch node, but the high-level handshake failed indicating some kind of
                                     // mismatched configurations (e.g. cluster name) that the user should address
-                                    LOGGER.warn(new ParameterizedMessage("handshake failed for [{}]", thisConnectionAttempt), e);
+
+                                    boolean nodeClosed = e instanceof AlreadyClosedException
+                                        || (e instanceof SendRequestTransportException transportException
+                                            && transportException.getCause() instanceof NodeClosedException);
+
+                                    if (!nodeClosed) {
+                                        LOGGER.warn(new ParameterizedMessage("handshake failed for [{}]", thisConnectionAttempt), e);
+                                    }
                                     IOUtils.closeWhileHandlingException(connection);
                                     listener.onFailure(e);
                                 }
-
                             });
 
                         }
