@@ -21,7 +21,10 @@
 
 package io.crate.replication.logical.repository;
 
-import io.crate.replication.logical.action.GetFileChunkAction;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
@@ -37,9 +40,7 @@ import org.elasticsearch.indices.recovery.MultiFileWriter;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.List;
+import io.crate.replication.logical.action.GetFileChunkAction;
 
 public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFileMetadata, RemoteClusterRepositoryFileChunk> {
 
@@ -56,7 +57,6 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
     private final ByteSizeValue chunkSize;
     private final String tempFilePrefix;
     private final MultiFileWriter multiFileWriter;
-    private final Object lock = new Object();
     private long offset = 0L;
 
     public RemoteClusterMultiChunkTransfer(Logger logger,
@@ -109,46 +109,40 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
             request.offset(),
             request.length()
         );
-
-
-        client.execute(GetFileChunkAction.INSTANCE, getFileChunkRequest)
-            .whenComplete((response, err) -> {
-                if (err == null) {
-                    LOGGER.debug("Filename: {}, response_size: {}, response_offset: {}",
-                                    request.storeFileMetadata().name(),
-                                    response.data().length(),
-                                    response.offset()
-                    );
-                    try {
-                        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
-                            () -> {
-                                synchronized (lock) {
-                                    try {
-                                        multiFileWriter.writeFileChunk(
-                                            response.storeFileMetadata(),
-                                            response.offset(),
-                                            response.data(),
-                                            request.lastChunk()
-                                        );
-                                        listener.onResponse(null);
-                                    } catch (IOException e) {
-                                        listener.onFailure(new UncheckedIOException(e));
-                                    }
-                                }
-                            }
-                        );
-                    } catch (EsRejectedExecutionException e) {
-                        listener.onFailure(e);
-                    }
-                } else {
-                    LOGGER.error(
-                        "Failed to fetch file chunk for {} with offset {}",
-                        request.storeFileMetadata().name(),
-                        request.offset(),
-                        err
-                    );
+        var fileChunkResponse = client.execute(GetFileChunkAction.INSTANCE, getFileChunkRequest);
+        fileChunkResponse.whenComplete((response, err) -> {
+            if (err == null) {
+                LOGGER.debug("Filename: {}, response_size: {}, response_offset: {}",
+                                request.storeFileMetadata().name(),
+                                response.data().length(),
+                                response.offset()
+                );
+                try {
+                    threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
+                        try {
+                            multiFileWriter.writeFileChunk(
+                                response.storeFileMetadata(),
+                                response.offset(),
+                                response.data(),
+                                request.lastChunk()
+                            );
+                            listener.onResponse(null);
+                        } catch (IOException e) {
+                            listener.onFailure(new UncheckedIOException(e));
+                        }
+                    });
+                } catch (EsRejectedExecutionException e) {
+                    listener.onFailure(e);
                 }
-            });
+            } else {
+                LOGGER.error(
+                    "Failed to fetch file chunk for {} with offset {}",
+                    request.storeFileMetadata().name(),
+                    request.offset(),
+                    err
+                );
+            }
+        });
     }
 
     @Override
