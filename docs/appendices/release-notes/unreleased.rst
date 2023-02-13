@@ -75,3 +75,6 @@ Fixes
     IllegalStateException[OuterColumn `y` must appear in input of
     CorrelatedJoin]
 
+- Fixed an issue that caused ``DROP FUNCTION`` to throw a
+  ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
+  justifying why a function cannot be dropped.
