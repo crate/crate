@@ -57,7 +57,7 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> groupReferenceResolver) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
         if (relation.function().name().equals(ValuesFunction.NAME)) {
