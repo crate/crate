@@ -49,6 +49,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoryData;
+import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
@@ -504,10 +505,22 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         unblockNode(repoName, dataNode);
         unblockNode(repoName, dataNode2);
 
-        assertThat(firstDeleteFuture.get().isAcknowledged()).isTrue();
-        assertThat(delOne.get().isAcknowledged()).isTrue();
-        assertThat(delTwo.get().isAcknowledged()).isTrue();
-        assertThat(delThree.get().isAcknowledged()).isTrue();
+        try {
+            assertThat(firstDeleteFuture.get().isAcknowledged()).isTrue();
+            assertThat(delOne.get().isAcknowledged()).isTrue();
+            assertThat(delTwo.get().isAcknowledged()).isTrue();
+            assertThat(delThree.get().isAcknowledged()).isTrue();
+        } catch (RepositoryException rex) {
+            // rarely the master node fails over twice when shutting down the initial master and fails the transport listener
+            assertThat(rex.repository()).isEqualTo("_all");
+            assertThat(rex.getMessage()).endsWith("Failed to update cluster state during repository operation");
+        } catch (SnapshotMissingException sme) {
+            // very rarely a master node fail-over happens at such a time that the client on the data-node sees a disconnect exception
+            // after the master has already started the delete, leading to the delete retry to run into a situation where the
+            // snapshot has already been deleted potentially
+            assertThat(sme.getSnapshotName()).isEqualTo(firstSnapshot);
+        }
+
         assertThat(snapshotThreeFuture).isCompletedExceptionally();
 
         logger.info("--> verify that all snapshots are gone and no more work is left in the cluster state");
