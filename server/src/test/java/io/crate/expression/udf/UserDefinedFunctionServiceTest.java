@@ -174,7 +174,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
                                "foo",
                                metadataWithoutFunction,
                                clusterService.state()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(o['id'])'");
     }
 }
