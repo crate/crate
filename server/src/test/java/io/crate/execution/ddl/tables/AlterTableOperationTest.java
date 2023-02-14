@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_WRITE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -31,6 +30,7 @@ import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOP
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -75,19 +75,17 @@ public class AlterTableOperationTest extends ESTestCase {
         RelationName t1 = new RelationName("doc", "t1");
         var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(t1)));
 
-        assertThrowsMatches(
-            () -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS),
-            IllegalArgumentException.class,
-            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'"
-        );
+        Assertions.assertThatThrownBy(() -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                    "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
 
         var allTablesPublished = Map.of("pub1", new Publication("owner", true, List.of()));
 
-        assertThrowsMatches(
-            () -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, allTablesPublished, DEFAULT_SCOPED_SETTINGS),
-            IllegalArgumentException.class,
-            "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'"
-        );
+        Assertions.assertThatThrownBy(() -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, allTablesPublished, DEFAULT_SCOPED_SETTINGS))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                    "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
     }
 
     @Test

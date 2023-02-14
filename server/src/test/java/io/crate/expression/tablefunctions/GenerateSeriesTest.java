@@ -21,8 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 public class GenerateSeriesTest extends AbstractTableFunctionsTest {
@@ -154,10 +153,9 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_step_is_mandatory_for_timestamps() {
-        assertThrowsMatches(
-            () -> assertExecute("generate_series(null::timestamptz, '2019-03-04'::timestamptz)", ""),
-            IllegalArgumentException.class,
-            "generate_series(start, stop) has type `timestamp with time zone` for start, but requires long/int values for start and stop, or if used with timestamps, it requires a third argument for the step (interval)"
-        );
+        Assertions.assertThatThrownBy(() -> assertExecute("generate_series(null::timestamptz, '2019-03-04'::timestamptz)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                    "generate_series(start, stop) has type `timestamp with time zone` for start, but requires long/int values for start and stop, or if used with timestamps, it requires a third argument for the step (interval)");
     }
 }

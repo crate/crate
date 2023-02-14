@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -1381,11 +1380,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        assertThrowsMatches(
-            () -> e.plan("select id from users where id = 1 and _seq_no = 11"),
-            VersioningValidationException.class,
-            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
-        );
+        assertThatThrownBy(() -> e.plan("select id from users where id = 1 and _seq_no = 11"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessageContaining(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 
     @Test
@@ -1394,11 +1391,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        assertThrowsMatches(
-            () -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"),
-            VersioningValidationException.class,
-            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
-        );
+        assertThatThrownBy(() -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessageContaining(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 
 

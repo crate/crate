@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -55,7 +56,6 @@ import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.testing.Asserts;
 
 public class AlterTableClusterStateExecutorTest {
 
@@ -160,11 +160,10 @@ public class AlterTableClusterStateExecutorTest {
                                                           Settings.EMPTY,
                                                           Collections.singletonMap("_meta", mapping));
 
-        Asserts.assertThrowsMatches(
-            () -> AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta),
-            IllegalArgumentException.class,
-            "Requested to change the routing column to routing_col_update, but routing columns cannot be changed"
-        );
+        Assertions.assertThatThrownBy(() -> AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                    "Requested to change the routing column to routing_col_update, but routing columns cannot be changed");
     }
 
 }

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.types.BitStringType;
+
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +68,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -404,11 +404,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (obj object as (x int))")
             .build();
-        Asserts.assertThrowsMatches(
-            () -> e.asSymbol("obj = {x = 'foo'}"),
-            ConversionException.class,
-            "Cannot cast object element `x` with value `foo` to type `integer`"
-        );
+        assertThatThrownBy(() -> e.asSymbol("obj = {x = 'foo'}"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessageContaining("Cannot cast object element `x` with value `foo` to type `integer`");
     }
 
     @Test

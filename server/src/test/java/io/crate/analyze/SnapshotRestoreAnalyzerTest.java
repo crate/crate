@@ -26,7 +26,6 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -40,6 +39,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -452,10 +452,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_unknown_metadata() {
-        assertThrowsMatches(
-            () -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot UNKNOWN_META"),
-            IllegalArgumentException.class,
-            "Unknown metadata type 'UNKNOWN_META'"
-        );
+        Assertions.assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot UNKNOWN_META"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unknown metadata type 'UNKNOWN_META'");
     }
 }

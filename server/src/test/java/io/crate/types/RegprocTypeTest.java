@@ -28,13 +28,13 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.Set;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.pgcatalog.OidHash;
-import io.crate.testing.Asserts;
 
 public class RegprocTypeTest extends ESTestCase {
 
@@ -107,10 +107,8 @@ public class RegprocTypeTest extends ESTestCase {
 
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regproc() {
-        Asserts.assertThrowsMatches(
-            () -> RegprocType.INSTANCE.implicitCast(Integer.MAX_VALUE + 2038L),
-            IllegalArgumentException.class,
-            "2147485685 is outside of `int` range and cannot be cast to the regproc type"
-        );
+        Assertions.assertThatThrownBy(() -> RegprocType.INSTANCE.implicitCast(Integer.MAX_VALUE + 2038L))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("2147485685 is outside of `int` range and cannot be cast to the regproc type");
     }
 }
