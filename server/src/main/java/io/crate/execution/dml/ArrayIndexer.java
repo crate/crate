@@ -48,8 +48,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.startArray();
-        for (T value : values) {
-            innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics, toValidate);
+        if (values != null) {
+            for (T value : values) {
+                innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics, toValidate);
+            }
         }
         xContentBuilder.endArray();
     }

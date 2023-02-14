@@ -32,6 +32,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -43,7 +44,7 @@ public class StringIndexer implements ValueIndexer<String> {
 
     public StringIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.fieldType = fieldType;
+        this.fieldType = fieldType == null ? KeywordFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
     @Override
