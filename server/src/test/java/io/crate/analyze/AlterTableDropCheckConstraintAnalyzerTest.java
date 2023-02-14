@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.io.IOException;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,7 +31,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -60,10 +60,9 @@ public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyCluster
 
     @Test
     public void testDropCheckConstraintFailsBecauseTheNameDoesNotReferToAnExistingConstraint() {
-        assertThrowsMatches(
-            () -> e.analyze("alter table t drop constraint bazinga"),
-            IllegalArgumentException.class,
-            "Cannot find a CHECK CONSTRAINT named [bazinga], available constraints are: [check_qty_gt_zero, check_id_ge_zero]"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyze("alter table t drop constraint bazinga"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                    "Cannot find a CHECK CONSTRAINT named [bazinga], available constraints are: [check_qty_gt_zero, check_id_ge_zero]");
     }
 }

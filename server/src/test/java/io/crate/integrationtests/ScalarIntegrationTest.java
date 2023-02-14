@@ -24,11 +24,11 @@ package io.crate.integrationtests;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
@@ -49,13 +49,11 @@ public class ScalarIntegrationTest extends IntegTestCase {
     public void testSubscriptFunctionFromUnnest() {
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().setErrorOnUnknownObjectKey(true);
-            Asserts.assertThrowsMatches(
-                () -> sqlExecutor.exec(
-                    "SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
-                    session),
-                ColumnUnknownException.class,
-                "The object `{y=2, z=3}` does not contain the key `x`"
-            );
+            Assertions.assertThatThrownBy(() -> sqlExecutor.exec(
+                        "SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                        session))
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
             // This is documenting a bug. If this fails, it is a breaking change.
             var response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                             session);

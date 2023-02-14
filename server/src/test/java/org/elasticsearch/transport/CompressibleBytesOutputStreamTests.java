@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.stream.BytesStream;
@@ -30,7 +31,6 @@ import org.elasticsearch.test.ESTestCase;
 import java.io.EOFException;
 import java.io.IOException;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CompressibleBytesOutputStreamTests extends ESTestCase {
@@ -100,11 +100,9 @@ public class CompressibleBytesOutputStreamTests extends ESTestCase {
         StreamInput streamInput =
                 new InputStreamStreamInput(CompressorFactory.COMPRESSOR.threadLocalInputStream(bStream.bytes().streamInput()));
         byte[] actualBytes = new byte[expectedBytes.length];
-        assertThrowsMatches(
-            () -> streamInput.readBytes(actualBytes, 0, expectedBytes.length),
-            EOFException.class,
-            "Unexpected end of ZLIB input stream"
-        );
+        Assertions.assertThatThrownBy(() -> streamInput.readBytes(actualBytes, 0, expectedBytes.length))
+            .isExactlyInstanceOf(EOFException.class)
+            .hasMessageContaining("Unexpected end of ZLIB input stream");
         stream.close();
     }
 

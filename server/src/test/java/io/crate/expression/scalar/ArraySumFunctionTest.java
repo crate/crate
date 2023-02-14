@@ -21,14 +21,13 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
@@ -91,12 +90,13 @@ public class ArraySumFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_big_numbers_no_casting_results_in_exception() {
-        assertThrowsMatches(() -> assertEvaluate("array_sum(?)", null,
-                                                 Literal.of(List.of(Long.MAX_VALUE, Long.MAX_VALUE),
-                                                            new ArrayType<>(DataTypes.LONG))
-                            ),
-                            ArithmeticException.class,
-                            "long overflow");
+        Assertions.assertThatThrownBy(() -> assertEvaluate(
+            "array_sum(?)",
+            null,
+            Literal.of(List.of(Long.MAX_VALUE, Long.MAX_VALUE), new ArrayType<>(DataTypes.LONG))
+        ))
+            .isExactlyInstanceOf(ArithmeticException.class)
+            .hasMessageContaining("long overflow");
     }
 
     @Test
@@ -134,8 +134,9 @@ public class ArraySumFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_empty_array_given_directly_throws_exception() {
-        assertThrowsMatches(() -> assertEvaluate("array_sum([])", null),
-                            UnsupportedOperationException.class,
-                            "Unknown function: array_sum([]), no overload found for matching argument types: (undefined_array).");
+        Assertions.assertThatThrownBy(() -> assertEvaluate("array_sum([])", null))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageContaining(
+                    "Unknown function: array_sum([]), no overload found for matching argument types: (undefined_array).");
     }
 }

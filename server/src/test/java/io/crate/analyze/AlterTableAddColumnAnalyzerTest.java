@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -40,6 +39,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
+
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -711,18 +712,14 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .build();
 
         // same name, same type
-        assertThrowsMatches(
-            () -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN int_col INTEGER, ADD COLUMN int_col INTEGER"),
-            IllegalArgumentException.class,
-            "column \"int_col\" specified more than once"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN int_col INTEGER, ADD COLUMN int_col INTEGER"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column \"int_col\" specified more than once");
 
         // only same name, different type
-        assertThrowsMatches(
-            () -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN col INTEGER, ADD COLUMN col TEXT"),
-            IllegalArgumentException.class,
-            "column \"col\" specified more than once"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN col INTEGER, ADD COLUMN col TEXT"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column \"col\" specified more than once");
     }
 
 }

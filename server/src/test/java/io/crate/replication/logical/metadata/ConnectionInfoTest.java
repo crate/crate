@@ -21,11 +21,11 @@
 
 package io.crate.replication.logical.metadata;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -36,20 +36,16 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_url_has_valid_prefix() {
-        assertThrowsMatches(
-            () -> ConnectionInfo.fromURL("postgres:"),
-            InvalidArgumentException.class,
-            "The connection string must start with \"crate://\" but was: \"postgres:\""
-        );
+        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("postgres:"))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("The connection string must start with \"crate://\" but was: \"postgres:\"");
     }
 
     @Test
     public void test_url_is_not_empty() {
-        assertThrowsMatches(
-            () -> ConnectionInfo.fromURL(""),
-            InvalidArgumentException.class,
-            "The connection string must start with \"crate://\" but was: \"\""
-        );
+        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL(""))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("The connection string must start with \"crate://\" but was: \"\"");
     }
 
     @Test
@@ -129,25 +125,19 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_invalid_argument() {
-        assertThrowsMatches(
-            () -> ConnectionInfo.fromURL("crate://?foo=bar"),
-            InvalidArgumentException.class,
-            "Connection string argument 'foo' is not supported"
-        );
+        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://?foo=bar"))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("Connection string argument 'foo' is not supported");
     }
 
     @Test
     public void test_setting_invalid_mode_raises_error_including_valid_options() {
-        assertThrowsMatches(
-            () -> ConnectionInfo.fromURL("crate://example.com?mode=foo"),
-            IllegalArgumentException.class,
-            "Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`"
-        );
+        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com?mode=foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
 
-        assertThrowsMatches(
-            () -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"),
-            IllegalArgumentException.class,
-            "Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`"
-        );
+        Assertions.assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
     }
 }

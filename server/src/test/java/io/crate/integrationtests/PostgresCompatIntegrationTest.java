@@ -21,11 +21,11 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.PreparedStatement;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
@@ -44,7 +44,9 @@ public class PostgresCompatIntegrationTest extends IntegTestCase {
 
     @Test
     public void testStartTransactionStatement() {
-        assertThrowsMatches(() -> execute("START"), PSQLException.class, "ERROR: line 1:6: missing 'TRANSACTION'");
+        Assertions.assertThatThrownBy(() -> execute("START"))
+            .isExactlyInstanceOf(PSQLException.class)
+            .hasMessageContaining("ERROR: line 1:6: missing 'TRANSACTION'");
 
         execute("START TRANSACTION");
         assertNoErrorResponse(response);
