@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -43,6 +44,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -139,6 +141,14 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             Object innerValue = entry.getValue();
             boolean isNewColumn = !objectType.innerTypes().containsKey(innerName);
             if (isNewColumn) {
+                if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot add column `%s` to strict object `%s`",
+                        innerName,
+                        ref.column()
+                    ));
+                }
                 var type = DataTypes.guessType(innerValue);
                 StorageSupport<?> storageSupport = type.storageSupport();
                 if (storageSupport == null) {

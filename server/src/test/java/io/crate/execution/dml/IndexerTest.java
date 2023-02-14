@@ -375,4 +375,31 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"x":20, "z":null}
         """);
     }
+
+    @Test
+    public void test_does_not_allow_new_columns_in_strict_object() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    o object (strict) as (
+                        x int
+                    )
+                )
+                """)
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("o"))
+            ),
+            null
+        );
+        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 10, "y", 20))))
+            .hasMessage("Cannot add column `y` to strict object `o`");
+    }
 }
