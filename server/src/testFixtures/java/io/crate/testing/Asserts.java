@@ -234,7 +234,7 @@ public class Asserts extends Assertions {
         return n -> assertThat(n).isColumnDefinition(expectedIdent, columnTypeMatcher);
     }
 
-    // Prijections
+    // Projections
     public static Consumer<Projection> isLimitAndOffset(int expectedLimit, int expectedOffset) {
         return p -> assertThat(p).isLimitAndOffset(expectedLimit, expectedOffset);
     }
@@ -248,5 +248,18 @@ public class Asserts extends Assertions {
     @SuppressWarnings("rawtypes")
     public static Function<Scalar, Consumer<Scalar>> isNotSameInstance() {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
+    }
+
+    // Exception
+    public static <T extends Throwable, E extends Throwable> void assertRootCause(T throwable,
+                                                                                  Class<E> clazz,
+                                                                                  String expectedMessage) {
+        Throwable cause = throwable;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        assertThat(cause)
+                .isExactlyInstanceOf(clazz)
+                .hasMessageContaining(expectedMessage);
     }
 }

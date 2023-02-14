@@ -21,8 +21,10 @@
 
 package org.elasticsearch.snapshots;
 
+import static io.crate.testing.Asserts.assertRootCause;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
 import java.io.IOException;
@@ -36,6 +38,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Assertions;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
@@ -56,6 +61,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -693,6 +700,43 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     }
 
     @Test
+    public void testQueuedOperationsOnMasterDisconnectAndRepoFailure() throws Exception {
+        cluster().startMasterOnlyNodes(3);
+        final String dataNode = cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        createNSnapshots(repoName, randomIntBetween(2, 5));
+
+        final String masterNode = cluster().getMasterName();
+        final NetworkDisruption networkDisruption = isolateMasterDisruption(new NetworkDisruption.NetworkDisconnect());
+        cluster().setDisruptionScheme(networkDisruption);
+
+        blockMasterFromFinalizingSnapshotOnIndexFile(repoName);
+        final var firstFailedSnapshotFuture =
+                startFullSnapshotFromMasterClient(repoName, "failing-snapshot-1");
+        waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
+        final var secondFailedSnapshotFuture =
+                startFullSnapshotFromMasterClient(repoName, "failing-snapshot-2");
+        awaitClusterState(masterNode, state -> snapshotsInProgress(state) == 2);
+
+        final var deleteFuture = startDelete(repoName, "*");
+        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
+
+        networkDisruption.startDisrupting();
+        ensureStableCluster(3, dataNode);
+        unblockNode(repoName, masterNode);
+        networkDisruption.stopDisrupting();
+
+        logger.info("--> make sure all failing requests get a response");
+        assertBusy(() -> assertThat(firstFailedSnapshotFuture).isDone());
+        assertBusy(() -> assertThat(secondFailedSnapshotFuture).isDone());
+        assertBusy(() -> assertThat(deleteFuture).isDone());
+
+        awaitNoMoreRunningOperations();
+    }
+
+    @Test
     public void testMultipleSnapshotsQueuedAfterDelete() throws Exception {
         final String masterNode = cluster().startMasterOnlyNode();
         cluster().startDataOnlyNode();
@@ -884,7 +928,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         } catch (Exception e) {
             // ignored
         }
-        awaitMasterFinishRepoOperations();
+        awaitNoMoreRunningOperations();
     }
 
     @Test
@@ -920,7 +964,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertSuccessful(createSlowFuture2);
         assertSuccessful(createSlowFuture3);
 
-        awaitMasterFinishRepoOperations();
+        awaitNoMoreRunningOperations();
     }
 
     @Test
@@ -948,6 +992,104 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertSuccessful(createSlowFuture1);
         assertSuccessful(createSlowFuture2);
         assertSuccessful(createSlowFuture3);
+    }
+
+    @Test
+    public void testMasterFailoverAndMultipleQueuedUpSnapshotsAcrossTwoRepos() throws Exception {
+        disableRepoConsistencyCheck("This test corrupts the repository on purpose");
+
+        cluster().startMasterOnlyNodes(3, LARGE_SNAPSHOT_POOL_SETTINGS);
+        final String dataNode = cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        final String otherRepoName = "other-test-repo";
+        createRepo(repoName, "mock");
+        createRepo(otherRepoName, "mock");
+        createTableWithRecord("tbl1");
+        createNSnapshots(repoName, randomIntBetween(2, 5));
+        final int countOtherRepo = randomIntBetween(2, 5);
+        createNSnapshots(otherRepoName, countOtherRepo);
+
+        blockMasterFromFinalizingSnapshotOnIndexFile(repoName);
+        blockMasterFromFinalizingSnapshotOnIndexFile(otherRepoName);
+
+        startFullSnapshot(repoName, "snapshot-blocked-1");
+        startFullSnapshot(repoName, "snapshot-blocked-2");
+        startFullSnapshot(otherRepoName, "snapshot-other-blocked-1");
+        startFullSnapshot(otherRepoName, "snapshot-other-blocked-2");
+
+        final String masterNode = cluster().getMasterName();
+        waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
+        waitForBlock(masterNode, otherRepoName, TimeValue.timeValueSeconds(30L));
+        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 4));
+
+        cluster().stopCurrentMasterNode();
+        ensureStableCluster(3, dataNode);
+        awaitMasterFinishRepoOperations();
+
+        final RepositoryData repositoryData = getRepositoryData(otherRepoName);
+        assertThat(repositoryData.getSnapshotIds().size())
+                .isGreaterThanOrEqualTo(countOtherRepo)
+                .isLessThanOrEqualTo(countOtherRepo + 2);
+    }
+
+    @Test
+    public void testConcurrentOperationsLimit() throws Exception {
+        final String masterNode = cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+
+        final int limitToTest = randomIntBetween(1, 3);
+        // Setting not exposed via SQL
+        client().admin().cluster()
+                .execute(ClusterUpdateSettingsAction.INSTANCE, new ClusterUpdateSettingsRequest().persistentSettings(
+                        Settings.builder()
+                                .put(MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING.getKey(), limitToTest)
+                )).get();
+
+        final String[] snapshotNames = createNSnapshots(repoName, limitToTest + 1);
+        MockRepository mockRepo = mockRepo(repoName, masterNode);
+        mockRepo.setBlockOnDeleteIndexFile();
+        mockRepo.setBlockOnWriteIndexFile();
+        final int[] blockedSnapshots = new int[1];
+        boolean blockedDelete = false;
+        final List<CompletableFuture<SnapshotInfo>> snapshotFutures = new ArrayList<>();
+        CompletableFuture<AcknowledgedResponse> deleteFuture = null;
+        for (int i = 0; i < limitToTest; ++i) {
+            if (blockedDelete || randomBoolean()) {
+                snapshotFutures.add(startFullSnapshot(repoName, "snap-" + i));
+                ++blockedSnapshots[0];
+            } else {
+                blockedDelete = true;
+                deleteFuture = startDelete(repoName, randomFrom(snapshotNames));
+            }
+        }
+        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == blockedSnapshots[0]));
+        if (blockedDelete) {
+            awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
+        }
+        waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
+
+        final String expectedFailureMessage = "Cannot start another operation, already running [" + limitToTest +
+                                              "] operations and the current limit for concurrent snapshot operations is set to [" + limitToTest + "]";
+        var createSnapshotFuture = startFullSnapshot(repoName, "expected-to-fail");
+        assertThatThrownBy(createSnapshotFuture::get)
+                .satisfies(e -> assertRootCause(e, ConcurrentSnapshotExecutionException.class, expectedFailureMessage));
+
+        if (blockedDelete == false || limitToTest == 1) {
+            var deleteSnapshotFuture = startDelete(repoName, snapshotNames);
+            assertThatThrownBy(deleteSnapshotFuture::get)
+                    .satisfies(e -> assertRootCause(e, ConcurrentSnapshotExecutionException.class, expectedFailureMessage));
+        }
+
+        unblockNode(repoName, masterNode);
+        if (deleteFuture != null) {
+            assertAcked(deleteFuture.get());
+        }
+        for (var snapshotFuture : snapshotFutures) {
+            assertSuccessful(snapshotFuture);
+        }
     }
 
     private int snapshotsInProgress(ClusterState state) {
@@ -1131,5 +1273,26 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             }
         }
         assertThat(snapshotCountInRepo).isEqualTo(count);
+    }
+
+    private void awaitNoMoreRunningOperations() throws Exception {
+        logger.info("--> verify no more operations in the cluster state");
+        awaitClusterState(cluster().getMasterName(),
+                          state -> state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY).entries().isEmpty()
+                                   && state.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY)
+                                              .hasDeletionsInProgress() == false);
+    }
+
+    protected void awaitMasterFinishRepoOperations() throws Exception {
+        logger.info("--> waiting for master to finish all repo operations on its SNAPSHOT pool");
+        final ThreadPool masterThreadPool = cluster().getMasterNodeInstance(ThreadPool.class);
+        assertBusy(() -> {
+            for (ThreadPoolStats.Stats stat : masterThreadPool.stats()) {
+                if (ThreadPool.Names.SNAPSHOT.equals(stat.getName())) {
+                    Assertions.assertThat(stat.getActive()).isEqualTo(0);
+                    break;
+                }
+            }
+        });
     }
 }
