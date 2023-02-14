@@ -44,12 +44,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.IndicesService;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
@@ -57,6 +58,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.types.ArrayType;
@@ -65,17 +67,20 @@ import io.crate.types.ObjectType;
 final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
 
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
+    private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
 
-    public AddColumnTask(NodeContext nodeContext, IndicesService indicesService) {
+    public AddColumnTask(NodeContext nodeContext, CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService) {
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
+        this.createMapperService = createMapperService;
     }
 
     @Override
     protected ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
+        DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
 
+        request = addMissingParentColumns(request, currentTable);
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(request.references());
         Map<String, Map<String, Object>> propertiesMap = buildMapping(null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
@@ -86,13 +91,11 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
         if (indexTemplateMetadata != null) {
             // Partitioned table
 
-            Map<String, Object> existingTemplateMeta = new HashMap<>();
-
-            mergeDeltaIntoExistingMapping(existingTemplateMeta, request, propertiesMap);
-
+            Map<String, Object> newMapping = new HashMap<>();
+            mergeDeltaIntoExistingMapping(newMapping, request, propertiesMap);
             IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
                 indexTemplateMetadata,
-                existingTemplateMeta,
+                newMapping,
                 Collections.emptyMap(),
                 Settings.EMPTY,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
@@ -102,8 +105,37 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
 
         currentState = updateMapping(currentState, metadataBuilder, request, propertiesMap);
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState);
+        docTableInfoFactory.create(request.relationName(), currentState);
         return currentState;
+    }
+
+    private AddColumnRequest addMissingParentColumns(AddColumnRequest request, DocTableInfo currentTable) {
+        List<Reference> newColumns = new ArrayList<>();
+        boolean anyMissing = false;
+        for (var newColumn : request.references()) {
+            if (newColumn.column().isTopLevel()) {
+                newColumns.add(newColumn);
+            } else {
+                ColumnIdent parent = newColumn.column();
+                while ((parent = parent.getParent()) != null) {
+                    if (!Symbols.containsColumn(request.references(), parent)) {
+                        newColumns.add(currentTable.getReference(parent));
+                        anyMissing = true;
+                    }
+                }
+                newColumns.add(newColumn);
+            }
+        }
+        if (anyMissing) {
+            return new AddColumnRequest(
+                request.relationName(),
+                newColumns,
+                request.checkConstraints(),
+                request.pKeyIndices()
+            );
+        } else {
+            return request;
+        }
     }
 
     /**
@@ -179,7 +211,7 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
             mergeDeltaIntoExistingMapping(indexMapping, request, propertiesMap);
             TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
 
-            MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
+            MapperService mapperService = createMapperService.apply(indexMetadata);
 
             mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
             DocumentMapper mapper = mapperService.documentMapper();

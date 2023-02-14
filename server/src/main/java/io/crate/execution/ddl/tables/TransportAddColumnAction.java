@@ -63,7 +63,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AddColumnTask(nodeContext, indicesService);
+        return new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
     }
 
 
