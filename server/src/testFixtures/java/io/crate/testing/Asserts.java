@@ -27,6 +27,7 @@ import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matcher;
@@ -74,6 +75,10 @@ public class Asserts extends Assertions {
 
     public static SQLResponseAssert assertThat(SQLResponse actual) {
         return new SQLResponseAssert(actual);
+    }
+
+    public static SQLErrorAssert assertSQLError(ThrowingCallable callable) {
+        return new SQLErrorAssert(catchThrowable(callable));
     }
 
     public static DocKeyAssert assertThat(DocKeys.DocKey actual) {
@@ -247,7 +252,11 @@ public class Asserts extends Assertions {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
     }
 
-    // Exceptions
+
+    /**
+     * @deprecated use {@link #assertSQLError(ThrowingCallable)} or {@link #assertThatThrownBy(ThrowingCallable)}
+     **/
+    @Deprecated
     public static void assertThrowsMatches(Executable executable, Matcher<? super Throwable> matcher) {
         try {
             executable.execute();
@@ -256,5 +265,4 @@ public class Asserts extends Assertions {
             org.hamcrest.MatcherAssert.assertThat(t, matcher);
         }
     }
-
 }
