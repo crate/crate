@@ -75,7 +75,7 @@ Fixes
 .. an automated mergify backport.
 
 - Fixed an issue that caused correlated sub-queries to fail with an
-  `IllegalStateException` when the outer query contained multiple joins.
+  ``IllegalStateException`` when the outer query contained multiple joins.
   An example ::
 
     CREATE TABLE a (x INT, y INT, z INT); // tables b, c, d created as a
