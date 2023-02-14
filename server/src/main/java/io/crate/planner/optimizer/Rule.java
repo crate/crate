@@ -35,12 +35,19 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
+    /**
+     *
+     * @param resolvePlan resolvesPlan will resolve a {@GroupReference} to it's referenced {@LogicalPlan} instance.
+     *                    It must be used on a source of {@code plan} if the rule needs to access any properties
+     *                    of the source other than the outputs. This may materialize the sub-tree for the source
+     *                    and could be expensive. If the rule doesn't access source properties, don't call it.
+     */
     LogicalPlan apply(T plan,
                       Captures captures,
                       TableStats tableStats,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
-                      Function<LogicalPlan, LogicalPlan> resolveLogicalPlan);
+                      Function<LogicalPlan, LogicalPlan> resolvePlan);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.
