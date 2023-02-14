@@ -55,8 +55,6 @@ final class DocumentParser {
     }
 
     ParsedDocument parseDocument(SourceToParse source, MetadataFieldMapper[] metadataFieldsMappers) throws MapperParsingException {
-        validateType();
-
         final Mapping mapping = docMapper.mapping();
         final ParseContext.InternalParseContext context;
         final XContentType xContentType = source.getXContentType();
@@ -107,12 +105,6 @@ final class DocumentParser {
 
         for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
             metadataMapper.postParse(context);
-        }
-    }
-
-    private void validateType() {
-        if (!docMapper.type().equals("default")) {
-            throw new MapperParsingException("DocumentMapper type must be `default`. We don't allow other types");
         }
     }
 
