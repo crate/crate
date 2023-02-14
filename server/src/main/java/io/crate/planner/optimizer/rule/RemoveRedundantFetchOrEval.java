@@ -57,7 +57,7 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         return plan.source();
     }
 }

@@ -80,7 +80,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }

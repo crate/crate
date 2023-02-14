@@ -79,7 +79,7 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());

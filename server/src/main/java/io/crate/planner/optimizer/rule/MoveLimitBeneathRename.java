@@ -60,7 +60,7 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Rename rename = captures.get(renameCapture);
         return transpose(limit, rename);
     }

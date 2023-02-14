@@ -61,7 +61,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
             rename.source(),

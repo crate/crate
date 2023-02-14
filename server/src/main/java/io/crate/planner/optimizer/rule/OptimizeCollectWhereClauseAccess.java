@@ -68,7 +68,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();

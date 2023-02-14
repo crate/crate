@@ -82,7 +82,7 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Rename rename = captures.get(renameCapture);
         Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
         OrderBy mappedOrderBy = plan.orderBy().map(mapField);

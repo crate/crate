@@ -67,7 +67,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());

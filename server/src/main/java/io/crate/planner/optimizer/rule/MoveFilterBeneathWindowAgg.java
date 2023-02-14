@@ -69,7 +69,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();

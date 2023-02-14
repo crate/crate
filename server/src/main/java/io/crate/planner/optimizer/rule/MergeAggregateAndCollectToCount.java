@@ -67,7 +67,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
                        TableStats tableStats,
                        TransactionContext txnCtx,
                        NodeContext nodeCtx,
-                       Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                       Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

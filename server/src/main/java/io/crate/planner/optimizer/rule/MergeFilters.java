@@ -75,7 +75,7 @@ public class MergeFilters implements Rule<Filter> {
                         TableStats tableStats,
                         TransactionContext txnCtx,
                         NodeContext nodeCtx,
-                        Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                        Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Filter childFilter = captures.get(child);
         Symbol parentQuery = plan.query();
         Symbol childQuery = childFilter.query();

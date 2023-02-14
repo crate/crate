@@ -60,7 +60,7 @@ public class MoveLimitBeneathEval implements Rule<Limit> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(evalCapture);
         return transpose(limit, eval);
     }

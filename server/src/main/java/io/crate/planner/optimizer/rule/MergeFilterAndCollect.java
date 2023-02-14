@@ -62,7 +62,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolveLogicalPlan) {
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
         WhereClause newWhere = collect.where().add(filter.query());
