@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -48,7 +49,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -169,21 +169,17 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(info.getDynamic(columnIdent, false, true)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: strict
-        Asserts.assertThrowsMatches(
-            () -> info.getDynamic(columnIdent, true, true),
-            ColumnUnknownException.class,
-            "Column foobar['foo']['bar'] unknown"
-        );
+        Assertions.assertThatThrownBy(() -> info.getDynamic(columnIdent, true, true))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column foobar['foo']['bar'] unknown");
 
         // forWrite: false, errorOnUnknownObjectKey: false, parentPolicy: strict
         assertThat(info.getDynamic(columnIdent, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
-        Asserts.assertThrowsMatches(
-            () -> assertThat(info.getDynamic(columnIdent, true, false)).isNull(),
-            ColumnUnknownException.class,
-            "Column foobar['foo']['bar'] unknown"
-        );
+        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent, true, false)).isNull())
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column foobar['foo']['bar'] unknown");
 
         final ColumnIdent columnIdent2 = new ColumnIdent("foobar", Collections.singletonList("foo"));
         assertThat(info.getReference(columnIdent2)).isNull();
@@ -192,21 +188,17 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(info.getDynamic(columnIdent2, false, true)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: strict
-        Asserts.assertThrowsMatches(
-            () -> assertThat(info.getDynamic(columnIdent2, true, true)).isNull(),
-            ColumnUnknownException.class,
-            "Column foobar['foo'] unknown"
-        );
+        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent2, true, true)).isNull())
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column foobar['foo'] unknown");
 
         // forWrite: false, errorOnUnknownObjectKey: false, parentPolicy: strict
         assertThat(info.getDynamic(columnIdent2, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
-        Asserts.assertThrowsMatches(
-            () -> assertThat(info.getDynamic(columnIdent2, true, false)).isNull(),
-            ColumnUnknownException.class,
-            "Column foobar['foo'] unknown"
-        );
+        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent2, true, false)).isNull())
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column foobar['foo'] unknown");
 
         Reference colInfo = info.getReference(new ColumnIdent("foobar"));
         assertThat(colInfo).isNotNull();

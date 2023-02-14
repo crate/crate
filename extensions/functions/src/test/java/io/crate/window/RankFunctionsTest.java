@@ -23,12 +23,12 @@ package io.crate.window;
 
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
-import io.crate.testing.Asserts;
 
 
 public class RankFunctionsTest extends AbstractWindowFunctionTest {
@@ -185,15 +185,13 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testIgnoreNullsFlagThrows() {
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate(
+        Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "rank() ignore nulls over()",
                 null,
                 List.of(new ColumnIdent("x")),
                 new Object[] {1}
-            ),
-            IllegalArgumentException.class,
-            "rank cannot accept RESPECT or IGNORE NULLS flag."
-        );
+            ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("rank cannot accept RESPECT or IGNORE NULLS flag.");
     }
 }

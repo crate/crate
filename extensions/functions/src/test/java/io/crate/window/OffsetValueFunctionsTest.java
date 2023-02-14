@@ -23,12 +23,12 @@ package io.crate.window;
 
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
-import io.crate.testing.Asserts;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
 
@@ -138,15 +138,13 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testLagWithIgnoreNullsAndZeroOffsetThrows() {
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate(
+        Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "lag(x,0,123) ignore nulls over()",
                 null,
                 List.of(new ColumnIdent("x")),
-                new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}),
-            IllegalArgumentException.class,
-            "offset 0 is not a valid argument if ignore nulls flag is set"
-        );
+                new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("offset 0 is not a valid argument if ignore nulls flag is set");
     }
 
     @Test

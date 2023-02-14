@@ -27,6 +27,8 @@ import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
+
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.TriFunction;
 import org.junit.Test;
 
@@ -37,7 +39,6 @@ import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.types.DataTypes.BYTE;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
@@ -48,9 +49,9 @@ public class BitwiseFunctionsTest extends ScalarTestCase {
 
     @Test
     public void test_bit_string_operands_must_have_equal_length() {
-        assertThrowsMatches(() -> assertEvaluate("B'10001' | B'001'", null),
-            IllegalArgumentException.class,
-            "Cannot OR bit strings of different sizes");
+        Assertions.assertThatThrownBy(() -> assertEvaluate("B'10001' | B'001'", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot OR bit strings of different sizes");
     }
 
     @Test

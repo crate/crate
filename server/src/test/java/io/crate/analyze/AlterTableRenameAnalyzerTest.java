@@ -21,11 +21,10 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
 import java.util.Arrays;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,11 +71,10 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void test_rename_is_not_allowed_when_table_is_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
         var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-        assertThrowsMatches(
-            () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
-            OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
-        );
+        Assertions.assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining(
+                    "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication.");
         clusterService.close();
     }
 
@@ -84,11 +82,10 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void test_rename_is_not_allowed_when_all_tables_are_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(true);
         var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-        assertThrowsMatches(
-            () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
-            OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
-        );
+        Assertions.assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining(
+                    "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication.");
         clusterService.close();
     }
 

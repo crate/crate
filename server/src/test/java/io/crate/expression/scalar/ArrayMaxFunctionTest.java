@@ -21,12 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -82,9 +81,10 @@ public class ArrayMaxFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_empty_array_given_directly_throws_exception() {
-        assertThrowsMatches(() -> assertEvaluate("array_max([])", null),
-                            UnsupportedOperationException.class,
-                            "Unknown function: array_max([]), no overload found for matching argument types: (undefined_array).");
+        Assertions.assertThatThrownBy(() -> assertEvaluate("array_max([])", null))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageContaining(
+                    "Unknown function: array_max([]), no overload found for matching argument types: (undefined_array).");
     }
 
 }

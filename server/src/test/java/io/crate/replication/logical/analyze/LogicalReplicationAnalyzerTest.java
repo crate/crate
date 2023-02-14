@@ -21,11 +21,11 @@
 
 package io.crate.replication.logical.analyze;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
@@ -102,12 +102,11 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.builder(clusterService).addTable(
                 "create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)")
             .build();
-        assertThrowsMatches(
-            () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"),
-            UnsupportedOperationException.class,
-            "Tables included in a publication must have the table setting 'soft_deletes.enabled' " +
-            "set to `true`, current setting for table 'doc.t1': false"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageContaining(
+                    "Tables included in a publication must have the table setting 'soft_deletes.enabled' " +
+                    "set to `true`, current setting for table 'doc.t1': false");
     }
 
     @Test
@@ -133,16 +132,14 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .setUser(User.of("owner"))
             .addPublication("pub1", true)
             .build();
-        assertThrowsMatches(
-            () -> e.analyzer.analyze(
-                SqlParser.createStatement("DROP PUBLICATION pub1"),
-                new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY,
-                e.cursors
-            ),
-            UnauthorizedException.class,
-            "A publication can only be dropped by the owner or a superuser"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
+                        SqlParser.createStatement("DROP PUBLICATION pub1"),
+                        new CoordinatorSessionSettings(User.of("other_user")),
+                        ParamTypeHints.EMPTY,
+                        e.cursors
+            ))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessageContaining("A publication can only be dropped by the owner or a superuser");
     }
 
     @Test
@@ -172,11 +169,10 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .addTable("create table doc.t1 (x int)")
             .addPublication("pub1", true)
             .build();
-        assertThrowsMatches(
-            () -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1"),
-            InvalidArgumentException.class,
-            "Publication 'pub1' is defined as FOR ALL TABLES, adding or dropping tables is not supported"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1"))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining(
+                    "Publication 'pub1' is defined as FOR ALL TABLES, adding or dropping tables is not supported");
     }
 
     @Test
@@ -185,16 +181,14 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .setUser(User.of("owner"))
             .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
-        assertThrowsMatches(
-            () -> e.analyzer.analyze(
-                SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
-                new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY,
-                e.cursors
-            ),
-            UnauthorizedException.class,
-            "A publication can only be altered by the owner or a superuser"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
+                        SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
+                        new CoordinatorSessionSettings(User.of("other_user")),
+                        ParamTypeHints.EMPTY,
+                        e.cursors
+            ))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessageContaining("A publication can only be altered by the owner or a superuser");
     }
 
     @Test
@@ -231,16 +225,14 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .setUser(User.of("owner"))
             .addSubscription("sub1", "pub1")
             .build();
-        assertThrowsMatches(
-            () -> e.analyzer.analyze(
-                SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
-                new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY,
-                e.cursors
-            ),
-            UnauthorizedException.class,
-            "A subscription can only be dropped by the owner or a superuser"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
+                        SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
+                        new CoordinatorSessionSettings(User.of("other_user")),
+                        ParamTypeHints.EMPTY,
+                        e.cursors
+            ))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessageContaining("A subscription can only be dropped by the owner or a superuser");
     }
 
     @Test
@@ -249,16 +241,14 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             .setUser(User.of("owner"))
             .addSubscription("sub1", "pub1")
             .build();
-        assertThrowsMatches(
-            () -> e.analyzer.analyze(
-                SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
-                new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY,
-                e.cursors
-            ),
-            UnauthorizedException.class,
-            "A subscription can only be altered by the owner or a superuser"
-        );
+        Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
+                        SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
+                        new CoordinatorSessionSettings(User.of("other_user")),
+                        ParamTypeHints.EMPTY,
+                        e.cursors
+            ))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessageContaining("A subscription can only be altered by the owner or a superuser");
     }
 
     @Test

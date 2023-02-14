@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -113,18 +113,14 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_invalid_any_param_leads_to_clear_error_message() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name = ANY(?) from sys.cluster");
-        Asserts.assertThrowsMatches(
-            () -> {
-                LogicalPlanner.getNodeOperationTree(
-                    plan,
-                    mock(DependencyCarrier.class),
-                    e.getPlannerContext(clusterService.state()),
-                    new Row1("foo"),
-                    SubQueryResults.EMPTY
-                );
-            },
-            ConversionException.class,
-            "Cannot cast value `foo` to type `text_array`"
-        );
+        Assertions.assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
+                plan,
+                mock(DependencyCarrier.class),
+                e.getPlannerContext(clusterService.state()),
+                new Row1("foo"),
+                SubQueryResults.EMPTY
+            ))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessageContaining("Cannot cast value `foo` to type `text_array`");
     }
 }

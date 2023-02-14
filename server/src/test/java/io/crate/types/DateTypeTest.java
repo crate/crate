@@ -21,18 +21,18 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 public class DateTypeTest {
 
     @Test
     public void testCastFromInvalidString() {
-        assertThrowsMatches(() -> DateType.INSTANCE.implicitCast("not-a-number"),
-            ClassCastException.class,
-            "Can't cast 'not-a-number' to date");
+        Assertions.assertThatThrownBy(() -> DateType.INSTANCE.implicitCast("not-a-number"))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessageContaining("Can't cast 'not-a-number' to date");
     }
 
     @Test

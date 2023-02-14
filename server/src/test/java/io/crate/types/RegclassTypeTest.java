@@ -25,13 +25,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.testing.Asserts;
 
 public class RegclassTypeTest {
 
@@ -43,11 +43,9 @@ public class RegclassTypeTest {
 
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regclass() {
-        Asserts.assertThrowsMatches(
-            () -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L),
-            IllegalArgumentException.class,
-            "2147483689 is outside of `int` range and cannot be cast to the regclass type"
-        );
+        Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("2147483689 is outside of `int` range and cannot be cast to the regclass type");
     }
 
     @Test
@@ -84,10 +82,8 @@ public class RegclassTypeTest {
 
     @Test
     public void test_cast_from_string_raise_exception_if_not_valid_relation_name() {
-        Asserts.assertThrowsMatches(
-            () -> explicitCast("\"\"myTable\"\""),
-            InvalidRelationName.class,
-            "Relation name \"\"\"myTable\"\"\" is invalid"
-        );
+        Assertions.assertThatThrownBy(() -> explicitCast("\"\"myTable\"\""))
+            .isExactlyInstanceOf(InvalidRelationName.class)
+            .hasMessageContaining("Relation name \"\"\"myTable\"\"\" is invalid");
     }
 }

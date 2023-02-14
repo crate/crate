@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -40,6 +41,7 @@ import org.junit.Test;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Maps;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
@@ -82,11 +84,10 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
-        Asserts.assertThrowsMatches(
-            () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{}}"}, List.of()), // trailing '}'
-            IllegalArgumentException.class,
-            "failed to parse `}`"
-        );
+        // trailing '}'
+        Assertions.assertThatThrownBy(() -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{}}"}, List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("failed to parse `}`");
     }
 
     @Test
@@ -96,11 +97,9 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
-        Asserts.assertThrowsMatches(
-            () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}, List.of()),
-            IllegalArgumentException.class,
-            "Cannot cast value `` to type `boolean`"
-        );
+        Assertions.assertThatThrownBy(() -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}, List.of()))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessageContaining("Cannot cast value `` to type `boolean`");
     }
 
     @Test
@@ -110,11 +109,9 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
             .build();
         DocTableInfo t = e.resolveTableInfo("t");
         ValidatedRawInsertSource insertSource = new ValidatedRawInsertSource(t, txnCtx, e.nodeCtx, "t");
-        Asserts.assertThrowsMatches(
-            () -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}, List.of()),
-            StrictDynamicMappingException.class,
-            "mapping set to strict, dynamic introduction of [b] within [doc.t] is not allowed"
-        );
+        Assertions.assertThatThrownBy(() -> insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"b\": \"\"}"}, List.of()))
+            .isExactlyInstanceOf(StrictDynamicMappingException.class)
+            .hasMessageContaining("mapping set to strict, dynamic introduction of [b] within [doc.t] is not allowed");
     }
 
     @Test
@@ -183,20 +180,16 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
         assertThat(cache.presentColumns.size(), is(1));
         assertThat(cache.presentColumns.get(0), is(t)); //cache.put() also inserts into presentColumns as well
 
-        Asserts.assertThrowsMatches(
-            () -> cache.put("t", t),
-            AssertionError.class,
-            "the key, value pair already exists"
-        );
+        Assertions.assertThatThrownBy(() -> cache.put("t", t))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("the key, value pair already exists");
         assertThat(cache.presentColumns.size(), is(1));
         assertThat(cache.presentColumns.get(0), is(t));
 
         // cache already encountered 't' from previous cache.put() calls
-        Asserts.assertThrowsMatches(
-            () -> cache.get("t"),
-            AssertionError.class,
-            "for both get() and put(), the references in context should be the first encounter"
-        );
+        Assertions.assertThatThrownBy(() -> cache.get("t"))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("for both get() and put(), the references in context should be the first encounter");
         assertThat(cache.presentColumns.size(), is(1));
         assertThat(cache.presentColumns.get(0), is(t));
 

@@ -21,7 +21,6 @@
 
 package org.elasticsearch.transport;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -96,7 +96,9 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
 
         // Check that failed client is not cached so that later can re-create a subscription with the same name but with valid credentials.
         // https://github.com/crate/crate/issues/12462
-        assertThrowsMatches(() -> remoteClusters.getClient(subName), NoSuchRemoteClusterException.class, "no such remote cluster: [" + subName + "]");
+        Assertions.assertThatThrownBy(() -> remoteClusters.getClient(subName))
+            .isExactlyInstanceOf(NoSuchRemoteClusterException.class)
+            .hasMessageContaining("no such remote cluster: [" + subName + "]");
 
         remoteClusters.close();
     }

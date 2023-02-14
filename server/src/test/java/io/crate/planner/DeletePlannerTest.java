@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 
 import java.io.IOException;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,10 +99,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_delete_where_id_and_seq_missing_primary_term() throws Exception {
-        assertThrowsMatches(
-            () -> e.plan("delete from users where id = 1 and _seq_no = 11"),
-            VersioningValidationException.class,
-            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
-        );
+        Assertions.assertThatThrownBy(() -> e.plan("delete from users where id = 1 and _seq_no = 11"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessageContaining(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 }
