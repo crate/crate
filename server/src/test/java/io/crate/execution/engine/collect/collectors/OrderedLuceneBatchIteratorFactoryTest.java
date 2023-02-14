@@ -22,11 +22,10 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +55,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
@@ -89,8 +90,13 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     private boolean[] reverseFlags = new boolean[]{true};
     private boolean[] nullsFirst = new boolean[]{true};
 
+    @Mock
+    public RowAccounting<Row> rowAccounting;
+
     @Before
     public void prepareSearchers() throws Exception {
+        MockitoAnnotations.openMocks(this);
+
         IndexWriter iw1 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         IndexWriter iw2 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
 
@@ -142,7 +148,6 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Test
     public void testSingleCollectorOrderedLuceneBatchIteratorTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccounting.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
@@ -161,7 +166,6 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Test
     public void testOrderedLuceneBatchIteratorWithMultipleCollectorsTripsCircuitBreaker() throws Exception {
-        RowAccounting rowAccounting = mock(RowAccountingWithEstimators.class);
         CircuitBreakingException circuitBreakingException = new CircuitBreakingException("tripped circuit breaker");
         doThrow(circuitBreakingException)
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
@@ -184,16 +188,25 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     public void test_ensure_lucene_ordered_collector_propagates_kill() throws Exception {
         LuceneOrderedDocCollector luceneOrderedDocCollector = createOrderedCollector(searcher1, 1);
         AtomicReference<Thread> collectThread = new AtomicReference<>();
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch threadStarted = new CountDownLatch(1);
+
+        // defers the real runnable until after the test case has asserted that the thread is active
+        CountDownLatch triggerRunnable = new CountDownLatch(1);
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(luceneOrderedDocCollector),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            mock(RowAccounting.class),
-            c -> {
-                var t = new Thread(c);
+            rowAccounting,
+            runnable -> {
+                var t = new Thread(() -> {
+                    threadStarted.countDown();
+                    try {
+                        triggerRunnable.await(1, TimeUnit.SECONDS);
+                    } catch (InterruptedException ignored) {
+                    }
+                    runnable.run();
+                });
                 collectThread.set(t);
                 t.start();
-                latch.countDown();
             },
             () -> 1,
             true
@@ -201,14 +214,17 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(rowBatchIterator, null);
 
-        // Ensure that the collect thread is running
-        latch.await(1, TimeUnit.SECONDS);
-        assertThat(collectThread.get().isAlive(), is(true));
+        try {
+            threadStarted.await(1, TimeUnit.SECONDS);
+            assertThat(collectThread.get().isAlive()).isTrue();
+        } finally {
+            triggerRunnable.countDown();
+        }
 
         rowBatchIterator.kill(new InterruptedException("killed"));
 
-        expectedException.expect(InterruptedException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)
@@ -216,9 +232,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(rowBatchIterator, null);
 
-        expectedException.expect(exception.getClass());
-        expectedException.expectMessage(exception.getMessage());
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(exception.getClass())
+            .hasMessage(exception.getMessage());
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {

@@ -19,17 +19,15 @@
 
 package org.elasticsearch.env;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.gateway.PersistedClusterStateService.overrideVersion;
 
 import java.nio.file.Path;
 
+import org.assertj.core.api.AbstractThrowableAssert;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
@@ -38,42 +36,36 @@ import org.junit.Test;
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 public class NodeEnvironmentIT extends IntegTestCase {
 
-    private IllegalStateException expectThrowsOnRestart(CheckedConsumer<Path[], Exception> onNodeStopped) {
+    private AbstractThrowableAssert<?, ? extends Throwable> expectThrowsOnRestart(CheckedConsumer<Path[], Exception> onNodeStopped) {
         cluster().startNode();
         final Path[] dataPaths = cluster().getInstance(NodeEnvironment.class).nodeDataPaths();
-        return expectThrows(IllegalStateException.class,
-                            () -> cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
-                                @Override
-                                public Settings onNodeStopped(String nodeName) {
-                                    try {
-                                        onNodeStopped.accept(dataPaths);
-                                    } catch (Exception e) {
-                                        throw new AssertionError(e);
-                                    }
-                                    return Settings.EMPTY;
-                                }
-                            }));
+
+        return assertThatThrownBy(() -> {
+            cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+                @Override
+                public Settings onNodeStopped(String nodeName) {
+                    try {
+                        onNodeStopped.accept(dataPaths);
+                    } catch (Exception e) {
+                        throw new AssertionError(e);
+                    }
+                    return Settings.EMPTY;
+                }
+            });
+        }).isExactlyInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void testFailsToStartIfDowngraded() {
-        final IllegalStateException illegalStateException = expectThrowsOnRestart(
-            dataPaths -> PersistedClusterStateService.overrideVersion(NodeMetadataTests.tooNewVersion(), dataPaths)
-        );
-
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot downgrade a node from version ["),
-                         endsWith("] to version [" + Version.CURRENT + "]")));
+        expectThrowsOnRestart(dataPaths -> overrideVersion(NodeMetadataTests.tooNewVersion(), dataPaths))
+            .hasMessageStartingWith("cannot downgrade a node from version [")
+            .hasMessageEndingWith("] to version [" + Version.CURRENT + "]");
     }
 
     @Test
     public void testFailsToStartIfUpgradedTooFar() {
-        final IllegalStateException illegalStateException = expectThrowsOnRestart(
-            dataPaths -> PersistedClusterStateService.overrideVersion(NodeMetadataTests.tooOldVersion(), dataPaths)
-        );
-
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot upgrade a node from version ["),
-                         endsWith("] directly to version [" + Version.CURRENT + "]")));
+        expectThrowsOnRestart(dataPaths -> overrideVersion(NodeMetadataTests.tooOldVersion(), dataPaths))
+            .hasMessageStartingWith("cannot upgrade a node from version [")
+            .hasMessageEndingWith("] directly to version [" + Version.CURRENT + "]");
     }
 }

@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -349,14 +351,14 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         final ArgumentCaptor<AbortMultipartUploadRequest> argumentCaptor = ArgumentCaptor.forClass(AbortMultipartUploadRequest.class);
         doNothing().when(client).abortMultipartUpload(argumentCaptor.capture());
 
-        final IOException e = expectThrows(IOException.class, () -> {
+        assertThatThrownBy(() -> {
             final S3BlobContainer blobContainer = new S3BlobContainer(blobPath, blobStore);
             blobContainer.executeMultipartUpload(blobStore, blobName, new ByteArrayInputStream(new byte[0]), blobSize);
-        });
-
-        assertThat(e.getMessage()).isEqualTo("Unable to upload object [" + blobName + "] using multipart upload");
-        assertThat(e.getCause()).isExactlyInstanceOf(AmazonClientException.class);
-        assertThat(e.getCause().getMessage()).isEqualTo(exceptions.get(stage).getMessage());
+        }).isExactlyInstanceOf(IOException.class)
+            .hasMessage("Unable to upload object [" + blobName + "] using multipart upload")
+            .hasCauseExactlyInstanceOf(AmazonClientException.class)
+            .extracting(t -> t.getCause(), Assertions.as(InstanceOfAssertFactories.THROWABLE))
+            .hasMessage(exceptions.get(stage).getMessage());
 
         if (stage == 0) {
             verify(client, times(1)).initiateMultipartUpload(any(InitiateMultipartUploadRequest.class));

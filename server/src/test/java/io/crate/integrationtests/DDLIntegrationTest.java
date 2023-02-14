@@ -25,6 +25,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -33,16 +34,13 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -50,7 +48,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
@@ -420,19 +417,19 @@ public class DDLIntegrationTest extends IntegTestCase {
             "where table_name='t'" +
             "order by constraint_name";
         execute(selectCheckConstraintsStmt);
-        assertThat(printedTable(response.rows()), is(
-            "doc| t| CHECK| check_id_ge_zero\n" +
-            "doc| t| CHECK| check_qty_gt_zero\n" +
-            "doc| t| CHECK| doc_t_id_not_null\n" +
-            "doc| t| PRIMARY KEY| t_pk\n"
-        ));
+        assertThat(response).hasRows(
+            "doc| t| CHECK| check_id_ge_zero",
+            "doc| t| CHECK| check_qty_gt_zero",
+            "doc| t| CHECK| doc_t_id_not_null",
+            "doc| t| PRIMARY KEY| t_pk"
+        );
         execute("alter table t drop constraint check_id_ge_zero");
         execute(selectCheckConstraintsStmt);
-        assertThat(printedTable(response.rows()), is(
-            "doc| t| CHECK| check_qty_gt_zero\n" +
-            "doc| t| CHECK| doc_t_id_not_null\n" +
-            "doc| t| PRIMARY KEY| t_pk\n"
-        ));
+        assertThat(response).hasRows(
+            "doc| t| CHECK| check_qty_gt_zero",
+            "doc| t| CHECK| doc_t_id_not_null",
+            "doc| t| PRIMARY KEY| t_pk"
+        );
         execute("insert into t(id, qty) values(-42, 100)");
         assertThrowsMatches(() -> execute("insert into t(id, qty) values(0, 0)"),
                      isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {id=0, qty=0}"),
@@ -454,15 +451,15 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "where table_name='t'" +
                 "order by constraint_name";
         execute(selectCheckConstraintsStmt);
-        assertThat(printedTable(response.rows()), is(
-            "doc| t| CHECK| doc_t_id_not_null\n" +
-                "doc| t| PRIMARY KEY| t_pk\n"
-        ));
+        assertThat(response).hasRows(
+            "doc| t| CHECK| doc_t_id_not_null",
+            "doc| t| PRIMARY KEY| t_pk"
+        );
 
         execute("insert into t(id) values(-1)");
         refresh();
         execute("select id from t");
-        assertThat(printedTable(response.rows()), is("-1\n"));
+        assertThat(response).hasRows("-1\n");
     }
 
     @Test
@@ -485,12 +482,12 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("select data_type from information_schema.columns where " +
                 "table_name = 't' and column_name = 'name'");
-        assertThat(response.rows()[0][0], is("text"));
+        assertThat(response).hasRows("text\n");
 
         execute("alter table t add column o object as (age int)");
         execute("select data_type from information_schema.columns where " +
                 "table_name = 't' and column_name = 'o'");
-        assertThat((String) response.rows()[0][0], is("object"));
+        assertThat(response).hasRows("object\n");
     }
 
     @Test
@@ -498,22 +495,22 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id int primary key) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         response = execute("select constraint_name from information_schema.table_constraints " +
             "where table_name = 't' and table_schema = 'doc' order by constraint_name");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("doc_t_id_not_null"));
-        assertThat(response.rows()[1][0], is("t_pk"));
+        assertThat(response).hasRows(
+            "doc_t_id_not_null",
+            "t_pk"
+        );
 
         execute("alter table t add column name string primary key");
         response = execute("select constraint_name from information_schema.table_constraints " +
                 "where table_name = 't' and table_schema = 'doc' order by constraint_name");
 
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is("doc_t_id_not_null"));
-        assertThat(response.rows()[1][0], is("doc_t_name_not_null"));
-        assertThat(response.rows()[2][0], is("t_pk"));
-
+        assertThat(response).hasRows(
+            "doc_t_id_not_null",
+            "doc_t_name_not_null",
+            "t_pk"
+        );
     }
 
     @Test
@@ -521,7 +518,6 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id int primary key) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into t (id) values(1)");
         refresh();
 
@@ -537,13 +533,12 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         execute("alter table t add column id_generated as (id + 1)");
         execute("insert into t (id) values(1)");
         refresh();
         execute("select id, id_generated from t");
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(response.rows()[0][1], is(2));
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat(response.rows()[0][1]).isEqualTo(2);
     }
 
     @Test
@@ -551,7 +546,6 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into t (id) values(1)");
         refresh();
 
@@ -594,13 +588,13 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
                 "order by column_name asc");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3);
 
         List<String> fqColumnNames = new ArrayList<>();
         for (Object[] row : response.rows()) {
             fqColumnNames.add((String) row[0]);
         }
-        assertThat(fqColumnNames, Matchers.contains("id", "o", "o['x']"));
+        assertThat(fqColumnNames).containsExactly("id", "o", "o['x']");
     }
 
     @Test
@@ -620,13 +614,13 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
                 "order by column_name asc");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3L);
 
         List<String> fqColumnNames = new ArrayList<>();
         for (Object[] row : response.rows()) {
             fqColumnNames.add((String) row[0]);
         }
-        assertThat(fqColumnNames, Matchers.contains("o", "o['x']", "o['y']"));
+        assertThat(fqColumnNames).containsExactly("o", "o['x']", "o['y']");
     }
 
     @Test
@@ -642,17 +636,17 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("select column_name from information_schema.columns where " +
                 "table_name = 'my_table' and table_schema='doc'" +
                 "order by column_name asc");
-        assertThat(response.rowCount(), is(6L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0),
-            is(Matchers.<Object>arrayContaining("age", "book", "book['author']", "book['author']['authorId']", "book['isbn']", "name")));
+        assertThat(response).hasRowCount(6);
+        assertThat(TestingHelpers.getColumn(response.rows(), 0)).containsExactly(
+            "age", "book", "book['author']", "book['author']['authorId']", "book['isbn']", "name");
         execute("alter table my_table add column book['author']['authorName'] string");
         waitNoPendingTasksOnAll();
         execute("select column_name from information_schema.columns where " +
                 "table_name = 'my_table' and table_schema='doc'" +
                 "order by column_name asc");
-        assertThat(response.rowCount(), is(7L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0),
-            is(Matchers.<Object>arrayContaining("age", "book", "book['author']", "book['author']['authorId']", "book['author']['authorName']", "book['isbn']", "name")));
+        assertThat(response).hasRowCount(7);
+        assertThat(TestingHelpers.getColumn(response.rows(), 0)).containsExactly(
+            "age", "book", "book['author']", "book['author']['authorId']", "book['author']['authorName']", "book['isbn']", "name");
 
     }
 
@@ -665,10 +659,12 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("SELECT column_name, data_type FROM information_schema.columns " +
                 "WHERE table_name = 'my_table' AND table_schema = 'doc' " +
                 "ORDER BY column_name asc");
-        assertThat(TestingHelpers.getColumn(response.rows(), 0),
-            is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']")));
-        assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.arrayContaining("object", "object", "text_array")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0)).containsExactly(
+            "col1", "col1['col2']", "col1['col2']['col3']"
+        );
+        assertThat(TestingHelpers.getColumn(response.rows(), 1)).containsExactly(
+            "object", "object", "text_array"
+        );
 
         execute("DROP TABLE my_table");
         ensureYellow();
@@ -680,10 +676,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("SELECT column_name, data_type FROM information_schema.columns " +
                 "WHERE table_name = 'my_table' AND table_schema = 'doc' " +
                 "ORDER BY column_name asc");
-        assertThat(TestingHelpers.getColumn(response.rows(), 0),
-            is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
-        assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.arrayContaining("object", "object", "object", "bigint_array")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0)).containsExactly(
+            "col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']");
+        assertThat(TestingHelpers.getColumn(response.rows(), 1)).containsExactly(
+            "object", "object", "object", "bigint_array");
     }
 
     @Test
@@ -695,24 +691,23 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "       )" +
                 "   )" +
                 ")");
-        ensureYellow();
         execute("ALTER TABLE t ADD column attributes['is_nice'] BOOLEAN");
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         refresh();
         execute("select attributes from t");
-        assertThat(((List<Object>)response.rows()[0][0]).get(0), is(Map.of("name", "Trillian", "is_nice", true)));
+        assertThat(response).hasRows("[{name=Trillian, is_nice=true}]\n");
     }
 
     @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isTrue();
 
         execute("drop table test");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isFalse();
     }
 
     @Test
@@ -733,16 +728,16 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isTrue();
         execute("drop table if exists test");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(false));
+        assertThat(response).hasRowCount(1);
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isFalse();
     }
 
     @Test
     public void testDropIfExistsUnknownTable() throws Exception {
         execute("drop table if exists nonexistent");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -765,7 +760,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     @Test
     public void testDropBlobTableIfExistsUnknownTable() throws Exception {
         execute("drop blob table if exists nonexistent");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -790,7 +785,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse templatesResponse =
             client().admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(5));
+        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(5);
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
@@ -800,7 +795,7 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("select number_of_shards from information_schema.table_partitions where partition_ident = ? and table_name = ?",
             $(partitionName.ident(), partitionName.relationName().name()));
-        assertThat(response.rows()[0][0], is(5));
+        assertThat(response).hasRows(new Object[] { 5 });
     }
 
     @Test
@@ -849,16 +844,16 @@ public class DDLIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into a.t (name) values ('Ford')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         refresh();
 
         execute("select name from a.t");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Ford"));
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows("Ford\n");
 
         execute("select table_schema from information_schema.tables where table_name = 't'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("a"));
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows("a\n");
     }
 
     @Test
@@ -873,10 +868,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("drop table a.t");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
 
         execute("select table_schema from information_schema.tables where table_name = 't'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -950,7 +945,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE tbl ADD COLUMN dummy text NOT NULL");
 
         execute("show create table tbl");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "author" TEXT NOT NULL,
@@ -960,14 +955,14 @@ public class DDLIntegrationTest extends IntegTestCase {
                    )
                 )
                 """.stripIndent()
-        ));
+        );
     }
 
     @Test
     public void test_geo_shape_can_be_not_null() {
         execute("create table t (col geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25') NOT NULL)");
         execute("show create table t");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."t" (
                    "col" GEO_SHAPE NOT NULL INDEX USING QUADTREE WITH (
@@ -976,8 +971,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    )
                 )
                 """.stripIndent()
-        ));
-
+        );
     }
 
     @Test
@@ -1015,7 +1009,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             "storage with (columnstore=false)"
         );
         execute("show create table tbl");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "id" INTEGER NOT NULL,
@@ -1030,7 +1024,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    CONSTRAINT id_check CHECK("id" > 0),
                    CONSTRAINT test_check CHECK("col1" <> 'd')
                 )""".stripIndent()
-        ));
+        );
     }
 
     @Test
@@ -1043,7 +1037,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         );
 
         execute("show create table tbl");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "id" INTEGER,
@@ -1052,7 +1046,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                       precision = '123.0m'
                    )
                 )""".stripIndent()
-        ));
+        );
     }
 
     @Test
@@ -1130,7 +1124,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         );
 
         execute("show create table t");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."t" (
                    "id" INTEGER NOT NULL,
@@ -1155,7 +1149,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    CONSTRAINT int_check CHECK("int_col" > 20),
                    CONSTRAINT leaf_check CHECK("o1"['a1']['c1'] > 10)
                 )""".stripIndent()
-        ));
+        );
 
         // We test explicitly only CHECK since not-null and generated is part of a Reference and this is same behavior as adding single column.
         // CHECK constraints are streamed separately and adding multiple columns is the only use case of adding multiple checks at once.

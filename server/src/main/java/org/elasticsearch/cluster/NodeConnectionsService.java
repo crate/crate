@@ -340,10 +340,12 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             public void onFailure(Exception e) {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 final int currentFailureCount = consecutiveFailureCount.incrementAndGet();
-                // only warn every 6th failure
-                final Level level = currentFailureCount % 6 == 1 ? Level.WARN : Level.DEBUG;
-                LOGGER.log(level, new ParameterizedMessage("failed to connect to {} (tried [{}] times)",
-                    discoveryNode, currentFailureCount), e);
+                if (!lifecycle.stoppedOrClosed()) {
+                    // only warn every 6th failure
+                    final Level level = currentFailureCount % 6 == 0 ? Level.WARN : Level.DEBUG;
+                    LOGGER.log(level, new ParameterizedMessage("failed to connect to {} (tried [{}] times lifecycle={})",
+                        discoveryNode, currentFailureCount, lifecycle), e);
+                }
                 onCompletion(ActivityType.CONNECTING, e, disconnectActivity);
             }
 
