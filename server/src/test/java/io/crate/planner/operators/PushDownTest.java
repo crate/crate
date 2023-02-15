@@ -108,16 +108,15 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select t1.a, t2.b, t3.a from t1 " +
                                 "inner join t2 on t1.a = t2.b " +
                                 "inner join t1 as t3 on t3.a = t2.b " +
-                                "order by t2.b");
+                                "order by t1.a");
         assertThat(plan, isPlan(
-            "Eval[a, b, a]\n" +
-            "  └ NestedLoopJoin[INNER | (a = b)]\n" +
-            "    ├ NestedLoopJoin[INNER | (a = b)]\n" +
-            "    │  ├ OrderBy[b ASC]\n" +
-            "    │  │  └ Collect[doc.t2 | [b] | true]\n" +
-            "    │  └ Collect[doc.t1 | [a] | true]\n" +
-            "    └ Rename[a] AS t3\n" +
-            "      └ Collect[doc.t1 | [a] | true]"));
+                "NestedLoopJoin[INNER | (a = b)]\n" +
+                "  ├ NestedLoopJoin[INNER | (a = b)]\n" +
+                "  │  ├ OrderBy[a ASC]\n" +
+                "  │  │  └ Collect[doc.t1 | [a] | true]\n" +
+                "  │  └ Collect[doc.t2 | [b] | true]\n" +
+                "  └ Rename[a] AS t3\n" +
+                "    └ Collect[doc.t1 | [a] | true]"));
     }
 
     @Test
@@ -178,14 +177,13 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                 "left join t1 as t3 on t3.a = t1.a " +
                                 "order by t1.a");
         assertThat(plan, isPlan(
-            "Eval[a, b, a]\n" +
-            "  └ OrderBy[a ASC]\n" +
-            "    └ NestedLoopJoin[LEFT | (a = a)]\n" +
-            "      ├ NestedLoopJoin[INNER | (a = b)]\n" +
-            "      │  ├ Collect[doc.t2 | [b] | true]\n" +
-            "      │  └ Collect[doc.t1 | [a] | true]\n" +
-            "      └ Rename[a] AS t3\n" +
-            "        └ Collect[doc.t1 | [a] | true]"));
+            "OrderBy[a ASC]\n" +
+                "  └ NestedLoopJoin[LEFT | (a = a)]\n" +
+                "    ├ NestedLoopJoin[INNER | (a = b)]\n" +
+                "    │  ├ Collect[doc.t1 | [a] | true]\n" +
+                "    │  └ Collect[doc.t2 | [b] | true]\n" +
+                "    └ Rename[a] AS t3\n" +
+                "      └ Collect[doc.t1 | [a] | true]"));
     }
 
     @Test
