@@ -22,10 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -33,9 +30,10 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
 public class CircuitBreakerIntegrationTest extends IntegTestCase {
@@ -72,17 +70,12 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
 
         execute("set global \"indices.breaker.query.limit\"='100b'");
 
-        assertThrowsMatches(
-            () -> execute("select text from t1 group by text"),
-            isSQLError(
-                Matchers.allOf(
-                    containsString("[query] Data too large, data for [collect: 0] would be "),
-                    containsString("which is larger than the limit of [100/100b]")
-                ),
-                INTERNAL_ERROR,
-                INTERNAL_SERVER_ERROR,
-                5000
+        Asserts.assertSQLError(() -> execute("select text from t1 group by text"))
+            .hasMessageContainingAll(
+                "[query] Data too large, data for [collect: 0] would be ",
+                "which is larger than the limit of [100/100b]"
             )
-        );
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000);
     }
 }

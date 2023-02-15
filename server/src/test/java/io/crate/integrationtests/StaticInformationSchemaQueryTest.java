@@ -22,16 +22,15 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class StaticInformationSchemaQueryTest extends IntegTestCase {
 
@@ -50,11 +49,10 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
 
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
-        assertThrowsMatches(() -> execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables"),
-                     isSQLError(is("Relation 'sys.nodes' unknown"),
-                                UNDEFINED_TABLE,
-                                NOT_FOUND,
-                                4041));
+        Asserts.assertSQLError(() -> execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'sys.nodes' unknown");
     }
 
     @Test
@@ -210,10 +208,9 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
 
     @Test
     public void testSelectUnknownTableFromInformationSchema() throws Exception {
-        assertThrowsMatches(() -> execute("select * from information_schema.non_existent"),
-                     isSQLError(is("Relation 'information_schema.non_existent' unknown"),
-                                UNDEFINED_TABLE,
-                                NOT_FOUND,
-                                4041));
+        Asserts.assertSQLError(() -> execute("select * from information_schema.non_existent"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'information_schema.non_existent' unknown");
     }
 }

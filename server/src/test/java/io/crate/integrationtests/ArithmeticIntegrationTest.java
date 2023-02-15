@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.not;
@@ -38,6 +36,8 @@ import java.util.Locale;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class ArithmeticIntegrationTest extends IntegTestCase {
 
@@ -320,11 +320,10 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
         refresh();
-        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0"),
-                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("select log(d, l) from t where log(d, -1) >= 0"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("log(x, b): given arguments would result in: 'NaN'");
     }
 
     @Test
@@ -334,11 +333,10 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
         execute("refresh table t");
 
-        assertThrowsMatches(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"),
-                     isSQLError(is("log(x, b): given arguments would result in: 'NaN'"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("log(x, b): given arguments would result in: 'NaN'");
     }
 
     @Test

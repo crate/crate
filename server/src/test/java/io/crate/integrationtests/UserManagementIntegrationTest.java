@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -35,6 +33,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
@@ -128,11 +127,10 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testAlterNonExistingUserThrowsException() throws Exception {
-        assertThrowsMatches(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"),
-                     isSQLError(is("User 'unknown_user' does not exist"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                40410));
+        Asserts.assertSQLError(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(NOT_FOUND, 40410)
+            .hasMessageContaining("User 'unknown_user' does not exist");
     }
 
     @Test
@@ -151,29 +149,26 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropUserUnAuthorized() throws Exception {
-        assertThrowsMatches(() -> executeAsNormalUser("drop user ford"),
-                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
-                                INTERNAL_ERROR,
-                                UNAUTHORIZED,
-                                4011));
+        Asserts.assertSQLError(() -> executeAsNormalUser("drop user ford"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(UNAUTHORIZED, 4011)
+            .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
     }
 
     @Test
     public void testCreateUserUnAuthorized() throws Exception {
-        assertThrowsMatches(() -> executeAsNormalUser("create user ford"),
-                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
-                                INTERNAL_ERROR,
-                                UNAUTHORIZED,
-                                4011));
+        Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(UNAUTHORIZED, 4011)
+            .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
     }
 
     @Test
     public void testCreateNormalUserUnAuthorized() throws Exception {
-        assertThrowsMatches(() -> executeAsNormalUser("create user ford"),
-                     isSQLError(is("Missing 'AL' privilege for user 'normal'"),
-                                INTERNAL_ERROR,
-                                UNAUTHORIZED,
-                                4011));
+        Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(UNAUTHORIZED, 4011)
+            .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
     }
 
     @Test
@@ -191,28 +186,25 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
-        assertThrowsMatches(() -> executeAsSuperuser("create user ford_exists"),
-                     isSQLError(is("User 'ford_exists' already exists"),
-                                INTERNAL_ERROR,
-                                CONFLICT,
-                                4099));
+        Asserts.assertSQLError(() -> executeAsSuperuser("create user ford_exists"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(CONFLICT, 4099)
+            .hasMessageContaining("User 'ford_exists' already exists");
     }
 
     @Test
     public void testDropNonExistingUserThrowsException() throws Exception {
-        assertThrowsMatches(() -> executeAsSuperuser("drop user not_exists"),
-                     isSQLError(is("User 'not_exists' does not exist"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                40410));
+        Asserts.assertSQLError(() -> executeAsSuperuser("drop user not_exists"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(NOT_FOUND, 40410)
+            .hasMessageContaining("User 'not_exists' does not exist");
     }
 
     @Test
     public void testDropSuperUserThrowsException() throws Exception {
-        assertThrowsMatches(() -> executeAsSuperuser("drop user crate"),
-                     isSQLError(is("Cannot drop a superuser 'crate'"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4004));
+        Asserts.assertSQLError(() -> executeAsSuperuser("drop user crate"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot drop a superuser 'crate'");
     }
 }

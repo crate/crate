@@ -2,11 +2,8 @@
 package org.elasticsearch.repositories.url;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -20,6 +17,8 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.crate.testing.Asserts;
 
 public class URLRepositoryITest extends IntegTestCase {
 
@@ -60,11 +59,10 @@ public class URLRepositoryITest extends IntegTestCase {
             new Object[]{defaultRepositoryLocation.toURI().toString()});
         waitNoPendingTasksOnAll();
 
-        assertThrowsMatches(() -> execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)"),
-                     isSQLError(is("[uri_repo] cannot create snapshot in a readonly repository"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000));
+        Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[uri_repo] cannot create snapshot in a readonly repository");
     }
 
 }

@@ -22,10 +22,7 @@
 package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -40,13 +37,14 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
 
-import org.elasticsearch.test.IntegTestCase;
 import io.crate.protocols.ssl.SslSettings;
+import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
 /**
@@ -139,13 +137,14 @@ public class AuthenticationWithSSLIntegrationTest extends IntegTestCase {
         properties.setProperty("user", "localhost");
         properties.setProperty("ssl", "true");
 
-        assertThrowsMatches(
+        Asserts.assertSQLError(
             () -> {
                 try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
                 }
-            },
-            isPGError(is("Client certificate authentication failed for user \"localhost\""),
-                      INVALID_AUTHORIZATION_SPECIFICATION));
+            })
+            .isExactlyInstanceOf(PSQLException.class)
+            .hasPGError(INVALID_AUTHORIZATION_SPECIFICATION)
+            .hasMessageContaining("Client certificate authentication failed for user \"localhost\"");
     }
 
 

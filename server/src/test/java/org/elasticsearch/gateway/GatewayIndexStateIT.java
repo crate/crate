@@ -20,8 +20,6 @@
 package org.elasticsearch.gateway;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
@@ -83,6 +81,7 @@ import org.junit.Test;
 import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLTransportExecutor;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -490,13 +489,10 @@ public class GatewayIndexStateIT extends IntegTestCase {
         assertEquals(IndexMetadata.State.CLOSE, state.metadata().index(metadata.getIndex()).getState());
         assertEquals("classic", state.metadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
         // try to open it with the broken setting - fail again!
-        assertThrowsMatches(
-            () -> execute("alter table test open"),
-            isSQLError(is("Failed to verify index " + metadata.getIndex().getName()),
-                       INTERNAL_ERROR,
-                       INTERNAL_SERVER_ERROR,
-                       5000)
-        );
+        Asserts.assertSQLError(() -> execute("alter table test open"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining("Failed to verify index " + metadata.getIndex().getName());
     }
 
     /**
@@ -570,13 +566,10 @@ public class GatewayIndexStateIT extends IntegTestCase {
         execute("alter table test close");
 
         // try to open it with the broken setting - fail again!
-        assertThrowsMatches(
-            () -> execute("alter table test open"),
-            isSQLError(is("Failed to verify index " + metadata.getIndex().getName()),
-                       INTERNAL_ERROR,
-                       INTERNAL_SERVER_ERROR,
-                       5000)
-        );
+        Asserts.assertSQLError(() -> execute("alter table test open"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining("Failed to verify index " + metadata.getIndex().getName());
     }
 
     @Test
