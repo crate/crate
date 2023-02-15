@@ -137,7 +137,11 @@ public class CorrelatedJoin implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return this;
+        return new CorrelatedJoin(
+            Lists2.getOnlyElement(sources),
+            selectSymbol,
+            subQueryPlan
+        );
     }
 
     @Override

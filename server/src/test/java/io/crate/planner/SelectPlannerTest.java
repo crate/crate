@@ -1306,13 +1306,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             "HashJoin[(a = b)]\n" +
             "  ├ Rename[a] AS v1\n" +
-            "  │  └ Eval[a]\n" +
-            "  │    └ Rename[a] AS a1\n" +
-            "  │      └ Collect[doc.t1 | [a] | true]\n" +
+            "  │  └ Rename[a] AS a1\n" +
+            "  │    └ Collect[doc.t1 | [a] | true]\n" +
             "  └ Rename[b] AS v2\n" +
-            "    └ Eval[b]\n" +
-            "      └ Rename[b] AS a2\n" +
-            "        └ Collect[doc.t2 | [b] | true]";
+            "    └ Rename[b] AS a2\n" +
+            "      └ Collect[doc.t2 | [b] | true]";
         assertThat(plan, isPlan(expectedPlan));
     }
 
@@ -1333,13 +1331,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             "NestedLoopJoin[INNER | (a > b)]\n" +
             "  ├ Rename[a] AS v1\n" +
-            "  │  └ Eval[a]\n" +
-            "  │    └ Rename[a] AS a1\n" +
-            "  │      └ Collect[doc.t1 | [a] | true]\n" +
+            "  │  └ Rename[a] AS a1\n" +
+            "  │    └ Collect[doc.t1 | [a] | true]\n" +
             "  └ Rename[b] AS v2\n" +
-            "    └ Eval[b]\n" +
-            "      └ Rename[b] AS a2\n" +
-            "        └ Collect[doc.t2 | [b] | true]";
+            "    └ Rename[b] AS a2\n" +
+            "      └ Collect[doc.t2 | [b] | true]";
         assertThat(plan, isPlan(expectedPlan));
     }
 

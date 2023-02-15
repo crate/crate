@@ -74,7 +74,6 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan lhs;
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
-    private final List<AbstractTableRelation<?>> baseTables;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -96,7 +95,6 @@ public class NestedLoopJoin implements LogicalPlan {
         } else {
             this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
-        this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
@@ -189,7 +187,7 @@ public class NestedLoopJoin implements LogicalPlan {
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
         PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
-        boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
+        boolean hasDocTables = baseTables().stream().anyMatch(r -> r instanceof DocTableRelation);
         boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
 
         LogicalPlan leftLogicalPlan = lhs;
@@ -265,7 +263,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        return baseTables;
+        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override

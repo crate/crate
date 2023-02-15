@@ -39,6 +39,7 @@ import io.crate.statistics.TableStats;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
@@ -67,7 +68,8 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();
