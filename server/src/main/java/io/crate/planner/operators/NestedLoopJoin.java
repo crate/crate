@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
@@ -68,7 +67,6 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Nullable
     private final Symbol joinCondition;
-    private final AnalyzedRelation topMostLeftRelation;
     private final JoinType joinType;
     private final boolean isFiltered;
     final LogicalPlan lhs;
@@ -84,7 +82,6 @@ public class NestedLoopJoin implements LogicalPlan {
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
-                   AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised) {
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
@@ -95,7 +92,6 @@ public class NestedLoopJoin implements LogicalPlan {
         } else {
             this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
-        this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
         this.joinConditionOptimised = joinConditionOptimised;
@@ -106,11 +102,10 @@ public class NestedLoopJoin implements LogicalPlan {
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
-                          AnalyzedRelation topMostLeftRelation,
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
+        this(lhs, rhs, joinType, joinCondition, isFiltered, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
     }
@@ -138,10 +133,6 @@ public class NestedLoopJoin implements LogicalPlan {
 
     public boolean isFiltered() {
         return true;
-    }
-
-    public AnalyzedRelation topMostLeftRelation() {
-        return topMostLeftRelation;
     }
 
     public JoinType joinType() {
@@ -279,7 +270,6 @@ public class NestedLoopJoin implements LogicalPlan {
             joinType,
             joinCondition,
             isFiltered,
-            topMostLeftRelation,
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised
@@ -309,7 +299,6 @@ public class NestedLoopJoin implements LogicalPlan {
             joinType,
             joinCondition,
             isFiltered,
-            topMostLeftRelation,
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised
@@ -345,7 +334,6 @@ public class NestedLoopJoin implements LogicalPlan {
                 joinType,
                 joinCondition,
                 isFiltered,
-                topMostLeftRelation,
                 orderByWasPushedDown,
                 rewriteFilterOnOuterJoinToInnerJoinDone,
                 joinConditionOptimised

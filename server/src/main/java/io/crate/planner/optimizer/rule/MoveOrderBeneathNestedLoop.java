@@ -96,16 +96,15 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         }
         if (relationsInOrderBy.size() == 1) {
             RelationName relationInOrderBy = relationsInOrderBy.iterator().next();
-            if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
-                LogicalPlan lhs = nestedLoop.sources().get(0);
-                LogicalPlan newLhs = order.replaceSources(List.of(lhs));
+            var lhs = resolvePlan.apply(nestedLoop.lhs());
+            if (lhs.getRelationNames().contains(relationInOrderBy)) {
+                LogicalPlan newLhs = order.replaceSources(List.of(nestedLoop.lhs()));
                 return new NestedLoopJoin(
                     newLhs,
                     nestedLoop.sources().get(1),
                     nestedLoop.joinType(),
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),
-                    nestedLoop.topMostLeftRelation(),
                     true,
                     nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                     false

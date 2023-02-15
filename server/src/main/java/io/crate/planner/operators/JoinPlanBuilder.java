@@ -192,7 +192,6 @@ public class JoinPlanBuilder {
                 joinType,
                 joinCondition,
                 !query.symbolType().isValueSymbol(),
-                lhs,
                 false);
         }
     }
@@ -289,6 +288,6 @@ public class JoinPlanBuilder {
         }
         return new CorrelatedSubQueries(correlatedSubQueries, remainder);
     }
-    
+
     private record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {}
 }
