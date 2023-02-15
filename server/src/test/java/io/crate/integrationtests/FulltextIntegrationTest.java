@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -33,6 +31,7 @@ import static org.junit.Assert.assertThat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 
 public class FulltextIntegrationTest extends IntegTestCase {
@@ -65,9 +64,10 @@ public class FulltextIntegrationTest extends IntegTestCase {
     @Test
     public void testMatchUnsupportedInSelect() {
         execute("create table quotes (quote string)");
-        assertThrowsMatches(() -> execute("select match(quote, 'the quote') from quotes"),
-                     isSQLError(is("match predicate cannot be selected"),
-                                INTERNAL_ERROR, BAD_REQUEST, 4004));
+        Asserts.assertSQLError(() -> execute("select match(quote, 'the quote') from quotes"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("match predicate cannot be selected");
     }
 
     @Test

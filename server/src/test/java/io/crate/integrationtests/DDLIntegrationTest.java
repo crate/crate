@@ -26,16 +26,11 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -57,7 +52,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -136,13 +130,10 @@ public class DDLIntegrationTest extends IntegTestCase {
     @Test
     public void testCreateTableAlreadyExistsException() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureYellow();
-        assertThrowsMatches(() -> execute("create table test (col1 integer primary key, col2 string)"),
-                     isSQLError(is("Relation 'doc.test' already exists."),
-                                DUPLICATE_TABLE,
-                                CONFLICT,
-                                4093)
-        );
+        Asserts.assertSQLError(() -> execute("create table test (col1 integer primary key, col2 string)"))
+            .hasMessageContaining("Relation 'doc.test' already exists.")
+            .hasPGError(DUPLICATE_TABLE)
+            .hasHTTPError(CONFLICT, 4093);
     }
 
     @Test
@@ -229,33 +220,27 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testGeoShapeInvalidPrecision() throws Exception {
-        assertThrowsMatches(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"),
-                     isSQLError(is("Value '10%' of setting precision is not a valid distance unit"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000)
-        );
+        Asserts.assertSQLError(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='10%'))"))
+            .hasMessageContaining("Value '10%' of setting precision is not a valid distance unit")
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000);
     }
 
     @Test
     public void testGeoShapeInvalidDistance() throws Exception {
-        assertThrowsMatches(() -> execute(
-            "create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))"),
-                     isSQLError(is("Value 'true' of setting distance_error_pct is not a float value"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000)
-        );
+        Asserts.assertSQLError(() -> execute(
+            "create table test (col1 geo_shape INDEX using QUADTREE with (distance_error_pct=true))"))
+            .hasMessageContaining("Value 'true' of setting distance_error_pct is not a float value")
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000);
     }
 
     @Test
     public void testUnknownGeoShapeSetting() throws Exception {
-        assertThrowsMatches(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"),
-                     isSQLError(is("Setting \"does_not_exist\" ist not supported on geo_shape index"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000)
-        );
+        Asserts.assertSQLError(() -> execute("create table test (col1 geo_shape INDEX using QUADTREE with (does_not_exist=false))"))
+            .hasMessageContaining("Setting \"does_not_exist\" ist not supported on geo_shape index")
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000);
     }
 
     @Test
@@ -299,15 +284,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
 
-        assertThrowsMatches(
-            () -> execute("select quote from quotes where quote = ?", new Object[]{quote}),
-            isSQLError(
-                containsString("Cannot search on field [quote] since it is not indexed."),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot search on field [quote] since it is not indexed.");
     }
 
     @Test
@@ -368,11 +348,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         assertEquals(printedTable(response.rows()),
                      "0| NULL\n" +
                      "1| 1\n");
-        assertThrowsMatches(() -> execute("insert into t(id, qty) values(2, -1)"),
-                     isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
-                     INTERNAL_ERROR,
-                     BAD_REQUEST,
-                     4000));
+        Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(2, -1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values");
     }
 
     @Test
@@ -384,11 +363,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         assertEquals(printedTable(response.rows()), "0| 1\n");
         execute("update t set qty = 1 where id = 0 returning id, qty");
         assertEquals(printedTable(response.rows()), "0| 1\n");
-        assertThrowsMatches(() -> execute("update t set qty = -1 where id = 0"),
-                     isSQLError(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"),
-                                INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+        Asserts.assertSQLError(() -> execute("update t set qty = -1 where id = 0"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values");
 
     }
 
@@ -397,11 +375,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
-        assertThrowsMatches(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
-                     isSQLError(containsString("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {id=0, qty=1, bazinga=42}"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {id=0, qty=1, bazinga=42}");
     }
 
     @Test
@@ -431,13 +408,10 @@ public class DDLIntegrationTest extends IntegTestCase {
             "doc| t| PRIMARY KEY| t_pk"
         );
         execute("insert into t(id, qty) values(-42, 100)");
-        assertThrowsMatches(() -> execute("insert into t(id, qty) values(0, 0)"),
-                     isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {id=0, qty=0}"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
-
-
+        Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(0, 0)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {id=0, qty=0}");
     }
 
     @Test
@@ -521,11 +495,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t (id) values(1)");
         refresh();
 
-        assertThrowsMatches(() -> execute("alter table t add column name string primary key"),
-                            isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
-                                       INTERNAL_ERROR,
-                                       BAD_REQUEST,
-                                       4004));
+        Asserts.assertSQLError(() -> execute("alter table t add column name string primary key"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot add a primary key column to a table that isn't empty");
     }
 
     @Test
@@ -549,11 +522,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t (id) values(1)");
         refresh();
 
-        assertThrowsMatches(() -> execute("alter table t add column id_generated as (id + 1)"),
-                     isSQLError(is("Cannot add a generated column to a table that isn't empty"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4004));
+        Asserts.assertSQLError(() -> execute("alter table t add column id_generated as (id + 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot add a generated column to a table that isn't empty");
     }
 
     @Test
@@ -561,21 +533,19 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        assertThrowsMatches(() -> execute("alter table t add \"o.x\" int"),
-                     isSQLError(is("\"o.x\" contains a dot"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4008));
+        Asserts.assertSQLError(() -> execute("alter table t add \"o.x\" int"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4008)
+            .hasMessageContaining("\"o.x\" contains a dot");
     }
 
     @Test
     public void testAlterTableAddDotExpressionInSubscript() {
         execute("create table t (id int) clustered into 1 shards with (number_of_replicas=0)");
-        assertThrowsMatches(() -> execute("alter table t add \"o['x.y']\" int"),
-                            isSQLError(is("\"x.y\" contains a dot"),
-                                       INTERNAL_ERROR,
-                                       BAD_REQUEST,
-                                       4008));
+        Asserts.assertSQLError(() -> execute("alter table t add \"o['x.y']\" int"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4008)
+            .hasMessageContaining("\"x.y\" contains a dot");
 
     }
 
@@ -605,11 +575,10 @@ public class DDLIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("alter table t add o['y'] int");
         // column o exists already
-        assertThrowsMatches(() -> execute("alter table t add o object as (z string)"),
-                     isSQLError(containsString("The table doc.t already has a column named o"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table t add o object as (z string)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("The table doc.t already has a column named o");
 
         execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
@@ -720,8 +689,10 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDropUnknownTable() throws Exception {
-        assertThrowsMatches(() -> execute("drop table test"),
-                     isSQLError(is("Relation 'test' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+        Asserts.assertSQLError(() -> execute("drop table test"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'test' unknown");
     }
 
     @Test
@@ -807,11 +778,10 @@ public class DDLIntegrationTest extends IntegTestCase {
             "   date timestamp with time zone" +
             ") clustered into 3 shards with (number_of_replicas='0-all')");
 
-        assertThrowsMatches(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"),
-                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table quotes set (number_of_shards=1, number_of_replicas='1-all')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Setting [number_of_shards] cannot be combined with other settings");
     }
 
     @Test
@@ -830,12 +800,11 @@ public class DDLIntegrationTest extends IntegTestCase {
                 2, "Now panic", 1395961200000L}
         );
 
-        assertThrowsMatches(() -> execute("alter table quotes partition (date=1395874800000) " +
-                                   "set (number_of_shards=1, number_of_replicas='1-all')"),
-                     isSQLError(is("Setting [number_of_shards] cannot be combined with other settings"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table quotes partition (date=1395874800000) " +
+                                   "set (number_of_shards=1, number_of_replicas='1-all')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Setting [number_of_shards] cannot be combined with other settings");
     }
 
     @Test
@@ -858,8 +827,10 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
-        assertThrowsMatches(() -> execute("create table \"AA A\".t (name string) with (number_of_replicas=0)"),
-                     isSQLError(is("Relation name \"AA A.t\" is invalid."), INTERNAL_ERROR, BAD_REQUEST, 4002));
+        Asserts.assertSQLError(() -> execute("create table \"AA A\".t (name string) with (number_of_replicas=0)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4002)
+            .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
 
     }
 
@@ -921,15 +892,11 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void test_alter_table_cannot_add_broken_generated_column() throws Exception {
         execute("create table tbl (x int)");
 
-        Asserts.assertThrowsMatches(
-            () -> execute("alter table tbl add column ts timestamp without time zone generated always as 'foobar'"),
-            SQLErrorMatcher.isSQLError(
-                is("Cannot cast `'foobar'` of type `text` to type `timestamp without time zone`"),
-                PGErrorStatus.INTERNAL_ERROR,
-                HttpResponseStatus.BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(
+            () -> execute("alter table tbl add column ts timestamp without time zone generated always as 'foobar'"))
+            .hasMessageContaining("Cannot cast `'foobar'` of type `text` to type `timestamp without time zone`")
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000);
     }
 
     @Test
@@ -1054,50 +1021,32 @@ public class DDLIntegrationTest extends IntegTestCase {
         // non-existing object
         execute("create table t (o object)");
         execute("alter table t add column o2['a']['b'] text not null");
-        assertThrowsMatches(
-            () -> execute("insert into t (o2) values ({\"a\" = {\"b\" = null}})"),
-            isSQLError(
-                containsString("\"o2['a']['b']\" must not be null"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("insert into t (o2) values ({\"a\" = {\"b\" = null}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("\"o2['a']['b']\" must not be null");
 
         // existing object
         execute("alter table t add column o['a']['b'] text not null");
-        assertThrowsMatches(
-            () -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"),
-            isSQLError(
-                containsString("\"o['a']['b']\" must not be null"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("\"o['a']['b']\" must not be null");
 
         // object with multiple children
         execute("alter table t add column o3 object as (a object as (b text not null), c int not null)");
         // one leaf of o3
-        assertThrowsMatches(
-            () -> execute("insert into t (o, o2) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}})"),
-            isSQLError(
-                containsString("\"o3['a']['b']\" must not be null"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute(
+                "insert into t (o, o2) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("\"o3['a']['b']\" must not be null");
         // another leaf of o3
-        assertThrowsMatches(
-            () -> execute("insert into t (o, o2, o3) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}, \"c\" = null})"),
-            isSQLError(
-                containsString("\"o3['c']\" must not be null"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute(
+                "insert into t (o, o2, o3) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}, \"c\" = null})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("\"o3['c']\" must not be null");
     }
 
 
@@ -1153,24 +1102,16 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // We test explicitly only CHECK since not-null and generated is part of a Reference and this is same behavior as adding single column.
         // CHECK constraints are streamed separately and adding multiple columns is the only use case of adding multiple checks at once.
-        assertThrowsMatches(
-            () -> execute("insert into t (id, o2, int_col) values (1, {\"a2\" = {\"b2\" = 'test'}}, 19)"),
-            isSQLError(
-                containsString("Failed CONSTRAINT int_check CHECK (\"int_col\" > 20)"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(
+            () -> execute("insert into t (id, o2, int_col) values (1, {\"a2\" = {\"b2\" = 'test'}}, 19)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT int_check CHECK (\"int_col\" > 20)");
 
-        assertThrowsMatches(
-            () -> execute("insert into t (id, o2, o1) values (1, {\"a2\" = {\"b2\" = 'test'}}, {\"a1\" = {\"c1\" = 9}})"),
-            isSQLError(
-                containsString("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(
+            () -> execute("insert into t (id, o2, o1) values (1, {\"a2\" = {\"b2\" = 'test'}}, {\"a1\" = {\"c1\" = 9}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
     }
 }

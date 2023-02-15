@@ -21,6 +21,10 @@
 
 package io.crate.planner.optimizer.matcher;
 
+import java.util.function.Function;
+
+import io.crate.planner.operators.LogicalPlan;
+
 class CapturePattern<T> extends Pattern<T> {
 
     private final Capture<T> capture;
@@ -32,8 +36,8 @@ class CapturePattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+        Match<T> match = pattern.accept(object, captures, resolvePlan);
         return match.flatMap(val -> Match.of(val, captures.add(Captures.of(capture, val))));
     }
 }

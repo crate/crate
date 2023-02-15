@@ -22,12 +22,9 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -62,6 +59,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.testing.Asserts;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -359,13 +357,10 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             " 'function foo(a) { return a; }'");
         execute("create table doc.t1 (id long, l as doc.foo(id))");
 
-        assertThrowsMatches(
-            () -> execute("drop function doc.foo(long)"),
-            isSQLError(containsString(
-                    "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000)
-        );
+        Asserts.assertSQLError(() -> execute("drop function doc.foo(long)"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining(
+                        "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'");
     }
 }

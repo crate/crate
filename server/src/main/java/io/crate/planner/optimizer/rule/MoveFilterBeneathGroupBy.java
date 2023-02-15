@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -77,7 +78,8 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
         Symbol predicate = filter.query();

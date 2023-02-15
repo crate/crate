@@ -22,14 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class CountStarIntegrationTest extends IntegTestCase {
 
@@ -78,11 +78,10 @@ public class CountStarIntegrationTest extends IntegTestCase {
     @Test
     public void testSelectCountStarWithWhereClauseForUnknownCol() throws Exception {
         execute("create table test (\"name\" string) with (number_of_replicas=0)");
-        assertThrowsMatches(() -> execute("select count(*) from test where non_existant = 'Some Value'"),
-                     isSQLError(is("Column non_existant unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("select count(*) from test where non_existant = 'Some Value'"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column non_existant unknown");
     }
 
     @Test

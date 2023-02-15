@@ -34,6 +34,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
@@ -61,7 +62,8 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(fetchCapture);
         List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

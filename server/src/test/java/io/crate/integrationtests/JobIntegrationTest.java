@@ -22,10 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.containsString;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.action.sql.Sessions;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
@@ -76,16 +74,14 @@ public class JobIntegrationTest extends IntegTestCase {
         execute("create table users (name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("insert into users (name) (select name from users where _version = 1)"),
-                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("insert into users (name) (select name from users where _version = 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
 
-        assertThrowsMatches(() -> execute("select name from users where _version = 1"),
-                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("select name from users where _version = 1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 }

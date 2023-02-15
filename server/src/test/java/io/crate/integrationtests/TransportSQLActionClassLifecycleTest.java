@@ -24,13 +24,10 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
@@ -71,6 +68,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -90,8 +88,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
-        assertThrowsMatches(() -> execute("select count(race), suess.cluster.name from characters"),
-            isSQLError(is("Relation 'suess.cluster' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+        Asserts.assertSQLError(() -> execute("select count(race), suess.cluster.name from characters"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'suess.cluster' unknown");
     }
 
     @Test
@@ -204,8 +204,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
     @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
-        assertThrowsMatches(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}),
-                     isSQLError(is("Relation 'non_existent' unknown"), UNDEFINED_TABLE, NOT_FOUND, 4041));
+        Asserts.assertSQLError(() -> execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"}))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'non_existent' unknown");
     }
 
     @Test
@@ -442,9 +444,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
     @Test
     public void testSetStatementInvalid() throws Exception {
-        assertThrowsMatches(() -> execute("set global persistent stats.operations_log_size=-1024"),
-                     isSQLError(containsString("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"),
-                                INTERNAL_ERROR, BAD_REQUEST, 4000));
+        Asserts.assertSQLError(() -> execute("set global persistent stats.operations_log_size=-1024"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0");
 
         SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
@@ -530,11 +533,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void testAddPrimaryKeyColumnToNonEmptyTable() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
-        assertThrowsMatches(() -> execute("alter table characters add newpkcol string primary key"),
-                     isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4004));
+        Asserts.assertSQLError(() -> execute("alter table characters add newpkcol string primary key"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot add a primary key column to a table that isn't empty");
     }
 
     @Test
@@ -561,11 +563,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
-        assertThrowsMatches(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"),
-                     isSQLError(is("Failed to parse mapping: analyzer [foobar] not found for field [content]"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed to parse mapping: analyzer [foobar] not found for field [content]");
     }
 
     @Test

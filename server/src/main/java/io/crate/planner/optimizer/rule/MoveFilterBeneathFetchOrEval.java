@@ -34,6 +34,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
@@ -57,9 +58,15 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx) {
+    public LogicalPlan apply(Filter plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             NodeContext nodeCtx,
+                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(fetchOrEvalCapture);
-        List<Symbol> outputsOfFetchSource = eval.source().outputs();
+        var source = resolvePlan.apply(eval.source());
+        List<Symbol> outputsOfFetchSource = source.outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
             return transpose(plan, eval);
         }

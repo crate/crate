@@ -22,11 +22,8 @@
 package org.elasticsearch.repositories.azure;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -41,6 +38,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.sun.net.httpserver.HttpServer;
+
+import io.crate.testing.Asserts;
 
 public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
@@ -107,14 +106,15 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_invalid_settings_to_create_azure_repository() {
-        assertThrowsMatches(() -> execute(
+        Asserts.assertSQLError(() -> execute(
             "CREATE REPOSITORY r1 TYPE AZURE WITH (container = 'invalid', " +
             "account = 'devstoreaccount1', " +
             "key = 'ZGV2c3RvcmVhY2NvdW50MQ=='," +
-            "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint')"),
-                     isSQLError(is("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
-                                   "IllegalArgumentException 'Invalid connection string.'"),
-                                INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
+            "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
+                                         "IllegalArgumentException 'Invalid connection string.'");
     }
 
     private String httpServerUrl() {
