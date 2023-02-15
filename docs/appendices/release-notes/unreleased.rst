@@ -85,7 +85,10 @@ Fixes
     IllegalStateException[OuterColumn `y` must appear in input of
     CorrelatedJoin]
 
-
 - Fixed an issue that caused ``DROP FUNCTION`` to throw a
   ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
   justifying why a function cannot be dropped.
+
+- Updated to Admin UI 1.24.2, which added syntax highlighting for functions
+  added in CrateDB 5.2: ``MIN_BY``, ``MAX_BY``, ``HAS_DATABASE_PRIVILEGE``,
+  ``PARSE_URI``, and ``PARSE_URL``.
