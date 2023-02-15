@@ -30,8 +30,6 @@ import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matcher;
-import org.junit.jupiter.api.function.Executable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -43,6 +41,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
@@ -75,6 +74,10 @@ public class Asserts extends Assertions {
 
     public static SQLResponseAssert assertThat(SQLResponse actual) {
         return new SQLResponseAssert(actual);
+    }
+
+    public static LogicalPlanAssert assertThat(LogicalPlan plan) {
+        return new LogicalPlanAssert(plan);
     }
 
     public static SQLErrorAssert assertSQLError(ThrowingCallable callable) {
@@ -250,19 +253,5 @@ public class Asserts extends Assertions {
     @SuppressWarnings("rawtypes")
     public static Function<Scalar, Consumer<Scalar>> isNotSameInstance() {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
-    }
-
-
-    /**
-     * @deprecated use {@link #assertSQLError(ThrowingCallable)} or {@link #assertThatThrownBy(ThrowingCallable)}
-     **/
-    @Deprecated
-    public static void assertThrowsMatches(Executable executable, Matcher<? super Throwable> matcher) {
-        try {
-            executable.execute();
-            fail("Expected exception to be thrown, but nothing was thrown.");
-        } catch (Throwable t) {
-            org.hamcrest.MatcherAssert.assertThat(t, matcher);
-        }
     }
 }

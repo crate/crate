@@ -21,11 +21,15 @@
 
 package io.crate.testing;
 
+
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.AbstractAssert;
 
+import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.Projection;
 
 public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Projection> {
@@ -39,6 +43,20 @@ public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Pro
         isExactlyInstanceOf(LimitAndOffsetProjection.class);
         assertThat(((LimitAndOffsetProjection) actual).limit()).isEqualTo(expectedLimit);
         assertThat(((LimitAndOffsetProjection) actual).offset()).isEqualTo(expectedOffset);
+        return this;
+    }
+
+    public ProjectionAssert isLimitDistinct(int expectedLimit) {
+        isNotNull();
+        isExactlyInstanceOf(LimitDistinctProjection.class);
+        assertThat(((LimitDistinctProjection) actual).limit()).isEqualTo(expectedLimit);
+        return this;
+    }
+
+    public ProjectionAssert isFilter(String sqlQuery) {
+        isNotNull();
+        isExactlyInstanceOf(FilterProjection.class);
+        assertThat(((FilterProjection) actual).query()).isSQL(sqlQuery);
         return this;
     }
 }
