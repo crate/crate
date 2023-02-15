@@ -1166,14 +1166,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(printedTable(response.rows()), is(
-            "Eval[id, a, id, b, id, c, id, d]\n" +
-            "  └ NestedLoopJoin[LEFT | (id = id)]\n" +
-            "    ├ HashJoin[(id = id)]\n" +
-            "    │  ├ HashJoin[(id = id)]\n" +
-            "    │  │  ├ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
-            "    │  │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    │  └ Collect[doc.t3 | [id, c] | true]\n" +
-            "    └ Collect[doc.t4 | [id, d] | true]\n"
+            "NestedLoopJoin[LEFT | (id = id)]\n" +
+                "  ├ HashJoin[(id = id)]\n" +
+                "  │  ├ HashJoin[(id = id)]\n" +
+                "  │  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
+                "  │  │  └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
+                "  │  └ Collect[doc.t3 | [id, c] | true]\n" +
+                "  └ Collect[doc.t4 | [id, d] | true]\n"
         ));
         execute(stmt);
     }
@@ -1212,12 +1211,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(printedTable(response.rows()), is(
-            "Eval[id, a, id, b, id, c]\n" +
-            "  └ NestedLoopJoin[INNER | (id = id)]\n" +
-            "    ├ NestedLoopJoin[INNER | (id = id)]\n" +
-            "    │  ├ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
-            "    │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
+            "NestedLoopJoin[INNER | (id = id)]\n" +
+                "  ├ NestedLoopJoin[INNER | (id = id)]\n" +
+                "  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
+                "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
+                "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
         execute(stmt);
     }
 
