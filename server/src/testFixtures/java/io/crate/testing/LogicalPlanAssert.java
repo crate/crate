@@ -21,7 +21,7 @@
 
 package io.crate.testing;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.assertj.core.api.AbstractAssert;
 
@@ -44,6 +44,13 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
         isNotNull();
         assertThat(expectedPlan).isNotNull();
         assertThat(printPlan(actual)).isEqualTo(expectedPlan.strip());
+        return this;
+    }
+
+    public LogicalPlanAssert hasOperators(String ... operator) {
+        isNotNull();
+        assertThat(printPlan(actual).split("\n"))
+            .containsExactly(operator);
         return this;
     }
 

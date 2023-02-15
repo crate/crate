@@ -74,6 +74,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+
+- Fixed an issue that caused correlated sub-queries to fail if using columns in
+  the filter clause that were otherwise not selected.
+
 - Fixed an issue that caused correlated sub-queries to fail with an
   ``IllegalStateException`` when the outer query contained multiple joins.
   An example ::

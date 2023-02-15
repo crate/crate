@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -239,17 +240,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSelectCountStarIsOptimizedOnNestedSubqueries() throws Exception {
         LogicalPlan plan = plan("SELECT * FROM t1 WHERE x > (SELECT 1 FROM t1 WHERE x > (SELECT count(*) FROM t2 LIMIT 1)::integer)");
         // instead of a Collect plan, this must result in a CountPlan through optimization
-        assertThat(plan).isEqualTo(
-            """
-            MultiPhase
-              └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]
-              └ Limit[2::bigint;0::bigint]
-                └ MultiPhase
-                  └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]
-                  └ Limit[2::bigint;0::bigint]
-                    └ Limit[1::bigint;0]
-                      └ Count[doc.t2 | true]
-            """
+        assertThat(plan).hasOperators(
+            "MultiPhase",
+            "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]",
+            "  └ Limit[2::bigint;0::bigint]",
+            "    └ MultiPhase",
+            "      └ Eval[1]",
+            "        └ Collect[doc.t1 | [1, x] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]",
+            "      └ Limit[2::bigint;0::bigint]",
+            "        └ Limit[1::bigint;0]",
+            "          └ Count[doc.t2 | true]"
         );
     }
 
