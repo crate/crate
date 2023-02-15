@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -31,9 +29,9 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -132,13 +130,10 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=true)");
 
-        assertThrowsMatches(
-            () -> execute("drop blob table b1"),
-            isSQLError(Matchers.startsWith("blocked by: "),
-                       INTERNAL_ERROR,
-                       INTERNAL_SERVER_ERROR,
-                       5000)
-        );
+        Asserts.assertSQLError(() -> execute("drop blob table b1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining("blocked by: ");
 
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=false)");
         execute("drop blob table b1");

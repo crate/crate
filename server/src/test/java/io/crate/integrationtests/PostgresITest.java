@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
@@ -76,6 +74,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
@@ -260,7 +259,10 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
             stmt.setObject(1, UUID.randomUUID());
-            assertThrowsMatches(() -> stmt.executeQuery(), isPGError(is("Can't map PGType with oid=2950 to Crate type"), INTERNAL_ERROR));
+            Asserts.assertSQLError(() -> stmt.executeQuery())
+                .isExactlyInstanceOf(PSQLException.class)
+                .hasPGError(INTERNAL_ERROR)
+                .hasMessageContaining("Can't map PGType with oid=2950 to Crate type");
         }
     }
 
@@ -782,8 +784,10 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
-            assertThrowsMatches(() -> stmt.executeQuery(),
-                         isPGError(containsString("mismatched input 'sys'"), INTERNAL_ERROR));
+            Asserts.assertSQLError(() -> stmt.executeQuery())
+                .isExactlyInstanceOf(PSQLException.class)
+                .hasPGError(INTERNAL_ERROR)
+                .hasMessageContaining("mismatched input 'sys'");
         }
     }
 
@@ -792,8 +796,10 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RO), properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
-            assertThrowsMatches(() -> stmt.executeQuery(),
-                         isPGError(containsString("Only read operations allowed on this node"), INTERNAL_ERROR));
+            Asserts.assertSQLError(() -> stmt.executeQuery())
+                .isExactlyInstanceOf(PSQLException.class)
+                .hasPGError(INTERNAL_ERROR)
+                .hasMessageContaining("Only read operations allowed on this node");
         }
     }
 
@@ -850,8 +856,10 @@ public class PostgresITest extends IntegTestCase {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
 
             conn.createStatement().execute("set session search_path to DEFAULT");
-            assertThrowsMatches(() -> conn.createStatement().execute("select * from foo"),
-                         isPGError(is("Relation 'foo' unknown"), UNDEFINED_TABLE));
+            Asserts.assertSQLError(() -> conn.createStatement().execute("select * from foo"))
+                .isExactlyInstanceOf(PSQLException.class)
+                .hasPGError(UNDEFINED_TABLE)
+                .hasMessageContaining("Relation 'foo' unknown");
         }
     }
 
@@ -864,8 +872,10 @@ public class PostgresITest extends IntegTestCase {
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
             conn.createStatement().executeQuery("select * from bar.foo");
 
-            assertThrowsMatches(() -> conn.createStatement().execute("select * from custom.foo"),
-                         isPGError(is("Schema 'custom' unknown"), INTERNAL_ERROR));
+            Asserts.assertSQLError(() -> conn.createStatement().execute("select * from custom.foo"))
+                .isExactlyInstanceOf(PSQLException.class)
+                .hasPGError(INTERNAL_ERROR)
+                .hasMessageContaining("Schema 'custom' unknown");
         }
     }
 

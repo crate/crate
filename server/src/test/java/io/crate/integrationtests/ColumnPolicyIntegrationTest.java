@@ -26,13 +26,9 @@ import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -56,6 +52,7 @@ import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
@@ -93,11 +90,10 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         assertThat(response).hasColumns("id", "name");
         assertThat(response).hasRows("1| Ford\n");
 
-        assertThrowsMatches(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
-                     isSQLError(is("Column boo unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column boo unknown");
     }
 
     @Test
@@ -114,8 +110,10 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         assertThat(response).hasColumns("id", "name");
         assertThat(response).hasRows("1| Ford\n");
 
-        assertThrowsMatches(() -> execute("update strict_table set name='Trillian', boo=true where id=1"),
-                     isSQLError(is("Column boo unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
+        Asserts.assertSQLError(() -> execute("update strict_table set name='Trillian', boo=true where id=1"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column boo unknown");
     }
 
     @Test
@@ -265,14 +263,14 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
                 authorMap
             });
         execute("refresh table books");
-        assertThrowsMatches(() -> execute("insert into books (title, author) values (?,?)",
+        Asserts.assertSQLError(() -> execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "Life, the Universe and Everything",
                 Map.of("name", Map.of("first_name", "Douglas", "middle_name", "Noel"))
-            }), isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
-                           INTERNAL_ERROR,
-                           BAD_REQUEST,
-                           4000));
+            }))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("dynamic introduction of [middle_name] within [author.name] is not allowed");
     }
 
     @Test
@@ -382,13 +380,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
-        assertThrowsMatches(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-                                   new Object[]{28, true, false, true}),
-                     isSQLError(is("Column perfect unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043
-                     ));
+        Asserts.assertSQLError(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+                                   new Object[]{28, true, false, true}))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column perfect unknown");
     }
 
     @Test
@@ -420,12 +416,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
-        assertThrowsMatches(() -> execute("update numbers set num=?, perfect=? where num=6",
-                                   new Object[]{28, true}),
-                     isSQLError(is("Column perfect unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("update numbers set num=?, perfect=? where num=6",
+                                   new Object[]{28, true}))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column perfect unknown");
     }
 
     @Test
@@ -485,8 +480,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        assertThrowsMatches(() -> execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"),
-                     isSQLError(is("Column new_col unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
+        Asserts.assertSQLError(() -> execute(
+                "insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column new_col unknown");
     }
 
     @Test

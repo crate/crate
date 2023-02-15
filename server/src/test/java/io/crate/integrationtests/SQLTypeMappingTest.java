@@ -23,10 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -43,6 +40,7 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -178,56 +176,48 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testInsertObjectField() throws Exception {
         setUpObjectTable();
 
-        assertThrowsMatches(() -> execute("insert into test12 (object_field['size']) values (127)"),
-                     isSQLError(is(
-                         String.format(Locale.ENGLISH, "Invalid column reference \"object_field\"['size'] used in INSERT INTO statement",
-                                       sqlExecutor.getCurrentSchema())),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
-
+        Asserts.assertSQLError(() -> execute("insert into test12 (object_field['size']) values (127)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Invalid column reference \"object_field\"['size'] used in INSERT INTO statement",
+                sqlExecutor.getCurrentSchema()
+            ));
     }
 
     @Test
     public void testInvalidInsertIntoObject() throws Exception {
         setUpObjectTable();
 
-        assertThrowsMatches(
+        Asserts.assertSQLError(
             () -> execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                 Map.of("created", true, "size", 127),
                 Map.of("path", "/dev/null", "created", 0)
-            }),
-            isSQLError(containsString("Cannot cast"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+            }))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast");
     }
 
     @Test
     public void testInvalidWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrowsMatches(
-            () -> execute("delete from t1 where byte_field=129"),
-            isSQLError(
-                containsString("Cannot cast `129` of type `integer` to type `byte`"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("delete from t1 where byte_field=129"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Cannot cast `129` of type `integer` to type `byte`");
     }
 
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         setUpSimple();
 
-        assertThrowsMatches(
-            () -> execute("update t1 set byte_field=0 where byte_field in (129)"),
-            isSQLError(
-                containsString("Cannot cast `[129]` of type `integer_array` to type `byte_array`"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("update t1 set byte_field=0 where byte_field in (129)"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Cannot cast `[129]` of type `integer_array` to type `byte_array`");
     }
 
     @Test
@@ -309,14 +299,10 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into t1 values ({a='abc'})");
         waitForMappingUpdateOnAll("t1", "o.a");
 
-        assertThrowsMatches(
-            () -> execute("insert into t1 values ({a=['123', '456']})"),
-            isSQLError(
-                is("Cannot cast object element `a` with value `[123, 456]` to type `text`"),
-                INTERNAL_ERROR,
-                BAD_REQUEST,
-                4000)
-        );
+        Asserts.assertSQLError(() -> execute("insert into t1 values ({a=['123', '456']})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast object element `a` with value `[123, 456]` to type `text`");
     }
 
     /**
@@ -372,12 +358,11 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();
 
-        assertThrowsMatches(() -> execute("insert into test12 (strict_field) values (?)",
-                                    new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
-                     isSQLError(is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4000));
+        Asserts.assertSQLError(() -> execute("insert into test12 (strict_field) values (?)",
+                                    new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed");
     }
 
     @Test

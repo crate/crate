@@ -38,11 +38,10 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -52,7 +51,6 @@ import io.crate.protocols.ssl.SslSettings;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.ConnectionInfo.SSLMode;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -199,21 +197,18 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         InetSocketAddress postgresAddress = postgres.boundAddress().publishAddress().address();
         subscriber = subscriberCluster.createSQLTransportExecutor();
 
-        Asserts.assertThrowsMatches(
-            () -> {
-                subscriber.exec(String.format(Locale.ENGLISH, """
-                    CREATE SUBSCRIPTION sub1
-                        CONNECTION 'crate://%s:%d?user=marvin&password=invalid&mode=pg_tunnel'
-                        PUBLICATION pub1
-                    """,
-                    postgresAddress.getHostName(),
-                    postgresAddress.getPort()));
-            },
-            SQLErrorMatcher.isSQLError(
-                Matchers.containsString("password authentication failed for user \"marvin\""),
-                PGErrorStatus.EXCLUSION_VIOLATION,
-                HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                5000));
+        Asserts.assertSQLError(() -> {
+            subscriber.exec(String.format(Locale.ENGLISH, """
+                CREATE SUBSCRIPTION sub1
+                    CONNECTION 'crate://%s:%d?user=marvin&password=invalid&mode=pg_tunnel'
+                    PUBLICATION pub1
+                """,
+                postgresAddress.getHostName(),
+                postgresAddress.getPort()));
+        })
+            .hasPGError(PGErrorStatus.EXCLUSION_VIOLATION)
+            .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("password authentication failed for user \"marvin\"");
     }
 
     @Test

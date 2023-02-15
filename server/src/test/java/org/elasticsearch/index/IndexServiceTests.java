@@ -20,14 +20,11 @@
 package org.elasticsearch.index;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.elasticsearch.index.shard.IndexShardTestCase.flushShard;
 import static org.elasticsearch.index.shard.IndexShardTestCase.getEngine;
 import static org.elasticsearch.test.InternalSettingsPlugin.TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -63,6 +60,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class IndexServiceTests extends IntegTestCase {
@@ -426,11 +424,10 @@ public class IndexServiceTests extends IntegTestCase {
     }
 
     public void testIllegalFsyncInterval() {
-        assertThrowsMatches(() -> execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '0ms')"),
-                     isSQLError(is("failed to parse value [0ms] for setting [index.translog.sync_interval], must be >= [100ms]"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '0ms')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("failed to parse value [0ms] for setting [index.translog.sync_interval], must be >= [100ms]");
     }
 
     @Test

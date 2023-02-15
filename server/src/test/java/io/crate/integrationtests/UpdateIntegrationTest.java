@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -48,6 +46,7 @@ import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
@@ -86,12 +85,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertEquals(2, response.rowCount());
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update test set message=null where id=1"),
-                     isSQLError(Matchers.is("\"message\" must not be null"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update test set message=null where id=1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"message\" must not be null");
     }
 
     @Test
@@ -104,9 +102,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertEquals(1, response.rowCount());
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update test set stuff['level1']=null"),
-                     isSQLError(Matchers.is("\"stuff['level1']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update test set stuff['level1']=null"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"stuff['level1']\" must not be null");
     }
 
     @Test
@@ -121,9 +121,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertEquals(1, response.rowCount());
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update test set stuff['level1']['level2']=null"),
-                     isSQLError(Matchers.is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update test set stuff['level1']['level2']=null"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"stuff['level1']['level2']\" must not be null");
     }
 
     @Test
@@ -646,12 +648,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        assertThrowsMatches(() -> execute(
-            "update test set c = 4 where _version = 2 or _version=1"),
-                     isSQLError(Matchers.is(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update test set c = 4 where _version = 2 or _version=1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
@@ -661,12 +662,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        assertThrowsMatches(() -> execute(
-            "update test set c = 4 where _version in (1,2)"),
-                     isSQLError(Matchers.is(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update test set c = 4 where _version in (1,2)"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
 
@@ -782,12 +782,12 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into computed (ts) values (1)");
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update computed set gen_col=1745"),
-                     isSQLError(Matchers.is("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update computed set gen_col=1745"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining(
+                        "Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
     }
 
     @Test
@@ -801,9 +801,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertEquals(1, response.rowCount());
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update generated_column set ts=null where id=1"),
-                     isSQLError(Matchers.is("\"gen_col\" must not be null"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR, 5000));
+        Asserts.assertSQLError(() -> execute(
+                        "update generated_column set ts=null where id=1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining("\"gen_col\" must not be null");
 
     }
 
@@ -818,12 +820,11 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertEquals(1, response.rowCount());
         refresh();
 
-        assertThrowsMatches(() -> execute(
-            "update generated_column set gen_col=null where id=1"),
-                     isSQLError(Matchers.is("\"gen_col\" must not be null"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute(
+                        "update generated_column set gen_col=null where id=1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"gen_col\" must not be null");
 
     }
 

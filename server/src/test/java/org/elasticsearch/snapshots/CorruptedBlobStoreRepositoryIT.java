@@ -485,25 +485,17 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {
         logger.info("--> try to delete snapshot");
-        Asserts.assertThrowsMatches(
-            () -> execute("drop snapshot \"" + repo + "\".\"" + existingSnapshot + "\""),
-            SQLErrorMatcher.isSQLError(
-                containsString("Could not read repository data because the contents of the repository do not match its expected state."),
-                PGErrorStatus.INTERNAL_ERROR,
-                HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                5000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("drop snapshot \"" + repo + "\".\"" + existingSnapshot + "\""))
+                .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+                .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining(
+                        "Could not read repository data because the contents of the repository do not match its expected state.");
 
         logger.info("--> try to create snapshot");
-        Asserts.assertThrowsMatches(
-            () -> execute("create snapshot \"" + repo + "\".\"" + existingSnapshot + "\" ALL"),
-            SQLErrorMatcher.isSQLError(
-                containsString("Could not read repository data because the contents of the repository do not match its expected state."),
-                PGErrorStatus.INTERNAL_ERROR,
-                HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                5000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("create snapshot \"" + repo + "\".\"" + existingSnapshot + "\" ALL"))
+                .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+                .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
+                .hasMessageContaining(
+                        "Could not read repository data because the contents of the repository do not match its expected state.");
     }
 }

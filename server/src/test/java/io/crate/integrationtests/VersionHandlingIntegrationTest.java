@@ -22,12 +22,9 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -38,6 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.Asserts;
 
 public class VersionHandlingIntegrationTest extends IntegTestCase {
 
@@ -126,11 +124,10 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrowsMatches(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}),
-                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("update test set col2 = ? where \"_version\" = ?", new Object[]{"ok now panic", 1}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
@@ -166,11 +163,10 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
     public void testSelectWhereVersionWithoutPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
-        assertThrowsMatches(() -> execute("select _version from test where col2 = 'hello' and _version = 1"),
-                     isSQLError(containsString(VersioningValidationException.VERSION_COLUMN_USAGE_MSG),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("select _version from test where col2 = 'hello' and _version = 1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test

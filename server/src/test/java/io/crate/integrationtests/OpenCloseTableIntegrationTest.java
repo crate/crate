@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static org.hamcrest.Matchers.greaterThan;
@@ -40,6 +38,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.testing.Asserts;
+
 public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Before
@@ -51,15 +51,10 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_open_missing_table() {
-        assertThrowsMatches(
-            () -> execute("alter table test open"),
-            isSQLError(
-                is("Relation 'test' unknown"),
-                UNDEFINED_TABLE,
-                NOT_FOUND,
-                4041
-            )
-        );
+        Asserts.assertSQLError(() -> execute("alter table test open"))
+                .hasPGError(UNDEFINED_TABLE)
+                .hasHTTPError(NOT_FOUND, 4041)
+                .hasMessageContaining("Relation 'test' unknown");
     }
 
     @Test
@@ -234,62 +229,56 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testClosePreventsInsert() throws Exception {
-        assertThrowsMatches(() -> execute("insert into t values (1), (2), (3)"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
-                                                 " as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("insert into t values (1), (2), (3)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
+                                                       " as it is currently closed.", getFqn("t")));
     }
 
     @Test
     public void testClosePreventsSelect() throws Exception {
-        assertThrowsMatches(() -> execute("select * from t"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
-                                                 "as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("select * from t"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
+                                                       "as it is currently closed.", getFqn("t")));
     }
 
     @Test
     public void testClosePreventsDrop() throws Exception {
-        assertThrowsMatches(() -> execute("drop table t"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
-                                                 "as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("drop table t"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
+                                                       "as it is currently closed.", getFqn("t")));
     }
 
     @Test
     public void testClosePreventsRefresh() throws Exception {
-        assertThrowsMatches(() -> execute("refresh table t"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow REFRESH operations, as " +
-                                          "it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("refresh table t"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow REFRESH operations, as " +
+                                                "it is currently closed.", getFqn("t")));
     }
 
     @Test
     public void testClosePreventsShowCreate() throws Exception {
-        assertThrowsMatches(() -> execute("show create table t"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow SHOW CREATE operations," +
-                                          " as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("show create table t"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow SHOW CREATE operations," +
+                                                " as it is currently closed.", getFqn("t")));
     }
 
     @Test
     public void testClosePreventsOptimize() throws Exception {
-        assertThrowsMatches(() -> execute("optimize table t"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE operations, " +
-                                                 "as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("optimize table t"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE operations, " +
+                                                       "as it is currently closed.", getFqn("t")));
     }
 
     @Test
@@ -312,12 +301,11 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
         execute("alter table partitioned_table close");
-        assertThrowsMatches(() -> execute("select i from partitioned_table"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
-                                                 "as it is currently closed.", getFqn("partitioned_table"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("select i from partitioned_table"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
+                                                       "as it is currently closed.", getFqn("partitioned_table")));
     }
 
     @Test
@@ -333,11 +321,10 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     public void test_insert_into_closed_empty_partitioned_table_is_prevented() {
         execute("create table partitioned_table (i int) partitioned by (i)");
         execute("alter table partitioned_table close");
-        assertThrowsMatches(() -> execute("insert into partitioned_table values (1)"),
-                            isSQLError(is(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
-                                                        " as it is currently closed.", getFqn("partitioned_table"))),
-                                       INTERNAL_ERROR,
-                                       BAD_REQUEST,
-                                       4007));
+        Asserts.assertSQLError(() -> execute("insert into partitioned_table values (1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
+                                                              " as it is currently closed.", getFqn("partitioned_table")));
     }
 }

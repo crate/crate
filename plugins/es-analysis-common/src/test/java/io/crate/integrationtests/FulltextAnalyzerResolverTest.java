@@ -27,11 +27,8 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.endsWith;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,6 +53,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
 public class FulltextAnalyzerResolverTest extends IntegTestCase {
@@ -400,11 +398,10 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
-        assertThrowsMatches(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"),
-                     isSQLError(endsWith("Non-existing tokenizer 'a9tok'"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("CREATE ANALYZER a10 (TOKENIZER a9tok)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Non-existing tokenizer 'a9tok'");
 
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND

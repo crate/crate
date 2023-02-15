@@ -23,15 +23,14 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class SwapTableITest extends IntegTestCase {
 
@@ -74,11 +73,10 @@ public class SwapTableITest extends IntegTestCase {
                 "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
                 .isEqualTo("target\n");
 
-        assertThrowsMatches(() -> execute("select * from source"),
-                            isSQLError(containsString("Relation 'source' unknown"),
-                                       UNDEFINED_TABLE,
-                                       NOT_FOUND,
-                                       4041));
+        Asserts.assertSQLError(() -> execute("select * from source"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'source' unknown");
     }
 
     @Test
@@ -140,11 +138,10 @@ public class SwapTableITest extends IntegTestCase {
                 .isEqualTo(part1Ident + "| target\n" +
                            part2Ident + "| target\n");
 
-        assertThrowsMatches(() -> execute("select * from source"),
-                            isSQLError(containsString("Relation 'source' unknown"),
-                                       UNDEFINED_TABLE,
-                                       NOT_FOUND,
-                                       4041));
+        Asserts.assertSQLError(() -> execute("select * from source"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'source' unknown");
     }
 
     @Test
@@ -204,11 +201,10 @@ public class SwapTableITest extends IntegTestCase {
         execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
         assertThat(response.rowCount()).isEqualTo(0L);
 
-        assertThrowsMatches(() -> execute("select * from source"),
-                            isSQLError(containsString("Relation 'source' unknown"),
-                                       UNDEFINED_TABLE,
-                                       NOT_FOUND,
-                                       4041));
+        Asserts.assertSQLError(() -> execute("select * from source"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'source' unknown");
     }
 
     @Test
@@ -274,10 +270,9 @@ public class SwapTableITest extends IntegTestCase {
                 .isEqualTo(part1IdentSource + "| target\n" +
                            part2IdentSource + "| target\n");
 
-        assertThrowsMatches(() -> execute("select * from source"),
-                            isSQLError(containsString("Relation 'source' unknown"),
-                                       UNDEFINED_TABLE,
-                                       NOT_FOUND,
-                                       4041));
+        Asserts.assertSQLError(() -> execute("select * from source"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'source' unknown");
     }
 }
