@@ -26,9 +26,9 @@ import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,7 +97,7 @@ public class JoinPlanBuilder {
 
         final RelationName lhsName = it.next();
         final RelationName rhsName = it.next();
-        Set<RelationName> joinNames = new HashSet<>();
+        Set<RelationName> joinNames = new LinkedHashSet<>();
         joinNames.add(lhsName);
         joinNames.add(rhsName);
 
@@ -289,6 +289,6 @@ public class JoinPlanBuilder {
         }
         return new CorrelatedSubQueries(correlatedSubQueries, remainder);
     }
-    
+
     private record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {}
 }
