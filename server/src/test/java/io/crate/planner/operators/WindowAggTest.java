@@ -89,10 +89,8 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     public void test_window_agg_is_removed_if_unused_in_upper_select() {
         var plan = plan("select x from (select x, ROW_NUMBER() OVER (PARTITION BY y) from t1) t");
         var expectedPlan =
-            "Eval[x]\n" +
-                "  └ Rename[x] AS t\n" +
-                "    └ Eval[x]\n" +
-                "      └ Collect[doc.t1 | [x] | true]";
+            "Rename[x] AS t\n" +
+            "  └ Collect[doc.t1 | [x] | true]";
         assertThat(plan, isPlan(expectedPlan));
     }
 

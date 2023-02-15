@@ -421,11 +421,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("select name from (select name, unnest(counters), text from users) u");
         assertThat(plan, isPlan(
-            "Eval[name]\n" +
-            "  └ Rename[name] AS u\n" +
-            "    └ Eval[name]\n" +
-            "      └ ProjectSet[unnest(counters), name]\n" +
-            "        └ Collect[doc.users | [counters, name] | true]"
+            "Rename[name] AS u\n" +
+            "  └ Eval[name]\n" +
+            "    └ ProjectSet[unnest(counters), name]\n" +
+            "      └ Collect[doc.users | [counters, name] | true]"
         ));
     }
 
