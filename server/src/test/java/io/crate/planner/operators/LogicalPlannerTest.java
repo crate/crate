@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,8 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.LimitDistinctProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -220,16 +221,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSelectCountStarIsOptimizedOnNestedSubqueries() throws Exception {
         LogicalPlan plan = plan("select * from t1 where x > (select 1 from t1 where x > (select count(*) from t2 limit 1)::integer)");
         // instead of a Collect plan, this must result in a CountPlan through optimization
-        assertThat(plan, isPlan(
-            "MultiPhase\n" +
-            "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]\n" +
-            "  └ Limit[2::bigint;0::bigint]\n" +
-            "    └ MultiPhase\n" +
-            "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]\n" +
-            "      └ Limit[2::bigint;0::bigint]\n" +
-            "        └ Limit[1::bigint;0]\n" +
+        assertThat(plan).hasOperators(
+            "MultiPhase",
+            "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]",
+            "  └ Limit[2::bigint;0::bigint]",
+            "    └ MultiPhase",
+            "      └ Eval[1]",
+            "        └ Collect[doc.t1 | [1, x] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]",
+            "      └ Limit[2::bigint;0::bigint]",
+            "        └ Limit[1::bigint;0]",
             "          └ Count[doc.t2 | true]"
-        ));
+        );
     }
 
     @Test

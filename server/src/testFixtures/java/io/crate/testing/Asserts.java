@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
@@ -95,6 +96,10 @@ public class Asserts extends Assertions {
 
     public static SQLAssert<Expression> assertThat(Expression actual) {
         return new SQLAssert<>(actual);
+    }
+
+    public static LogicalPlanAssert assertThat(LogicalPlan actual) {
+        return new LogicalPlanAssert(actual);
     }
 
     // generic helper methods
