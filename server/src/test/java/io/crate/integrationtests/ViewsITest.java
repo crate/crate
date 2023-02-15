@@ -24,12 +24,8 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -46,6 +42,7 @@ import org.junit.jupiter.api.Assertions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.testing.Asserts;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class ViewsITest extends IntegTestCase {
@@ -111,34 +108,30 @@ public class ViewsITest extends IntegTestCase {
     public void testCreateViewFailsIfViewAlreadyExists() {
         execute("create view v3 as select 1");
 
-        assertThrowsMatches(() -> execute("create view v3 as select 1"),
-                            isSQLError(containsString(
-                                           "Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
-                                       DUPLICATE_TABLE,
-                                       CONFLICT,
-                                       4093));
+        Asserts.assertSQLError(() -> execute("create view v3 as select 1"))
+            .hasPGError(DUPLICATE_TABLE)
+            .hasHTTPError(CONFLICT, 4093)
+            .hasMessageContaining("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists");
     }
 
     @Test
     public void testCreateViewFailsIfNameConflictsWithTable() {
         execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
-        assertThrowsMatches(() -> execute("create view t1 as select 1"),
-                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
-                                DUPLICATE_TABLE,
-                                CONFLICT,
-                                4093));
+        Asserts.assertSQLError(() -> execute("create view t1 as select 1"))
+            .hasPGError(DUPLICATE_TABLE)
+            .hasHTTPError(CONFLICT, 4093)
+            .hasMessageContaining("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists");
     }
 
     @Test
     public void testCreateViewFailsIfNameConflictsWithPartitionedTable() {
         execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
 
-        assertThrowsMatches(() -> execute("create view t1 as select 1"),
-                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists"),
-                                DUPLICATE_TABLE,
-                                CONFLICT,
-                                4093));
+        Asserts.assertSQLError(() -> execute("create view t1 as select 1"))
+            .hasPGError(DUPLICATE_TABLE)
+            .hasHTTPError(CONFLICT, 4093)
+            .hasMessageContaining("Relation '" + sqlExecutor.getCurrentSchema() + ".t1' already exists");
     }
 
     @Test
@@ -171,11 +164,10 @@ public class ViewsITest extends IntegTestCase {
 
     @Test
     public void testDropViewFailsIfViewIsMissing() {
-        assertThrowsMatches(() -> execute("drop view v1"),
-                     isSQLError(containsString("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                4041));
+        Asserts.assertSQLError(() -> execute("drop view v1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4041)
+            .hasMessageContaining("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1");
     }
 
     @Test
@@ -205,14 +197,9 @@ public class ViewsITest extends IntegTestCase {
     @Test
     public void test_creating_a_self_referencing_view_is_not_allowed() {
         execute("create view v as select * from sys.cluster");
-        assertThrowsMatches(
-            () -> execute("create or replace view v as select * from v"),
-            isSQLError(
-                containsString("Creating a view that references itself is not allowed"),
-                INTERNAL_ERROR,
-                HttpResponseStatus.BAD_REQUEST,
-                4000
-            )
-        );
+        Asserts.assertSQLError(() -> execute("create or replace view v as select * from v"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+                .hasMessageContaining("Creating a view that references itself is not allowed");
     }
 }

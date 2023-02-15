@@ -22,10 +22,7 @@
 package org.elasticsearch.repositories.s3;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.startsWith;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +30,8 @@ import java.util.Collection;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class S3RepositoryIntegrationTest extends IntegTestCase {
 
@@ -45,15 +44,12 @@ public class S3RepositoryIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_unable_to_create_s3_repository() {
-        assertThrowsMatches(() -> execute(
-            "create repository test123 type s3 with (bucket='bucket', endpoint='https://s3.region.amazonaws.com', " +
-            "protocol='https', access_key='access',secret_key='secret', base_path='test123')"),
-                     isSQLError(
-                         startsWith("[test123] Unable to verify the repository, [test123] is not accessible on master " +
-                              "node: SdkClientException 'Unable to execute HTTP request: bucket.s3.region.amazonaws.com"),
-                         INTERNAL_ERROR,
-                         INTERNAL_SERVER_ERROR,
-                         5000)
-        );
+        Asserts.assertSQLError(() -> execute(
+                "create repository test123 type s3 with (bucket='bucket', endpoint='https://s3.region.amazonaws.com', " +
+                "protocol='https', access_key='access',secret_key='secret', base_path='test123')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[test123] Unable to verify the repository, [test123] is not accessible on master " +
+                                  "node: SdkClientException 'Unable to execute HTTP request: bucket.s3.region.amazonaws.com");
     }
 }

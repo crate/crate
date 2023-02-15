@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -36,6 +34,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.crate.testing.Asserts;
 
 public class RepositoryIntegrationTest extends IntegTestCase {
 
@@ -89,12 +89,11 @@ public class RepositoryIntegrationTest extends IntegTestCase {
                 repoLocation
             });
         waitNoPendingTasksOnAll();
-        assertThrowsMatches(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
-                                   new Object[]{repoLocation}),
-                     isSQLError(is("Repository 'myRepo' already exists"),
-                                INTERNAL_ERROR,
-                                CONFLICT,
-                                4095));
+        Asserts.assertSQLError(() -> execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
+                                   new Object[]{repoLocation}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(CONFLICT, 4095)
+            .hasMessageContaining("Repository 'myRepo' already exists");
 
     }
 }

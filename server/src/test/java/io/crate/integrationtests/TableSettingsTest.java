@@ -23,12 +23,9 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -41,6 +38,8 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class TableSettingsTest extends IntegTestCase {
 
@@ -93,11 +92,10 @@ public class TableSettingsTest extends IntegTestCase {
 
     @Test
     public void testSetNonDynamicTableSetting() {
-        assertThrowsMatches(() -> execute("alter table settings_table set (codec = 'best_compression')"),
-                     isSQLError(containsString("Can't update non dynamic settings [[codec]] for open indices"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table settings_table set (codec = 'best_compression')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Can't update non dynamic settings [[codec]] for open indices");
     }
 
     @Test
@@ -142,8 +140,10 @@ public class TableSettingsTest extends IntegTestCase {
         // One more column exceeds the limit
         var msg = String.format(Locale.ENGLISH,
             "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
-        assertThrowsMatches(() -> execute("alter table test add column new_column2 int"),
-                     isSQLError(is(msg), INTERNAL_ERROR, BAD_REQUEST, 4000));
+        Asserts.assertSQLError(() -> execute("alter table test add column new_column2 int"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(msg);
     }
 
     @Test
@@ -184,12 +184,12 @@ public class TableSettingsTest extends IntegTestCase {
 
     @Test
     public void testSelectConcreteDynamicSetting() {
-        assertThrowsMatches(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
-            "where table_name = 'settings_table'"),
-                     isSQLError(is("Column settings['routing']['allocation']['exclude']['foo'] unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
+            "where table_name = 'settings_table'")
+        )
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column settings['routing']['allocation']['exclude']['foo'] unknown");
     }
 
     @Test
@@ -202,11 +202,10 @@ public class TableSettingsTest extends IntegTestCase {
 
     @Test
     public void testSetDynamicSettingGroup() {
-        assertThrowsMatches(() -> execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
-                     isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot change a dynamic group setting, only concrete settings allowed.");
     }
 
     @Test
@@ -226,10 +225,9 @@ public class TableSettingsTest extends IntegTestCase {
 
     @Test
     public void testResetDynamicSettingGroup() {
-        assertThrowsMatches(() -> execute("alter table settings_table reset (\"routing.allocation.exclude\")"),
-                     isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4000));
+        Asserts.assertSQLError(() -> execute("alter table settings_table reset (\"routing.allocation.exclude\")"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot change a dynamic group setting, only concrete settings allowed.");
     }
 }

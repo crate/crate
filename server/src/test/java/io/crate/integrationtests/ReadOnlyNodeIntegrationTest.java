@@ -22,10 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -40,6 +37,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.action.sql.Sessions;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseRandomizedSchema;
@@ -122,11 +120,10 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
     }
 
     private void assertReadOnly(String stmt, Object[] args) throws Exception {
-        assertThrowsMatches(() -> execute(stmt, args),
-                     isSQLError(containsString("Only read operations allowed on this node"),
-                                INTERNAL_ERROR,
-                                FORBIDDEN,
-                                4031));
+        Asserts.assertSQLError(() -> execute(stmt, args))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(FORBIDDEN, 4031)
+            .hasMessageContaining("Only read operations allowed on this node");
     }
 
     private void assertReadOnly(String stmt) throws Exception {

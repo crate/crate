@@ -24,12 +24,9 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -48,6 +45,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -343,11 +341,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t1 (x) values (1), (2)");
         execute("refresh table t1");
 
-        assertThrowsMatches(() -> execute("select name from sys.cluster where 1 = (select x from t1)"),
-                     isSQLError(containsString("Subquery returned more than 1 row"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4004));
+        Asserts.assertSQLError(() -> execute("select name from sys.cluster where 1 = (select x from t1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Subquery returned more than 1 row");
     }
 
     @Test
