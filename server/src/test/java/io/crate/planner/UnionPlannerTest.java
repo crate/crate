@@ -151,13 +151,12 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                       " order by x";
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Eval[x]\n" +
-            "  └ Rename[x] AS o\n" +
-            "    └ Union[x]\n" +
-            "      ├ OrderBy[1 AS x ASC]\n" +
-            "      │  └ Collect[doc.users | [1 AS x] | true]\n" +
-            "      └ OrderBy[2 ASC]\n" +
-            "        └ Collect[doc.users | [2] | true]";
+            "Rename[x] AS o\n" +
+            "  └ Union[x]\n" +
+            "    ├ OrderBy[1 AS x ASC]\n" +
+            "    │  └ Collect[doc.users | [1 AS x] | true]\n" +
+            "    └ OrderBy[2 ASC]\n" +
+            "      └ Collect[doc.users | [2] | true]";
         assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
     }
 

@@ -154,7 +154,10 @@ public class LogicalPlanner {
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            List.of(new RewriteToQueryThenFetch())
+            List.of(
+                new RemoveRedundantFetchOrEval(),
+                new RewriteToQueryThenFetch()
+            )
         );
         this.writeOptimizer = new Optimizer(
             nodeCtx,
