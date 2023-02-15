@@ -39,6 +39,13 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         return this;
     }
 
+    public SQLResponseAssert hasRows(String ... rows) {
+        String result = TestingHelpers.printedTable(actual.rows());
+        String[] resultRows = result.split("\n");
+        assertThat(resultRows).containsExactly(rows);
+        return this;
+    }
+
     public SQLResponseAssert hasRows(String printedRows) {
         assertThat(TestingHelpers.printedTable(actual.rows())).isEqualTo(printedRows);
         return this;
