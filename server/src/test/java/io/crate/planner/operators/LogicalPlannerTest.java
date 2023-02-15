@@ -39,8 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.LimitDistinctProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -421,11 +421,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("select name from (select name, unnest(counters), text from users) u");
         assertThat(plan, isPlan(
-            "Eval[name]\n" +
-            "  └ Rename[name] AS u\n" +
-            "    └ Eval[name]\n" +
-            "      └ ProjectSet[unnest(counters), name]\n" +
-            "        └ Collect[doc.users | [counters, name] | true]"
+            "Rename[name] AS u\n" +
+            "  └ Eval[name]\n" +
+            "    └ ProjectSet[unnest(counters), name]\n" +
+            "      └ Collect[doc.users | [counters, name] | true]"
         ));
     }
 

@@ -82,9 +82,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             isPlan(
                 "Union[name]\n" +
                 "  ├ Rename[name] AS a\n" +
-                "  │  └ Eval[name]\n" +
-                "  │    └ OrderBy[name ASC]\n" +
-                "  │      └ Collect[doc.users | [name] | true]\n" +
+                "  │  └ OrderBy[name ASC]\n" +
+                "  │    └ Collect[doc.users | [name] | true]\n" +
                 "  └ OrderBy[text ASC]\n" +
                 "    └ Collect[doc.users | [text] | true]"));
     }
@@ -230,9 +229,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan,
             LogicalPlannerTest.isPlan(
-                "Eval[name]\n" +
-                "  └ Rename[name] AS t\n" +
-                "    └ Collect[sys.nodes | [name] | (id = 'nodeName')]"
+                "Rename[name] AS t\n" +
+                "  └ Collect[sys.nodes | [name] | (id = 'nodeName')]"
             )
         );
     }
