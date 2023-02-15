@@ -186,7 +186,8 @@ public class Memo {
             node.sources().stream()
                 .map(child -> new GroupReference(
                     insertRecursive(child),
-                    child.outputs()))
+                    child.outputs(),
+                    child.getRelationNames()))
                 .collect(Collectors.toList()));
     }
 

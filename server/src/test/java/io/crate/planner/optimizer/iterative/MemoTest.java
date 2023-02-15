@@ -330,7 +330,7 @@ public class MemoTest {
 
         @Override
         public Set<RelationName> getRelationNames() {
-            return null;
+            return Set.of();
         }
     }
 }
