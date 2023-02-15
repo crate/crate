@@ -63,6 +63,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
+import org.elasticsearch.transport.RemoteTransportException;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -523,6 +524,12 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             // rarely the master node fails over twice when shutting down the initial master and fails the transport listener
             assertThat(rex.repository()).isEqualTo("_all");
             assertThat(rex.getMessage()).endsWith("Failed to update cluster state during repository operation");
+        } catch (RemoteTransportException rte) {
+            // rarely the master node fails over twice when shutting down the initial master and fails the transport listener
+            assertThat(rte.getRootCause()).isExactlyInstanceOf(RepositoryException.class);
+            RepositoryException cause = (RepositoryException) rte.getCause();
+            Assertions.assertThat(cause.repository()).isEqualTo("_all");
+            Assertions.assertThat(cause.getMessage()).endsWith("Failed to update cluster state during repository operation");
         } catch (SnapshotMissingException sme) {
             // very rarely a master node fail-over happens at such a time that the client on the data-node sees a disconnect exception
             // after the master has already started the delete, leading to the delete retry to run into a situation where the
