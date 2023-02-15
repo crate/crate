@@ -137,7 +137,7 @@ public class NestedLoopJoin implements LogicalPlan {
     }
 
     public boolean isFiltered() {
-        return true;
+        return isFiltered;
     }
 
     public AnalyzedRelation topMostLeftRelation() {
