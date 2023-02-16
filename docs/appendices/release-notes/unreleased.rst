@@ -79,6 +79,7 @@ Fixes
   ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
   justifying why a function cannot be dropped.
 
-- Updated to Admin UI 1.24.2, which added syntax highlighting for functions
-  added in CrateDB 5.2: ``MIN_BY``, ``MAX_BY``, ``HAS_DATABASE_PRIVILEGE``,
-  ``PARSE_URI``, and ``PARSE_URL``.
+- Updated to Admin UI 1.24.3, which fixed a compatibility issue where graphs
+  have not been working on the "Overview" page with CrateDB 5.2, and added
+  syntax highlighting for functions added in CrateDB 5.2: ``MIN_BY``,
+  ``MAX_BY``, ``HAS_DATABASE_PRIVILEGE``, ``PARSE_URI``, and ``PARSE_URL``.
