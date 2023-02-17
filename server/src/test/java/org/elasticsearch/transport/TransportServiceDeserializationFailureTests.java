@@ -102,7 +102,7 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
 
             final List<Transport.ResponseContext<? extends TransportResponse>> responseContexts
                     = transport.getResponseHandlers().prune(ignored -> true);
-            assertThat(responseContexts.size()).isEqualTo(1);
+            assertThat(responseContexts).hasSize(1);
             final TransportResponseHandler<? extends TransportResponse> handler = responseContexts.get(0).handler();
             assertThat(handler.toString()).contains("test handler without parent");
         }
@@ -139,7 +139,7 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
 
             final List<Transport.ResponseContext<? extends TransportResponse>> responseContexts
                     = transport.getResponseHandlers().prune(ignored -> true);
-            assertThat(responseContexts.size()).isEqualTo(1);
+            assertThat(responseContexts).hasSize(1);
             final TransportResponseHandler<? extends TransportResponse> handler = responseContexts.get(0).handler();
             assertThat(handler.toString()).contains("test handler with parent", testActionName);
         }

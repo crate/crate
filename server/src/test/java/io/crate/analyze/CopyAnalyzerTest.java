@@ -269,7 +269,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         assertThat(analysis.whereClause().partitions()).containsExactly(parted);
-        assertThat(analysis.overwrites()).hasSize(0);
+        assertThat(analysis.overwrites()).isEmpty();
     }
 
     @Test

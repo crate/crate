@@ -57,7 +57,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
         builder.indexValues("xs", values);
         try (var queryTester = builder.build()) {
             var results = queryTester.runQuery("xs", expression);
-            assertThat(results.size()).isEqualTo(1);
+            assertThat(results).hasSize(1);
             if (isNull) {
                 assertThat(results.get(0)).isNull();
             } else {
