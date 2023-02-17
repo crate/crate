@@ -694,8 +694,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         );
 
 
-        assertThat(request.pKeyIndices().size()).isEqualTo(2);
-        assertThat(request.references().size()).isEqualTo(4); // 2 leaves (b, c) and their common parents (o, a).
+        assertThat(request.pKeyIndices()).hasSize(2);
+        assertThat(request.references()).hasSize(4); // 2 leaves (b, c) and their common parents (o, a).
 
         List<String> pKeyColNames = new ArrayList<>();
         for (IntCursor cursor: request.pKeyIndices()) {

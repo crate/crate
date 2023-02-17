@@ -577,7 +577,7 @@ public class TestSqlParser {
                 """
         );
         // CreateFunction.equals() does not compare the definitions
-        assertThat(createFunction.toString()).isEqualTo(expected.toString());
+        assertThat(createFunction).hasToString(expected.toString());
     }
 
     private static void assertStatement(String query, Statement expected) {
