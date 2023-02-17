@@ -43,7 +43,7 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
     public LogicalPlanAssert isEqualTo(String expectedPlan) {
         isNotNull();
         assertThat(expectedPlan).isNotNull();
-        assertThat(printPlan(actual)).isEqualTo(expectedPlan);
+        assertThat(printPlan(actual)).isEqualTo(expectedPlan.strip());
         return this;
     }
 

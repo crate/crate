@@ -22,15 +22,11 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.function.Function;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -71,8 +67,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
-        assertThat(match.isPresent(), is(true));
-        assertThat(match.value(), Matchers.sameInstance(filter));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
 
         LogicalPlan newPlan = rule.apply(
             match.value(),
@@ -83,7 +79,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             Function.identity()
         );
 
-        assertThat(newPlan, nullValue());
+        assertThat(newPlan).isNull();
     }
 
     @Test
@@ -99,8 +95,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
-        assertThat(match.isPresent(), is(true));
-        assertThat(match.value(), Matchers.sameInstance(filter));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
 
         LogicalPlan newPlan = rule.apply(
             match.value(),
@@ -111,7 +107,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             Function.identity()
         );
 
-        assertThat(newPlan, nullValue());
+        assertThat(newPlan).isNull();
     }
 
     @Test
@@ -127,9 +123,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
-        assertThat(match.isPresent(), is(true));
-        assertThat(match.value(), Matchers.sameInstance(filter));
-
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
@@ -139,11 +134,13 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             Function.identity()
         );
         var expectedPlan =
-            "WindowAgg[id, row_number() OVER (PARTITION BY id)]\n" +
-            "  └ Filter[(id = 10)]\n" +
-            "    └ Collect[doc.t1 | [id] | true]";
+            """
+            WindowAgg[id, row_number() OVER (PARTITION BY id)]
+              └ Filter[(id = 10)]
+                └ Collect[doc.t1 | [id] | true]
+            """;
 
-        assertThat(newPlan, isPlan(expectedPlan));
+        assertThat(newPlan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -159,8 +156,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
-        assertThat(match.isPresent(), is(true));
-        assertThat(match.value(), Matchers.sameInstance(filter));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
 
         LogicalPlan newPlan = rule.apply(
             match.value(),
@@ -171,12 +168,14 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             Function.identity()
         );
         var expectedPlan =
-            "Filter[((row_number() OVER (PARTITION BY id) = 2) AND (x = 1))]\n" +
-            "  └ WindowAgg[id, row_number() OVER (PARTITION BY id)]\n" +
-            "    └ Filter[(id = 10)]\n" +
-            "      └ Collect[doc.t1 | [id] | true]";
+            """
+            Filter[((row_number() OVER (PARTITION BY id) = 2) AND (x = 1))]
+              └ WindowAgg[id, row_number() OVER (PARTITION BY id)]
+                └ Filter[(id = 10)]
+                  └ Collect[doc.t1 | [id] | true]
+            """;
 
-        assertThat(newPlan, isPlan(expectedPlan));
+        assertThat(newPlan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -192,8 +191,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
-        assertThat(match.isPresent(), is(true));
-        assertThat(match.value(), Matchers.sameInstance(filter));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
 
         LogicalPlan newPlan = rule.apply(
             match.value(),
@@ -203,6 +202,6 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.nodeCtx,
             Function.identity()
         );
-        assertThat(newPlan, nullValue());
+        assertThat(newPlan).isNull();
     }
 }

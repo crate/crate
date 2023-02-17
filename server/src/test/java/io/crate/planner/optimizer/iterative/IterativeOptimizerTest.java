@@ -21,9 +21,8 @@
 
 package io.crate.planner.optimizer.iterative;
 
-import static io.crate.planner.operators.LogicalPlannerTest.printPlan;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -43,8 +42,8 @@ import io.crate.statistics.TableStats;
 
 public class IterativeOptimizerTest {
 
-    private NodeContext nodeCtx = createNodeContext();
-    private CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
+    private final NodeContext nodeCtx = createNodeContext();
+    private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void test_match_single_rule_merge_filters() {
@@ -57,9 +56,8 @@ public class IterativeOptimizerTest {
                                                               List.of(new MergeFilters()));
 
         var result = optimizer.optimize(filter2, new TableStats(), ctx);
-
-        assertThat(printPlan(result)).isEqualTo("Filter[(true AND true)]\n" +
-                                                "  └ TestPlan[]");
+        assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
+                                             "  └ TestPlan[]");
     }
 
     @Test
@@ -75,10 +73,13 @@ public class IterativeOptimizerTest {
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
         var result = optimizer.optimize(order2, new TableStats(), ctx);
-
-        assertThat(printPlan(result)).isEqualTo("OrderBy[]\n" +
-                                                "  └ Filter[(true AND true)]\n" +
-                                                "    └ TestPlan[]");
+        assertThat(result).isEqualTo(
+            """
+            OrderBy[]
+              └ Filter[(true AND true)]
+                └ TestPlan[]
+            """
+        );
     }
 
     @Test
@@ -108,9 +109,13 @@ public class IterativeOptimizerTest {
 
         var result = optimizer.optimize(order2, new TableStats(), ctx);
 
-        assertThat(printPlan(result)).isEqualTo("OrderBy[]\n" +
-                                                "  └ Filter[true]\n" +
-                                                "    └ TestPlan[]");
+        assertThat(result).isEqualTo(
+            """
+            OrderBy[]
+              └ Filter[true]
+                └ TestPlan[]
+            """
+        );
     }
 
 }
