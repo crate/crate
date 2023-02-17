@@ -522,6 +522,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         return printContext.toString();
     }
 
+    /**
+     * Deprecated use io.crate.testing.{@link io.crate.testing.Asserts} instead
+     */
+    @Deprecated()
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {
         return new FeatureMatcher<>(equalTo(expectedPlan), "same output", "output ") {
 
@@ -532,6 +536,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         };
     }
 
+    /**
+     * Deprecated use io.crate.testing.{@link io.crate.testing.Asserts} instead
+     */
+    @Deprecated()
     public static Matcher<LogicalPlan> isPlan(LogicalPlan expectedPlan) {
         return new FeatureMatcher<>(equalTo(printPlan(expectedPlan)), "same output", "output ") {
 
