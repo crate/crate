@@ -25,3 +25,7 @@ c1d641ccae22235825dda595bac7f8bab396976f
 8b29c69fcfec6d9ed3deb53b21eab0e93d93a806
 # assertj isDocKey
 32c831abf7b3d2336261ed0cf25641d078bc85be
+# assertj isPlan() migration to isEqualTo()
+cff451e81f3e5b7b58390acd4553173028f39222
+# assertj minor improvements: hasSize(), hasToString(), isEmpty()
+7572f1b9bd9cb0a928639a067c7d9539c827e312
