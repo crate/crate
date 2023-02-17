@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLimitAndOffset;
 import static org.mockito.Mockito.mock;
@@ -31,7 +30,6 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -77,10 +75,13 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             Literal.of(20L),
             Literal.of(7L)
         );
-        Assert.assertThat(plan, isPlan(
-            "Limit[20::bigint;7::bigint]\n" +
-            "  └ Limit[10::bigint;5::bigint]\n" +
-            "    └ Collect[doc.users | [name] | true]"));
+        assertThat(plan).isEqualTo(
+            """
+            Limit[20::bigint;7::bigint]
+              └ Limit[10::bigint;5::bigint]
+                └ Collect[doc.users | [name] | true]
+            """
+        );
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
             mock(DependencyCarrier.class),

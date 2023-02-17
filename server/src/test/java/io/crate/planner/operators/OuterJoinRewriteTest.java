@@ -21,8 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 
@@ -51,10 +50,12 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE t2.x = '10'"
         );
         var expectedPlan =
-            "NestedLoopJoin[INNER | (x = x)]\n" +
-            "  ├ Collect[doc.t1 | [x] | true]\n" +
-            "  └ Collect[doc.t2 | [x] | (x = 10)]";
-        assertThat(plan, isPlan(expectedPlan));
+            """
+            NestedLoopJoin[INNER | (x = x)]
+              ├ Collect[doc.t1 | [x] | true]
+              └ Collect[doc.t2 | [x] | (x = 10)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -64,11 +65,13 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t2.x, 10) = 10"
         );
         var expectedPlan =
-            "Filter[(coalesce(x, 10) = 10)]\n" +
-            "  └ NestedLoopJoin[LEFT | (x = x)]\n" +
-            "    ├ Collect[doc.t1 | [x] | true]\n" +
-            "    └ Collect[doc.t2 | [x] | true]";
-        assertThat(plan, isPlan(expectedPlan));
+            """
+            Filter[(coalesce(x, 10) = 10)]
+              └ NestedLoopJoin[LEFT | (x = x)]
+                ├ Collect[doc.t1 | [x] | true]
+                └ Collect[doc.t2 | [x] | true]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -78,11 +81,13 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t2.x, 10) = 10 AND t1.x > 5"
         );
         var expectedPlan =
-            "Filter[(coalesce(x, 10) = 10)]\n" +
-            "  └ NestedLoopJoin[LEFT | (x = x)]\n" +
-            "    ├ Collect[doc.t1 | [x] | (x > 5)]\n" +
-            "    └ Collect[doc.t2 | [x] | true]";
-        assertThat(plan, isPlan(expectedPlan));
+            """
+            Filter[(coalesce(x, 10) = 10)]
+              └ NestedLoopJoin[LEFT | (x = x)]
+                ├ Collect[doc.t1 | [x] | (x > 5)]
+                └ Collect[doc.t2 | [x] | true]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -92,11 +97,13 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
         );
         var expectedPlan =
-            "Filter[(coalesce(x, 10) = 10)]\n" +
-            "  └ NestedLoopJoin[RIGHT | (x = x)]\n" +
-            "    ├ Collect[doc.t1 | [x] | true]\n" +
-            "    └ Collect[doc.t2 | [x] | (x > 5)]";
-        assertThat(plan, isPlan(expectedPlan));
+            """
+            Filter[(coalesce(x, 10) = 10)]
+              └ NestedLoopJoin[RIGHT | (x = x)]
+                ├ Collect[doc.t1 | [x] | true]
+                └ Collect[doc.t2 | [x] | (x > 5)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -106,10 +113,12 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
         );
         var expectedPlan =
-            "Filter[((coalesce(x, 10) = 10) AND (x > 5))]\n" +
-            "  └ NestedLoopJoin[FULL | (x = x)]\n" +
-            "    ├ Collect[doc.t1 | [x] | true]\n" +
-            "    └ Collect[doc.t2 | [x] | (x > 5)]";
-        assertThat(plan, isPlan(expectedPlan));
+            """
+            Filter[((coalesce(x, 10) = 10) AND (x > 5))]
+              └ NestedLoopJoin[FULL | (x = x)]
+                ├ Collect[doc.t1 | [x] | true]
+                └ Collect[doc.t2 | [x] | (x > 5)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 }
