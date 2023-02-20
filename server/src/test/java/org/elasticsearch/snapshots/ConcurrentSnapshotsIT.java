@@ -21,9 +21,9 @@
 
 package org.elasticsearch.snapshots;
 
-import static io.crate.testing.Asserts.assertRootCause;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
@@ -70,6 +70,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -1082,12 +1083,16 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                                               "] operations and the current limit for concurrent snapshot operations is set to [" + limitToTest + "]";
         var createSnapshotFuture = startFullSnapshot(repoName, "expected-to-fail");
         assertThatThrownBy(createSnapshotFuture::get)
-                .satisfies(e -> assertRootCause(e, ConcurrentSnapshotExecutionException.class, expectedFailureMessage));
+            .extracting(SQLExceptions::unwrap, THROWABLE)
+            .isExactlyInstanceOf(ConcurrentSnapshotExecutionException.class)
+            .hasMessageContaining(expectedFailureMessage);
 
         if (blockedDelete == false || limitToTest == 1) {
             var deleteSnapshotFuture = startDelete(repoName, snapshotNames);
             assertThatThrownBy(deleteSnapshotFuture::get)
-                    .satisfies(e -> assertRootCause(e, ConcurrentSnapshotExecutionException.class, expectedFailureMessage));
+                .extracting(SQLExceptions::unwrap, THROWABLE)
+                .isExactlyInstanceOf(ConcurrentSnapshotExecutionException.class)
+                .hasMessageContaining(expectedFailureMessage);
         }
 
         unblockNode(repoName, masterNode);
