@@ -340,7 +340,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var deleteSnapshotsResponse = startDelete(repoName, firstSnapshot);
-        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
+        awaitClusterState(masterNode, state -> hasDeletionsInProgress(state, 1));
 
         logger.info("--> start third snapshot");
         var thirdSnapshotResponse = cluster().client()
@@ -400,7 +400,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var deleteSnapshotsResponse = startDelete(repoName, firstSnapshot);
-        awaitClusterState(cluster().getMasterName(), state -> hasInProgressDeletions(state, 1));
+        awaitClusterState(cluster().getMasterName(), state -> hasDeletionsInProgress(state, 1));
 
         var thirdSnapshotResponse = startFullSnapshot(repoName, "snapshot-three");
 
@@ -473,7 +473,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var firstDeleteFuture = startDelete(cluster().nonMasterClient(), repoName, firstSnapshot);
-        awaitClusterState(cluster().getMasterName(), state -> hasInProgressDeletions(state, 1));
+        awaitClusterState(cluster().getMasterName(), state -> hasDeletionsInProgress(state, 1));
 
         mockRepo(repoName, dataNode2).setBlockOnAnyFiles(true);
         var snapshotThreeFuture = createSnapshot(cluster().nonMasterClient(), repoName, "snapshot-three", false);
@@ -566,7 +566,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
         var snapshotThree = createSnapshot(cluster().client(), repoName, "snapshot-three", true);
         var snapshotFour = createSnapshot(cluster().client(), repoName, "snapshot-four", true);
-        awaitClusterState(masterNode, state -> snapshotsInProgress(state) == 2);
+        awaitClusterState(masterNode, state -> hasSnapshotsInProgress(state, 2));
 
         execute("drop table tbl2");
         unblockNode(repoName, masterNode);
@@ -587,7 +587,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         var createSnapshot1Future = startFullSnapshotBlockedOnDataNode("snapshot1", repoName, dataNode);
         var createSnapshot2Future = startFullSnapshot(repoName, "snapshot2");
 
-        awaitClusterState(masterNode, state -> snapshotsInProgress(state) == 2);
+        awaitClusterState(masterNode, state -> hasSnapshotsInProgress(state, 2));
 
         execute("drop snapshot repo1.snapshot2");
         assertThat(createSnapshot2Future)
@@ -614,14 +614,14 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         mockRepo(repoName, masterName).setBlockOnWriteIndexFile();
         var blockedSnapshot = startFullSnapshot(repoName, "snap-blocked");
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
-        awaitClusterState(masterName, state -> snapshotsInProgress(state) == 1);
+        awaitClusterState(masterName, state -> hasSnapshotsInProgress(state, 1));
 
         mockRepo(repoName, dataNode).setBlockOnAnyFiles(true);
         var otherSnapshot = startFullSnapshot(repoName, "other-snapshot");
-        awaitClusterState(masterName, state -> snapshotsInProgress(state) == 2);
+        awaitClusterState(masterName, state -> hasSnapshotsInProgress(state, 2));
         assertThat(blockedSnapshot.isDone()).isFalse();
         unblockNode(repoName, masterName);
-        awaitClusterState(masterName, state -> snapshotsInProgress(state) == 1);
+        awaitClusterState(masterName, state -> hasSnapshotsInProgress(state, 1));
 
         awaitMasterFinishRepoOperations();
 
@@ -679,14 +679,14 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
 
         var snapshotFuture = startFullSnapshot(repoName, "snapshot-queued");
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 1));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, 1)));
 
         var secondDeleteSnapshotFuture = startDelete(
             cluster().client(),
             repoName,
             "*"
         );
-        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 2));
+        awaitClusterState(masterNode, state -> hasDeletionsInProgress(state, 2));
 
         unblockNode(repoName, masterNode);
         assertBusy(() -> assertThat(firstDeleteSnapshotFuture).isCompletedExceptionally());
@@ -702,7 +702,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .hasRows("0\n");
         awaitClusterState(
             masterNode,
-            state -> snapshotsInProgress(state) == 0 && hasInProgressDeletions(state, 0)
+            state -> hasSnapshotsInProgress(state, 0) && hasDeletionsInProgress(state, 0)
         );
     }
 
@@ -725,10 +725,10 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
         final var secondFailedSnapshotFuture =
                 startFullSnapshotFromMasterClient(repoName, "failing-snapshot-2");
-        awaitClusterState(masterNode, state -> snapshotsInProgress(state) == 2);
+        awaitClusterState(masterNode, state -> hasSnapshotsInProgress(state, 2));
 
         final var deleteFuture = startDelete(repoName, "*");
-        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
+        awaitClusterState(masterNode, state -> hasDeletionsInProgress(state, 1));
 
         networkDisruption.startDisrupting();
         ensureStableCluster(3, dataNode);
@@ -821,7 +821,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         final var deleteSnapshotOne = startAndBlockOnDeleteSnapshot(repoName, snapshotOne);
         final var deleteSnapshotTwo = startDelete(repoName, snapshotTwo);
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 2)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 2)));
 
         unblockNode(repoName, masterName);
         assertAcked(deleteSnapshotOne.get());
@@ -849,7 +849,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         final String snapshotOne = snapshotNames[0];
         final var deleteSnapshotOne = startDelete(repoName, snapshotOne);
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
 
         unblockNode(repoName, masterName);
 
@@ -870,7 +870,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final var snapshotFuture = startFullSnapshot(repoName, snapshotName);
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
         final var deleteFuture = startDelete(repoName, snapshotName);
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
         unblockNode(repoName, masterName);
         assertSuccessful(snapshotFuture);
         assertAcked(deleteFuture.get(30L, TimeUnit.SECONDS));
@@ -892,11 +892,11 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             deleteResponses.add(startDelete(repoName, snapshotNames));
         }
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
         for (var deleteResponse : deleteResponses) {
             assertThat(deleteResponse).isNotDone();
         }
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
         unblockNode(repoName, masterName);
         for (var deleteResponse : deleteResponses) {
             assertAcked(deleteResponse.get());
@@ -921,7 +921,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         final String snapshotOne = snapshotNames[0];
         final var deleteSnapshotOne = startDelete(repoName, snapshotOne);
-        awaitClusterState(masterName, state -> (hasInProgressDeletions(state, 1)));
+        awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
         networkDisruption.startDisrupting();
         ensureStableCluster(3, dataNode);
 
@@ -956,13 +956,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 startFullSnapshotBlockedOnDataNode("blocked-snapshot-2", blockedRepoName, dataNode);
         final var createSlowFuture3 =
                 startFullSnapshotBlockedOnDataNode("other-blocked-snapshot", otherBlockedRepoName, dataNode);
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 3));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, 3)));
 
         assertSnapshotStatusCountOnRepo(blockedRepoName, 2);
         assertSnapshotStatusCountOnRepo(otherBlockedRepoName, 1);
 
         unblockNode(blockedRepoName, dataNode);
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 1));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, 1)));
         assertSnapshotStatusCountOnRepo(blockedRepoName, 0);
         assertSnapshotStatusCountOnRepo(otherBlockedRepoName, 1);
 
@@ -992,7 +992,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 startFullSnapshotBlockedOnDataNode("blocked-snapshot-2", blockedRepoName, dataNode);
         final var createSlowFuture3 =
                 startFullSnapshotBlockedOnDataNode("other-blocked-snapshot", otherBlockedRepoName, dataNode);
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 3));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, 3)));
         unblockNode(blockedRepoName, dataNode);
         unblockNode(otherBlockedRepoName, dataNode);
 
@@ -1027,7 +1027,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final String masterNode = cluster().getMasterName();
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
         waitForBlock(masterNode, otherRepoName, TimeValue.timeValueSeconds(30L));
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 4));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, 4)));
 
         cluster().stopCurrentMasterNode();
         ensureStableCluster(3, dataNode);
@@ -1072,9 +1072,9 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 deleteFuture = startDelete(repoName, randomFrom(snapshotNames));
             }
         }
-        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == blockedSnapshots[0]));
+        awaitClusterState(masterNode, state -> (hasSnapshotsInProgress(state, blockedSnapshots[0])));
         if (blockedDelete) {
-            awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
+            awaitClusterState(masterNode, state -> hasDeletionsInProgress(state, 1));
         }
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
 
@@ -1099,12 +1099,12 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         }
     }
 
-    private int snapshotsInProgress(ClusterState state) {
+    private boolean hasSnapshotsInProgress(ClusterState state, int count) {
         var snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
-        return snapshotsInProgress.entries().size();
+        return snapshotsInProgress.entries().size() == count;
     }
 
-    private boolean hasInProgressDeletions(ClusterState state, int count) {
+    private boolean hasDeletionsInProgress(ClusterState state, int count) {
         var snapshotDeletionsInProgress = state.custom(
             SnapshotDeletionsInProgress.TYPE,
             SnapshotDeletionsInProgress.EMPTY
@@ -1296,7 +1296,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertBusy(() -> {
             for (ThreadPoolStats.Stats stat : masterThreadPool.stats()) {
                 if (ThreadPool.Names.SNAPSHOT.equals(stat.getName())) {
-                    Assertions.assertThat(stat.getActive()).isEqualTo(0);
+                    assertThat(stat.getActive()).isEqualTo(0);
                     break;
                 }
             }
