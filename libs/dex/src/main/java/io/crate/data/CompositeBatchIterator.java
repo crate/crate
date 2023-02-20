@@ -21,24 +21,31 @@
 
 package io.crate.data;
 
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.Exceptions;
+import static io.crate.concurrent.CompletableFutures.supplyAsync;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.IntSupplier;
 
-import static io.crate.concurrent.CompletableFutures.supplyAsync;
+import javax.annotation.Nonnull;
+
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
 
 /**
  * BatchIterator implementations backed by multiple other BatchIterators.
  */
 public final class CompositeBatchIterator {
+
+    @SuppressWarnings("unchecked")
+    public static <T> BatchIterator<T> seqComposite(Collection<? extends BatchIterator<T>> iterators) {
+        return seqComposite(iterators.toArray(new BatchIterator[0]));
+    }
 
     /**
      * Composite batchIterator that consumes each individual iterator fully before moving to the next.

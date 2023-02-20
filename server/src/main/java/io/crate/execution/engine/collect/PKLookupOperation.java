@@ -21,6 +21,36 @@
 
 package io.crate.execution.engine.collect;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.Term;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.IdFieldMapper;
+import org.elasticsearch.index.mapper.Uid;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.indices.IndicesService;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -37,33 +67,6 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
-import org.apache.lucene.index.Term;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndicesService;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class PKLookupOperation {
 
@@ -91,7 +94,8 @@ public final class PKLookupOperation {
             }
             SourceFieldVisitor visitor = new SourceFieldVisitor();
             try {
-                docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
+                StoredFields storedFields = docIdAndVersion.reader.storedFields();
+                storedFields.document(docIdAndVersion.docId, visitor);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -173,7 +177,6 @@ public final class PKLookupOperation {
                 iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL, true)));
             }
         }
-        //noinspection unchecked
-        return CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
+        return CompositeBatchIterator.seqComposite(iterators);
     }
 }
