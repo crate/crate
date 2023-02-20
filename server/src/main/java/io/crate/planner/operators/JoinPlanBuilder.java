@@ -183,12 +183,16 @@ public class JoinPlanBuilder {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
+                lhsPlan.getRelationNames(),
+                rhsPlan.getRelationNames(),
                 joinCondition
             );
         } else {
             return new NestedLoopJoin(
                 lhsPlan,
                 rhsPlan,
+                lhsPlan.getRelationNames(),
+                rhsPlan.getRelationNames(),
                 joinType,
                 joinCondition,
                 !query.symbolType().isValueSymbol(),

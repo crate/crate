@@ -61,20 +61,26 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
 
-public class HashJoin implements LogicalPlan {
+public class HashJoin implements JoinPlan {
 
     private final Symbol joinCondition;
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
+    private final Set<RelationName> rhsRelationNames;
+    private final Set<RelationName> lhsRelationNames;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
+                    Set<RelationName> rhsRelationNames,
+                    Set<RelationName> lhsRelationNames,
                     Symbol joinCondition) {
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
+        this.rhsRelationNames = rhsRelationNames;
+        this.lhsRelationNames = lhsRelationNames;
     }
 
     public JoinType joinType() {
@@ -91,6 +97,16 @@ public class HashJoin implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    @Override
+    public Set<RelationName> lhsRelationNames() {
+        return lhsRelationNames;
+    }
+
+    @Override
+    public Set<RelationName> rhsRelationNames() {
+        return rhsRelationNames;
     }
 
     @Override
@@ -254,6 +270,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
+            lhsRelationNames,
+            rhsRelationNames,
             joinCondition
         );
     }
@@ -276,6 +294,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             newLhs,
             newRhs,
+            lhsRelationNames,
+            rhsRelationNames,
             joinCondition
         );
     }
@@ -304,6 +324,8 @@ public class HashJoin implements LogicalPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
+                lhsRelationNames,
+                rhsRelationNames,
                 joinCondition
             )
         );

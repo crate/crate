@@ -44,7 +44,6 @@ import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -130,13 +129,10 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        // getRelationNames will do recursive calls down the operator tree,
-        // thus group references need to be fully resolved
-        GroupReferenceResolver resolver = new GroupReferenceResolver(resolvePlan);
-        LogicalPlan lhs = resolver.resolveFully(nl.lhs());
-        LogicalPlan rhs = resolver.resolveFully(nl.rhs());
-        Set<RelationName> leftName = lhs.getRelationNames();
-        Set<RelationName> rightName = rhs.getRelationNames();
+        LogicalPlan lhs = nl.lhs();
+        LogicalPlan rhs = nl.rhs();
+        Set<RelationName> leftName = nl.lhsRelationNames();
+        Set<RelationName> rightName = nl.rhsRelationNames();
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);
@@ -256,6 +252,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         NestedLoopJoin newJoin = new NestedLoopJoin(
             newLhs,
             newRhs,
+            nl.lhsRelationNames(),
+            nl.rhsRelationNames(),
             newJoinIsInnerJoin ? JoinType.INNER : nl.joinType(),
             nl.joinCondition(),
             nl.isFiltered(),

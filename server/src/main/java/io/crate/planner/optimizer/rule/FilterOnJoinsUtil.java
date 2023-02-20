@@ -27,14 +27,13 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 final class FilterOnJoinsUtil {
 
@@ -45,11 +44,11 @@ final class FilterOnJoinsUtil {
         return splitQuery == null ? source : new Filter(source, splitQuery);
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, JoinPlan join) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0)),
-                getNewSource(query, join.sources().get(1))
+                getNewSource(query, join.lhs()),
+                getNewSource(query, join.rhs())
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -58,13 +57,10 @@ final class FilterOnJoinsUtil {
             return null;
         }
         assert join.sources().size() == 2 : "Join operator must only have 2 children, LHS and RHS";
-        // getRelationNames will do recursive calls down the operator tree,
-        // thus group references need to be fully resolved
-        GroupReferenceResolver resolver = new GroupReferenceResolver(resolvePlan);
-        LogicalPlan lhs = resolver.resolveFully(join.sources().get(0));
-        LogicalPlan rhs = resolver.resolveFully(join.sources().get(1));
-        Set<RelationName> leftName = lhs.getRelationNames();
-        Set<RelationName> rightName = rhs.getRelationNames();
+        LogicalPlan lhs = join.lhs();
+        LogicalPlan rhs = join.rhs();
+        Set<RelationName> leftName = join.lhsRelationNames();
+        Set<RelationName> rightName = join.rhsRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
         Symbol queryForRhs = splitQuery.remove(rightName);
         LogicalPlan newLhs = getNewSource(queryForLhs, lhs);

@@ -87,7 +87,11 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_relationnames_are_based_on_sources_in_hashjoin() throws Exception {
-        var hashJoin = new HashJoin(t1Rename, t2Rename, e.asSymbol("x = y"));
+        var hashJoin = new HashJoin(t1Rename,
+                                    t2Rename,
+                                    t1Rename.getRelationNames(),
+                                    t2Rename.getRelationNames(),
+                                    e.asSymbol("x = y"));
         assertThat(hashJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(hashJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
@@ -96,6 +100,8 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     public void test_relationnames_are_based_on_sources_in_nestedloopjoin() {
         var nestedLoopJoin = new NestedLoopJoin(t1Rename,
                                                 t2Rename,
+                                                t1Rename.getRelationNames(),
+                                                t2Rename.getRelationNames(),
                                                 JoinType.INNER,
                                                 e.asSymbol("x = y"),
                                                 false,
