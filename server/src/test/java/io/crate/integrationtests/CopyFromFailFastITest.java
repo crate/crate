@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.integrationtests.CopyIntegrationTest.tmpFileWithLines;
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
@@ -39,6 +38,7 @@ import java.util.List;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.logging.Loggers;
@@ -87,13 +87,12 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         execute("CREATE TABLE t (a int) CLUSTERED INTO 1 SHARDS");
 
-        assertThrowsMatches(
-            () -> execute(
+        // fail_fast = true
+        Assertions.assertThatThrownBy(() -> execute(
                 "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true)", // fail_fast = true
-                new Object[]{target.toUri() + "*"}),
-            JobKilledException.class,
-            "ERRORS: {Cannot cast value `fail here` to type `integer`"
-        );
+                new Object[]{target.toUri() + "*"}))
+            .isExactlyInstanceOf(JobKilledException.class)
+            .hasMessageContaining("ERRORS: {Cannot cast value `fail here` to type `integer`");
     }
 
     @TestLogging("io.crate.execution.dml.upsert:DEBUG")
@@ -151,13 +150,13 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         tmpFileWithLines(rows, "data1.json", target);
         assertExpectedLogMessages(
-            () -> assertThrowsMatches(
-                () -> handlerNodeExecutor.exec(
-                    "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                    new Object[]{target.toUri() + "*"}),
-                JobKilledException.class,
-                "Cannot cast value `fail here` to type `integer`"
-            ),
+            () -> { // fail_fast = true
+                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
+                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+                            new Object[]{target.toUri() + "*"}))
+                    .isExactlyInstanceOf(JobKilledException.class)
+                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
+            },
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard1,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",
@@ -223,13 +222,13 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         tmpFileWithLines(rows, "data1.json", target);
         assertExpectedLogMessages(
-            () -> assertThrowsMatches(
-                () -> handlerNodeExecutor.exec(
-                    "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                    new Object[]{target.toUri() + "*"}),
-                JobKilledException.class,
-                "Cannot cast value `fail here` to type `integer`"
-            ),
+            () -> { // fail_fast = true
+                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
+                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+                            new Object[]{target.toUri() + "*"}))
+                    .isExactlyInstanceOf(JobKilledException.class)
+                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
+            },
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard0,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",

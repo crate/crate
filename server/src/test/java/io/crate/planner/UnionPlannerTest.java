@@ -23,17 +23,12 @@ package io.crate.planner;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +40,6 @@ import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.planner.operators.Union;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -68,144 +62,165 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSimpleUnion() {
         ExecutionPlan plan = e.plan(
-            "select id from users " +
-            "union all " +
-            "select id from locations ");
-        assertThat(plan, instanceOf(UnionExecutionPlan.class));
+            """
+            SELECT id FROM users
+            UNION ALL
+            SELECT id FROM locations
+            """);
+        assertThat(plan).isExactlyInstanceOf(UnionExecutionPlan.class);
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
-        assertThat(unionExecutionPlan.orderBy(), is(nullValue()));
-        assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
-        assertThat(unionExecutionPlan.left(), instanceOf(Collect.class));
-        assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
+        assertThat(unionExecutionPlan.orderBy()).isNull();
+        assertThat(unionExecutionPlan.mergePhase().numInputs()).isEqualTo(2);
+        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
     }
 
     @Test
     public void testUnionWithOrderByLimit() {
         ExecutionPlan plan = e.plan(
-            "select id from users " +
-            "union all " +
-            "select id from locations " +
-            "order by id limit 2");
-        assertThat(plan, instanceOf(UnionExecutionPlan.class));
+            """
+            SELECT id FROM users
+            UNION ALL
+            SELECT id FROM locations
+            ORDER BY id
+            LIMIT 2
+            """
+        );
+        assertThat(plan).isExactlyInstanceOf(UnionExecutionPlan.class);
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
-        assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
-        assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
-        assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
-        assertThat(unionExecutionPlan.left(), instanceOf(Collect.class));
-        assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
+        assertThat(unionExecutionPlan.mergePhase().numInputs()).isEqualTo(2);
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions()).isExactlyInstanceOf(PositionalOrderBy.class);
+        assertThat(unionExecutionPlan.mergePhase().projections())
+            .satisfiesExactly(p -> assertThat(p).isExactlyInstanceOf(LimitAndOffsetProjection.class));
+        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
     }
 
     @Test
     public void testUnionWithSubselects() {
         ExecutionPlan plan = e.plan(
-            "select * from (select id from users order by id limit 2) a " +
-            "union all " +
-            "select id from locations " +
-            "order by id limit 2");
-        assertThat(plan, instanceOf(UnionExecutionPlan.class));
+            """
+            SELECT * FROM (
+              SELECT id FROM users
+              ORDER BY id
+              LIMIT 2) a
+            UNION ALL
+            SELECT id FROM locations
+            ORDER BY id
+            LIMIT 2
+            """
+        );
+        assertThat(plan).isExactlyInstanceOf(UnionExecutionPlan.class);
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
-        assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
-        assertThat(unionExecutionPlan.orderBy(), Matchers.notNullValue());
-        assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
-        assertThat(unionExecutionPlan.left(), instanceOf(Merge.class));
+        assertThat(unionExecutionPlan.mergePhase().numInputs()).isEqualTo(2);
+        assertThat(unionExecutionPlan.orderBy()).isNotNull();
+        assertThat(unionExecutionPlan.mergePhase().projections())
+            .satisfiesExactly(p -> assertThat(p).isExactlyInstanceOf(LimitAndOffsetProjection.class));
+        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Merge.class);
         Merge merge = (Merge) unionExecutionPlan.left();
-        assertThat(merge.subPlan(), instanceOf(Collect.class));
-        assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
+        assertThat(merge.subPlan()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
     }
 
     @Test
     public void testUnionWithOrderByLiteralConstant() {
-        String stmt = "select * from (" +
-            " select 1 as x, id from users" +
-            " union all" +
-            " select 2, id from users" +
-            ") o" +
-            " order by x";
+        String stmt =
+            """
+            SELECT * FROM (
+              SELECT 1 as x, id FROM users
+              UNION ALL
+              SELECT 2, id FROM users
+              ) o
+            ORDER BY x
+            """;
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Rename[x, id] AS o\n" +
-            "  └ Union[x, id]\n" +
-            "    ├ OrderBy[1 AS x ASC]\n" +
-            "    │  └ Collect[doc.users | [1 AS x, id] | true]\n" +
-            "    └ OrderBy[2 ASC]\n" +
-            "      └ Collect[doc.users | [2, id] | true]";
-        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
+            """
+            Rename[x, id] AS o
+              └ Union[x, id]
+                ├ OrderBy[1 AS x ASC]
+                │  └ Collect[doc.users | [1 AS x, id] | true]
+                └ OrderBy[2 ASC]
+                  └ Collect[doc.users | [2, id] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
         ExecutionPlan plan = e.plan(stmt);
-        assertThat(plan, instanceOf(UnionExecutionPlan.class));
+        assertThat(plan).isExactlyInstanceOf(UnionExecutionPlan.class);
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
-        assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
-        assertThat(unionExecutionPlan.mergePhase().orderByPositions().indices(), is(new int[]{0}));
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions()).isExactlyInstanceOf(PositionalOrderBy.class);
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions().indices()).isEqualTo(new int[]{0});
     }
 
     @Test
     public void test_select_subset_of_outputs_from_union() {
-        String stmt = "select x from (" +
-                      " select 1 as x, id from users" +
-                      " union all" +
-                      " select 2, id from users" +
-                      ") o" +
-                      " order by x";
+        String stmt =
+            """
+            SELECT x FROM(
+              SELECT 1 as x, id FROM users
+              UNION ALL
+              SELECT 2, id FROM users
+              ) o
+            ORDER BY x
+             """;
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Eval[x]\n" +
-            "  └ Rename[x] AS o\n" +
-            "    └ Union[x]\n" +
-            "      ├ OrderBy[1 AS x ASC]\n" +
-            "      │  └ Collect[doc.users | [1 AS x] | true]\n" +
-            "      └ OrderBy[2 ASC]\n" +
-            "        └ Collect[doc.users | [2] | true]";
-        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
+            """
+            Rename[x] AS o
+              └ Union[x]
+                ├ OrderBy[1 AS x ASC]
+                │  └ Collect[doc.users | [1 AS x] | true]
+                └ OrderBy[2 ASC]
+                  └ Collect[doc.users | [2] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
 
     @Test
     public void testUnionDistinct() {
         var logicalPlan = e.logicalPlan(
-            "select id from users " +
-            "union distinct " +
-            "select id from locations ");
+            """
+            SELECT id FROM users
+            UNION DISTINCT
+            SELECT id FROM locations
+            """
+        );
         String expectedPlan =
-            "GroupHashAggregate[id]\n" +
-            "  └ Union[id]\n" +
-            "    ├ Collect[doc.users | [id] | true]\n" +
-            "    └ Collect[doc.locations | [id] | true]";
-        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
+            """
+            GroupHashAggregate[id]
+              └ Union[id]
+                ├ Collect[doc.users | [id] | true]
+                └ Collect[doc.locations | [id] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
 
     @Test
     public void test_union_with_different_types_in_queries_adds_casts() {
-        UnionExecutionPlan union = e.plan("select null union all select id from users");
+        UnionExecutionPlan union = e.plan("SELECT null UNION ALL SELECT id FROM users");
         Collect left = (Collect) union.left();
-        assertThat(left.collectPhase().projections(), contains(
-            instanceOf(EvalProjection.class), // returns NULL
-            instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
-        ));
+        assertThat(left.collectPhase().projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+        );
         Collect right = (Collect) union.right();
-        assertThat(left.streamOutputs(), is(right.streamOutputs()));
-        assertThat(left.streamOutputs(), contains(
-            is(DataTypes.LONG)
-        ));
+        assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
+        assertThat(left.streamOutputs()).satisfiesExactly(o -> assertThat(o).isEqualTo(DataTypes.LONG));
 
 
-        union = e.plan("select id from users union all select null");
+        union = e.plan("SELECT id FROM users UNION ALL SELECT null");
         left = (Collect) union.left();
         right = (Collect) union.right();
-        assertThat(left.streamOutputs(), is(right.streamOutputs()));
-        assertThat(right.streamOutputs(), contains(
-            is(DataTypes.LONG)
-        ));
-        assertThat(right.collectPhase().projections(), contains(
-            instanceOf(EvalProjection.class), // returns NULL
-            instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
-        ));
+        assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
+        assertThat(right.streamOutputs()).satisfiesExactly(o -> assertThat(o).isEqualTo(DataTypes.LONG));
+        assertThat(right.collectPhase().projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+        );
     }
 
     @Test
     public void test_union_returns_unknown_expected_rows_unknown_on_one_source_plan() {
-        String stmt = "select id from users union all select id from locations";
+        String stmt = "SELECT id FROM users UNION ALL SELECT id FROM locations";
         TableStats tableStats = new TableStats();
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
@@ -220,13 +235,12 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
         var union = (Union) plan.sources().get(0);
-        assertThat(union.numExpectedRows(), is(-1L));
+        assertThat(union.numExpectedRows()).isEqualTo(-1L);
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(1, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
         plan = logicalPlanner.plan(e.analyze(stmt), context);
         union = (Union) plan.sources().get(0);
-        assertThat(union.numExpectedRows(), is(-1L));
+        assertThat(union.numExpectedRows()).isEqualTo(-1L);
     }
-
 }

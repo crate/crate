@@ -26,9 +26,9 @@ import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +46,6 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -98,7 +97,7 @@ public class JoinPlanBuilder {
 
         final RelationName lhsName = it.next();
         final RelationName rhsName = it.next();
-        Set<RelationName> joinNames = new HashSet<>();
+        Set<RelationName> joinNames = new LinkedHashSet<>();
         joinNames.add(lhsName);
         joinNames.add(rhsName);
 
@@ -113,38 +112,26 @@ public class JoinPlanBuilder {
             joinCondition = joinLhsRhs.condition();
         }
 
+        var correlatedSubQueriesFromJoin = extractCorrelatedSubQueries(joinCondition);
+        var validJoinConditions = AndOperator.join(correlatedSubQueriesFromJoin.remainder(), null);
+        var correlatedSubQueriesFromWhereClause = extractCorrelatedSubQueries(removeParts(queryParts, lhsName, rhsName));
+        var validWhereConditions = AndOperator.join(correlatedSubQueriesFromWhereClause.remainder());
+
         Map<RelationName, AnalyzedRelation> sources = from.stream()
             .collect(Collectors.toMap(AnalyzedRelation::relationName, rel -> rel));
         AnalyzedRelation lhs = sources.get(lhsName);
         AnalyzedRelation rhs = sources.get(rhsName);
-        LogicalPlan lhsPlan = plan.apply(lhs);
-        LogicalPlan rhsPlan = plan.apply(rhs);
-        Symbol query = removeParts(queryParts, lhsName, rhsName);
-        LogicalPlan joinPlan;
 
-        if (containsOuterColumnFromRelation(joinCondition, rhs)) {
-            joinPlan = createCorrelatedJoinWithFilter(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                lhs,
-                subQueries,
-                query,
-                hashJoinEnabled);
-        } else {
-            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
-            joinPlan = createJoinPlan(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                lhs,
-                query,
-                hashJoinEnabled);
-        }
-
-        joinPlan = Filter.create(joinPlan, query);
+        LogicalPlan joinPlan = createJoinPlan(
+            plan.apply(lhs),
+            plan.apply(rhs),
+            joinType,
+            validJoinConditions,
+            lhs,
+            validWhereConditions,
+            hashJoinEnabled
+        );
+        joinPlan = Filter.create(joinPlan, validWhereConditions);
         while (it.hasNext()) {
             AnalyzedRelation nextRel = sources.get(it.next());
             joinPlan = joinWithNext(
@@ -163,65 +150,10 @@ public class JoinPlanBuilder {
             joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
             queryParts.clear();
         }
-        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
-        return joinPlan;
-    }
-
-    private static boolean containsOuterColumnFromRelation(@Nullable Symbol joinCondition, AnalyzedRelation relation) {
-        if (joinCondition == null) {
-            return false;
-        }
-        return containsOuterColumnInCorrelatedSelect(joinCondition, relation);
-    }
-
-    private static boolean containsOuterColumnInCorrelatedSelect(Symbol symbol, AnalyzedRelation relation) {
-        return SymbolVisitors.any(x -> x instanceof SelectSymbol s &&
-                                       s.isCorrelated() &&
-                                       containsOuterColumn(s, relation), symbol);
-    }
-
-    private static boolean containsOuterColumn(SelectSymbol select, AnalyzedRelation relation) {
-        for (var output : select.relation().outputs()) {
-            if (SymbolVisitors.any(x -> x instanceof OuterColumn o && o.relation().equals(relation), output)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static LogicalPlan createCorrelatedJoinWithFilter(
-        LogicalPlan lhsPlan,
-        LogicalPlan rhsPlan,
-        JoinType joinType,
-        Symbol joinCondition,
-        AnalyzedRelation lhs,
-        SubQueries subQueries,
-        Symbol query,
-        boolean hashJoinEnabled
-    ) {
-        var validJoinConditions = new ArrayList<Symbol>();
-        var joinConditionsForFilters = new ArrayList<Symbol>();
-
-        for (var symbol : QuerySplitter.split(joinCondition).values()) {
-            if (SymbolVisitors.any(s -> s instanceof SelectSymbol x && x.isCorrelated(), symbol)) {
-                joinConditionsForFilters.add(symbol);
-            } else {
-                validJoinConditions.add(symbol);
-            }
-        }
-
-        var joinPlan = createJoinPlan(
-            lhsPlan,
-            rhsPlan,
-            joinType,
-            AndOperator.join(validJoinConditions),
-            lhs,
-            query,
-            hashJoinEnabled);
-
         joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
-        joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters));;
-
+        joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
+        joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
+        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
         return joinPlan;
     }
 
@@ -337,4 +269,26 @@ public class JoinPlanBuilder {
         }
         return null;
     }
+
+    /**
+     * Splits the given Symbol tree into a list of correlated sub-queries and a list of remaining symbols.
+     */
+    private static CorrelatedSubQueries extractCorrelatedSubQueries(@Nullable Symbol from) {
+        if (from == null) {
+            return new CorrelatedSubQueries(List.of(), List.of());
+        }
+        var values = QuerySplitter.split(from).values();
+        var remainder = new ArrayList<Symbol>(values.size());
+        var correlatedSubQueries = new ArrayList<Symbol>(values.size());
+        for (var symbol : values) {
+            if (SymbolVisitors.any(s -> s instanceof SelectSymbol x && x.isCorrelated(), symbol)) {
+                correlatedSubQueries.add(symbol);
+            } else {
+                remainder.add(symbol);
+            }
+        }
+        return new CorrelatedSubQueries(correlatedSubQueries, remainder);
+    }
+
+    private record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {}
 }

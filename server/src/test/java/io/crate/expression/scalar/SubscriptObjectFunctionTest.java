@@ -25,11 +25,11 @@ import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Literal;
-import io.crate.testing.Asserts;
 
 public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
@@ -86,20 +86,16 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
     public void testEvaluateNestedObjectWithUnknownObjectkeysWithSessionSetting() throws Exception {
         // missing key in the very front
         sqlExpressions.setErrorOnUnknownObjectKey(true);
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null),
-            ColumnUnknownException.class,
-            "The object `{x={y=10}}` does not contain the key `y`"
-        );
+        Assertions.assertThatThrownBy(() -> assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{x={y=10}}` does not contain the key `y`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')");
         // missing key in the middle
         sqlExpressions.setErrorOnUnknownObjectKey(true);
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null),
-            ColumnUnknownException.class,
-            "The object `{y={z=test}}` does not contain the key `x`"
-        );
+        Assertions.assertThatThrownBy(() -> assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{y={z=test}}` does not contain the key `x`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']");
     }

@@ -126,7 +126,9 @@ public class EqOperatorTest extends ScalarTestCase {
                 "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "xs = []");
-                Asserts.assertThat(result.size()).isEqualTo(1).withFailMessage("xs = [] should match 1 row for type " + type);
+                Asserts.assertThat(result)
+                    .as("xs = [] should match 1 row for type " + type)
+                    .hasSize(1);
                 Asserts.assertThat(result.get(0)).asList().isEmpty();
             }
         }
@@ -135,6 +137,6 @@ public class EqOperatorTest extends ScalarTestCase {
     @Test
     public void test_terms_query_on__id_encodes_ids() throws Exception {
         Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"));
-        assertThat(query.toString()).isEqualTo("_id:([7e 8a] [ff 62 61 72])");
+        assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
     }
 }

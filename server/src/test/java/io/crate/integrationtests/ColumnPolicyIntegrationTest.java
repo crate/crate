@@ -21,27 +21,20 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.common.collections.Maps.getByPath;
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -53,14 +46,13 @@ import org.elasticsearch.common.xcontent.ParsedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.testing.TestingHelpers;
+import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
@@ -95,15 +87,13 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table strict_table");
 
         execute("select * from strict_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "name")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
+        assertThat(response).hasColumns("id", "name");
+        assertThat(response).hasRows("1| Ford\n");
 
-        assertThrowsMatches(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"),
-                     isSQLError(is("Column boo unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column boo unknown");
     }
 
     @Test
@@ -117,12 +107,13 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table strict_table");
 
         execute("select * from strict_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "name")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
+        assertThat(response).hasColumns("id", "name");
+        assertThat(response).hasRows("1| Ford\n");
 
-        assertThrowsMatches(() -> execute("update strict_table set name='Trillian', boo=true where id=1"),
-                     isSQLError(is("Column boo unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
+        Asserts.assertSQLError(() -> execute("update strict_table set name='Trillian', boo=true where id=1"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column boo unknown");
     }
 
     @Test
@@ -131,7 +122,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -145,21 +136,19 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "name")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
+        assertThat(response).hasColumns("id", "name");
+        assertThat(response).hasRows("1| Ford\n");
 
         execute("insert into dynamic_table (id, name, boo) values (2, 'Trillian', true)");
         execute("refresh table dynamic_table");
 
         waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols().length, is(3));
-        assertThat(response.cols(), is(arrayContaining("id", "name", "boo")));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "1| Ford| NULL\n" +
-            "2| Trillian| true\n"));
+        assertThat(response).hasColumns("id", "name", "boo");
+        assertThat(response).hasRows(
+            "1| Ford| NULL",
+            "2| Trillian| true"
+        );
     }
 
     @Test
@@ -172,9 +161,9 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
         waitForMappingUpdateOnAll("dynamic_table", "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("keyword"));
+        assertThat(getByPath(sourceMap, "properties.new.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.new.inner.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.meta.type")).isEqualTo("keyword");
     }
 
     @Test
@@ -187,18 +176,17 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         waitForMappingUpdateOnAll("dynamic_table", "person.name");
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.name.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.city.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.country.type")), is("keyword"));
+        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.person.properties.name.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.inner.properties.city.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.inner.properties.country.type")).isEqualTo("keyword");
 
-        execute("select person['name'], person['addresses']['city'] from dynamic_table ");
-        assertEquals(1L, response.rowCount());
-        assertArrayEquals(new String[]{"person['name']", "person['addresses']['city']"},
-            response.cols());
+        execute("select person['name'], person['addresses']['city'] from dynamic_table");
 
-        assertThat(response.rows()[0][0], is("Ford"));
-        assertThat((List<Object>) response.rows()[0][1], Matchers.contains("West Country"));
+        assertThat(response).hasColumns("person['name']", "person['addresses']['city']");
+        assertThat(response).hasRows(
+            "Ford| [West Country]\n"
+        );
     }
 
     @Test
@@ -215,11 +203,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         waitForMappingUpdateOnAll("dynamic_table", "new");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.inner.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.nest.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.nest.properties.a.inner.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("keyword"));
+        assertThat(getByPath(sourceMap, "properties.new.properties.a.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.new.properties.a.inner.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.new.properties.nest.properties.a.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.new.properties.nest.properties.a.inner.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.meta.type")).isEqualTo("keyword");
     }
 
     @Test
@@ -235,8 +223,8 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
         waitForMappingUpdateOnAll(new RelationName("c", "dynamic_table"), "meta.meta.a");
         Map<String, Object> sourceMap = getSourceMap("c", "dynamic_table");
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("keyword"));
+        assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")).isEqualTo("keyword");
     }
 
     @Test
@@ -251,10 +239,10 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         waitForMappingUpdateOnAll("dynamic_table", "my_object.a", "my_object.b");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.inner.type")), is("keyword"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.inner.type")), is("keyword"));
+        assertThat(getByPath(sourceMap, "properties.my_object.properties.a.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.my_object.properties.a.inner.type")).isEqualTo("keyword");
+        assertThat(getByPath(sourceMap, "properties.my_object.properties.b.type")).isEqualTo("array");
+        assertThat(getByPath(sourceMap, "properties.my_object.properties.b.inner.type")).isEqualTo("keyword");
     }
 
     @Test
@@ -275,26 +263,14 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
                 authorMap
             });
         execute("refresh table books");
-        assertThrowsMatches(() -> execute("insert into books (title, author) values (?,?)",
+        Asserts.assertSQLError(() -> execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "Life, the Universe and Everything",
                 Map.of("name", Map.of("first_name", "Douglas", "middle_name", "Noel"))
-            }), isSQLError(containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"),
-                           INTERNAL_ERROR,
-                           BAD_REQUEST,
-                           4000));
-    }
-
-    public Object nestedValue(Map<String, Object> map, String dottedPath) {
-        String[] paths = dottedPath.split("\\.");
-        Object value = null;
-        for (String key : paths) {
-            value = map.get(key);
-            if (value instanceof Map) {
-                map = (Map<String, Object>) map.get(key);
-            }
-        }
-        return value;
+            }))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("dynamic introduction of [middle_name] within [author.name] is not allowed");
     }
 
     @Test
@@ -308,18 +284,18 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "name")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, "Ford")));
+        assertThat(response)
+            .hasColumns("id", "name")
+            .hasRows("1| Ford\n");
 
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
 
         waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "name", "boo")));
-        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, "Trillian", true)));
+        assertThat(response)
+            .hasColumns("id", "name", "boo")
+            .hasRows("1| Trillian| true\n");
     }
 
     @Test
@@ -333,20 +309,20 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "score")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, 42.24D)));
+        assertThat(response)
+            .hasColumns("id", "score")
+            .hasRows("1| 42.24\n");
 
         execute("insert into dynamic_table (id, score, good) values (2, -0.01, false)");
         execute("refresh table dynamic_table");
 
         waitForMappingUpdateOnAll("dynamic_table", "good");
         execute("select * from dynamic_table order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), is(arrayContaining("id", "score", "good")));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "1| 42.24| NULL\n" +
-            "2| -0.01| false\n"));
+        assertThat(response).hasColumns("id", "score", "good");
+        assertThat(response).hasRows(
+            "1| 42.24| NULL",
+            "2| -0.01| false"
+        );
     }
 
     @Test
@@ -360,18 +336,18 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "score")));
-        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, 4656234.345D)));
+        assertThat(response)
+            .hasColumns("id", "score")
+            .hasRows("1| 4656234.345\n");
 
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
 
         waitForMappingUpdateOnAll("dynamic_table", "name");
         execute("select * from dynamic_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("id", "score", "name", "good")));
-        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, 4656234.345D, "Trillian", true)));
+        assertThat(response)
+            .hasColumns("id", "score", "name", "good")
+            .hasRows("1| 4656234.345| Trillian| true\n");
     }
 
     @Test
@@ -386,15 +362,15 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse response = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
             .get();
-        assertThat(response.getIndexTemplates().size(), is(1));
+        assertThat(response.getIndexTemplates()).hasSize(1);
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr, is(notNullValue()));
+        assertThat(mappingStr).isNotNull();
         ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -402,15 +378,13 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
-        assertThrowsMatches(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
-                                   new Object[]{28, true, false, true}),
-                     isSQLError(is("Column perfect unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043
-                     ));
+        Asserts.assertSQLError(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
+                                   new Object[]{28, true, false, true}))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column perfect unknown");
     }
 
     @Test
@@ -425,14 +399,14 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse response = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
             .get();
-        assertThat(response.getIndexTemplates().size(), is(1));
+        assertThat(response.getIndexTemplates()).hasSize(1);
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr, is(notNullValue()));
-        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
+        assertThat(mappingStr).isNotNull();
+        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -440,14 +414,13 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
 
-        assertThrowsMatches(() -> execute("update numbers set num=?, perfect=? where num=6",
-                                   new Object[]{28, true}),
-                     isSQLError(is("Column perfect unknown"),
-                                UNDEFINED_COLUMN,
-                                NOT_FOUND,
-                                4043));
+        Asserts.assertSQLError(() -> execute("update numbers set num=?, perfect=? where num=6",
+                                   new Object[]{28, true}))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column perfect unknown");
     }
 
     @Test
@@ -462,14 +435,14 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse templateResponse = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
             .get();
-        assertThat(templateResponse.getIndexTemplates().size(), is(1));
+        assertThat(templateResponse.getIndexTemplates()).hasSize(1);
         IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr, is(notNullValue()));
-        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
+        assertThat(mappingStr).isNotNull();
+        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(mapping.get("dynamic")), is("true"));
+        assertThat(mapping.get("dynamic")).isEqualTo("true");
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -477,7 +450,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Collections.singletonList("true")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is("true"));
+        assertThat(sourceMap.get("dynamic")).isEqualTo("true");
 
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
             new Object[]{28, true, false, true});
@@ -486,14 +459,14 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         waitForMappingUpdateOnAll("numbers", "perfect");
         execute("select * from numbers order by num");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), arrayContaining("num", "odd", "prime", "perfect"));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "6| true| false| NULL\n" +
-            "28| true| false| true\n"));
+        assertThat(response).hasColumns("num", "odd", "prime", "perfect");
+        assertThat(response).hasRows(
+            "6| true| false| NULL",
+            "28| true| false| true"
+        );
 
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
 
         waitForMappingUpdateOnAll("numbers", "changed");
     }
@@ -507,8 +480,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'strict')");
         waitNoPendingTasksOnAll();
-        assertThrowsMatches(() -> execute("insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"),
-                     isSQLError(is("Column new_col unknown"), UNDEFINED_COLUMN, NOT_FOUND,4043));
+        Asserts.assertSQLError(() -> execute(
+                "insert into dynamic_table (id, score, new_col) values (1, 4656234.345, 'hello')"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column new_col unknown");
     }
 
     @Test
@@ -533,14 +509,12 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
-        assertThat(
-            decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")),
-            is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")))
+            .isEqualTo(ColumnPolicy.DYNAMIC);
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
-        assertThat(
-            decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")),
-            is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")))
+            .isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -557,11 +531,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         String indexName = new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
         sourceMap = getSourceMap(indexName);
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -587,15 +561,15 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse response = client().admin().indices()
             .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table")))
             .get();
-        assertThat(response.getIndexTemplates().size(), is(1));
+        assertThat(response.getIndexTemplates()).hasSize(1);
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mapping();
-        assertThat(mappingStr, is(notNullValue()));
+        assertThat(mappingStr).isNotNull();
         ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(mapping.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
             new Object[]{6, 3, "hello"});
@@ -604,15 +578,15 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
-        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic"))).isEqualTo(ColumnPolicy.DYNAMIC);
     }
 
 }

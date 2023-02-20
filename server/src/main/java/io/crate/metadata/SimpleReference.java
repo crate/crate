@@ -43,6 +43,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
 public class SimpleReference implements Reference {
@@ -209,7 +210,7 @@ public class SimpleReference implements Reference {
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
-        if (indexType == IndexType.NONE) {
+        if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
         }
         StorageSupport<?> storageSupport = innerType.storageSupport();

@@ -21,6 +21,7 @@
 
 package io.crate.expression.udf;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -157,5 +158,23 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             ),
             "Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(id)'"
         );
+    }
+
+    @Test
+    public void test_validate_sub_columns_while_dropping_udf() throws Exception {
+        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(FOO)
+            .addPartitionedTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])")
+            .build();
+
+        assertThatThrownBy(() -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
+                               Schemas.DOC_SCHEMA_NAME,
+                               "foo",
+                               metadataWithoutFunction,
+                               clusterService.state()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(o['id'])'");
     }
 }

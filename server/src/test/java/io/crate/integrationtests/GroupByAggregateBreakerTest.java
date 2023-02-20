@@ -22,15 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.is;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class GroupByAggregateBreakerTest extends IntegTestCase {
 
@@ -44,11 +43,10 @@ public class GroupByAggregateBreakerTest extends IntegTestCase {
 
     @Test
     public void selectGroupByWithBreaking() throws Exception {
-        assertThrowsMatches(() -> execute("select region, count(*) from sys.summits group by 1"),
-                     isSQLError(is("[query] Data too large, data for [collect: 0] would be [280/280b], " +
-                                   "which is larger than the limit of [256/256b]"),
-                                INTERNAL_ERROR,
-                                INTERNAL_SERVER_ERROR,
-                                5000));
+        Asserts.assertSQLError(() -> execute("select region, count(*) from sys.summits group by 1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[query] Data too large, data for [collect: 0] would be [280/280b], " +
+                                         "which is larger than the limit of [256/256b]");
     }
 }

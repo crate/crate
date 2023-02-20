@@ -113,7 +113,6 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         );
     }
 
-
     protected void disableRepoConsistencyCheck(String reason) {
         assertThat(reason).isNotNull();
         skipRepoConsistencyCheckReason = reason;

@@ -21,8 +21,7 @@
 
 package io.crate.planner;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 
@@ -37,23 +36,27 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_view_of_join_condition_containing_subscript_expressions() throws IOException {
         var e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.t1 (id int, o object as (i int))")
+            .addTable("CREATE TABLE doc.t1 (id int, o object as (i int))")
             .addView(new RelationName("doc", "v1"),
-                "select b.id, b.o['i']" +
-                    " from t1 g1" +
-                    " left join t1 b on b.o['i'] = g1.o['i']")
+                """
+                SELECT b.id, b.o['i']
+                FROM t1 g1
+                LEFT JOIN t1 b ON b.o['i'] = g1.o['i']
+                """)
             .build();
 
         var logicalPlan = e.logicalPlan("SELECT id FROM v1");
         var expectedPlan =
-            "Eval[id]\n" +
-            "  └ Rename[id, o['i']] AS doc.v1\n" +
-            "    └ Eval[id, o['i']]\n" +
-            "      └ NestedLoopJoin[LEFT | (o['i'] = o['i'])]\n" +
-            "        ├ Rename[o['i']] AS g1\n" +
-            "        │  └ Collect[doc.t1 | [o['i']] | true]\n" +
-            "        └ Rename[id, o['i']] AS b\n" +
-            "          └ Collect[doc.t1 | [id, o['i']] | true]";
-        assertThat(logicalPlan, isPlan(expectedPlan));
+            """
+            Eval[id]
+              └ Rename[id, o['i']] AS doc.v1
+                └ Eval[id, o['i']]
+                  └ NestedLoopJoin[LEFT | (o['i'] = o['i'])]
+                    ├ Rename[o['i']] AS g1
+                    │  └ Collect[doc.t1 | [o['i']] | true]
+                    └ Rename[id, o['i']] AS b
+                      └ Collect[doc.t1 | [id, o['i']] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
 }

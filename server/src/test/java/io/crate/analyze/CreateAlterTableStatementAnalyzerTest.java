@@ -24,14 +24,11 @@ package io.crate.analyze;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -94,6 +91,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -1443,25 +1441,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_alter_table_update_final_setting_on_open_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
-        assertThrowsMatches(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
-                            isSQLError(containsString(
-                                           "Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"),
-                                       INTERNAL_ERROR,
-                                       INTERNAL_SERVER_ERROR,
-                                       5000)
-        );
+        Asserts.assertSQLError(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test
     public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
-        assertThrowsMatches(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
-                            isSQLError(containsString(
-                                           "Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"),
-                                       INTERNAL_ERROR,
-                                       INTERNAL_SERVER_ERROR,
-                                       5000)
-        );
+        Asserts.assertSQLError(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test
@@ -1591,10 +1583,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_create_table_with_invalid_storage_option_errors_with_invalid_property_name() throws Exception {
-        assertThrowsMatches(
-            () -> analyze("create table tbl (name text storage with (foobar = true))"),
-            IllegalArgumentException.class,
-            "Invalid STORAGE WITH option `foobar`"
-        );
+        assertThatThrownBy(() -> analyze("create table tbl (name text storage with (foobar = true))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid STORAGE WITH option `foobar`");
     }
 }

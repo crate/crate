@@ -23,10 +23,10 @@ package io.crate.execution.engine.window;
 
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.testing.Asserts;
 
 public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
@@ -93,15 +93,13 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testIgnoreNullsFlagThrows() {
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate(
+        Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "row_number() ignore nulls over()",
                 null,
                 List.of(new ColumnIdent("x")),
                 new Object[] {1}
-            ),
-            IllegalArgumentException.class,
-            "row_number cannot accept RESPECT or IGNORE NULLS flag."
-        );
+            ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("row_number cannot accept RESPECT or IGNORE NULLS flag.");
     }
 }

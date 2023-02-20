@@ -21,6 +21,10 @@
 
 package io.crate.planner.optimizer.matcher;
 
+import java.util.function.Function;
+
+import io.crate.planner.operators.LogicalPlan;
+
 class TypeOfPattern<T> extends Pattern<T> {
 
     private Class<T> expectedClass;
@@ -30,7 +34,7 @@ class TypeOfPattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
+    public Match<T> accept(Object object, Captures captures, Function<LogicalPlan, LogicalPlan> resolvePlan) {
         if (expectedClass.isInstance(object)) {
             return Match.of(expectedClass.cast(object), captures);
         } else {

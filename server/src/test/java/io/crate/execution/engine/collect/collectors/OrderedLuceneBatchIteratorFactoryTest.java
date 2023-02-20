@@ -188,16 +188,25 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     public void test_ensure_lucene_ordered_collector_propagates_kill() throws Exception {
         LuceneOrderedDocCollector luceneOrderedDocCollector = createOrderedCollector(searcher1, 1);
         AtomicReference<Thread> collectThread = new AtomicReference<>();
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch threadStarted = new CountDownLatch(1);
+
+        // defers the real runnable until after the test case has asserted that the thread is active
+        CountDownLatch triggerRunnable = new CountDownLatch(1);
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(luceneOrderedDocCollector),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
-            c -> {
-                var t = new Thread(c);
+            runnable -> {
+                var t = new Thread(() -> {
+                    threadStarted.countDown();
+                    try {
+                        triggerRunnable.await(1, TimeUnit.SECONDS);
+                    } catch (InterruptedException ignored) {
+                    }
+                    runnable.run();
+                });
                 collectThread.set(t);
                 t.start();
-                latch.countDown();
             },
             () -> 1,
             true
@@ -205,9 +214,12 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(rowBatchIterator, null);
 
-        // Ensure that the collect thread is running
-        latch.await(1, TimeUnit.SECONDS);
-        assertThat(collectThread.get().isAlive()).isTrue();
+        try {
+            threadStarted.await(1, TimeUnit.SECONDS);
+            assertThat(collectThread.get().isAlive()).isTrue();
+        } finally {
+            triggerRunnable.countDown();
+        }
 
         rowBatchIterator.kill(new InterruptedException("killed"));
 

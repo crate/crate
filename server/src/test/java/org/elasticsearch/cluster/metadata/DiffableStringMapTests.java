@@ -49,7 +49,7 @@ public class DiffableStringMapTests extends ESTestCase {
         DiffableStringMap.DiffableStringMapDiff dsmd = (DiffableStringMap.DiffableStringMapDiff) diff;
 
         assertThat(dsmd.getDeletes()).containsExactly("potato");
-        assertThat(dsmd.getDiffs().size()).isEqualTo(0);
+        assertThat(dsmd.getDiffs()).isEmpty();
         Map<String, String> upserts = new HashMap<>();
         upserts.put("foo", "not-bar");
         upserts.put("newkey", "yay");

@@ -239,20 +239,15 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
 
                 // now, update the mappings with the actual source
-                HashMap<String, MappingMetadata> mappingsMetadata = new HashMap<>();
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    MappingMetadata mappingMd = new MappingMetadata(mapper);
-                    mappingsMetadata.put(mapper.type(), mappingMd);
-                }
-
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
                     .settings(indexSettings);
 
-                for (MappingMetadata mappingMd : mappingsMetadata.values()) {
-                    indexMetadataBuilder.putMapping(mappingMd);
+                DocumentMapper mapper = mapperService.documentMapper();
+                if (mapper != null) {
+                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
                 }
+
                 for (AliasMetadata aliasMetadata : templatesAliases.values()) {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }

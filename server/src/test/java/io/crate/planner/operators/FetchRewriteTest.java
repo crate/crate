@@ -21,7 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isFetchMarker;
 import static io.crate.testing.Asserts.isFetchStub;
@@ -29,13 +29,10 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
 import org.assertj.core.api.Condition;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
@@ -52,7 +49,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -85,12 +81,12 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         );
 
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
-        assertThat(fetchRewrite, Matchers.notNullValue());
-        assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
-        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+        assertThat(fetchRewrite).isNotNull();
+        assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
+        assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
                 toCondition(isFunction("add", isReference("x"), isReference("x"))),
                 toCondition(isFunction("add", isFetchStub("_doc['x']"), isFetchStub("_doc['x']"))));
-        assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet()), is(eval.outputs()));
+        assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet())).isEqualTo(eval.outputs());
     }
 
     @Test
@@ -104,32 +100,30 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
         var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1X = alias.getField(x.column(), Operation.READ, true);
-        assertThat(t1X, Matchers.notNullValue());
+        assertThat(t1X).isNotNull();
         var rename = new Rename(List.of(t1X), alias.relationName(), alias, collect);
 
         FetchRewrite fetchRewrite = rename.rewriteToFetch(new TableStats(), List.of());
-        assertThat(fetchRewrite, Matchers.notNullValue());
+        assertThat(fetchRewrite).isNotNull();
         LogicalPlan newRename = fetchRewrite.newPlan();
-        assertThat(newRename, isPlan(
-            "Rename[t1._fetchid] AS t1\n" +
-            "  └ Collect[doc.tbl | [_fetchid] | true]"));
-        assertThat(
-            "fetchRewrite replacedOutputs.keySet() must always match the outputs of the operator prior to the rewrite",
-            List.copyOf(fetchRewrite.replacedOutputs().keySet()),
-            is(rename.outputs())
-        );
-        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+        assertThat(newRename).isEqualTo(
+            """
+            Rename[t1._fetchid] AS t1
+              └ Collect[doc.tbl | [_fetchid] | true]
+            """);
+        assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet()))
+            .as("fetchRewrite replacedOutputs.keySet() must always match the outputs of the operator prior to the rewrite")
+            .isEqualTo(rename.outputs());
+        assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
             toCondition(isField("x", alias.relationName())),
             toCondition(isFetchStub("_doc['x']")));
-        Asserts.assertThat(newRename.outputs()).satisfiesExactly(
+        assertThat(newRename.outputs()).satisfiesExactly(
             isFetchMarker(alias.relationName(), isReference("_doc['x']")));
 
         FetchStub fetchStub = (FetchStub) fetchRewrite.replacedOutputs().entrySet().iterator().next().getValue();
-        assertThat(
-            "FetchStub fetchMarker must be changed to the aliased marker",
-            fetchStub.fetchMarker(),
-            Matchers.sameInstance(newRename.outputs().get(0))
-        );
+        assertThat(fetchStub.fetchMarker())
+            .as("FetchStub fetchMarker must be changed to the aliased marker")
+            .isSameAs(newRename.outputs().get(0));
     }
 
     @Test
@@ -148,9 +142,9 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         );
 
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
-        assertThat(fetchRewrite, Matchers.notNullValue());
-        assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
-        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+        assertThat(fetchRewrite).isNotNull();
+        assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
+        assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
                 new Condition<>(k -> k.equals(x), ""),
                 toCondition(isAlias("x_alias", isFetchStub("_doc['x']"))));
     }

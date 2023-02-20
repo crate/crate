@@ -21,8 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -89,7 +88,8 @@ public class ArrayPositionFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_position_find_text_in_int_array_with_start_position_provided_throws_error() {
-        assertThrowsMatches(() -> assertEvaluate("array_position([3,4,1,4,6], 'a', 3)", null),
-            ConversionException.class, "Cannot cast `'a'` of type `text` to type `integer`");
+        Assertions.assertThatThrownBy(() -> assertEvaluate("array_position([3,4,1,4,6], 'a', 3)", null))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessageContaining("Cannot cast `'a'` of type `text` to type `integer`");
     }
 }

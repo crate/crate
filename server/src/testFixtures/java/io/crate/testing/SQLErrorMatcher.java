@@ -39,6 +39,10 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class SQLErrorMatcher {
 
+    /**
+     * @deprecated Use {@link Asserts#assertSQLError(org.assertj.core.api.ThrowableAssert.ThrowingCallable)} or {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)}
+     */
+    @Deprecated
     public static <T extends Throwable> Matcher<T> isSQLError(Matcher<String> msg,
                                                               PGErrorStatus pgErrorStatus,
                                                               HttpResponseStatus httpResponseStatus,
@@ -76,6 +80,10 @@ public class SQLErrorMatcher {
         };
     }
 
+    /**
+     * @deprecated Use {@link Asserts#assertSQLError(org.assertj.core.api.ThrowableAssert.ThrowingCallable)} or {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)}
+     */
+    @Deprecated
     public static <T extends Throwable> Matcher<T> isPGError(Matcher<String> msg, PGErrorStatus pgErrorStatus) {
         return allOf(
             instanceOf(PSQLException.class),
@@ -84,6 +92,10 @@ public class SQLErrorMatcher {
         );
     }
 
+    /**
+     * @deprecated Use {@link Asserts#assertSQLError(org.assertj.core.api.ThrowableAssert.ThrowingCallable)} or {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)}
+     */
+    @Deprecated
     public static <T extends Throwable> Matcher<T> isHttpError(Matcher<String> msg,
                                                                HttpResponseStatus httpResponseStatus,
                                                                int errorCode) {

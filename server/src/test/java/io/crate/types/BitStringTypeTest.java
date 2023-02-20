@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.function.Supplier;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -34,7 +35,6 @@ import org.junit.Test;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
-import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 
 public class BitStringTypeTest extends ESTestCase {
@@ -56,11 +56,9 @@ public class BitStringTypeTest extends ESTestCase {
     @Test
     public void test_value_for_insert_only_allows_exact_length_matches() throws Exception {
         BitStringType type = new BitStringType(3);
-        Asserts.assertThrowsMatches(
-            () -> type.valueForInsert(BitString.ofRawBits("00010001")),
-            IllegalArgumentException.class,
-            "bit string length 8 does not match type bit(3)"
-        );
+        Assertions.assertThatThrownBy(() -> type.valueForInsert(BitString.ofRawBits("00010001")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("bit string length 8 does not match type bit(3)");
     }
 
     @Test

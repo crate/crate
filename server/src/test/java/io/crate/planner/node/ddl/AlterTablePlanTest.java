@@ -22,7 +22,6 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -30,6 +29,7 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,11 +65,9 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_alter_forbidden_settings_on_a_replicated_table() throws IOException {
-        assertThrowsMatches(
-            () -> analyze("Alter table doc.test set(number_of_shards = 1)"),
-            IllegalArgumentException.class,
-            "Invalid property \"number_of_shards\" passed to [ALTER | CREATE] TABLE statement"
-        );
+        Assertions.assertThatThrownBy(() -> analyze("Alter table doc.test set(number_of_shards = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid property \"number_of_shards\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     private BoundAlterTable analyze(String stmt) {

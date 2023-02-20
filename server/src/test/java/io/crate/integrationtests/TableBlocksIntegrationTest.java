@@ -22,10 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Locale;
@@ -37,6 +34,8 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends IntegTestCase {
@@ -66,13 +65,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("insert into t1 (id) values (1)"),
-                     isSQLError(is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow INSERT operations.",
-                                          sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("insert into t1 (id) values (1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow INSERT operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -80,13 +79,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true, \"blocks.read\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("update t1 set id = 2"),
-                     isSQLError(is(String.format(Locale.ENGLISH,
-                                          "The relation \"%s.t1\" doesn't support or allow UPDATE operations.",
-                                          sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("update t1 set id = 2"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow UPDATE operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -94,12 +93,14 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true, \"blocks.read\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("delete from t1"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or" +
-                                                                 " allow DELETE operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("delete from t1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow DELETE operations.",
+                sqlExecutor.getCurrentSchema()
+            ));
     }
 
     @Test
@@ -107,12 +108,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("drop table t1"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or" +
-                                                                 " allow DROP operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("drop table t1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow DROP operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -120,12 +122,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("alter table t1 add column name string"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow ALTER operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("alter table t1 add column name string"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow ALTER operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -133,12 +136,14 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.metadata\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("alter table t1 set (number_of_replicas = 1)"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support " +
-                                                                 "or allow ALTER operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("alter table t1 set (number_of_replicas = 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow ALTER operations.",
+                sqlExecutor.getCurrentSchema())
+            );
     }
 
     @Test
@@ -160,12 +165,14 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (id) values (1)");
 
-        assertThrowsMatches(() -> execute("select * from t1"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow READ operations.",
+                sqlExecutor.getCurrentSchema())
+            );
     }
 
     @Test
@@ -175,12 +182,14 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t1 (id) values (1)");
 
-        assertThrowsMatches(() -> execute("insert into t2 (id) (select id from t1)"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("insert into t2 (id) (select id from t1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow READ operations.",
+                sqlExecutor.getCurrentSchema())
+            );
     }
 
     @Test
@@ -189,24 +198,27 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t2 (id integer) with (number_of_replicas = 0)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("select * from t2, t1"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support" +
-                                                                 " or allow READ operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("select * from t2, t1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow READ operations.",
+                sqlExecutor.getCurrentSchema())
+            );
     }
 
     @Test
     public void testCopyToForbidden() throws Exception {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.read\" = true)");
 
-        assertThrowsMatches(() -> execute("copy t1 to DIRECTORY '/tmp/'"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow COPY TO operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("copy t1 to DIRECTORY '/tmp/'"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow COPY TO operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -214,12 +226,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.write\" = true)");
         ensureYellow();
 
-        assertThrowsMatches(() -> execute("copy t1 from '/tmp'"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support " +
-                                                                 "or allow INSERT operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("copy t1 from '/tmp'"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow INSERT operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -229,12 +242,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("CREATE REPOSITORY repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
-        assertThrowsMatches(() -> execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow CREATE SNAPSHOT operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow CREATE SNAPSHOT operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -244,12 +258,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("CREATE REPOSITORY repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
-        assertThrowsMatches(() -> execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)"),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow READ operations.", sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow READ operations.",
+                sqlExecutor.getCurrentSchema()));
     }
 
     @Test
@@ -266,13 +281,13 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
         execute("select settings['blocks']['read_only'] from information_schema.tables where table_name = 't1'");
         assertThat((Boolean) response.rows()[0][0], Is.is(true));
 
-        assertThrowsMatches(() -> execute("insert into t1 (id, name, date) values (?, ?, ?)",
-                                   new Object[]{1, "Ford", 13959981214861L}),
-                     isSQLError(is(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or " +
-                                                                 "allow INSERT operations, " + "as it is read-only.",
-                                                 sqlExecutor.getCurrentSchema())),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
+        Asserts.assertSQLError(() -> execute("insert into t1 (id, name, date) values (?, ?, ?)",
+                                   new Object[]{1, "Ford", 13959981214861L}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4007)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "The relation \"%s.t1\" doesn't support or allow INSERT operations, as it is read-only.",
+                sqlExecutor.getCurrentSchema()));
     }
 }

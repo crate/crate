@@ -21,8 +21,7 @@
 
 package io.crate.planner;
 
-import static io.crate.planner.operators.LogicalPlannerTest.printPlan;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -37,7 +36,8 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
     public void test_correlated_subquery_without_using_alias_can_use_outer_column_in_where_clause() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         String statement = "SELECT (SELECT mountain) FROM sys.summits ORDER BY 1 ASC LIMIT 5";
-        assertThat(printPlan(e.logicalPlan(statement))).isEqualTo(
+        LogicalPlan result = e.logicalPlan(statement);
+        assertThat(result).isEqualTo(
             "Eval[(SELECT mountain FROM (empty_row))]\n" +
             "  └ Limit[5::bigint;0]\n" +
             "    └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]\n" +
@@ -55,7 +55,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         String statement = "SELECT 'Mountain-' || (SELECT t.mountain) FROM sys.summits t";
         LogicalPlan logicalPlan = e.logicalPlan(statement);
-        assertThat(printPlan(logicalPlan)).isEqualTo(
+        assertThat(logicalPlan).isEqualTo(
             "Eval[concat('Mountain-', (SELECT mountain FROM (empty_row)))]\n" +
             "  └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]\n" +
             "    └ Rename[mountain] AS t\n" +

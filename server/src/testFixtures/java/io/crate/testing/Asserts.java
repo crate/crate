@@ -21,20 +21,15 @@
 
 package io.crate.testing;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
-import org.junit.jupiter.api.function.Executable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -46,6 +41,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
@@ -80,6 +76,10 @@ public class Asserts extends Assertions {
         return new SQLResponseAssert(actual);
     }
 
+    public static SQLErrorAssert assertSQLError(ThrowingCallable callable) {
+        return new SQLErrorAssert(catchThrowable(callable));
+    }
+
     public static DocKeyAssert assertThat(DocKeys.DocKey actual) {
         return new DocKeyAssert(actual);
     }
@@ -95,6 +95,10 @@ public class Asserts extends Assertions {
 
     public static SQLAssert<Expression> assertThat(Expression actual) {
         return new SQLAssert<>(actual);
+    }
+
+    public static LogicalPlanAssert assertThat(LogicalPlan actual) {
+        return new LogicalPlanAssert(actual);
     }
 
     // generic helper methods
@@ -235,7 +239,7 @@ public class Asserts extends Assertions {
         return n -> assertThat(n).isColumnDefinition(expectedIdent, columnTypeMatcher);
     }
 
-    // Prijections
+    // Projections
     public static Consumer<Projection> isLimitAndOffset(int expectedLimit, int expectedOffset) {
         return p -> assertThat(p).isLimitAndOffset(expectedLimit, expectedOffset);
     }
@@ -251,30 +255,16 @@ public class Asserts extends Assertions {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
     }
 
-    // Exceptions
-    public static void assertThrowsMatches(Executable executable, Matcher<? super Throwable> matcher) {
-        try {
-            executable.execute();
-            fail("Expected exception to be thrown, but nothing was thrown.");
-        } catch (Throwable t) {
-            org.hamcrest.MatcherAssert.assertThat(t, matcher);
+    // Exception
+    public static <T extends Throwable, E extends Throwable> void assertRootCause(T throwable,
+                                                                                  Class<E> clazz,
+                                                                                  String expectedMessage) {
+        Throwable cause = throwable;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
         }
-    }
-
-    public static void assertThrowsMatches(Executable executable, Class<? extends Throwable> type, String msgSubString) {
-        assertThrowsMatches(executable, type, msgSubString,"Expected exception to be thrown, but nothing was thrown.");
-    }
-
-    public static void assertThrowsMatches(Executable executable,
-                                           Class<? extends Throwable> type,
-                                           String msgSubString,
-                                           String assertionFailMsg) {
-        try {
-            executable.execute();
-            fail(assertionFailMsg);
-        } catch (Throwable t) {
-            MatcherAssert.assertThat(t, instanceOf(type));
-            MatcherAssert.assertThat(t.getMessage(), containsString(msgSubString));
-        }
+        assertThat(cause)
+                .isExactlyInstanceOf(clazz)
+                .hasMessageContaining(expectedMessage);
     }
 }

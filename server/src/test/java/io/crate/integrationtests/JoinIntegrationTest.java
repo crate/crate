@@ -22,14 +22,12 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -54,6 +52,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
@@ -707,7 +706,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         PlanForNode plan = plan("select * from t1, t2 where t1.x = t2.x");
         execute("drop table t2");
 
-        assertThrowsMatches(() -> execute(plan).getResult(), instanceOf(IndexNotFoundException.class));
+        assertThatThrownBy(() -> execute(plan).getResult())
+            .isExactlyInstanceOf(IndexNotFoundException.class);
     }
 
     @Test
@@ -760,14 +760,16 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     public void testFailureOfJoinDownstream() throws Exception {
         // provoke an exception when the NL emits a row, must bubble up and NL must stop
-        assertThrowsMatches(() -> execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
+        Asserts.assertSQLError(() -> execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
                                    "   from " +
                                    "       unnest(['hello', 'world'], [1, 2]) L " +
                                    "   inner join " +
                                    "       unnest(['world', 'hello'], [1, 2]) R " +
                                    "   on l.col1 = r.col1 " +
-                                   "where r.col1 > 1"),
-                     isSQLError(is("Cannot cast value `world` to type `integer`"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+                                   "where r.col1 > 1"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast value `world` to type `integer`");
     }
 
     @Test
@@ -1166,14 +1168,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(printedTable(response.rows()), is(
-            "Eval[id, a, id, b, id, c, id, d]\n" +
-            "  └ NestedLoopJoin[LEFT | (id = id)]\n" +
-            "    ├ HashJoin[(id = id)]\n" +
-            "    │  ├ HashJoin[(id = id)]\n" +
-            "    │  │  ├ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
-            "    │  │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    │  └ Collect[doc.t3 | [id, c] | true]\n" +
-            "    └ Collect[doc.t4 | [id, d] | true]\n"
+            "NestedLoopJoin[LEFT | (id = id)]\n" +
+                "  ├ HashJoin[(id = id)]\n" +
+                "  │  ├ HashJoin[(id = id)]\n" +
+                "  │  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
+                "  │  │  └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
+                "  │  └ Collect[doc.t3 | [id, c] | true]\n" +
+                "  └ Collect[doc.t4 | [id, d] | true]\n"
         ));
         execute(stmt);
     }
@@ -1212,12 +1213,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(printedTable(response.rows()), is(
-            "Eval[id, a, id, b, id, c]\n" +
-            "  └ NestedLoopJoin[INNER | (id = id)]\n" +
-            "    ├ NestedLoopJoin[INNER | (id = id)]\n" +
-            "    │  ├ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
-            "    │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
+            "NestedLoopJoin[INNER | (id = id)]\n" +
+                "  ├ NestedLoopJoin[INNER | (id = id)]\n" +
+                "  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
+                "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
+                "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
         execute(stmt);
     }
 

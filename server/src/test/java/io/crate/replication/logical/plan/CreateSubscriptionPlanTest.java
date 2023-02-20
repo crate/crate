@@ -21,8 +21,7 @@
 
 package io.crate.replication.logical.plan;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidArgumentException;
@@ -35,15 +34,13 @@ public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void test_create_subscription_plan_checks_subscribing_user() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
-        assertThrowsMatches(
-            () -> {
-                CreateSubscriptionPlan plan = e.plan("CREATE SUBSCRIPTION sub CONNECTION 'crate://example.com' publication pub1");
-                PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-                plan.executeOrFail(null, plannerContext, null, null, null);
-            },
-            InvalidArgumentException.class,
-            "Setting 'user' must be provided on CREATE SUBSCRIPTION"
-        );
+        Assertions.assertThatThrownBy(() -> {
+            CreateSubscriptionPlan plan = e.plan("CREATE SUBSCRIPTION sub CONNECTION 'crate://example.com' publication pub1");
+            PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+            plan.executeOrFail(null, plannerContext, null, null, null);
+        })
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("Setting 'user' must be provided on CREATE SUBSCRIPTION");
     }
 
 }

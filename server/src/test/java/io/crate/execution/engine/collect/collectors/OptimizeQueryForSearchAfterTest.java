@@ -49,6 +49,6 @@ public class OptimizeQueryForSearchAfterTest {
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
         Query query = optimize.apply(lastCollected);
-        assertThat(query.toString()).isEqualTo("+x:{* TO foobar}");
+        assertThat(query).hasToString("+x:{* TO foobar}");
     }
 }

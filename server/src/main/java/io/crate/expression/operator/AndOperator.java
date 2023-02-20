@@ -39,6 +39,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.planner.operators.Filter;
 import io.crate.types.DataTypes;
 
 public class AndOperator extends Operator<Boolean> {
@@ -168,12 +169,23 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     public static Symbol join(Iterator<? extends Symbol> symbols) {
+        return join(symbols, Literal.BOOLEAN_TRUE);
+    }
+
+    public static Symbol join(Iterable<? extends Symbol> symbols, Symbol defaultSymbol) {
+        return join(symbols.iterator(), defaultSymbol);
+    }
+
+    public static Symbol join(Iterator<? extends Symbol> symbols, Symbol defaultSymbol) {
         if (!symbols.hasNext()) {
-            return Literal.BOOLEAN_TRUE;
+            return defaultSymbol;
         }
         Symbol first = symbols.next();
         while (symbols.hasNext()) {
-            first = new Function(SIGNATURE, List.of(first, symbols.next()), Operator.RETURN_TYPE);
+            var next = symbols.next();
+            if (!Filter.isMatchAll(next)) {
+                first = new Function(SIGNATURE, List.of(first, next), Operator.RETURN_TYPE);
+            }
         }
         return first;
     }

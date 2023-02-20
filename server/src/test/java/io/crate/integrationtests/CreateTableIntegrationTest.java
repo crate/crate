@@ -23,13 +23,10 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +39,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class CreateTableIntegrationTest extends IntegTestCase {
 
@@ -75,12 +74,10 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
         assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isTrue();
-        assertThrowsMatches(
-            () -> execute("select * from doc.tbl"),
-            isSQLError(startsWith("Relation 'doc.tbl' unknown"),
-                       UNDEFINED_TABLE,
-                       NOT_FOUND,
-                       4041));
+        Asserts.assertSQLError(() -> execute("select * from doc.tbl"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'doc.tbl' unknown");
         execute("drop table doc.tbl");
         execute("select count(*) from information_schema.tables where table_name = 'tbl'");
         assertThat(response.rows()[0][0]).isEqualTo(0L);
@@ -130,22 +127,20 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_enforce_soft_deletes() {
-        assertThrowsMatches(
-            () -> execute("create table test(t timestamp) with (\"soft_deletes.enabled\" = false)"),
-            isSQLError(startsWith("Creating tables with soft-deletes disabled is no longer supported."),
-                       INTERNAL_ERROR,
-                       BAD_REQUEST,
-                       4000));
+        Asserts.assertSQLError(
+            () -> execute("create table test(t timestamp) with (\"soft_deletes.enabled\" = false)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
 
     }
 
     public void test_enforce_soft_deletes_on_partitioned_tables() {
-        assertThrowsMatches(
-            () -> execute("create table test(t timestamp) partitioned by (t) with (\"soft_deletes.enabled\" = false)"),
-            isSQLError(startsWith("Creating tables with soft-deletes disabled is no longer supported."),
-                       INTERNAL_ERROR,
-                       BAD_REQUEST,
-                       4000));
+        Asserts.assertSQLError(
+            () -> execute("create table test(t timestamp) partitioned by (t) with (\"soft_deletes.enabled\" = false)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
 
     }
 
@@ -158,12 +153,11 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                     col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT gt_zero CHECK (col2 > 0)
                 )
                 """);
-        assertThrowsMatches(
-            () -> execute("INSERT INTO test(col1) VALUES(0)"),
-            isSQLError(startsWith("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col1=0, col2=0}"),
-                       INTERNAL_ERROR,
-                       BAD_REQUEST,
-                       4000));
+        Asserts.assertSQLError(
+            () -> execute("INSERT INTO test(col1) VALUES(0)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col1=0, col2=0}");
 
         execute("INSERT INTO test(col1) VALUES(1),(2),(3)");
         assertThat(printedTable(response.rows()))
