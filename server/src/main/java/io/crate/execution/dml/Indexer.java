@@ -503,7 +503,7 @@ public class Indexer {
      */
     public boolean isSupported() {
         return true && valueIndexers.stream().noneMatch(x -> x == null)
-            //&& columns.stream().noneMatch(x -> x.valueType().id() == ObjectType.ID)
+            && columns.stream().noneMatch(x -> x.valueType().id() == ObjectType.ID)
             && columns.stream().noneMatch(x -> x.column().equals(DocSysColumns.RAW))
             && columns.stream().noneMatch(x -> x.valueType() instanceof ArrayType);
     }

@@ -34,6 +34,9 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
+
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
@@ -52,6 +55,15 @@ import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
+
+    private static final IntSet LONG_UPCAST = new IntHashSet();
+    private static final IntSet DOUBLE_UPCAST = new IntHashSet();
+
+    static {
+        LONG_UPCAST.add(DataTypes.SHORT.id());
+        LONG_UPCAST.add(DataTypes.INTEGER.id());
+        DOUBLE_UPCAST.add(DataTypes.FLOAT.id());
+    }
 
     private final ObjectType objectType;
     private final HashMap<String, ValueIndexer<Object>> innerIndexers;
@@ -140,48 +152,58 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
             boolean isNewColumn = !objectType.innerTypes().containsKey(innerName);
-            if (isNewColumn) {
-                if (ref.columnPolicy() == ColumnPolicy.STRICT) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "Cannot add column `%s` to strict object `%s`",
-                        innerName,
-                        ref.column()
-                    ));
-                }
-                var type = DataTypes.guessType(innerValue);
-                StorageSupport<?> storageSupport = type.storageSupport();
-                if (storageSupport == null) {
-                    throw new IllegalArgumentException(
-                        "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
-                }
-                boolean nullable = true;
-                Symbol defaultExpression = null;
-                Reference newColumn = new SimpleReference(
-                    new ReferenceIdent(table, column.getChild(innerName)),
-                    RowGranularity.DOC,
-                    type,
-                    ref.columnPolicy(),
-                    IndexType.PLAIN,
-                    nullable,
-                    storageSupport.docValuesDefault(),
-                    -1,
-                    defaultExpression
-                );
-                onDynamicColumn.accept(newColumn);
-                var valueIndexer = (ValueIndexer<Object>) type.valueIndexer(table, newColumn, getFieldType, getRef);
-                innerIndexers.put(innerName, valueIndexer);
-                xContentBuilder.field(innerName);
-                valueIndexer.indexValue(
-                    innerValue,
-                    xContentBuilder,
-                    addField,
-                    onDynamicColumn,
-                    synthetics,
-                    checks
-                );
+            if (!isNewColumn) {
+                continue;
             }
+            if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot add column `%s` to strict object `%s`",
+                    innerName,
+                    ref.column()
+                ));
+            }
+            var type = DataTypes.guessType(innerValue);
+            // TODO: handle this differently?
+            if (LONG_UPCAST.contains(type.id())) {
+                type = DataTypes.LONG;
+                innerValue = type.sanitizeValue(innerValue);
+            } else if (DOUBLE_UPCAST.contains(type.id())) {
+                type = DataTypes.DOUBLE;
+                innerValue = type.sanitizeValue(innerValue);
+            }
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null) {
+                throw new IllegalArgumentException(
+                    "Cannot create columns of type " + type.getName() + " dynamically. " +
+                    "Storage is not supported for this type");
+            }
+            boolean nullable = true;
+            Symbol defaultExpression = null;
+            Reference newColumn = new SimpleReference(
+                new ReferenceIdent(table, column.getChild(innerName)),
+                RowGranularity.DOC,
+                type,
+                ref.columnPolicy(),
+                IndexType.PLAIN,
+                nullable,
+                storageSupport.docValuesDefault(),
+                -1,
+                defaultExpression
+            );
+            onDynamicColumn.accept(newColumn);
+            var valueIndexer = (ValueIndexer<Object>) type.valueIndexer(table, newColumn, getFieldType, getRef);
+            assert valueIndexer != null : "ValueIndexer required for: " + type;
+            innerIndexers.put(innerName, valueIndexer);
+            xContentBuilder.field(innerName);
+            valueIndexer.indexValue(
+                innerValue,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics,
+                checks
+            );
         }
     }
 }

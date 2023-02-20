@@ -264,7 +264,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 List.of(insertColumns),
                 null
             );
-        boolean indexerSupported = indexer.isSupported();
+        boolean indexerSupported = indexer != null && indexer.isSupported();
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
                 if (traceEnabled) {
@@ -402,7 +402,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
                                        InsertSourceGen insertSourceGen) throws Exception {
-        if (indexer.isSupported()) {
+        if (indexer != null && indexer.isSupported()) {
             final long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
                 : Versions.MATCH_DELETED;
