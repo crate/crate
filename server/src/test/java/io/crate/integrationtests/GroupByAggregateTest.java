@@ -22,30 +22,26 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.Matchers.not;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
 
+import org.assertj.core.data.Percentage;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
-import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -91,7 +87,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select count(*), name from t group by name, x limit 2");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -117,11 +113,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         ensureYellow();
         refresh();
         execute("select pk2, count(pk2) from tickets group by pk2 order by pk2 limit 100");
-        assertThat(printedTable(response.rows()), is(
-            "42| 2\n" + // assert that different partitions have been merged
-            "43| 1\n" +
-            "44| 1\n" +
-            "45| 1\n"));
+        assertThat(response).hasRows(
+            "42| 2", // assert that different partitions have been merged
+            "43| 1",
+            "44| 1",
+            "45| 1");
 
         execute("create table tickets_export (c2 int, c long) with (number_of_replicas = 0)");
         ensureYellow();
@@ -129,11 +125,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table tickets_export");
 
         execute("select c2, c from tickets_export order by 1");
-        assertThat(printedTable(response.rows()), is(
-            "42| 2\n" + // assert that different partitions have been merged
-            "43| 1\n" +
-            "44| 1\n" +
-            "45| 1\n"));
+        assertThat(response).hasRows(
+            "42| 2", // assert that different partitions have been merged
+            "43| 1",
+            "44| 1",
+            "45| 1");
     }
 
     @Test
@@ -545,7 +541,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void testAggregateArbitraryOnBoolean() throws Exception {
         execute("select arbitrary(good) from employees");
         assertEquals(1, response.rowCount());
-        assertThat(response.rows()[0][0], isIn(new Object[]{true, false, null}));
+        assertThat(response.rows()[0][0]).isIn(true, false, null);
 
         execute("select arbitrary(good) from employees where name='dilbert'");
         assertEquals(1, response.rowCount());
@@ -554,7 +550,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select arbitrary(good), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
         assertEquals("HR", response.rows()[0][1]);
-        assertThat(response.rows()[0][0], isIn(new Object[]{false, null}));
+        assertThat(response.rows()[0][0]).isIn(false, null);
 
         assertEquals("engineering", response.rows()[1][1]);
         assertEquals(true, response.rows()[1][0]);  // by accident only single values exist in group
@@ -611,16 +607,16 @@ public class GroupByAggregateTest extends IntegTestCase {
         /* count(payload) is implicitly optimized to use DocValueAggregator of payload['nested_payload']['col'],
            so below 3 executions are expected to have the same results. */
         execute("select device, count(payload) from tbl group by 1");
-        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        assertThat(response).hasRows("1| 3\n");
         execute("select device, count(payload['nested_payload']) from tbl group by 1");
-        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        assertThat(response).hasRows("1| 3\n");
         execute("select device, count(payload['nested_payload']['col']) from tbl group by 1");
-        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        assertThat(response).hasRows("1| 3\n");
         // below are just there to show that no other available columns are used instead of payload['nested_payload']['col']
         execute("select device, count(nullable_payload) from tbl group by 1");
-        assertThat(printedTable(response.rows()), is("1| 2\n"));
+        assertThat(response).hasRows("1| 2\n");
         execute("select device, count(payload['col']) from tbl group by 1");
-        assertThat(printedTable(response.rows()), is("1| 2\n"));
+        assertThat(response).hasRows("1| 2\n");
     }
 
     @Test
@@ -747,9 +743,11 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
         execute("select max(details_ignored['lol']), race from characters group by race order by race");
-        assertThat(printedTable(response.rows()), is("NULL| Android\n" +
-                                                     "NULL| Human\n" +
-                                                     "NULL| Vogon\n"));
+        assertThat(response).hasRows(
+            "NULL| Android",
+            "NULL| Human",
+            "NULL| Vogon"
+        );
     }
 
     @Test
@@ -784,8 +782,8 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup("integer");
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having avg(birthdate) = 181353600000.0");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()), is("1.813536E11\n"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("1.813536E11\n");
     }
 
     @Test
@@ -793,8 +791,8 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup("integer");
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having min(birthdate) > '1970-01-01'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()), is("1.813536E11\n"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("1.813536E11\n");
     }
 
 
@@ -823,16 +821,15 @@ public class GroupByAggregateTest extends IntegTestCase {
 
 
         execute("select country from foo group by country having country = 'Austria'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Austria"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("Austria\n");
 
         execute("select count(*), country from foo group by country having country = 'Austria'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(3L));
-        assertThat((String) response.rows()[0][1], is("Austria"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("3| Austria\n");
 
         execute("select country, min(id) from foo group by country having min(id) < 5 ");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -854,7 +851,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into bar(country)(select country from foo group by country having country = 'Austria')");
         refresh();
         execute("select country from bar");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -867,7 +864,6 @@ public class GroupByAggregateTest extends IntegTestCase {
     @Test
     public void testGroupByOnClusteredByColumn() throws Exception {
         execute("create table foo (id int, name string, country string) clustered by (country) with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("insert into foo (id, name, country) values (?, ?, ?)", new Object[][]{
             new Object[]{1, "Arthur", "Austria"},
@@ -880,10 +876,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         refresh();
 
         execute("select count(*), country from foo group by country order by count(*) desc");
-        assertThat(response.rowCount(), Is.is(3L));
-        assertThat((String) response.rows()[0][1], Is.is("Austria"));
-        assertThat((String) response.rows()[1][1], Is.is("Germany"));
-        assertThat((String) response.rows()[2][1], Is.is("Italy"));
+        assertThat(response).hasRows(
+            "3| Austria",
+            "2| Germany",
+            "1| Italy"
+        );
     }
 
     @Test
@@ -900,11 +897,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         refresh();
 
         execute("select count(*), name from foo group by id, name order by name desc");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "1| Trillian\n" +
             "1| Slartibardfast\n" +
             "1| Marvin\n" +
-            "1| Arthur\n"));
+            "1| Arthur\n");
     }
 
     @Test
@@ -919,10 +916,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     @Test
     public void testGroupByOnSysNodes() throws Exception {
         execute("select count(*), name from sys.nodes group by name");
-        assertThat(response.rowCount(), Is.is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select count(*), hostname from sys.nodes group by hostname");
-        assertThat(response.rowCount(), Is.is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -936,13 +933,16 @@ public class GroupByAggregateTest extends IntegTestCase {
         for (int i = 0; i < 100; i++) {
             execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
                 new Object[]{String.valueOf(i), randomIntBetween(i, i * i), randomInt(i)});
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         }
         execute("refresh table rankings");
 
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
-        assertThat(response.rowCount(), is(100L));
-        assertThat(new ArrayBucket(response.rows()), TestingHelpers.hasSortedRows(0, true, null));
+        assertThat(response).hasRowCount(100L);
+        List<Object[]> sortedRows = Stream.of(response.rows())
+            .sorted((o1, o2) -> Long.compare((long) o1[0], (long) o2[0]))
+            .toList();
+        assertThat(Arrays.asList(response.rows())).containsExactlyElementsOf(sortedRows);
     }
 
     @Test
@@ -959,7 +959,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         }
         execute("refresh table rankings");
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
-        assertThat(response.rowCount(), is(100L));
+        assertThat(response).hasRowCount(100L);
     }
 
     @Test
@@ -977,7 +977,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 99.6d});
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
-        assertThat(printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
+        assertThat(response).hasRows("99.6| https://Ä.com| 99.6\n");
     }
 
     @Test
@@ -998,28 +998,28 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -1044,35 +1044,35 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes where event_id = 'event1' group by 2 having count(*) > 1 limit 100");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select item_id, count(*) from likes where event_id = 'event1' group by 1 having count(*) > 1 limit 100");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
 
         try {
             execute("select count(*), item_id from likes group by item_id having min(event_id) = 'event1'");
-            assertThat(response.rowCount(), is(2L));
+            assertThat(response).hasRowCount(2L);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -1112,13 +1112,14 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void groupByStatsAggregatesGlobal() throws Exception {
         this.setup.groupBySetup("short");
         execute("select min(age), mean(age), geometric_mean(age), max(age), variance(age), stddev(age) from characters");
-        assertThat((Short) response.rows()[0][0], is((short) 32));
-        assertThat((Double) response.rows()[0][1], is(55.25d));
+        Object[] row = response.rows()[0];
+        assertThat(row[0]).isEqualTo((short) 32);
+        assertThat(row[1]).isEqualTo(55.25d);
 
-        assertThat((Double) response.rows()[0][2], closeTo(47.84415001097868d, 0.0000001));
-        assertThat((Short) response.rows()[0][3], is((short) 112));
-        assertThat((Double) response.rows()[0][4], is(1090.6875d));
-        assertThat((Double) response.rows()[0][5], is(33.025558284456d));
+        assertThat((double) row[2]).isCloseTo(47.84415001097868d, Percentage.withPercentage(0.01));
+        assertThat(row[3]).isEqualTo((short) 112);
+        assertThat(row[4]).isEqualTo(1090.6875d);
+        assertThat(row[5]).isEqualTo(33.025558284456d);
     }
 
     @Test
@@ -1143,11 +1144,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         refresh();
 
         execute("select count(*), tenant_id from tickets group by 2 order by tenant_id limit 100");
-        assertThat(printedTable(response.rows()), is(
-            "2| 42\n" + // assert that different partitions have been merged
-            "1| 43\n" +
-            "1| 44\n" +
-            "1| 45\n"));
+        assertThat(response).hasRows(
+            "2| 42", // assert that different partitions have been merged
+            "1| 43",
+            "1| 44",
+            "1| 45");
     }
 
     @Test
@@ -1173,9 +1174,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void testDistinctWithGroupBy() throws Exception {
         execute("select DISTINCT max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
                 "group by col2 order by 2, 1");
-        assertThat(printedTable(response.rows()), is("2| 1\n" +
-                                                     "3| 1\n" +
-                                                     "2| 2\n"));
+        assertThat(response).hasRows(
+            "2| 1",
+            "3| 1",
+            "2| 2");
     }
 
     @Test
@@ -1183,8 +1185,10 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select DISTINCT max(col2), min(col2) from " +
                 "unnest([1,1,2,2,3,3,4,4,5,5,6,6],[1,2,2,1,2,1,3,4,4,3,5,6]) " +
                 "group by col1 order by 1 desc, 2 limit 2 offset 1");
-        assertThat(printedTable(response.rows()), is("4| 3\n" +
-                                                     "2| 1\n"));
+        assertThat(response).hasRows(
+            "4| 3",
+            "2| 1"
+        );
     }
 
     @Test
@@ -1194,9 +1198,11 @@ public class GroupByAggregateTest extends IntegTestCase {
                 "unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) as t2 " +
                 "where t1.col1=t2.col2 " +
                 "group by t1.col2 order by 2, 1");
-        assertThat(printedTable(response.rows()), is("2| 1\n" +
-                                                     "3| 1\n" +
-                                                     "2| 2\n"));
+        assertThat(response).hasRows(
+            "2| 1",
+            "3| 1",
+            "2| 2"
+        );
     }
 
     @Test
@@ -1205,7 +1211,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 " select distinct max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
                 " group by col2 order by 2, 1 limit 2" +
                 ") t order by 1 desc limit 1");
-        assertThat(printedTable(response.rows()), is("3| 1\n"));
+        assertThat(response).hasRows("3| 1\n");
     }
 
     @Test
@@ -1213,19 +1219,21 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select string_to_array(unnest, ' ')[2], count(*) " +
                 "from unnest([' select foo', 'insert into ', 'select 1']) " +
                 "group by 1 order by 2 desc");
-        assertThat(printedTable(response.rows()), is("into| 1\n" +
-                                                     "1| 1\n" +
-                                                     "select| 1\n"));
+        assertThat(response).hasRows(
+            "into| 1",
+            "1| 1",
+            "select| 1"
+        );
     }
 
     @Test
     public void testGroupByOnComplexLiterals() throws Exception {
         execute("select '{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}', count(*) " +
                 "from employees group by 1");
-        assertThat(printedTable(response.rows()), is("{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}| 6\n"));
+        assertThat(response).hasRows("{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}| 6\n");
         execute("select {id1=1, id2=36}, count(*) " +
                 "from employees group by 1");
-        assertThat(printedTable(response.rows()), is("{id1=1, id2=36}| 6\n"));
+        assertThat(response).hasRows("{id1=1, id2=36}| 6\n");
     }
 
     @Test
@@ -1239,8 +1247,10 @@ public class GroupByAggregateTest extends IntegTestCase {
                 });
         refresh();
         execute("select count(*), i, s from t1 group by i, s order by 1");
-        assertThat(printedTable(response.rows()), is("1| 2| bar\n" +
-                                                     "2| 1| foo\n"));
+        assertThat(response).hasRows(
+            "1| 2| bar",
+            "2| 1| foo"
+        );
     }
 
     @Test
@@ -1254,7 +1264,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 });
         refresh();
         execute("select sum(i), max(s) from t1");
-        assertThat(printedTable(response.rows()), is("4| foobar\n"));
+        assertThat(response).hasRows("4| foobar\n");
     }
 
     @Test
@@ -1264,25 +1274,22 @@ public class GroupByAggregateTest extends IntegTestCase {
                 "(null,null,null), (null,null,null), (null,null,null)");
         execute("refresh table t");
 
-        assertThat(
-            printedTable(execute("select along, count(*) from t group by along order by 2 desc").rows()),
-            is("NULL| 4\n" +
-               "1| 3\n" +
-               "2| 2\n")
+        assertThat(execute("select along, count(*) from t group by along order by 2 desc")).hasRows(
+            "NULL| 4",
+            "1| 3",
+            "2| 2"
         );
 
-        assertThat(
-            printedTable(execute("select aint, count(*) from t group by aint order by 2 desc").rows()),
-            is("NULL| 4\n" +
-               "1| 3\n" +
-               "2| 2\n")
+        assertThat(execute("select aint, count(*) from t group by aint order by 2 desc")).hasRows(
+            "NULL| 4",
+            "1| 3",
+            "2| 2"
         );
 
-        assertThat(
-            printedTable(execute("select ashort, count(*) from t group by ashort order by 2 desc").rows()),
-            is("NULL| 4\n" +
-               "1| 3\n" +
-               "2| 2\n")
+        assertThat(execute("select ashort, count(*) from t group by ashort order by 2 desc")).hasRows(
+            "NULL| 4",
+            "1| 3",
+            "2| 2"
         );
     }
 
@@ -1293,9 +1300,10 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into t (name) values ('a'), ('b'), ('a'), ('b')");
         execute("refresh table t");
         execute("select name, count(name) from t group by 1 order by 1");
-        assertThat(printedTable(response.rows()), is(
-            "a| 2\n" +
-            "b| 2\n"));
+        assertThat(response).hasRows(
+            "a| 2",
+            "b| 2"
+        );
     }
 
     @Test
@@ -1306,14 +1314,13 @@ public class GroupByAggregateTest extends IntegTestCase {
                 "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1 " +
                 "GROUP BY col1 " +
                 "ORDER BY col1 NULLS LAST");
-        assertThat(
-            printedTable(response.rows()),
-            Matchers.is("1| [1]\n" +
-                        "2| [2]\n" +
-                        "3| [3]\n" +
-                        "4| [4]\n" +
-                        "5| [5]\n" +
-                        "NULL| []\n")
+        assertThat(response).hasRows(
+            "1| [1]",
+            "2| [2]",
+            "3| [3]",
+            "4| [4]",
+            "5| [5]",
+            "NULL| []"
         );
     }
 
@@ -1328,16 +1335,15 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table m.tbl");
         execute("analyze");
         execute("explain select distinct id from m.tbl limit 2");
-        assertThat(
-            printedTable(response.rows()),
-            is("LimitDistinct[2::bigint;0 | [id]]\n" +
-               "  └ Collect[m.tbl | [id] | true]\n")
+        assertThat(response).hasRows(
+            "LimitDistinct[2::bigint;0 | [id]]",
+            "  └ Collect[m.tbl | [id] | true]"
         );
         execute("select distinct id from m.tbl limit 2");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         Object firstId = response.rows()[0][0];
         Object secondId = response.rows()[1][0];
-        assertThat(firstId, not(is(secondId)));
+        assertThat(firstId).isNotEqualTo(secondId);
     }
 
     @Test
@@ -1347,7 +1353,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select distinct x from tbl limit 1 offset 3");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1356,7 +1362,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl (obj) values ({x=10})");
         execute("refresh table tbl");
         execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
-        assertThat(printedTable(response.rows()), Is.is("10\n"));
+        assertThat(response).hasRows("10\n");
     }
 
     @Test
@@ -1367,16 +1373,13 @@ public class GroupByAggregateTest extends IntegTestCase {
 
 
         execute("explain select name, count(x), count(x) from doc.tbl group by name");
-        assertThat(
-            printedTable(response.rows()),
-            Is.is(
-                "Eval[name, count(x), count(x)]\n" +
-                "  └ GroupHashAggregate[name | count(x)]\n" +
-                "    └ Collect[doc.tbl | [x, name] | true]\n"
-            )
+        assertThat(response).hasRows(
+            "Eval[name, count(x), count(x)]",
+            "  └ GroupHashAggregate[name | count(x)]",
+            "    └ Collect[doc.tbl | [x, name] | true]"
         );
         execute("select name, count(x), count(x) from doc.tbl group by name");
-        assertThat(printedTable(response.rows()), Is.is("Apple| 3| 3\n"));
+        assertThat(response).hasRows("Apple| 3| 3\n");
     }
 
     @Test
@@ -1393,22 +1396,22 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         // Ensure deterministic order for assertion → sort by id
         Arrays.sort(response.rows(), (a, b) -> ((String) a[0]).compareTo((String) b[0]));
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "013440476U| Avenue de Trévoux | 013440476U| Pt(x=5.20172193646431,y=46.200959966517985)| Saint-Denis-lès-Bourg\n" +
             "021140050C| Rue Paul Doumer | 021140050C| Pt(x=3.426927952095866,y=49.04914998449385)| Brasles\n" +
             "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez\n"
-        ));
+        );
     }
 
     @Test
     public void test_group_on_null_literal() {
         execute("select null, count(*) from unnest([1, 2]) group by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL| 2\n"));
+        assertThat(response).hasRows("NULL| 2\n");
 
         execute("SELECT nn, sum(x) from (SELECT NULL as nn, x from unnest([1]) tbl (x)) t GROUP BY nn");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "NULL| 1\n"
-        ));
+        );
     }
 
     @Test
@@ -1417,10 +1420,10 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl (o) values ({x='foo'}), ({x=10})");
         execute("refresh table tbl");
         execute("select o['x'], count(*) from tbl group by o['x']");
-        assertThat(printedTable(response.rows()), Matchers.anyOf(
-            is("foo| 1\n10| 1\n"),
-            is("10| 1\nfoo| 1\n")
-        ));
+        assertThat(printedTable(response.rows())).satisfiesAnyOf(
+            rows -> assertThat(rows).isEqualTo("foo| 1\n10| 1\n"),
+            rows -> assertThat(rows).isEqualTo("10| 1\nfoo| 1\n")
+        );
     }
 
     @Test
@@ -1432,14 +1435,13 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl(arr) values (null), (null), (null), (null), (null)");
         refresh();
         execute("select arr, count(*) cnt from tbl group by arr order by cnt, arr[1]");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            Is.is("[1, 2, null]| 1\n" +
-                "[2, 1]| 1\n" +
-                "[1, 2]| 2\n" +
-                "[]| 3\n" +
-                "[null]| 4\n" +
-                "NULL| 5\n"
-            )
+        assertThat(response).hasRows(
+            "[1, 2, null]| 1",
+            "[2, 1]| 1",
+            "[1, 2]| 2",
+            "[]| 3",
+            "[null]| 4",
+            "NULL| 5"
         );
     }
 }
