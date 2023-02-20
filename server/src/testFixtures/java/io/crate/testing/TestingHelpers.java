@@ -352,17 +352,6 @@ public class TestingHelpers {
         };
     }
 
-    public static Matcher<Iterable<? extends Row>> hasSortedRows(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
-        return TestingHelpers.isSortedBy(new Function<>() {
-            @Nullable
-            @Override
-            public Comparable apply(@Nullable Row input) {
-                assert input != null;
-                return (Comparable) input.get(sortingPos);
-            }
-        }, reverse, nullsFirst);
-    }
-
     public static DataType<?> randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
     }

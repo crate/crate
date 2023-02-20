@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,6 +34,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
@@ -365,6 +367,31 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "allocations| table_schema\n" +
             "allocations| table_name\n" +
             "allocations| shard_id\n"
+        );
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_can_use_column_in_query_paired_with_correlation_that_is_not_selected() throws Exception {
+        execute("CREATE TABLE a (f1 TEXT, f2 TEXT, f3 TEXT)");
+        execute("CREATE TABLE b (f1 TEXT, f2 TEXT, f3 TEXT)");
+        execute("INSERT INTO a VALUES ('a','b','c')");
+        execute("INSERT INTO b VALUES ('a','b','c')");
+        execute("refresh table a, b");
+        String stmt = "SELECT count(*) FROM a "
+            + "WHERE EXISTS (SELECT 1 FROM b where a.f1 = b.f1 and a.f2 = b.f2 and b.f3 ='c') and a.f3 IN ('a','b','c')";
+        assertThat(execute("explain " + stmt)).hasRows(
+            "HashAggregate[count(*)]",
+            "  └ Filter[(EXISTS (SELECT 1 FROM (doc.b)) AND (f3 = ANY(['a', 'b', 'c'])))]",
+            "    └ CorrelatedJoin[f1, f2, f3, (SELECT 1 FROM (doc.b))]",
+            "      └ Collect[doc.a | [f1, f2, f3] | true]",
+            "      └ SubPlan",
+            "        └ Eval[1]",
+            "          └ Limit[1;0]",
+            "            └ Collect[doc.b | [1, f1, f2, f3, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
+        );
+        assertThat(execute(stmt)).hasRows(
+            "1\n"
         );
     }
 }
