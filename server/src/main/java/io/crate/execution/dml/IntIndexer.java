@@ -25,12 +25,15 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -41,10 +44,10 @@ public class IntIndexer implements ValueIndexer<Integer> {
     private final Reference ref;
     private final FieldType fieldType;
 
-    public IntIndexer(Reference ref, FieldType fieldType) {
+    public IntIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
         this.name = ref.column().fqn();
-        this.fieldType = fieldType;
+        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
     }
 
     @Override

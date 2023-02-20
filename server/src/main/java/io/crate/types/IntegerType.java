@@ -147,6 +147,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
                                               Reference ref,
                                               Function<ColumnIdent, FieldType> getFieldType,
                                               Function<ColumnIdent, Reference> getRef) {
-        return new IntIndexer(ref, getFieldType.apply(ref.column()));
+        FieldType fieldType = getFieldType.apply(ref.column());
+        return new IntIndexer(ref, fieldType);
     }
 }
