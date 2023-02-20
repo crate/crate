@@ -33,7 +33,6 @@ import javax.annotation.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -45,6 +44,7 @@ import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -130,9 +130,11 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        var sources = Lists2.map(nl.sources(), resolvePlan);
-        LogicalPlan lhs = sources.get(0);
-        LogicalPlan rhs = sources.get(1);
+        // getRelationNames will do recursive calls down the operator tree,
+        // thus group references need to be fully resolved
+        GroupReferenceResolver resolver = new GroupReferenceResolver(resolvePlan);
+        LogicalPlan lhs = resolver.resolveFully(nl.lhs());
+        LogicalPlan rhs = resolver.resolveFully(nl.rhs());
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
 

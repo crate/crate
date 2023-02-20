@@ -36,6 +36,7 @@ import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LimitDistinct;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -95,7 +96,11 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = resolvePlan.apply(groupAggregate.source()).numExpectedRows();
+        LogicalPlan source = groupAggregate.source();
+        // numExpectedRows will do recursive calls down the operator tree,
+        // thus group references need to be fully resolved
+        GroupReferenceResolver resolver = new GroupReferenceResolver(resolvePlan);
+        long sourceRows = resolver.resolveFully(source).numExpectedRows();
         if (sourceRows == 0) {
             return false;
         }

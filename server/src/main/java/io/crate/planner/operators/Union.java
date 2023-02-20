@@ -73,14 +73,11 @@ public class Union implements LogicalPlan {
     private final List<Symbol> outputs;
     final LogicalPlan lhs;
     final LogicalPlan rhs;
-    private final Map<LogicalPlan, SelectSymbol> dependencies;
-
 
     public Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;
-        this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
     @Override
@@ -234,7 +231,7 @@ public class Union implements LogicalPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return dependencies;
+        return Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
     @Override

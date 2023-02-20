@@ -41,6 +41,7 @@ import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
@@ -94,8 +95,12 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             );
         } else {
             // Push constant join condition down to source
-            var lhs = resolvePlan.apply(nl.lhs());
-            var rhs = resolvePlan.apply(nl.rhs());
+
+            // getRelationNames will do recursive calls down the operator tree,
+            // thus group references need to be fully resolved
+            GroupReferenceResolver resolver = new GroupReferenceResolver(resolvePlan);
+            var lhs = resolver.resolveFully(nl.lhs());
+            var rhs = resolver.resolveFully(nl.rhs());
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
             var newLhs = getNewSource(queryForLhs, lhs);

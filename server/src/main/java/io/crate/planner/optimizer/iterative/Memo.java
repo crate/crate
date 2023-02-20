@@ -25,15 +25,13 @@ package io.crate.planner.optimizer.iterative;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
-
-import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.LogicalPlanVisitor;
 
 /**
  * Memo is used as part of an iterative Optimizer as an in-place
@@ -114,7 +112,14 @@ public class Memo {
     }
 
     private LogicalPlan extract(LogicalPlan node) {
-        return resolveGroupReferences(node, GroupReferenceResolver.from(this::resolve));
+        return resolveGroupReferences(node, this::resolve);
+    }
+
+    private LogicalPlan resolve(LogicalPlan node) {
+        if (node instanceof GroupReference groupRef) {
+            return resolve(groupRef);
+        }
+        throw new IllegalStateException("Node is not a GroupReference");
     }
 
     private Group group(int group) {
@@ -222,28 +227,9 @@ public class Memo {
         }
     }
 
-    public static LogicalPlan resolveGroupReferences(LogicalPlan node, GroupReferenceResolver lookup) {
+    private LogicalPlan resolveGroupReferences(LogicalPlan node, Function<LogicalPlan, LogicalPlan> resolvePlan) {
         requireNonNull(node, "node is null");
-        return node.accept(new ResolvingVisitor(lookup), null);
-    }
-
-    private static class ResolvingVisitor extends LogicalPlanVisitor<Void, LogicalPlan> {
-        private final GroupReferenceResolver lookup;
-
-        public ResolvingVisitor(GroupReferenceResolver lookup) {
-            this.lookup = requireNonNull(lookup, "lookup is null");
-        }
-
-        @Override
-        public LogicalPlan visitPlan(LogicalPlan node, Void context) {
-            List<LogicalPlan> children = Lists2.mapLazy(node.sources(), child -> child.accept(this, context));
-            return node.replaceSources(children);
-        }
-
-        @Override
-        public LogicalPlan visitGroupReference(GroupReference node, Void context) {
-            return lookup.apply(node).accept(this, context);
-        }
+        return node.accept(new ResolvingVisitor(resolvePlan), null);
     }
 }
 

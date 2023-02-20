@@ -21,26 +21,30 @@
 
 package io.crate.planner.optimizer.iterative;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
 import java.util.function.Function;
 
+import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanVisitor;
 
-/**
- * The GroupReferenceResolver resolves a GroupReference to the referenced LogicalPlan
- */
-public record GroupReferenceResolver(Function<LogicalPlan, LogicalPlan> resolvePlan) {
+class ResolvingVisitor extends LogicalPlanVisitor<Void, LogicalPlan> {
+    private final Function<LogicalPlan, LogicalPlan> resolvePlan;
 
-    /**
-     * Resolve a GroupReference to the referenced LogicalPlan
-     */
-    public LogicalPlan resolve(LogicalPlan logicalPlan) {
-        return resolvePlan.apply(logicalPlan);
+    public ResolvingVisitor(Function<LogicalPlan, LogicalPlan> resolvePlan) {
+        this.resolvePlan = requireNonNull(resolvePlan, "resolvePlan is null");
     }
 
-    /**
-     * Resolve all GroupReferences to it's referenced LogicalPlan for the given LogicalPlan and it's children (sources)
-     */
-    public LogicalPlan resolveFully(LogicalPlan logicalPlan) {
-        return logicalPlan.accept(new ResolvingVisitor(resolvePlan), null);
+    @Override
+    public LogicalPlan visitPlan(LogicalPlan node, Void context) {
+        List<LogicalPlan> children = Lists2.mapLazy(node.sources(), child -> child.accept(this, context));
+        return node.replaceSources(children);
+    }
+
+    @Override
+    public LogicalPlan visitGroupReference(GroupReference node, Void context) {
+        return resolvePlan.apply(node).accept(this, context);
     }
 }

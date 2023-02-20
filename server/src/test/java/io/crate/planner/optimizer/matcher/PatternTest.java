@@ -29,6 +29,8 @@ import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
+
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
@@ -38,7 +40,6 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.iterative.GroupReference;
-import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 
 public class PatternTest {
 
@@ -87,7 +88,7 @@ public class PatternTest {
         var memo = new HashMap<Integer, LogicalPlan>();
         memo.put(1, source);
 
-        GroupReferenceResolver groupReferenceResolver = node -> {
+        Function<LogicalPlan, LogicalPlan> resolvePlan = node -> {
             if (node instanceof GroupReference g) {
                 return memo.get(g.groupId());
             }
@@ -97,7 +98,7 @@ public class PatternTest {
         Capture<Collect> capture = new Capture<>();
         Pattern<Filter> pattern = typeOf(Filter.class).with(source(), typeOf(Collect.class).capturedAs(capture));
 
-        Match<Filter> match = pattern.accept(filter, Captures.empty(), groupReferenceResolver);
+        Match<Filter> match = pattern.accept(filter, Captures.empty(), resolvePlan);
 
         assertThat(match.isPresent());
         assertThat(match.value()).isInstanceOf(Filter.class);
@@ -113,7 +114,7 @@ public class PatternTest {
         var memo = new HashMap<Integer, LogicalPlan>();
         memo.put(1, source);
 
-        GroupReferenceResolver groupReferenceResolver = node -> {
+        Function<LogicalPlan, LogicalPlan> resolvePlan = node -> {
             if (node instanceof GroupReference g) {
                 return memo.get(g.groupId());
             }
@@ -125,7 +126,7 @@ public class PatternTest {
                                     .with(source(), typeOf(Collect.class)
                                     .with(s -> s.estimatedRowSize() == 10).capturedAs(capture));
 
-        Match<Filter> match = pattern.accept(filter, Captures.empty(), groupReferenceResolver);
+        Match<Filter> match = pattern.accept(filter, Captures.empty(), resolvePlan);
 
         assertThat(match.isPresent());
         assertThat(match.value()).isInstanceOf(Filter.class);

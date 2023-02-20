@@ -21,10 +21,14 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.common.collections.Lists2;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
+
+import java.util.function.Function;
+
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
@@ -32,12 +36,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
-
-import java.util.function.Function;
+import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
 
@@ -63,6 +62,6 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin.replaceSources(Lists2.map(hashJoin.sources(), resolvePlan)));
+        return moveQueryBelowJoin(filter.query(), hashJoin, resolvePlan);
     }
 }
