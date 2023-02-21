@@ -29,6 +29,8 @@ import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
@@ -81,7 +83,7 @@ public class PatternTest {
     @Test
     public void test_with_match_group_referenced_source() {
         var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
-        var groupReferenceSource = new GroupReference(1, source.outputs());
+        var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
         var memo = new HashMap<Integer, LogicalPlan>();
@@ -107,7 +109,7 @@ public class PatternTest {
     @Test
     public void test_with_property_match_group_referenced_source() {
         var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
-        var groupReferenceSource = new GroupReference(1, source.outputs());
+        var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
         var memo = new HashMap<Integer, LogicalPlan>();
