@@ -23,8 +23,10 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.function.Function;
 
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
@@ -34,6 +36,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
@@ -78,7 +84,16 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                 return new IndexOrDocValuesQuery(indexQuery, dvQuery);
             }
         }
-    );
+    ) {
+
+        @Override
+        public ValueIndexer<Double> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private DoubleType() {
     }

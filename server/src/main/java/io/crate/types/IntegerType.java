@@ -21,20 +21,37 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.function.Function;
+
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.crate.Streamer;
+import io.crate.execution.dml.IntIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;
     public static final int INTEGER_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
-    private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery());
+    private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery()) {
+
+        @Override
+        public ValueIndexer<Number> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            return new IntIndexer(ref, getFieldType.apply(ref.column()));
+        }
+    };
 
     private IntegerType() {
     }

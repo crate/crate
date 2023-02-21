@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -49,6 +51,11 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.StringIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -88,7 +95,17 @@ public class StringType extends DataType<String> implements Streamer<String> {
                 );
             }
         }
-    );
+    ) {
+
+        @Override
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        public ValueIndexer<Object> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            return (ValueIndexer) new StringIndexer(ref, getFieldType.apply(ref.column()));
+        }
+    };
 
     private final int lengthLimit;
 
