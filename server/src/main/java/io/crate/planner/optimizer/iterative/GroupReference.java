@@ -83,13 +83,12 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Map.of();
+        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override
     public long numExpectedRows() {
         throw new UnsupportedOperationException(ERROR_MESSAGE);
-
     }
 
     @Override

@@ -1688,4 +1688,17 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         GeneratedReference genRef = (GeneratedReference) reference;
         assertThat(genRef.formattedGeneratedExpression()).isEqualTo("_cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')");
     }
+
+    @Test
+    public void test_column_of_index_has_nullable_from_real_column() throws Exception {
+        var md = getDocIndexMetadataFromStatement(
+            "create table tbl (x string, index ft using fulltext (x))");
+        var indexReference = md.indices().get(new ColumnIdent("ft"));
+        assertThat(indexReference.columns().get(0).isNullable()).isTrue();
+
+        md = getDocIndexMetadataFromStatement(
+            "create table tbl (x string not null, index ft using fulltext (x))");
+        indexReference = md.indices().get(new ColumnIdent("ft"));
+        assertThat(indexReference.columns().get(0).isNullable()).isFalse();
+    }
 }
