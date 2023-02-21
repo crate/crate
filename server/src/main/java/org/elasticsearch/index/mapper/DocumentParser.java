@@ -87,7 +87,8 @@ final class DocumentParser {
             context.sourceToParse().id(),
             context.doc(),
             context.sourceToParse().source(),
-            createDynamicUpdate(mapping, docMapper, context.getDynamicMappers())
+            createDynamicUpdate(mapping, docMapper, context.getDynamicMappers()),
+            List.of()
         );
     }
 

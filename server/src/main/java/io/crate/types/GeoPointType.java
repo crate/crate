@@ -21,7 +21,13 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -30,16 +36,26 @@ import org.locationtech.spatial4j.io.WKTReader;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.List;
-import java.util.Locale;
+import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
-    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, true, null);
+    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, true, null) {
+
+        @Override
+        public ValueIndexer<Point> valueIndexer(RelationName table,
+                                                Reference ref,
+                                                Function<ColumnIdent, FieldType> getFieldType,
+                                                Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private GeoPointType() {
     }

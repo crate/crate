@@ -361,7 +361,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, document, source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, document, source, mappingUpdate, List.of());
     }
 
     /**
@@ -383,7 +383,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(
-                    versionField, seqID, id, doc, new BytesArray("{}"), null);
+                    versionField, seqID, id, doc, new BytesArray("{}"), null, List.of());
             }
 
             @Override
@@ -400,7 +400,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
-                    versionField, seqID, null, doc, null, null);
+                    versionField, seqID, null, doc, null, null, List.of());
             }
         };
     }
