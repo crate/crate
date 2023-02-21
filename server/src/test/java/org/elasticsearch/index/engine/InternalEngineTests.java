@@ -4916,7 +4916,9 @@ public class InternalEngineTests extends EngineTestCase {
                 id,
                 document,
                 source,
-                null);
+                null,
+                List.of()
+            );
 
             final Engine.Index index = new Engine.Index(
                 new Term("_id", parsedDocument.id()),

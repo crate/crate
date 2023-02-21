@@ -23,19 +23,32 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;
-    private static final StorageSupport<Number> STORAGE = new StorageSupport<>(
-        true, true, new IntEqQuery()
-    );
+    private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery()) {
+
+        @Override
+        public ValueIndexer<Number> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private ByteType() {
     }
