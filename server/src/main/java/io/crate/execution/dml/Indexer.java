@@ -457,6 +457,9 @@ public class Indexer {
             if (reference.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
+            if (value == null) {
+                continue;
+            }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             xContentBuilder.field(reference.column().leafName());
             valueIndexer.indexValue(

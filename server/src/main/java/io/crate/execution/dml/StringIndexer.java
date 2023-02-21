@@ -55,10 +55,10 @@ public class StringIndexer implements ValueIndexer<String> {
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
         if (value == null) {
             return;
         }
+        xcontentBuilder.value(value);
         String name = ref.column().fqn();
         BytesRef binaryValue = new BytesRef(value);
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
