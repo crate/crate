@@ -74,7 +74,6 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan lhs;
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
-    private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
@@ -97,7 +96,6 @@ public class NestedLoopJoin implements LogicalPlan {
         }
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
-        this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
         this.joinConditionOptimised = joinConditionOptimised;
     }
 
@@ -155,7 +153,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return dependencies;
+        return Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
     @Override
