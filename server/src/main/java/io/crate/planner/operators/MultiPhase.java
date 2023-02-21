@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +29,7 @@ import javax.annotation.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -57,9 +56,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
         super(source);
-        HashMap<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>(source.dependencies());
-        allSubQueries.putAll(subQueries);
-        this.subQueries = Collections.unmodifiableMap(allSubQueries);
+        this.subQueries = subQueries;
     }
 
     @Override
@@ -84,7 +81,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return subQueries;
+        return Maps.concat(source.dependencies(), subQueries);
     }
 
     @Override
