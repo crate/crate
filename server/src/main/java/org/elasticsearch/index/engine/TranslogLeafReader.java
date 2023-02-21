@@ -157,17 +157,7 @@ final class TranslogLeafReader extends LeafReader {
 
     @Override
     public void document(int docID, StoredFieldVisitor visitor) throws IOException {
-        if (docID != 0) {
-            throw new IllegalArgumentException("no such doc ID " + docID);
-        }
-        if (visitor.needsField(FAKE_SOURCE_FIELD) == StoredFieldVisitor.Status.YES) {
-            assert operation.getSource().toBytesRef().offset == 0;
-            assert operation.getSource().toBytesRef().length == operation.getSource().toBytesRef().bytes.length;
-            visitor.binaryField(FAKE_SOURCE_FIELD, operation.getSource().toBytesRef().bytes);
-        }
-        if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
-            visitor.stringField(FAKE_ID_FIELD, operation.id());
-        }
+        docFromOperation(docID, visitor, operation);
     }
 
     @Override
@@ -203,6 +193,26 @@ final class TranslogLeafReader extends LeafReader {
 
     @Override
     public StoredFields storedFields() throws IOException {
-        throw new UnsupportedOperationException();
+        return new StoredFields() {
+
+            @Override
+            public void document(int docID, StoredFieldVisitor visitor) throws IOException {
+                docFromOperation(docID, visitor, operation);
+            }
+        };
+    }
+
+    private static void docFromOperation(int docID, StoredFieldVisitor visitor, Translog.Index operation) throws IOException {
+        if (docID != 0) {
+            throw new IllegalArgumentException("no such doc ID " + docID);
+        }
+        if (visitor.needsField(FAKE_SOURCE_FIELD) == StoredFieldVisitor.Status.YES) {
+            assert operation.getSource().toBytesRef().offset == 0;
+            assert operation.getSource().toBytesRef().length == operation.getSource().toBytesRef().bytes.length;
+            visitor.binaryField(FAKE_SOURCE_FIELD, operation.getSource().toBytesRef().bytes);
+        }
+        if (visitor.needsField(FAKE_ID_FIELD) == StoredFieldVisitor.Status.YES) {
+            visitor.stringField(FAKE_ID_FIELD, operation.id());
+        }
     }
 }
