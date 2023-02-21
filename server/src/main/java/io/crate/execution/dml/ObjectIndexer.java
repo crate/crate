@@ -111,6 +111,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (check != null) {
                 check.verify(innerValue);
             }
+            if (innerValue == null) {
+                continue;
+            }
             var valueIndexer = innerIndexers.get(innerName);
             assert valueIndexer != null : "ValueIndexer must exist for inner column retrieved from ObjectType information";
 

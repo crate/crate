@@ -57,10 +57,10 @@ public class IntIndexer implements ValueIndexer<Number> {
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.value(value);
         if (value == null) {
             return;
         }
+        xContentBuilder.value(value);
         int intValue = value.intValue();
         addField.accept(new IntPoint(name, intValue));
         if (ref.hasDocValues()) {
