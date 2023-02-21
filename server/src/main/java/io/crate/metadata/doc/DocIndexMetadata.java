@@ -450,7 +450,7 @@ public class DocIndexMetadata {
             takenPositions.put(position, newIdent.fqn());
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             IndexType columnIndexType = getColumnIndexType(columnProperties);
-            StorageSupport storageSupport = columnDataType.storageSupport();
+            StorageSupport<?> storageSupport = columnDataType.storageSupport();
             assert storageSupport != null
                 : "DataType used in table definition must have storage support: " + columnDataType;
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
@@ -463,7 +463,7 @@ public class DocIndexMetadata {
                 addGeoReference(position, newIdent, geoTree, precision, treeLevels, distanceErrorPct, nullable);
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
-                           && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
+                           && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
                 add(position, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
@@ -479,7 +479,16 @@ public class DocIndexMetadata {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, false, hasDocValues));
+                        builder.addColumn(newInfo(
+                            position,
+                            newIdent,
+                            columnDataType,
+                            defaultExpression,
+                            ColumnPolicy.DYNAMIC,
+                            columnIndexType,
+                            nullable,
+                            hasDocValues
+                        ));
                     }
                 }
                 // is it an index?
