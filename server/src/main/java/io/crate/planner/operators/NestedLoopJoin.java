@@ -64,7 +64,7 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
 
-public class NestedLoopJoin implements LogicalPlan {
+public class NestedLoopJoin implements JoinPlan {
 
     @Nullable
     private final Symbol joinCondition;

@@ -40,8 +40,7 @@ import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
@@ -72,8 +71,7 @@ public class LoadedRules implements SessionSettingProvider {
         MoveFilterBeneathFetchOrEval.class,
         MoveFilterBeneathOrder.class,
         MoveFilterBeneathProjectSet.class,
-        MoveFilterBeneathHashJoin.class,
-        MoveFilterBeneathNestedLoop.class,
+        MoveFilterBeneathJoin.class,
         MoveFilterBeneathUnion.class,
         MoveFilterBeneathGroupBy.class,
         MoveFilterBeneathWindowAgg.class,

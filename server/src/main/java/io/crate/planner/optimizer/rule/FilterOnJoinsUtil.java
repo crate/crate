@@ -27,6 +27,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 
 import javax.annotation.Nullable;
@@ -43,11 +44,11 @@ final class FilterOnJoinsUtil {
         return splitQuery == null ? source : new Filter(source, splitQuery);
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, JoinPlan join) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0)),
-                getNewSource(query, join.sources().get(1))
+                getNewSource(query, join.lhs()),
+                getNewSource(query, join.rhs())
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -55,13 +56,10 @@ final class FilterOnJoinsUtil {
         if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
             return null;
         }
-        assert join.sources().size() == 2 : "Join operator must only have 2 children, LHS and RHS";
-        LogicalPlan lhs = join.sources().get(0);
-        LogicalPlan rhs = join.sources().get(1);
-        Set<RelationName> leftName = lhs.getRelationNames();
-        Set<RelationName> rightName = rhs.getRelationNames();
-        Symbol queryForLhs = splitQuery.remove(leftName);
-        Symbol queryForRhs = splitQuery.remove(rightName);
+        LogicalPlan lhs = join.lhs();
+        LogicalPlan rhs = join.rhs();
+        Symbol queryForLhs = splitQuery.remove(lhs.getRelationNames());
+        Symbol queryForRhs = splitQuery.remove(rhs.getRelationNames());
         LogicalPlan newLhs = getNewSource(queryForLhs, lhs);
         LogicalPlan newRhs = getNewSource(queryForRhs, rhs);
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));

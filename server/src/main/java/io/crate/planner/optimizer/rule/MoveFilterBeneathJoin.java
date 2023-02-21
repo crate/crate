@@ -21,12 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.common.collections.Lists2;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
@@ -39,15 +38,21 @@ import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJo
 
 import java.util.function.Function;
 
-public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
+public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
-    private final Capture<HashJoin> joinCapture;
+    private final Capture<JoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
 
-    public MoveFilterBeneathHashJoin() {
+    public MoveFilterBeneathJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-            .with(source(), typeOf(HashJoin.class).capturedAs(joinCapture));
+            .with(source(),
+                  typeOf(JoinPlan.class)
+                      .capturedAs(joinCapture)
+                      // Can't apply this on OUTER JOINs as outer join actively produce new null rows
+                      // We need to run the filter on top of these null rows to produce the correct results
+                      .with(join -> !join.joinType().isOuter())
+            );
     }
 
     @Override
@@ -62,7 +67,7 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin.replaceSources(Lists2.map(hashJoin.sources(), resolvePlan)));
+        JoinPlan join = captures.get(joinCapture);
+        return moveQueryBelowJoin(filter.query(), join);
     }
 }
