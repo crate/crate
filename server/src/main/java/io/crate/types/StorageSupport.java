@@ -22,15 +22,55 @@
 package io.crate.types;
 
 
+import java.util.function.Function;
+
 import javax.annotation.Nullable;
 
-import io.crate.metadata.IndexType;
+import org.apache.lucene.document.FieldType;
 
-public record StorageSupport<T>(boolean docValuesDefault,
-                                boolean hasFieldNamesIndex,
-                                @Nullable EqQuery<T> eqQuery) {
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+
+public abstract class StorageSupport<T> {
+
+    private final boolean docValuesDefault;
+    private final boolean hasFieldNamesIndex;
+
+    @Nullable
+    private final EqQuery<T> eqQuery;
+
+    public StorageSupport(boolean docValuesDefault,
+                          boolean hasFieldNamesIndex,
+                          EqQuery<T> eqQuery) {
+        this.docValuesDefault = docValuesDefault;
+        this.hasFieldNamesIndex = hasFieldNamesIndex;
+        this.eqQuery = eqQuery;
+    }
 
     public boolean getComputedDocValuesDefault(@Nullable IndexType indexType) {
         return docValuesDefault && indexType != IndexType.FULLTEXT;
+    }
+
+
+    public abstract ValueIndexer<T> valueIndexer(
+        RelationName table,
+        Reference ref,
+        Function<ColumnIdent, FieldType> getFieldType,
+        Function<ColumnIdent, Reference> getRef);
+
+
+    public boolean docValuesDefault() {
+        return docValuesDefault;
+    }
+
+    public boolean hasFieldNamesIndex() {
+        return hasFieldNamesIndex;
+    }
+
+    public EqQuery<T> eqQuery() {
+        return eqQuery;
     }
 }

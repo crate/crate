@@ -21,8 +21,11 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
@@ -32,8 +35,11 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -75,7 +81,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                 return new IndexOrDocValuesQuery(indexQuery, dvQuery);
             }
         }
-    );
+    ) {
+
+        @Override
+        public ValueIndexer<Float> valueIndexer(RelationName table,
+                                                Reference ref,
+                                                Function<ColumnIdent, FieldType> getFieldType,
+                                                Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private FloatType() {
     }
