@@ -61,7 +61,7 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
 
-public class HashJoin implements LogicalPlan {
+public class HashJoin implements JoinPlan {
 
     private final Symbol joinCondition;
     private final List<Symbol> outputs;

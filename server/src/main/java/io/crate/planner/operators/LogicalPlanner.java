@@ -87,8 +87,7 @@ import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
@@ -132,8 +131,7 @@ public class LogicalPlanner {
                 new MoveFilterBeneathFetchOrEval(),
                 new MoveFilterBeneathOrder(),
                 new MoveFilterBeneathProjectSet(),
-                new MoveFilterBeneathHashJoin(),
-                new MoveFilterBeneathNestedLoop(),
+                new MoveFilterBeneathJoin(),
                 new MoveFilterBeneathUnion(),
                 new MoveFilterBeneathGroupBy(),
                 new MoveFilterBeneathWindowAgg(),

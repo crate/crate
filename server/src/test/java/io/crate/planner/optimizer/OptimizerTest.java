@@ -32,7 +32,7 @@ import org.junit.Test;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
 import io.crate.user.User;
 
 public class OptimizerTest {
@@ -51,7 +51,7 @@ public class OptimizerTest {
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),
                                                             sessionSettings.excludedOptimizerRules());
         assertThat(rules.isEmpty(), is(true));
-        rules = Optimizer.removeExcludedRules(List.of(new MoveFilterBeneathHashJoin()), sessionSettings.excludedOptimizerRules());
+        rules = Optimizer.removeExcludedRules(List.of(new MoveFilterBeneathJoin()), sessionSettings.excludedOptimizerRules());
         assertThat(rules.size(), is(1));
     }
 }
