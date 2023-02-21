@@ -21,17 +21,12 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,89 +53,92 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
-        assertThat(printedTable(response.rows()), is(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 3| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
-            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
-            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n"));
+        assertThat(response).hasRows(
+            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
+            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 3| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
+            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
+            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0");
     }
 
     @Test
     public void test_pg_class_table_with_pg_get_expr() {
         execute("select pg_get_expr(relpartbound,0) from pg_catalog.pg_class limit 1");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
+        assertThat(response).hasRows("NULL\n");
     }
 
     @Test
     public void testPgNamespaceTable() {
         execute("select * from pg_catalog.pg_namespace order by nspname");
-        assertThat(printedTable(response.rows()), is(
-            "NULL| blob| 0| -508866815\n" +
-            "NULL| doc| 0| -2048275947\n" +
-            "NULL| information_schema| 0| 204690627\n" +
-            "NULL| pg_catalog| 0| -68025646\n" +
-            "NULL| sys| 0| -458336339\n"));
+        assertThat(response).hasRows(
+            "NULL| blob| 0| -508866815",
+            "NULL| doc| 0| -2048275947",
+            "NULL| information_schema| 0| 204690627",
+            "NULL| pg_catalog| 0| -68025646",
+            "NULL| sys| 0| -458336339");
     }
 
     @Test
     public void testPgAttributeTable() {
-        execute("select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where c.relname = 't1' order by a.attnum");
-        assertThat(printedTable(response.rows()), is(
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n" +
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1\n" +
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1\n"));
+        execute(
+            "select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where" +
+            " c.relname = 't1' order by a.attnum");
+        assertThat(response).hasRows(
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1");
     }
 
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(printedTable(response.rows()), is("23\n"));
+        assertThat(response).hasRows("23\n");
     }
 
     @Test
     public void test_pg_index_table_with_pg_get_expr() {
         execute("select pg_get_expr(indexprs,0), pg_get_expr(indpred,0) from pg_catalog.pg_index limit 1");
-        assertThat(printedTable(response.rows()), is("NULL| NULL\n"));
+        assertThat(response).hasRows("NULL| NULL\n");
     }
 
     @Test
     public void testPgConstraintTable() {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
-        assertThat(printedTable(response.rows()), is(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| NULL| NULL| 728874843| NULL| p| 0| true| -874078436\n"));
+        assertThat(response).hasRows(
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| NULL| NULL| " +
+            "728874843| NULL| p| 0| true| -874078436\n");
     }
 
     @Test
     public void testPgTablesTable() {
         execute("select * from pg_tables WHERE tablename = 't1'");
-        assertThat(printedTable(response.rows()), is("false| false| false| false| doc| t1| NULL| NULL\n"));
+        assertThat(response).hasRows("false| false| false| false| doc| t1| NULL| NULL\n");
 
         execute("select count(*) from pg_tables WHERE tablename = 'v1'");
-        assertThat(printedTable(response.rows()), is("0\n"));
+        assertThat(response).hasRows("0\n");
     }
 
     @Test
     public void testPgViewsTable() {
         execute("select * from pg_views WHERE viewname = 'v1'");
-        assertThat(printedTable(response.rows()), is("SELECT \"id\"\nFROM \"doc\".\"t1\"\n| doc| v1| crate\n"));
+        assertThat(response).hasRows("SELECT \"id\"\nFROM \"doc\".\"t1\"\n| doc| v1| crate\n");
 
         execute("select count(*) from pg_views WHERE viewname = 't1'");
-        assertThat(printedTable(response.rows()), is("0\n"));
+        assertThat(response).hasRows("0\n");
     }
 
     @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
-        assertThat(printedTable(response.rows()), is(""));
-        assertThat(response.cols(), arrayContaining("classoid", "description", "objoid", "objsubid"));
+        assertThat(response).hasRows("");
+        assertThat(response).hasColumns("classoid", "description", "objoid", "objsubid");
     }
 
     @Test
     public void testPgShdescriptionTableIsEmpty() {
         execute("select * from pg_shdescription");
-        assertThat(printedTable(response.rows()), is(""));
-        assertThat(response.cols(), arrayContaining("classoid", "description", "objoid"));
+        assertThat(response).hasRows("");
+        assertThat(response).hasColumns("classoid", "description", "objoid");
     }
 
     @Test
@@ -149,8 +147,7 @@ public class PgCatalogITest extends IntegTestCase {
     @UseHashJoins(0)
     public void testPgSettingsTable() {
         execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
-        String printedTable = printedTable(response.rows());
-        assertThat(printedTable.split("\\n"), Matchers.arrayContaining(
+        assertThat(response).hasRows(
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "datestyle| ISO| Display format for date and time values.| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",
@@ -183,13 +180,13 @@ public class PgCatalogITest extends IntegTestCase {
             "search_path| doc| Sets the schema search order.| NULL| NULL",
             "server_version| 11.0| Reports the emulated PostgreSQL version number| NULL| NULL",
             "server_version_num| 110000| Reports the emulated PostgreSQL version number| NULL| NULL"
-        ));
+        );
     }
 
     @Test
     public void test_primary_key_in_pg_index() {
         execute("select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
-        assertThat(printedTable(response.rows()), is("-649073482| 728874843| [1]\n"));
+        assertThat(response).hasRows("-649073482| 728874843| [1]\n");
     }
 
     @Test
@@ -197,23 +194,20 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
-        assertThat(printedTable(response.rows()), is("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0\n"));
+        assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0\n");
     }
 
     @Test
     public void test_pg_proc_return_correct_column_names() {
         execute("select * from pg_proc");
-        assertThat(
-            response.cols(),
-            arrayContainingInAnyOrder(
-                "oid", "proname", "pronamespace", "proowner", "prolang",
-                "procost", "prorows", "provariadic", "protransform", "proisagg",
-                "proiswindow", "prosecdef", "proleakproof", "proisstrict", "proretset",
-                "provolatile", "proparallel", "pronargs", "pronargdefaults",
-                "prorettype", "proargtypes", "proallargtypes", "proargmodes",
-                "proargnames", "proargdefaults", "protrftypes", "prosrc", "probin",
-                "proconfig", "proacl")
-        );
+        assertThat(response).hasColumns(
+            "oid", "proname", "pronamespace", "proowner", "prolang",
+            "procost", "prorows", "provariadic", "protransform", "proisagg",
+            "proiswindow", "prosecdef", "proleakproof", "proisstrict", "proretset",
+            "provolatile", "proparallel", "pronargs", "pronargdefaults",
+            "prorettype", "proargtypes", "proallargtypes", "proargmodes",
+            "proargnames", "proargdefaults", "protrftypes", "prosrc", "probin",
+            "proconfig", "proacl");
     }
 
     @Test
@@ -231,12 +225,12 @@ public class PgCatalogITest extends IntegTestCase {
             int cmp = ((String) o1[1]).compareTo((String) o2[1]);
             return cmp == 0 ? ((List<?>) o1[9]).size() - ((List<?>) o2[9]).size() : cmp;
         });
-        assertThat(printedTable(response.rows()), is(
-            "-1329052381| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference\n" +
-            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| []| NULL| current_timestamp\n" +
-            "-359449865| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp\n" +
-            "-277796690| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format\n" +
-            "89277575| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least\n"));
+        assertThat(response).hasRows(
+            "-1329052381| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference",
+            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| []| NULL| current_timestamp",
+            "-359449865| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp",
+            "-277796690| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format",
+            "89277575| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least");
     }
 
     @Test
@@ -245,7 +239,7 @@ public class PgCatalogITest extends IntegTestCase {
             "SELECT typname, typreceive, typreceive::int, typreceive::text " +
             "FROM pg_type " +
             "WHERE typname = 'bool'");
-        assertThat(printedTable(response.rows()), is("bool| boolrecv| 994071801| boolrecv\n"));
+        assertThat(response).hasRows("bool| boolrecv| 994071801| boolrecv\n");
     }
 
     @Test
@@ -255,7 +249,7 @@ public class PgCatalogITest extends IntegTestCase {
             "FROM pg_type " +
             "JOIN pg_proc ON pg_proc.oid = pg_type.typreceive " +
             "WHERE pg_type.typname = 'bool'");
-        assertThat(printedTable(response.rows()), is("bool| boolrecv| 994071801\n"));
+        assertThat(response).hasRows("bool| boolrecv| 994071801\n");
     }
 
     @Test
@@ -265,13 +259,13 @@ public class PgCatalogITest extends IntegTestCase {
                 "WHERE proname = 'trunc' " +
                 "ORDER BY 1, 2 " +
                 "LIMIT 10;");
-        assertThat(printedTable(response.rows()), is("bigint| trunc\n" +
-                                                     "bigint| trunc\n" +
-                                                     "double precision| trunc\n" +
-                                                     "integer| trunc\n" +
-                                                     "integer| trunc\n" +
-                                                     "integer| trunc\n" +
-                                                     "integer| trunc\n"));
+        assertThat(response).hasRows("bigint| trunc",
+                                     "bigint| trunc",
+                                     "double precision| trunc",
+                                     "integer| trunc",
+                                     "integer| trunc",
+                                     "integer| trunc",
+                                     "integer| trunc");
     }
 
     @Test
@@ -281,9 +275,7 @@ public class PgCatalogITest extends IntegTestCase {
                     inner join pg_type on typreceive = pg_proc.oid
                     where proname = 'array_recv' and typname = '_int4'
                     """);
-        assertThat(printedTable(response.rows()), is(
-            "556695454\n"
-        ));
+        assertThat(response).hasRows("556695454\n");
 
         execute("""
             SELECT typ.oid, typname, typrelid, typnotnull, relkind, typelem AS elemoid,
@@ -300,18 +292,16 @@ public class PgCatalogITest extends IntegTestCase {
                     where typname in ('_int2', '_int4')
                     order by 1, 3, 4, 5
                     """);
-        assertThat(printedTable(response.rows()), is(
-            "1005| _int2| 0| false| NULL| 21| a| 21\n" +
-            "1007| _int4| 0| false| NULL| 23| a| 23\n"
-        ));
+        assertThat(response).hasRows(
+            "1005| _int2| 0| false| NULL| 21| a| 21",
+            "1007| _int4| 0| false| NULL| 23| a| 23"
+        );
     }
 
     @Test
     public void test_kepserver_regclass_cast_query() throws Exception {
         execute("select nspname from pg_namespace n, pg_class c where c.relnamespace=n.oid and c.oid='kepware'::regclass");
-        assertThat(printedTable(response.rows()), is(
-            ""
-        ));
+        assertThat(response).hasRows("");
     }
 
     @Test
@@ -326,12 +316,11 @@ public class PgCatalogITest extends IntegTestCase {
         );
         int reloid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "tbl"));
         response = execute("select i.conkey, i.conname, i.contype from pg_catalog.pg_constraint i where i.conrelid  = " + reloid + " order by i.conname");
-        assertThat(printedTable(response.rows()), is(
-            "[2, 1, 3]| many_cols_and_functions| c\n" +
-            "[4]| positive| c\n" +
-            "[2, 3]| tbl_pk| p\n"
-        ));
-
+        assertThat(response).hasRows(
+            "[2, 1, 3]| many_cols_and_functions| c",
+            "[4]| positive| c",
+            "[2, 3]| tbl_pk| p"
+        );
     }
 
     @UseRandomizedSchema(random = false)
@@ -342,6 +331,6 @@ public class PgCatalogITest extends IntegTestCase {
             " '\"persons\"'::regclass::integer oid_from_relname, " +
             " oid " +
             " FROM pg_class WHERE relname ='persons'");
-        assertThat(printedTable(response.rows()), is("1726373441| 1726373441\n"));
+        assertThat(response).hasRows("1726373441| 1726373441\n");
     }
 }
