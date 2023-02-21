@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -165,7 +166,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var parsedDoc = indexer.index(item(new Object[] { null }));
         assertThat(parsedDoc.source().utf8ToString())
             .as("If explicit null value is provided, the default expression is not applied")
-            .isEqualTo("{\"y\":null}");
+            .isEqualTo("{}");
         assertThat(parsedDoc.doc().getFields())
             .hasSize(6);
 
@@ -373,7 +374,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         ParsedDocument parsedDoc = indexer.index(item(20, null));
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
-            {"x":20, "z":null}
+            {"x":20}
             """);
     }
 
@@ -458,5 +459,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         Object[] returnValues = indexer.returnValues(item(10));
         assertThat(returnValues).containsExactly("dummy-id-1", 10, 20);
+    }
+
+    @Test
+    public void test_fields_are_ommitted_in_source_for_null_values() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, o object as (y int))")
+            .build();
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("x")),
+                table.getReference(new ColumnIdent("o"))
+            ),
+            null
+        );
+
+        HashMap<String, Object> o = new HashMap<>();
+        o.put("y", null);
+        ParsedDocument doc = indexer.index(item(null, o));
+        assertThat(doc.source().utf8ToString()).isEqualTo(
+            "{\"o\":{}}"
+        );
     }
 }
