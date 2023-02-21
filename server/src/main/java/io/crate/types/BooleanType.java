@@ -24,7 +24,9 @@ package io.crate.types;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -34,40 +36,51 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
 
-    private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(
-        true,
-        true,
-        new EqQuery<>() {
+    private static EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
 
-            private static BytesRef indexedValue(Boolean value) {
-                if (value == null) {
-                    return null;
-                }
-                return value ? new BytesRef("T") : new BytesRef("F");
+        private static BytesRef indexedValue(Boolean value) {
+            if (value == null) {
+                return null;
             }
-
-            @Override
-            public Query termQuery(String field, Boolean value) {
-                return new TermQuery(new Term(field, indexedValue(value)));
-            }
-
-            @Override
-            public Query rangeQuery(String field,
-                                    Boolean lowerTerm,
-                                    Boolean upperTerm,
-                                    boolean includeLower,
-                                    boolean includeUpper) {
-                return new TermRangeQuery(
-                    field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
-            }
+            return value ? new BytesRef("T") : new BytesRef("F");
         }
-    );
+
+        @Override
+        public Query termQuery(String field, Boolean value) {
+            return new TermQuery(new Term(field, indexedValue(value)));
+        }
+
+        @Override
+        public Query rangeQuery(String field,
+                                Boolean lowerTerm,
+                                Boolean upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper) {
+            return new TermRangeQuery(
+                field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+        }
+    };
+
+    private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(true, true, EQ_QUERY) {
+
+        @Override
+        public ValueIndexer<Boolean> valueIndexer(RelationName table,
+                                                  Reference ref,
+                                                  Function<ColumnIdent, FieldType> getFieldType,
+                                                  Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private BooleanType() {
     }
