@@ -24,7 +24,9 @@ package io.crate.types;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,13 +37,26 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, true, null);
+    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, true, null) {
+
+        @Override
+        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                              Reference ref,
+                                                              Function<ColumnIdent, FieldType> getFieldType,
+                                                              Function<ColumnIdent, Reference> getRef) {
+            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        }
+    };
 
     private GeoShapeType() {
     }
