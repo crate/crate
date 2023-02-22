@@ -37,6 +37,7 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.GeoPointIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -53,7 +54,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
                                                 Reference ref,
                                                 Function<ColumnIdent, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new GeoPointIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 
