@@ -56,7 +56,6 @@ import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRename;
-import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
@@ -121,21 +120,6 @@ public class AlterTableOperation {
         this.logicalReplicationService = logicalReplicationService;
     }
 
-    public CompletableFuture<Long> executeAlterTableAddColumn(BoundAddColumn analysis) {
-        if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
-            return getRowCount(analysis.table().ident()).thenCompose(rowCount -> {
-                if (rowCount > 0) {
-                    String subject = analysis.newPrimaryKeys() ? "primary key" : "generated";
-                    throw new UnsupportedOperationException("Cannot add a " + subject + " column to a table that isn't empty");
-                } else {
-                    return addColumnToTable(analysis);
-                }
-            });
-        } else {
-            return addColumnToTable(analysis);
-        }
-    }
-
     public CompletableFuture<Long> executeAlterTableAddColumn(AddColumnRequest addColumnRequest) {
         String subject = null;
         if (addColumnRequest.pKeyIndices().isEmpty() == false) {
@@ -189,8 +173,6 @@ public class AlterTableOperation {
             );
         }
     }
-
-
 
     public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
         validateSettingsForPublishedTables(analysis.table().ident(),
@@ -409,22 +391,6 @@ public class AlterTableOperation {
                                                 boolean isPartitioned) {
         RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
         return transportRenameTableAction.execute(request, r -> -1L);
-    }
-
-    private CompletableFuture<Long> addColumnToTable(BoundAddColumn analysis) {
-        try {
-            AlterTableRequest request = new AlterTableRequest(
-                analysis.table().ident(),
-                null,
-                analysis.table().isPartitioned(),
-                false,
-                analysis.settings(),
-                analysis.mapping()
-            );
-            return transportAlterTableAction.execute(request).thenApply(resp -> -1L);
-        } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
-        }
     }
 
     public CompletableFuture<Long> executeAlterTableDropConstraint(DropConstraintRequest request) {

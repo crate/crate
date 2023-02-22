@@ -21,23 +21,12 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.AnalyzedTableElements.toMapping;
-
-import java.util.Map;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
-import io.crate.analyze.AnalyzedTableElements;
-import io.crate.analyze.BoundAddColumn;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropConstraintRequest;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -62,46 +51,13 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-
-        if (plannerContext.clusterState().nodes().getMinNodeVersion().before(Version.V_5_1_0)) {
-            // TODO: Remove this in 5.2
-            dependencies.alterTableOperation()
-                .executeAlterTableAddColumn(bind(dropCheckConstraint))
-                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
-        } else {
-            var request = new DropConstraintRequest(
-                dropCheckConstraint.tableInfo().ident(),
-                dropCheckConstraint.name()
-            );
-
-            dependencies.alterTableOperation()
-                .executeAlterTableDropConstraint(request)
-                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
-        }
-    }
-
-    @VisibleForTesting
-    public static BoundAddColumn bind(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint) {
-        DocTableInfo tableInfo = dropCheckConstraint.tableInfo();
-        AnalyzedTableElements<Object> tableElementsBound = new AnalyzedTableElements<>();
-        AlterTableAddColumnPlan.addExistingPrimaryKeys(tableInfo, tableElementsBound);
-        tableInfo.checkConstraints()
-            .stream()
-            .filter(c -> !dropCheckConstraint.name().equals(c.name()))
-            .forEach(c -> tableElementsBound.addCheckConstraint(tableInfo.ident(), c));
-        AnalyzedTableElements.finalizeAndValidate(
-            tableInfo.ident(),
-            new AnalyzedTableElements<>(),
-            tableElementsBound
+        var request = new DropConstraintRequest(
+            dropCheckConstraint.tableInfo().ident(),
+            dropCheckConstraint.name()
         );
-        Map<String, Object> mapping = toMapping(tableElementsBound);
-        return new BoundAddColumn(
-            tableInfo,
-            tableElementsBound,
-            Settings.builder().build(),
-            mapping,
-            false,
-            false
-        );
+
+        dependencies.alterTableOperation()
+            .executeAlterTableDropConstraint(request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
