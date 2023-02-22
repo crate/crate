@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -78,7 +79,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                                   Reference ref,
                                                   Function<ColumnIdent, FieldType> getFieldType,
                                                   Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new BooleanIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 
