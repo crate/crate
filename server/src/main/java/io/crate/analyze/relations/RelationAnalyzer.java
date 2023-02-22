@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.analyze.JoinedRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -311,9 +312,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     joinCriteria.getClass().getSimpleName()));
             }
         }
+        var joinPair = JoinPair.of(leftRel, rightRel, JoinType.values()[node.getType().ordinal()], joinCondition);
+        relationContext.addJoinPair(joinPair);
+        return new QueriedSelectRelation(false,
+                                         List.of(leftRel, rightRel),
+                                         List.of(joinPair),
+                                         leftRel.outputs(),
+                                         null,
+                                         List.of(),
+                                         null,
+                                         null,
+                                         null,
+                                         null);
 
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
-        return null;
     }
 
     @Override

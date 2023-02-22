@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.join;
 
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -39,6 +41,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -104,12 +107,34 @@ public final class JoinOperations {
 
     public static LinkedHashMap<Set<RelationName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
+        Set<JoinPair> allJoinPairs = new HashSet<>();
         for (JoinPair joinPair : joinPairs) {
+            AnalyzedRelation left = joinPair.left();
+            AnalyzedRelation right = joinPair.right();
+
+            if (left instanceof QueriedSelectRelation  || right instanceof QueriedSelectRelation ) {
+                if (left instanceof QueriedSelectRelation l) {
+                    allJoinPairs.addAll(l.joinPairs());
+                }
+                if (right instanceof QueriedSelectRelation r) {
+                    allJoinPairs.addAll(r.joinPairs());
+                }
+            } else {
+                allJoinPairs.add(joinPair);
+            }
+        }
+
+        for (JoinPair joinPair : allJoinPairs) {
             if (joinPair.condition() == null) {
                 continue;
             }
             // Left/right sides of a join pair have to be consistent with the key set, we ensure that left side is always first in the set.
-            JoinPair prevPair = joinPairsMap.put(new LinkedHashSet<>(List.of(joinPair.left(), joinPair.right())), joinPair);
+            AnalyzedRelation left = joinPair.left();
+
+            AnalyzedRelation right = joinPair.right();
+            JoinPair prevPair = joinPairsMap.put(
+                new LinkedHashSet<>(List.of(left.relationName(), right.relationName())), joinPair
+            );
             if (prevPair != null) {
                 throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
             }
@@ -141,7 +166,7 @@ public final class JoinOperations {
                 int existingJoinPairIdx = -1;
                 for (int i = 0; i < explicitJoinPairs.size(); i++) {
                     JoinPair joinPair = explicitJoinPairs.get(i);
-                    if (relations.contains(joinPair.left()) && relations.contains(joinPair.right())) {
+                    if (relations.contains(joinPair.left().relationName()) && relations.contains(joinPair.right().relationName())) {
                         existingJoinPairIdx = i;
                         // If a JoinPair with the involved relations already exists then depending on the JoinType:
                         //  - INNER JOIN:  the implicit join condition can be "AND joined" with
@@ -170,9 +195,9 @@ public final class JoinOperations {
                 }
                 if (newJoinPair == null) {
                     Iterator<RelationName> namesIter = relations.iterator();
-                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
-                    queryIterator.remove();
-                    newJoinPairs.add(newJoinPair);
+//                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
+//                    queryIterator.remove();
+//                    newJoinPairs.add(newJoinPair);
                 } else {
                     newJoinPairs.set(existingJoinPairIdx, newJoinPair);
                 }

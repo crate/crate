@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,25 +68,6 @@ public class RelationAnalysisContext {
             joinPairs = new ArrayList<>();
         }
         joinPairs.add(joinType);
-    }
-
-    void addJoinType(JoinType joinType, @Nullable Symbol joinCondition) {
-        int size = sources.size();
-        assert size >= 2 : "sources must be added first, cannot add join type for only 1 source";
-        Iterator<RelationName> it = sources.keySet().iterator();
-        RelationName left = null;
-        RelationName right = null;
-        int idx = 0;
-        while (it.hasNext()) {
-            RelationName sourceName = it.next();
-            if (idx == size - 2) {
-                left = sourceName;
-            } else if (idx == size - 1) {
-                right = sourceName;
-            }
-            idx++;
-        }
-        addJoinPair(JoinPair.of(left, right, joinType, joinCondition));
     }
 
     List<JoinPair> joinPairs() {
