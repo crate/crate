@@ -22,6 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -187,6 +188,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
                 item.source(null);
+                item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
                 if (!request.continueOnError()) {
                     shardResponse.failure(e);
@@ -214,10 +216,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.source() == null) {
+            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA || item.source() == null) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",
-                        indexShard.shardId(), item.id());
+                    logger.trace(
+                        "[{} (R)] Document with id {}, has no source, primary operation must have failed",
+                        indexShard.shardId(),
+                        item.id()
+                    );
                 }
                 continue;
             }
@@ -275,6 +280,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
+                    item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
                     item.source(null);
                     return null;
                 }
@@ -336,7 +342,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         item.source(rawSource);
 
-        long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+        long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
+            ? Versions.MATCH_ANY
+            : Versions.MATCH_DELETED;
         long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
