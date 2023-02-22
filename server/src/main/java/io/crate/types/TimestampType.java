@@ -44,6 +44,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.common.StringUtils;
+import io.crate.execution.dml.LongIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -74,7 +75,7 @@ public final class TimestampType extends DataType<Long>
                                                Reference ref,
                                                Function<ColumnIdent, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new LongIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 

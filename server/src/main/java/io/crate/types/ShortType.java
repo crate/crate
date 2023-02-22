@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -48,7 +49,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new IntIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 
