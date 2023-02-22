@@ -25,14 +25,20 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -41,14 +47,18 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     static IndexItem item(Object ... values) {
-        return new IndexItem.StaticItem("dummy-id-1", List.of(),values, 0L, 0L);
+        return new IndexItem.StaticItem("dummy-id-1", List.of(), values, 0L, 0L);
     }
 
     @Test
@@ -487,5 +497,77 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.source().utf8ToString()).isEqualTo(
             "{\"o\":{}}"
         );
+    }
+
+    @Test
+    public void test_can_index_all_storable_types() throws Exception {
+        StringBuilder stmtBuilder = new StringBuilder()
+            .append("create table tbl (");
+
+        ArrayList<ColumnIdent> columns = new ArrayList<>();
+        ArrayList<Object> values = new ArrayList<>();
+        List<DataType<?>> types = Lists2
+            .concat(
+                DataTypes.PRIMITIVE_TYPES,
+                List.of(
+                    DataTypes.GEO_POINT,
+                    DataTypes.GEO_SHAPE,
+                    new BitStringType(1)
+                ))
+            .stream()
+            .filter(t -> t.storageSupport() != null)
+            .toList();
+        Iterator<DataType<?>> it = types.iterator();
+        boolean first = true;
+        while (it.hasNext()) {
+            var type = it.next();
+            if (first) {
+                first = false;
+            } else {
+                stmtBuilder.append(",\n");
+            }
+            Object value = DataTypeTesting.getDataGenerator(type).get();
+            values.add(value);
+            columns.add(new ColumnIdent("c_" + type.getName()));
+            stmtBuilder
+                .append("\"c_" + type.getName() + "\" ")
+                .append(type);
+
+        }
+
+        String stmt = stmtBuilder.append(")").toString();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable(stmt)
+            .build();
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        try (var indexEnv = new IndexEnv(
+                THREAD_POOL,
+                table,
+                clusterService.state(),
+                Version.CURRENT,
+                createTempDir())) {
+
+            Indexer indexer = new Indexer(
+                table.ident().indexNameOrAlias(),
+                table,
+                new CoordinatorTxnCtx(e.getSessionSettings()),
+                e.nodeCtx,
+                column -> indexEnv.mapperService().getLuceneFieldType(column.fqn()),
+                Lists2.map(columns, c -> table.getReference(c)),
+                null
+            );
+            ParsedDocument doc = indexer.index(item(values.toArray()));
+            Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
+            it = types.iterator();
+            for (int i = 0; it.hasNext(); i++) {
+                var type = it.next();
+                Object expected = values.get(i);
+                assertThat(source).hasEntrySatisfying(
+                    "c_" + type.getName(),
+                    v -> assertThat(type.sanitizeValue(v)).isEqualTo(expected)
+                );
+            }
+        }
     }
 }

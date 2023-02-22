@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -85,7 +86,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new IpIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 
