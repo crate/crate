@@ -46,6 +46,10 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         return this;
     }
 
+    /**
+     * Deprecated, use io.crate.testing.{@link io.crate.testing.SQLResponseAssert#hasRows(String ... rows)} instead
+     */
+    @Deprecated
     public SQLResponseAssert hasRows(String printedRows) {
         assertThat(TestingHelpers.printedTable(actual.rows())).isEqualTo(printedRows);
         return this;
