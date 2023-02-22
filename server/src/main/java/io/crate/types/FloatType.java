@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -84,11 +85,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     ) {
 
         @Override
-        public ValueIndexer<Float> valueIndexer(RelationName table,
-                                                Reference ref,
-                                                Function<ColumnIdent, FieldType> getFieldType,
-                                                Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        public ValueIndexer<Number> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            return new DoubleIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 

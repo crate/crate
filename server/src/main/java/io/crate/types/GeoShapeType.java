@@ -37,6 +37,7 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
@@ -54,7 +55,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
                                                               Reference ref,
                                                               Function<ColumnIdent, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+            return new GeoShapeIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 

@@ -57,9 +57,6 @@ public class IntIndexer implements ValueIndexer<Number> {
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        if (value == null) {
-            return;
-        }
         xContentBuilder.value(value);
         int intValue = value.intValue();
         addField.accept(new IntPoint(name, intValue));
