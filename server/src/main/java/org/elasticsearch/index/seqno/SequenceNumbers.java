@@ -37,6 +37,8 @@ public class SequenceNumbers {
      */
     public static final long NO_OPS_PERFORMED = -1L;
 
+    public static final long SKIP_ON_REPLICA = -3L;
+
     /**
      * Represents an unassigned primary term (e.g., when a primary shard was not yet allocated)
      */
