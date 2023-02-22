@@ -28,7 +28,6 @@ import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.symbol.Literal;
 
 public class SubscriptObjectFunctionTest extends ScalarTestCase {
@@ -58,7 +57,7 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expect(io.crate.exceptions.unscoped.ColumnUnknownException.class);
         assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
     }
 
@@ -87,14 +86,14 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
         // missing key in the very front
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         Assertions.assertThatThrownBy(() -> assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.unscoped.ColumnUnknownException.class)
             .hasMessageContaining("The object `{x={y=10}}` does not contain the key `y`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')");
         // missing key in the middle
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         Assertions.assertThatThrownBy(() -> assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.unscoped.ColumnUnknownException.class)
             .hasMessageContaining("The object `{y={z=test}}` does not contain the key `x`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']");

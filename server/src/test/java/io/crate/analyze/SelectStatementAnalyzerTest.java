@@ -768,7 +768,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .build();
         assertThatThrownBy(() -> executor.analyze("select 'bar', name"))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.scoped.table.ColumnUnknownException.class)
             .hasMessage("Column name unknown");
     }
 
@@ -2663,7 +2663,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService).build();
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> executor.analyze("SELECT ''::OBJECT['x']"))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.unscoped.ColumnUnknownException.class)
             .hasMessageContaining("The object `{}` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         var analyzed = executor.analyze("SELECT ''::OBJECT['x']");
@@ -2714,7 +2714,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
          */
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> executor.analyze("select ('{}'::object).x"))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.unscoped.ColumnUnknownException.class)
             .hasMessageContaining("The object `{}` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select ('{}'::object).x");

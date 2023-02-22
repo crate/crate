@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.exceptions.unscoped.ColumnUnknownException.columnUnknownExceptionFromUnknownRelation;
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -37,7 +38,6 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.data.Input;
-import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
@@ -218,7 +218,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
         Map<?, ?> map = (Map<?, ?>) base;
         if (errorOnUnknownObjectKey && !map.containsKey(name)) {
-            throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+            throw columnUnknownExceptionFromUnknownRelation(
+                "The object `" + base + "` does not contain the key `" + name + "`");
         }
         return map.get(name);
     }

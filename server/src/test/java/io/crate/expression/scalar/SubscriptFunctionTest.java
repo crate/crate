@@ -30,7 +30,6 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
@@ -87,7 +86,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void testLookupByNameWithUnknownName() throws Exception {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         Assertions.assertThatThrownBy(() -> assertEvaluate("{}['y']", null))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.unscoped.ColumnUnknownException.class)
             .hasMessageContaining("The object `{}` does not contain the key `y`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{}['y']");
