@@ -3038,11 +3038,15 @@ A ``geo_shape`` is a :ref:`geographic data type <data-types-geo>` used to store
 2D shapes defined as `GeoJSON geometry objects`_.
 
 A ``GEO_SHAPE`` column can store different kinds of `GeoJSON geometry
-objects`_, namely "Point", "MultiPoint", "LineString", "MultiLineString",
-"Polygon", "MultiPolygon", and "GeometryCollection".
+objects`_:
 
-Thus it is possible to store e.g. ``Point``, ``LineString``, and
-``MultiPolygon`` shapes in the same column.
+- "Point"
+- "MultiPoint"
+- "LineString"
+- "MultiLineString",
+- "Polygon"
+- "MultiPolygon"
+- "GeometryCollection"
 
 .. CAUTION::
 
