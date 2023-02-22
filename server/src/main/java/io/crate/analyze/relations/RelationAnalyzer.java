@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -84,10 +85,10 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
-import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -273,65 +274,71 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         AnalyzedRelation leftRel = node.getLeft().accept(this, statementContext);
         AnalyzedRelation rightRel = node.getRight().accept(this, statementContext);
-
-        RelationAnalysisContext relationContext = statementContext.currentRelationContext();
-        Optional<JoinCriteria> optCriteria = node.getCriteria();
         Symbol joinCondition = null;
-        if (optCriteria.isPresent()) {
-            JoinCriteria joinCriteria = optCriteria.get();
-            if (joinCriteria instanceof JoinOn || joinCriteria instanceof JoinUsing) {
-                final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
-                ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                    coordinatorTxnCtx,
-                    nodeCtx,
-                    statementContext.paramTyeHints(),
-                    new FullQualifiedNameFieldProvider(
-                        relationContext.sources(),
-                        relationContext.parentSources(),
-                        coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
-                    new SubqueryAnalyzer(this, statementContext));
-                Expression expr;
-                if (joinCriteria instanceof JoinOn) {
-                    expr = ((JoinOn) joinCriteria).getExpression();
-                } else {
-                    expr = JoinUsing.toExpression(
-                        leftRel.relationName().toQualifiedName(),
-                        rightRel.relationName().toQualifiedName(),
-                        ((JoinUsing) joinCriteria).getColumns());
-                }
-                try {
-                    joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
-                } catch (RelationUnknown e) {
-                    throw new RelationValidationException(e.getTableIdents(),
-                        String.format(Locale.ENGLISH,
-                        "missing FROM-clause entry for relation '%s'", e.getTableIdents()));
-                }
+        if (node.getCriteria().isPresent()) {
+            Expression expression;
+            var joinCriteria = node.getCriteria().get();
+            if (joinCriteria instanceof JoinOn joinOn) {
+                expression = joinOn.getExpression();
+            } else if (joinCriteria instanceof JoinUsing joinUsing) {
+                // using assumes it's un-nested, so we can extract the relation names directly
+                expression = JoinUsing.toExpression(
+                    leftRel.relationName().toQualifiedName(),
+                    rightRel.relationName().toQualifiedName(),
+                    joinUsing.getColumns());
             } else {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                    joinCriteria.getClass().getSimpleName()));
+                throw new UnsupportedOperationException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "Join criteria %s not supported",
+                        joinCriteria.getClass().getSimpleName()
+                    )
+                );
+            }
+            try {
+                var expressionAnalyzer = getExpressionAnalyzer(statementContext);
+                var expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
+                joinCondition = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+            } catch (RelationUnknown e) {
+                throw new RelationValidationException(
+                    e.getTableIdents(),
+                    String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents())
+                );
             }
         }
-
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
-        return null;
+        var joinType = JoinType.values()[node.getType().ordinal()];
+        return new JoinRelation(leftRel, rightRel, leftRel.outputs(), joinType, joinCondition);
     }
+
+    private ExpressionAnalyzer getExpressionAnalyzer(StatementAnalysisContext statementContext) {
+        RelationAnalysisContext relationContext = statementContext.currentRelationContext();
+        final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
+        return new ExpressionAnalyzer(
+            coordinatorTxnCtx,
+            nodeCtx,
+            statementContext.paramTyeHints(),
+            new FullQualifiedNameFieldProvider(
+                relationContext.sources(),
+                relationContext.parentSources(),
+                coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
+            new SubqueryAnalyzer(this, statementContext));
+    }
+
 
     @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         RelationAnalysisContext currentRelationContext = statementContext.startRelation();
-
+        List<JoinPair> joinPairs = new ArrayList<>();
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            relation.accept(this, statementContext);
+            AnalyzedRelation analyzedRelation = relation.accept(this, statementContext);
             statementContext.endRelation();
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
             }
-            for (JoinPair joinPair : innerContext.joinPairs()) {
-                currentRelationContext.addJoinPair(joinPair);
-            }
+            joinPairs.addAll(JoinPairAnalyzer.apply(analyzedRelation));
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
@@ -377,7 +384,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
             List.copyOf(context.sources().values()),
-            context.joinPairs(),
+            joinPairs,
             selectAnalysis.outputSymbols(),
             where,
             groupBy,

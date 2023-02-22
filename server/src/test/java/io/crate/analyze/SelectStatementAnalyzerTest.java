@@ -881,7 +881,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertThatThrownBy(() -> executor.analyze("select * from users natural join users_multi_pk"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("join criteria NaturalJoin not supported");
+            .hasMessage("Join criteria NaturalJoin not supported");
     }
 
     @Test

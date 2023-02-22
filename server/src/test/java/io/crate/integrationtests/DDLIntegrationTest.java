@@ -53,6 +53,7 @@ import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
