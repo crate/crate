@@ -42,6 +42,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import com.fasterxml.jackson.core.Base64Variants;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -83,9 +84,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     ) {
 
         @Override
-        public ValueIndexer<BitString> valueIndexer(RelationName table, Reference ref,
-                Function<ColumnIdent, FieldType> getFieldType, Function<ColumnIdent, Reference> getRef) {
-            throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
+        public ValueIndexer<BitString> valueIndexer(RelationName table,
+                                                    Reference ref,
+                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<ColumnIdent, Reference> getRef) {
+            return new BitStringIndexer(ref, getFieldType.apply(ref.column()));
         }
     };
 
