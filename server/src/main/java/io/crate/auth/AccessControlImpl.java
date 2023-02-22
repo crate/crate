@@ -89,6 +89,7 @@ import io.crate.exceptions.CrateException;
 import io.crate.exceptions.CrateExceptionVisitor;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.SchemaScopeException;
+import io.crate.exceptions.TableFunctionScopeException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.unscoped.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
@@ -913,6 +914,16 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitUnscopedException(UnscopedException e, User context) {
+            return null;
+        }
+
+        @Override
+        protected Void visitTableFunctionScopeException(TableFunctionScopeException e, User user) {
+            for (RelationName relationName : e.getTableIdents()) {
+                if (relationName.schema() != null) {
+                    Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, relationName.schema(), user);
+                }
+            }
             return null;
         }
     }

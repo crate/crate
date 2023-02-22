@@ -37,7 +37,7 @@ import java.util.List;
  */
 public class EmptyRowTableFunction {
 
-    private static final String NAME = "empty_row";
+    public static final String NAME = "empty_row";
 
     public static void register(TableFunctionModule module) {
         module.register(

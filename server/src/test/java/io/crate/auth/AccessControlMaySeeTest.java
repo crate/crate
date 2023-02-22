@@ -21,10 +21,12 @@
 
 package io.crate.auth;
 
+import static io.crate.exceptions.scoped.tablefunction.ColumnUnknownException.columnUnknownFromTableFunctionException;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +42,7 @@ import io.crate.exceptions.scoped.table.RelationValidationException;
 import io.crate.exceptions.scoped.schema.SchemaUnknownException;
 import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
+import io.crate.expression.tablefunctions.EmptyRowTableFunction;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.Privilege;
@@ -109,5 +112,28 @@ public class AccessControlMaySeeTest extends ESTestCase {
     public void testUnscopedException() throws Exception {
         accessControl.ensureMaySee(new UnhandledServerException("unhandled"));
         assertThat(validationCallArguments.size(), is(0));
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/13561
+     */
+    @Test
+    public void test_table_function_scoped_exception_from_null_schema() {
+        // SELECT a; or equivalently, SELECT a FROM empty_row();
+        accessControl.ensureMaySee(
+            columnUnknownFromTableFunctionException("a", new RelationName(null, EmptyRowTableFunction.NAME)));
+        // validation is skipped since it is not bound to a schema
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/13561
+     */
+    @Test
+    public void test_table_function_scoped_exception_from_non_null_schema() {
+        accessControl.ensureMaySee(
+            columnUnknownFromTableFunctionException("a", new RelationName("my_schema", "table"))
+        );
+        assertAskedAnyForSchema("my_schema");
     }
 }

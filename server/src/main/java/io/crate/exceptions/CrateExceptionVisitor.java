@@ -48,4 +48,8 @@ public class CrateExceptionVisitor<C, R> {
     protected R visitUnscopedException(UnscopedException e, C context) {
         return visitCrateException(e, context);
     }
+
+    protected R visitTableFunctionScopeException(TableFunctionScopeException e, C context) {
+        return visitCrateException(e, context);
+    }
 }

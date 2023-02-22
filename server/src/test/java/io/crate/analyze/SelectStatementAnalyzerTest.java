@@ -768,7 +768,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .build();
         assertThatThrownBy(() -> executor.analyze("select 'bar', name"))
-            .isExactlyInstanceOf(io.crate.exceptions.scoped.table.ColumnUnknownException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.scoped.tablefunction.ColumnUnknownException.class)
             .hasMessage("Column name unknown");
     }
 

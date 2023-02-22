@@ -93,6 +93,14 @@ Fixes
   ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
   justifying why a function cannot be dropped.
 
+- Fixed an issue that converted ``ColumnUnknownException`` to a misleading
+   ``SchemaUnknownException`` when users without ``DQL`` on ``doc`` schema
+   queried unknown columns from :ref:`table functions <table-functions>`.
+   An example ::
+
+     SELECT unknown from abs(1);
+     SchemaUnknownException[Schema 'doc' unknown]
+
 - Updated to Admin UI 1.24.3, which fixed a compatibility issue where graphs
   have not been working on the "Overview" page with CrateDB 5.2, and added
   syntax highlighting for functions added in CrateDB 5.2: ``MIN_BY``,

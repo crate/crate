@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.exceptions.scoped.tablefunction.ColumnUnknownException.columnUnknownFromTableFunctionException;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -156,7 +158,11 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             RelationName relationName = new RelationName(schema, columnTableName);
             throw new RelationUnknown(relationName);
         }
-        RelationName relationName = sources.entrySet().iterator().next().getKey();
+        var source = sources.entrySet().iterator().next();
+        RelationName relationName = source.getKey();
+        if (source.getValue() instanceof TableFunctionRelation) {
+            throw columnUnknownFromTableFunctionException(columnIdent.sqlFqn(), relationName);
+        }
         throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
     }
 
