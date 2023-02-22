@@ -25,46 +25,47 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
-
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
+import org.elasticsearch.index.mapper.BooleanFieldMapper;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
+import io.crate.execution.dml.Indexer.ColumnConstraint;
+import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
-public class LongIndexer implements ValueIndexer<Long> {
+public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     private final Reference ref;
     private final String name;
     private final FieldType fieldType;
 
-    public LongIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public BooleanIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
         this.name = ref.column().fqn();
+        this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
     @Override
-    public void indexValue(Long value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(Boolean value,
+                           XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
-        long longValue = value.longValue();
-        addField.accept(new LongPoint(name, longValue));
+                           Map<ColumnIdent, Synthetic> synthetics,
+                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+        xContentBuilder.value(value);
+        addField.accept(new Field(name, value ? "T" : "F", fieldType));
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(name, longValue));
-        }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, longValue));
+            addField.accept(new SortedNumericDocValuesField(name, value ? 1 : 0));
+        } else {
+            addField.accept(new Field(
+                FieldNamesFieldMapper.NAME,
+                name,
+                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
         }
     }
 }
