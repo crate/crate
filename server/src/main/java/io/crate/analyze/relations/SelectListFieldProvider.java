@@ -29,7 +29,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import io.crate.analyze.relations.select.SelectAnalysis;
-import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnAliasException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;

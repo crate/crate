@@ -28,7 +28,7 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;

@@ -44,7 +44,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.common.collections.Lists2;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;

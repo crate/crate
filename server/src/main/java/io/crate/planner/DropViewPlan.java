@@ -25,7 +25,7 @@ import io.crate.analyze.AnalyzedDropView;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.RelationsUnknown;
+import io.crate.exceptions.scoped.table.RelationsUnknown;
 import io.crate.execution.ddl.views.DropViewRequest;
 import io.crate.execution.ddl.views.DropViewResponse;
 import io.crate.execution.support.OneRowActionListener;

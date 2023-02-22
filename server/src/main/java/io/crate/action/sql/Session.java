@@ -56,7 +56,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
-import io.crate.exceptions.ReadOnlyException;
+import io.crate.exceptions.scoped.cluster.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;

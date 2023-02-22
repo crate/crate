@@ -36,7 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

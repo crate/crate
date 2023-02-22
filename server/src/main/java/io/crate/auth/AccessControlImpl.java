@@ -90,7 +90,7 @@ import io.crate.exceptions.CrateExceptionVisitor;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.SchemaScopeException;
 import io.crate.exceptions.TableScopeException;
-import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.unscoped.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -906,7 +906,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitClusterScopeException(ClusterScopeException e, User context) {
+        public Void visitClusterScopeException(ClusterScopeException e, User context) {
             Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, context);
             return null;
         }

@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;

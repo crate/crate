@@ -33,7 +33,7 @@ import java.util.Locale;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.unscoped.InvalidRelationName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

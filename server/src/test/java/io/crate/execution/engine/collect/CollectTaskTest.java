@@ -51,7 +51,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.memory.OnHeapMemoryManager;

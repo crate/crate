@@ -41,7 +41,7 @@ import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;

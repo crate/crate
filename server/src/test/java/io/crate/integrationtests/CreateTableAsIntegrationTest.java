@@ -31,9 +31,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
+import io.crate.exceptions.unscoped.SQLParseException;
 import io.crate.testing.UseJdbc;
 
 public class CreateTableAsIntegrationTest extends IntegTestCase {

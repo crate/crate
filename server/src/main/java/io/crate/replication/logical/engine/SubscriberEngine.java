@@ -31,7 +31,7 @@ import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 
 public class SubscriberEngine extends InternalEngine {
 

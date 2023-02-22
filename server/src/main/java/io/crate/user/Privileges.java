@@ -23,8 +23,8 @@ package io.crate.user;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;

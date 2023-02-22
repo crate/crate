@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.exceptions.scoped.cluster.RepositoryAlreadyExistsException;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;

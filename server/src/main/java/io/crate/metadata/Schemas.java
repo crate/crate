@@ -54,8 +54,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -266,7 +266,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @param ident the table ident to get a TableInfo for
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
-     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
+     * @throws SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
      * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
@@ -285,7 +285,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @param operation The opreation planned to be performed on the table
      * @return an instance of TableInfo for the given ident, guaranteed to be not null and to support the operation
      * required on it.
-     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
+     * @throws SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
      * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema

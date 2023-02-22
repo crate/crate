@@ -22,7 +22,7 @@
 package io.crate.expression.udf;
 
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

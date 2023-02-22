@@ -21,15 +21,15 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.DuplicateKeyException;
-import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.AmbiguousColumnAliasException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.DuplicateKeyException;
+import io.crate.exceptions.scoped.schema.InvalidSchemaNameException;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionUnknownException;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;

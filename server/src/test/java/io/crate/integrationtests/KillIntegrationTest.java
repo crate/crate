@@ -45,9 +45,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.plugin.CrateTestingPlugin;
 

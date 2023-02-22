@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;

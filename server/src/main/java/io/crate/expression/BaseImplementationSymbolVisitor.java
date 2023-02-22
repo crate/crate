@@ -26,7 +26,7 @@ import java.util.Locale;
 
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;

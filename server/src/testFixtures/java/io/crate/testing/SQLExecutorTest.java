@@ -21,7 +21,7 @@
 
 package io.crate.testing;
 
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Test;
 

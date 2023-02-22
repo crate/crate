@@ -38,7 +38,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.metadata.RelationName;
 
 /**

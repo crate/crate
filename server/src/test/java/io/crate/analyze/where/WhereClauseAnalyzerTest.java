@@ -42,7 +42,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;

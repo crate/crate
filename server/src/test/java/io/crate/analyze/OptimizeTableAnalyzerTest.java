@@ -36,8 +36,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.data.RowN;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.operators.SubQueryResults;

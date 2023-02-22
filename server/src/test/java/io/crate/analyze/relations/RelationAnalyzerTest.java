@@ -34,7 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.exceptions.RelationValidationException;
+import io.crate.exceptions.scoped.table.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;

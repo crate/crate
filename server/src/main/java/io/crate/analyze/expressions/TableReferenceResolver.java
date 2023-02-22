@@ -28,7 +28,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;

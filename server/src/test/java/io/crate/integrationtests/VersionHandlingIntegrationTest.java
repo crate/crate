@@ -34,7 +34,7 @@ import java.io.IOException;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.testing.Asserts;
 
 public class VersionHandlingIntegrationTest extends IntegTestCase {

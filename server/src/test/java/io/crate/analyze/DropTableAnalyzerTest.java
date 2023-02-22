@@ -32,9 +32,9 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

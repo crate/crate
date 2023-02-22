@@ -21,6 +21,7 @@
 
 package io.crate.exceptions;
 
+import io.crate.exceptions.unscoped.UnauthorizedException;
 import io.crate.user.Privilege;
 
 import java.util.Locale;

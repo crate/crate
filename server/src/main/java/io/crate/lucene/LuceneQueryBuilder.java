@@ -49,8 +49,8 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.data.Input;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;

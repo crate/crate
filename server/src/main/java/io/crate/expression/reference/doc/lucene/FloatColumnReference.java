@@ -29,7 +29,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 
 public class FloatColumnReference extends LuceneCollectorExpression<Float> {
 

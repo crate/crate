@@ -22,7 +22,7 @@
 package io.crate.replication.logical.action;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;

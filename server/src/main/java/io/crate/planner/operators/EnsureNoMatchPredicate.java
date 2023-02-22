@@ -21,7 +21,7 @@
 
 package io.crate.planner.operators;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;

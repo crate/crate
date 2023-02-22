@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;

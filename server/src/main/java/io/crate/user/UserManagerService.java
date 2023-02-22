@@ -34,8 +34,8 @@ import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
-import io.crate.exceptions.UserAlreadyExistsException;
-import io.crate.exceptions.UserUnknownException;
+import io.crate.exceptions.unscoped.UserAlreadyExistsException;
+import io.crate.exceptions.unscoped.UserUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;

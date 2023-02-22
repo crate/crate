@@ -30,7 +30,7 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;

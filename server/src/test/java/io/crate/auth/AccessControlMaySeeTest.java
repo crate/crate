@@ -36,10 +36,10 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.RelationValidationException;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.table.RelationValidationException;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.Privilege;

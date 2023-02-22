@@ -23,7 +23,7 @@ package io.crate.execution.dml;
 
 import io.crate.common.CheckedSupplier;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllListener;

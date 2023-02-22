@@ -21,8 +21,8 @@
 
 package io.crate.metadata;
 
-import io.crate.exceptions.AnalyzerInvalidException;
-import io.crate.exceptions.AnalyzerUnknownException;
+import io.crate.exceptions.scoped.cluster.AnalyzerInvalidException;
+import io.crate.exceptions.scoped.cluster.AnalyzerUnknownException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;

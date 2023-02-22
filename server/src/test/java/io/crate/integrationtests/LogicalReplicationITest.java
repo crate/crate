@@ -39,8 +39,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;

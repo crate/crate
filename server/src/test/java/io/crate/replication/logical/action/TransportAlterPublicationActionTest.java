@@ -34,7 +34,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.sql.tree.AlterPublication;

@@ -70,7 +70,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.execution.engine.fetch.ReaderContext;

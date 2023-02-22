@@ -42,7 +42,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;

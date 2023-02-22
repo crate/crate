@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import java.util.List;
 
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;

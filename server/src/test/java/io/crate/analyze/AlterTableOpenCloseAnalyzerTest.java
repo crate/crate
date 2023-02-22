@@ -26,7 +26,7 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 

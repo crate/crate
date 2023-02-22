@@ -37,11 +37,11 @@ import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import io.crate.auth.AccessControl;
-import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnAliasException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.schema.InvalidSchemaNameException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.protocols.postgres.PGError;
 import io.crate.protocols.postgres.PGErrorStatus;

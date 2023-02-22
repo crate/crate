@@ -30,8 +30,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.unscoped.InvalidRelationName;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;

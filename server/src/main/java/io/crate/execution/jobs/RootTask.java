@@ -41,9 +41,9 @@ import org.apache.logging.log4j.Logger;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;

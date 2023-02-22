@@ -21,7 +21,7 @@
 
 package io.crate.metadata.table;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;

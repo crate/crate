@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedNumericDocValues;

@@ -36,7 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.sql.tree.FrameBound;

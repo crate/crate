@@ -61,7 +61,7 @@ import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

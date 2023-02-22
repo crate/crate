@@ -36,8 +36,8 @@ import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
-import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionUnknownException;
 import io.crate.metadata.Schemas;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;

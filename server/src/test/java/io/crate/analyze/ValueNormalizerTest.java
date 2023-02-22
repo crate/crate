@@ -33,9 +33,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.expressions.ValueNormalizer;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;

@@ -30,7 +30,7 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 

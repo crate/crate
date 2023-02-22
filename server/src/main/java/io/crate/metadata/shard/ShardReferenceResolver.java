@@ -33,7 +33,7 @@ import org.elasticsearch.index.Index;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ResourceUnknownException;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;

@@ -44,8 +44,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
 import io.crate.expression.scalar.SubstrFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;

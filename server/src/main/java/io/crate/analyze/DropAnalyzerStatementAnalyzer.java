@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.AnalyzerUnknownException;
+import io.crate.exceptions.scoped.cluster.AnalyzerUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 
 public class DropAnalyzerStatementAnalyzer {

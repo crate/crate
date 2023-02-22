@@ -51,7 +51,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;

@@ -34,7 +34,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;

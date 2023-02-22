@@ -23,7 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

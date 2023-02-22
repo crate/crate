@@ -45,8 +45,8 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.JobKilledException;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;

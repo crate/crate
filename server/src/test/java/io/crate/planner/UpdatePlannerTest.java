@@ -47,8 +47,8 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;

@@ -37,7 +37,7 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.data.Input;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;

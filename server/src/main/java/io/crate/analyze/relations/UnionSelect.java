@@ -28,8 +28,8 @@ import javax.annotation.Nonnull;
 
 import org.elasticsearch.common.UUIDs;
 
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;

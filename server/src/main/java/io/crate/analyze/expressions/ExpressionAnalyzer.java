@@ -57,7 +57,7 @@ import io.crate.analyze.relations.SelectListFieldProvider;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;

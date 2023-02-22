@@ -55,7 +55,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;

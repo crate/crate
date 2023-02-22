@@ -34,8 +34,8 @@ import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.InvalidArgumentException;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.unscoped.UnauthorizedException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;

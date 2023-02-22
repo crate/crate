@@ -29,7 +29,7 @@ import java.util.BitSet;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.sql.tree.BitString;
 

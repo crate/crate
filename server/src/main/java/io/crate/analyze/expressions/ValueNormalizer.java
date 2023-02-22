@@ -26,8 +26,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
@@ -56,7 +56,7 @@ public final class ValueNormalizer {
      * @param valueSymbol the value to normalize, might be anything from {@link Scalar} to {@link io.crate.expression.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
-     * @throws io.crate.exceptions.ColumnValidationException
+     * @throws ColumnValidationException
      */
     public static Symbol normalizeInputForReference(Symbol valueSymbol,
                                                     Reference reference,

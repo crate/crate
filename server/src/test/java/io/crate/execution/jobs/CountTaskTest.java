@@ -39,8 +39,8 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.exceptions.JobKilledException;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.unscoped.JobKilledException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;

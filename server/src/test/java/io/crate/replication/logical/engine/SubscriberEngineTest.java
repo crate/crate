@@ -31,7 +31,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngineTests;
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SubscriberEngineTest extends CrateDummyClusterServiceUnitTest {

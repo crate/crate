@@ -75,7 +75,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.DuplicateKeyException;
+import io.crate.exceptions.scoped.table.DuplicateKeyException;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.

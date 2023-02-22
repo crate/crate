@@ -24,7 +24,7 @@ package io.crate.execution.ddl.tables;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import org.elasticsearch.action.ActionListener;

@@ -41,7 +41,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;

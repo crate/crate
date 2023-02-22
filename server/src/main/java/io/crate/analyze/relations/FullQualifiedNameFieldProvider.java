@@ -28,9 +28,9 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;

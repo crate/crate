@@ -31,8 +31,8 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;

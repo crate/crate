@@ -56,8 +56,18 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.scoped.schema.UserDefinedFunctionUnknownException;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.unscoped.JobKilledException;
+import io.crate.exceptions.unscoped.TaskMissing;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 
 /**
  * A base class for all elasticsearch exceptions.
@@ -991,14 +1001,14 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 155,
                 Version.V_4_3_0),
         JOB_KILLED_EXCEPTION(
-            io.crate.exceptions.JobKilledException.class,
-            io.crate.exceptions.JobKilledException::new,
-                156,
+            JobKilledException.class,
+            JobKilledException::new,
+            156,
             Version.V_4_3_0),
         TASK_MISSING_EXCEPTION(
-            io.crate.exceptions.TaskMissing.class,
-            io.crate.exceptions.TaskMissing::new,
-                157,
+            TaskMissing.class,
+            TaskMissing::new,
+            157,
             Version.V_4_3_0),
         RETENTION_LEASE_INVALID_RETAINING_SEQUENCE_NUMBER_EXCEPTION(
             org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException.class,
@@ -1006,18 +1016,18 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             158,
             Version.V_4_3_0),
         RELATION_ALREADY_EXISTS(
-            io.crate.exceptions.RelationAlreadyExists.class,
-            io.crate.exceptions.RelationAlreadyExists::new,
+            RelationAlreadyExists.class,
+            RelationAlreadyExists::new,
             159,
             Version.V_4_7_0),
         RELATION_UNKNOWN(
-            io.crate.exceptions.RelationUnknown.class,
-            io.crate.exceptions.RelationUnknown::new,
+            RelationUnknown.class,
+            RelationUnknown::new,
             160,
             Version.V_4_7_0),
         SCHEMA_UNKNOWN(
-            io.crate.exceptions.SchemaUnknownException.class,
-            io.crate.exceptions.SchemaUnknownException::new,
+            SchemaUnknownException.class,
+            SchemaUnknownException::new,
             161,
             Version.V_4_7_0),
         GROUP_BY_ON_ARRAY_UNSUPPORTED_EXCEPTION(
@@ -1031,28 +1041,28 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             163,
             Version.V_4_7_0),
         INVALID_COLUMN_NAME_EXCEPTION(
-            io.crate.exceptions.InvalidColumnNameException.class,
-            io.crate.exceptions.InvalidColumnNameException::new,
+            InvalidColumnNameException.class,
+            InvalidColumnNameException::new,
             164,
             Version.V_4_7_0),
         UNSUPPORTED_FEATURE_EXCEPTION(
-            io.crate.exceptions.UnsupportedFeatureException.class,
-            io.crate.exceptions.UnsupportedFeatureException::new,
+            UnsupportedFeatureException.class,
+            UnsupportedFeatureException::new,
             165,
             Version.V_4_7_0),
         USER_DEFINED_FUNCTION_ALREADY_EXISTS_EXCEPTION(
-            io.crate.exceptions.UserDefinedFunctionAlreadyExistsException.class,
-            io.crate.exceptions.UserDefinedFunctionAlreadyExistsException::new,
+            UserDefinedFunctionAlreadyExistsException.class,
+            UserDefinedFunctionAlreadyExistsException::new,
             166,
             Version.V_4_7_0),
         USER_DEFINED_FUNCTION_UNKNOWN_EXCEPTION(
-            io.crate.exceptions.UserDefinedFunctionUnknownException.class,
-            io.crate.exceptions.UserDefinedFunctionUnknownException::new,
+            UserDefinedFunctionUnknownException.class,
+            UserDefinedFunctionUnknownException::new,
             167,
             Version.V_4_7_0),
         VERSIONING_VALIDATION_EXCEPTION(
-            io.crate.exceptions.VersioningValidationException.class,
-            io.crate.exceptions.VersioningValidationException::new,
+            VersioningValidationException.class,
+            VersioningValidationException::new,
             168,
             Version.V_4_7_0),
         PUBLICATION_ALREADY_EXISTS_EXCEPTION(

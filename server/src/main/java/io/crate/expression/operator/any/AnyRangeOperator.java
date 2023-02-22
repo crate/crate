@@ -26,7 +26,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.expression.operator.CmpOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;

@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;

@@ -44,7 +44,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;

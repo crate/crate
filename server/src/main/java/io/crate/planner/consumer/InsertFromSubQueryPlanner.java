@@ -29,7 +29,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedInsertStatement;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;

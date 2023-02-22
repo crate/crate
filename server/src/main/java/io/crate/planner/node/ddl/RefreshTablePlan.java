@@ -28,7 +28,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.scoped.table.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;

@@ -65,7 +65,7 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;

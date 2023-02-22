@@ -52,7 +52,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.exceptions.UnavailableShardsException;
+import io.crate.exceptions.scoped.table.UnavailableShardsException;
 
 /**
  * This component can be used to get the Routing for indices.

@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
 import io.crate.auth.AccessControl;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubUserManager implements UserManager {

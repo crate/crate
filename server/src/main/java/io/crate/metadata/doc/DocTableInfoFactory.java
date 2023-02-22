@@ -40,8 +40,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.unscoped.UnhandledServerException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;

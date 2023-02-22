@@ -36,7 +36,7 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;

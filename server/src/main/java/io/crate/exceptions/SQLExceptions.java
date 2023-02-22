@@ -57,6 +57,17 @@ import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import io.crate.auth.AccessControl;
+import io.crate.exceptions.scoped.cluster.RepositoryUnknownException;
+import io.crate.exceptions.scoped.cluster.SnapshotAlreadyExistsException;
+import io.crate.exceptions.scoped.cluster.SnapshotNameInvalidException;
+import io.crate.exceptions.scoped.cluster.SnapshotUnknownException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.table.DuplicateKeyException;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.unscoped.InvalidRelationName;
+import io.crate.exceptions.unscoped.JobKilledException;
+import io.crate.exceptions.unscoped.SQLParseException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 

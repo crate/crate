@@ -32,7 +32,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 
 public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
 

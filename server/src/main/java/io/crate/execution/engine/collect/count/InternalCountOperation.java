@@ -52,7 +52,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;

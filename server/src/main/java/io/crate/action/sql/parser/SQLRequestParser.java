@@ -21,7 +21,7 @@
 
 package io.crate.action.sql.parser;
 
-import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.unscoped.SQLParseException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;

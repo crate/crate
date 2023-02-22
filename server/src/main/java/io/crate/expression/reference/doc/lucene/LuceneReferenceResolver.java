@@ -33,8 +33,8 @@ import org.apache.lucene.search.Scorable;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.common.collections.Maps;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.unscoped.UnhandledServerException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.SymbolType;

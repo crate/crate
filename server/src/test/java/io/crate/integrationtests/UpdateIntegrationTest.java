@@ -40,7 +40,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 

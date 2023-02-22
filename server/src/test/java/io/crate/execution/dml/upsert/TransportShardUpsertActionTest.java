@@ -70,7 +70,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;

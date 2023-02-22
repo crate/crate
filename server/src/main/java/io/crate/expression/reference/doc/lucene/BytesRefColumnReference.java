@@ -29,7 +29,7 @@ import org.apache.lucene.index.DocValues;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 
 public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
 

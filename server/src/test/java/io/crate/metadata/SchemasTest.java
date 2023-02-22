@@ -42,9 +42,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.schema.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.doc.DocSchemaInfoFactory;

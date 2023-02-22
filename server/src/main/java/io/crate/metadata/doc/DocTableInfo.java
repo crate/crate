@@ -38,7 +38,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;

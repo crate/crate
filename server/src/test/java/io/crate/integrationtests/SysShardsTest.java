@@ -58,7 +58,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;

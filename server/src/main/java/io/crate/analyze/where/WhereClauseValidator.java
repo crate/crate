@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Supplier;
 
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.Operator;

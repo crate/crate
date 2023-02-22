@@ -53,7 +53,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.data.RowN;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

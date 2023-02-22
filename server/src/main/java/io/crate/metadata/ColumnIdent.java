@@ -42,7 +42,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Ordering;
-import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 

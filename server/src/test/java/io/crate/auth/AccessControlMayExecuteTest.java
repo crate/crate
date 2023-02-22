@@ -53,7 +53,7 @@ import org.mockito.Answers;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.unscoped.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;

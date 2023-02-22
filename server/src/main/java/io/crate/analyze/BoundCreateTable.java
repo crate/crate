@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

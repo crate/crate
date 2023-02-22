@@ -31,8 +31,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.unscoped.InvalidRelationName;
+import io.crate.exceptions.scoped.schema.InvalidSchemaNameException;
 
 public class RelationNameTest extends ESTestCase {
 

@@ -51,7 +51,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
 

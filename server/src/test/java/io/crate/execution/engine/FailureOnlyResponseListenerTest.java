@@ -30,7 +30,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 
 public class FailureOnlyResponseListenerTest extends ESTestCase {
 

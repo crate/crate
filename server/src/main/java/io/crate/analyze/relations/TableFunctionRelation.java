@@ -28,8 +28,8 @@ import java.util.function.Consumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;

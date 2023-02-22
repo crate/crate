@@ -41,7 +41,7 @@ import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;

@@ -39,7 +39,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.testing.Asserts;

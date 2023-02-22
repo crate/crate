@@ -77,7 +77,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;

@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;

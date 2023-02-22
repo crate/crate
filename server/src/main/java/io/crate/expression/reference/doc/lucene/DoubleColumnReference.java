@@ -30,7 +30,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 
 public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
 

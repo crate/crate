@@ -23,8 +23,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.RelationsUnknown;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.table.RelationsUnknown;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;

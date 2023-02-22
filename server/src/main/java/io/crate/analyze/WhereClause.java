@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.data.Input;
-import io.crate.exceptions.VersioningValidationException;
+import io.crate.exceptions.unscoped.VersioningValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;

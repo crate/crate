@@ -38,8 +38,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.unscoped.InvalidRelationName;
+import io.crate.exceptions.scoped.schema.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.Identifiers;

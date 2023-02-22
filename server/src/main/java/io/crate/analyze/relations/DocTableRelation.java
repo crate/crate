@@ -28,9 +28,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.scoped.table.AmbiguousColumnException;
+import io.crate.exceptions.scoped.table.ColumnUnknownException;
+import io.crate.exceptions.scoped.table.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -81,7 +81,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     }
 
     /**
-     * @throws io.crate.exceptions.ColumnValidationException if the column cannot be updated
+     * @throws ColumnValidationException if the column cannot be updated
      */
     @VisibleForTesting
     void ensureColumnCanBeUpdated(ColumnIdent ci) {

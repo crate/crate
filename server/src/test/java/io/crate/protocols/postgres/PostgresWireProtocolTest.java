@@ -65,7 +65,7 @@ import io.crate.action.sql.Session;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthenticationMethod;
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.types.PGTypes;

@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.not;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.unscoped.InvalidRelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;

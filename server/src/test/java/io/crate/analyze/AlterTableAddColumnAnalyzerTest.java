@@ -46,7 +46,7 @@ import org.junit.Test;
 
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.scoped.table.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;

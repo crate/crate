@@ -40,8 +40,8 @@ import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.table.RelationUnknown;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.sql.parser.SqlParser;

@@ -41,7 +41,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.action.FutureActionListener;
-import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.unscoped.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummyTask;
 import io.crate.execution.jobs.NodeLimits;

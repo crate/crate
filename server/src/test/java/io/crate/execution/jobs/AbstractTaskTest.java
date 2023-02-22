@@ -36,7 +36,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.unscoped.JobKilledException;
 
 public class AbstractTaskTest extends ESTestCase {
 

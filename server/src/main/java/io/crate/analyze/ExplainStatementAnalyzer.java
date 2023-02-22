@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.scoped.cluster.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;

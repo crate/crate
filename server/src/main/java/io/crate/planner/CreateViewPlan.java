@@ -28,7 +28,7 @@ import io.crate.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.scoped.table.RelationAlreadyExists;
 import io.crate.execution.ddl.views.CreateViewRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;

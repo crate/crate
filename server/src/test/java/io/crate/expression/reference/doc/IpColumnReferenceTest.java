@@ -43,7 +43,7 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.unscoped.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.IpColumnReference;
 

@@ -31,7 +31,7 @@ import java.util.Collections;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.scoped.cluster.InvalidColumnNameException;
 import io.crate.metadata.doc.DocSysColumns;
 
 public class ColumnIdentTest {
