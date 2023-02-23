@@ -59,8 +59,8 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                                  List<AnalyzedRelation> from,
                                  List<JoinPair> joinPairs,
                                  List<Symbol> outputs,
-                                 @Nullable Symbol whereClause,
-                                 @Nullable List<Symbol> groupBy,
+                                 Symbol whereClause,
+                                 List<Symbol> groupBy,
                                  @Nullable Symbol having,
                                  @Nullable OrderBy orderBy,
                                  @Nullable Symbol limit,
@@ -172,13 +172,9 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         for (Symbol output : outputs) {
             consumer.accept(output);
         }
-        if (whereClause != null) {
-            consumer.accept(whereClause);
-        }
-        if (groupBy != null) {
-            for (Symbol groupKey : groupBy) {
-                consumer.accept(groupKey);
-            }
+        consumer.accept(whereClause);
+        for (Symbol groupKey : groupBy) {
+            consumer.accept(groupKey);
         }
         if (having != null) {
             consumer.accept(having);

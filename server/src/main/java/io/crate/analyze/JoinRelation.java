@@ -46,8 +46,7 @@ public class JoinRelation implements AnalyzedRelation {
     private final List<Symbol> outputs;
     private final Optional<JoinCriteria> joinCriteria;
     private final JoinType joinType;
-
-
+    
     public JoinRelation(AnalyzedRelation left,
                         AnalyzedRelation right,
                         List<Symbol> outputs,
