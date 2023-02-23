@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -65,14 +67,21 @@ public class JoinPairAnalyzer extends AnalyzedRelationVisitor<JoinPairAnalyzer.C
 
     @Override
     public Void visitJoinRelation(JoinRelation joinRelation, Context context) {
-        joinRelation.left().accept(this,context);
-        joinRelation.right().accept(this,context);
+        joinRelation.left().accept(this, context);
+        joinRelation.right().accept(this, context);
         Symbol joinCondition = joinRelation.joinCondition();
         Set<RelationName> collect = RelationNameCollector.collect(joinCondition);
-        var it = collect.iterator();
-        var left = it.next();
-        var right = it.next();
-        // Now create the Join Pair in the original order of the relation
+        RelationName left;
+        RelationName right;
+        if (collect.size() == 1) {
+            left = joinRelation.left().relationName();
+            right = joinRelation.right().relationName();
+        } else {
+            var it = collect.iterator();
+            left = it.next();
+            right = it.next();
+        }
+        // Now create the Join Pair in the original order of the query
         var leftIndex = context.sourceNames.indexOf(left);
         var rightIndex = context.sourceNames.indexOf(right);
         if (leftIndex > rightIndex) {
