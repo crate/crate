@@ -1,0 +1,65 @@
+.. _version_5.2.3:
+
+=============
+Version 5.2.3
+=============
+
+Released on 2023-02-23.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.2.3.
+
+    We recommend that you upgrade to the latest 5.1 release before moving to
+    5.2.3.
+
+    A rolling upgrade from 5.1.x to 5.2.3 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.2.0` release notes for a full list of changes in the
+5.2 series.
+
+Fixes
+=====
+
+- Fixed an issue that caused correlated sub-queries to fail if using columns in
+  the filter clause that were otherwise not selected.
+
+- Fixed an issue that caused correlated sub-queries to fail with an
+  ``IllegalStateException`` when the outer query contained multiple joins.
+  An example ::
+
+    CREATE TABLE a (x INT, y INT, z INT); // tables b, c, d created as a
+    SELECT
+      (SELECT 1 WHERE a.x=1 AND b.y=1 AND c.z=1)
+    FROM a, b, c, d;
+    IllegalStateException[OuterColumn `y` must appear in input of
+    CorrelatedJoin]
+
+- Fixed an issue that caused ``DROP FUNCTION`` to throw a
+  ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
+  justifying why a function cannot be dropped.
+
+- Updated to Admin UI 1.24.3, which fixed a compatibility issue where graphs
+  have not been working on the "Overview" page with CrateDB 5.2, and added
+  syntax highlighting for functions added in CrateDB 5.2: ``MIN_BY``,
+  ``MAX_BY``, ``HAS_DATABASE_PRIVILEGE``, ``PARSE_URI``, and ``PARSE_URL``.
