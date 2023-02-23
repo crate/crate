@@ -74,26 +74,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+None
 
-- Fixed an issue that caused correlated sub-queries to fail if using columns in
-  the filter clause that were otherwise not selected.
-
-- Fixed an issue that caused correlated sub-queries to fail with an
-  ``IllegalStateException`` when the outer query contained multiple joins.
-  An example ::
-
-    CREATE TABLE a (x INT, y INT, z INT); // tables b, c, d created as a
-    SELECT
-      (SELECT 1 WHERE a.x=1 AND b.y=1 AND c.z=1)
-    FROM a, b, c, d;
-    IllegalStateException[OuterColumn `y` must appear in input of
-    CorrelatedJoin]
-
-- Fixed an issue that caused ``DROP FUNCTION`` to throw a
-  ``ColumnUnknownException`` instead of an ``IllegalArgumentException``
-  justifying why a function cannot be dropped.
-
-- Updated to Admin UI 1.24.3, which fixed a compatibility issue where graphs
-  have not been working on the "Overview" page with CrateDB 5.2, and added
-  syntax highlighting for functions added in CrateDB 5.2: ``MIN_BY``,
-  ``MAX_BY``, ``HAS_DATABASE_PRIVILEGE``, ``PARSE_URI``, and ``PARSE_URL``.
