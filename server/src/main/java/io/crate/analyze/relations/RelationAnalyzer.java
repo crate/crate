@@ -314,17 +314,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ExpressionAnalysisContext expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
             Symbol joinCondition = expressionAnalyzer.convert(expr, expressionAnalysisContext);
             var relationNames = RelationNameCollector.collect(joinCondition).iterator();
-            var first = relationNames.next();
-            var second = relationNames.next();
-            var relationsInOrder = List.copyOf(statementContext.currentRelationContext().sources().keySet());
-            var x = relationsInOrder.indexOf(first);
-            var y = relationsInOrder.indexOf(second);
-            if (x > y) {
-                var temp = first;
-                first = second;
-                second = temp;
+            var left = relationNames.next();
+            var right = relationNames.next();
+            // Now create Join Pairs in the original order of the relations
+            var relationsInOrder = statementContext.currentRelationContext().sourceNames();
+            var leftIndex = relationsInOrder.indexOf(left);
+            var rightIndex = relationsInOrder.indexOf(right);
+            if (leftIndex > rightIndex) {
+                var temp = left;
+                left = right;
+                right = temp;
             }
-            return JoinPair.of(first, second, joinRelation.joinType(), joinCondition);
+            return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
         } catch (RelationUnknown e) {
             throw new RelationValidationException(e.getTableIdents(),
                                                   String.format(Locale.ENGLISH,

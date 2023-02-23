@@ -59,8 +59,15 @@ public class RelationAnalysisContext {
         return aliasedRelation;
     }
 
-    public LinkedHashMap<RelationName, AnalyzedRelation> sources() {
+    public Map<RelationName, AnalyzedRelation> sources() {
         return sources;
+    }
+
+    /**
+     * Returns relationNames in the insertion order of the source
+     */
+    public List<RelationName> sourceNames() {
+        return List.copyOf(sources.keySet());
     }
 
     void addJoinPair(JoinPair joinType) {
