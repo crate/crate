@@ -110,7 +110,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseJdbc(1)
     public void testInsertFromInnerJoin() throws Exception {
         execute("create table t1 (x int)");
         execute("create table t2 (y int)");
