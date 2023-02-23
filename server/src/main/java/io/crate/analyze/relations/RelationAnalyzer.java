@@ -300,10 +300,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (joinCriteria instanceof JoinOn joinOn) {
             expr = joinOn.getExpression();
         } else if (joinCriteria instanceof JoinUsing joinUsing) {
+            // this will break on a nested join, when one of the underlying relations is e.g. another join or a union
             expr = JoinUsing.toExpression(
                 joinRelation.left().relationName().toQualifiedName(),
                 joinRelation.right().relationName().toQualifiedName(),
-                (joinUsing).getColumns());
+                joinUsing.getColumns());
         } else {
             throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "join criteria %s not supported", joinCriteria.getClass().getSimpleName())
@@ -313,19 +314,24 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
             ExpressionAnalysisContext expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
             Symbol joinCondition = expressionAnalyzer.convert(expr, expressionAnalysisContext);
-            var relationNames = RelationNameCollector.collect(joinCondition).iterator();
-            var left = relationNames.next();
-            var right = relationNames.next();
-            // Now create Join Pairs in the original order of the relations
-            var relationsInOrder = statementContext.currentRelationContext().sourceNames();
-            var leftIndex = relationsInOrder.indexOf(left);
-            var rightIndex = relationsInOrder.indexOf(right);
-            if (leftIndex > rightIndex) {
-                var temp = left;
-                left = right;
-                right = temp;
+            var relationNames = RelationNameCollector.collect(joinCondition);
+            if (relationNames.size() == 2) {
+                var it = relationNames.iterator();
+                var left = it.next();
+                var right = it.next();
+                // Now create the Join Pair in the original order of the relations
+                var relationsInOrder = statementContext.currentRelationContext().sourceNames();
+                var leftIndex = relationsInOrder.indexOf(left);
+                var rightIndex = relationsInOrder.indexOf(right);
+                if (leftIndex > rightIndex) {
+                    var temp = left;
+                    left = right;
+                    right = temp;
+                }
+                return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
+            } else {
+                return null;
             }
-            return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
         } catch (RelationUnknown e) {
             throw new RelationValidationException(e.getTableIdents(),
                                                   String.format(Locale.ENGLISH,
