@@ -21,11 +21,6 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.analyze.JoinRelation;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -44,8 +39,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -108,22 +101,6 @@ public final class JoinOperations {
         return new EvalProjection(projectionOutputs);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<List<JoinPair>, AnalyzedRelation> {
-
-        @Override
-        public AnalyzedRelation visitDocTableRelation(DocTableRelation relation, List<JoinPair> context) {
-            return relation;
-        }
-
-        @Override
-        public AnalyzedRelation visitJoinRelation(JoinRelation joinRelation, List<JoinPair> context) {
-            var left = joinRelation.left().accept(this, context);
-            var right = joinRelation.right().accept(this, context);
-            return null;
-        }
-    }
-
-
 
     public static LinkedHashMap<Set<RelationName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
@@ -132,11 +109,7 @@ public final class JoinOperations {
                 continue;
             }
             // Left/right sides of a join pair have to be consistent with the key set, we ensure that left side is always first in the set.
-            RelationName left = joinPair.left();
-            RelationName right = joinPair.right();
-            JoinPair prevPair = joinPairsMap.put(
-                new LinkedHashSet<>(List.of(left, right)), joinPair
-            );
+            JoinPair prevPair = joinPairsMap.put(new LinkedHashSet<>(List.of(joinPair.left(), joinPair.right())), joinPair);
             if (prevPair != null) {
                 throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
             }
