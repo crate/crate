@@ -31,6 +31,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.RefVisitor;
@@ -170,7 +171,8 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
         }
 
-        RefVisitor.visitRefs(where, r -> toCollect.add(r));
+        RefVisitor.visitRefs(where, toCollect::add);
+        FieldsVisitor.visitFields(where, toCollect::add);
         ArrayList<Symbol> outputs = new ArrayList<>();
         for (var output : toCollect) {
             if (Symbols.containsCorrelatedSubQuery(output)) {
