@@ -31,6 +31,7 @@ Versions
 .. toctree::
     :maxdepth: 1
 
+    5.2.3
     5.2.2
     5.2.1
     5.2.0
