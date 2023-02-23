@@ -21,19 +21,14 @@
 
 package io.crate.analyze.relations;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.planner.node.dql.join.JoinType;
 
 public class RelationAnalysisContext {
 
@@ -43,9 +38,6 @@ public class RelationAnalysisContext {
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final LinkedHashMap<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
-
-    @Nullable
-    private List<JoinPair> joinPairs;
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
@@ -68,20 +60,6 @@ public class RelationAnalysisContext {
      */
     public List<RelationName> sourceNames() {
         return List.copyOf(sources.keySet());
-    }
-
-    void addJoinPair(JoinPair joinType) {
-        if (joinPairs == null) {
-            joinPairs = new ArrayList<>();
-        }
-        joinPairs.add(joinType);
-    }
-
-    List<JoinPair> joinPairs() {
-        if (joinPairs == null) {
-            return List.of();
-        }
-        return joinPairs;
     }
 
     void addSourceRelation(AnalyzedRelation relation) {

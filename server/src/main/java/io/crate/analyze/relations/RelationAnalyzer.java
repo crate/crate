@@ -51,6 +51,7 @@ import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -84,7 +85,10 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
+import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -270,12 +274,34 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         AnalyzedRelation leftRel = node.getLeft().accept(this, statementContext);
         AnalyzedRelation rightRel = node.getRight().accept(this, statementContext);
-        JoinRelation joinRelation = new JoinRelation(leftRel,
-                                                     rightRel,
-                                                     leftRel.outputs(),
-                                                     node.getCriteria(),
-                                                     JoinType.values()[node.getType().ordinal()]);
-        return joinRelation;
+
+        if (node.getCriteria().isPresent()) {
+            Expression expression = null;
+            var joinCriteria = node.getCriteria().get();
+            if (joinCriteria instanceof JoinOn joinOn) {
+                expression = joinOn.getExpression();
+            } else if (joinCriteria instanceof JoinUsing joinUsing) {
+                // using assumes it's un-nested, so we can extract the relation names directly
+                expression = JoinUsing.toExpression(
+                    leftRel.relationName().toQualifiedName(),
+                    rightRel.relationName().toQualifiedName(),
+                    joinUsing.getColumns());
+            } else if (joinCriteria instanceof NaturalJoin) {
+                throw new IllegalStateException();
+            }
+            try {
+                ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
+                Symbol joinCondition = expressionAnalyzer.convert(expression, statementContext.currentRelationContext().expressionAnalysisContext());
+                return new JoinRelation(leftRel, rightRel, leftRel.outputs(), JoinType.values()[node.getType().ordinal()], joinCondition);
+            } catch (RelationUnknown e) {
+                throw new RelationValidationException(
+                    e.getTableIdents(),
+                    String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents())
+                );
+            }
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     private ExpressionAnalyzer getExpressionAnalyzer(StatementAnalysisContext statementContext) {
@@ -297,27 +323,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         RelationAnalysisContext currentRelationContext = statementContext.startRelation();
-
+        List<JoinPair> joinPairs = new ArrayList<>();
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            var analyzedRelation = relation.accept(this, statementContext);
-            if (analyzedRelation instanceof JoinRelation joinRelation) {
-                var joinPairs = JoinPairBuilder.buildJoinPair(joinRelation,
-                                              getExpressionAnalyzer(statementContext),
-                                              statementContext.currentRelationContext().expressionAnalysisContext(),
-                                              statementContext.currentRelationContext().sourceNames());
-                for (JoinPair joinPair : joinPairs) {
-                    currentRelationContext.addJoinPair(joinPair);
-                }
-            }
+            AnalyzedRelation analyzedRelation = relation.accept(this, statementContext);
             statementContext.endRelation();
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
             }
-            for (JoinPair joinPair : innerContext.joinPairs()) {
-                currentRelationContext.addJoinPair(joinPair);
-            }
+            joinPairs.addAll(JoinPairAnalyzer.apply(analyzedRelation, currentRelationContext.sourceNames()));
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
@@ -363,7 +378,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
             List.copyOf(context.sources().values()),
-            context.joinPairs(),
+            joinPairs,
             selectAnalysis.outputSymbols(),
             where,
             groupBy,

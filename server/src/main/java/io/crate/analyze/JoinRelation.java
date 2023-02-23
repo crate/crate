@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -37,26 +36,25 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.sql.tree.JoinCriteria;
 
 public class JoinRelation implements AnalyzedRelation {
 
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
     private final List<Symbol> outputs;
-    private final Optional<JoinCriteria> joinCriteria;
     private final JoinType joinType;
+    private final Symbol joinCondition;
 
     public JoinRelation(AnalyzedRelation left,
                         AnalyzedRelation right,
                         List<Symbol> outputs,
-                        Optional<JoinCriteria> joinCriteria,
-                        JoinType joinType) {
+                        JoinType joinType,
+                        Symbol joinCondition) {
         this.outputs = outputs;
         this.left = left;
         this.right = right;
-        this.joinCriteria = joinCriteria;
         this.joinType = joinType;
+        this.joinCondition = joinCondition;
     }
 
     public AnalyzedRelation left() {
@@ -67,12 +65,12 @@ public class JoinRelation implements AnalyzedRelation {
         return right;
     }
 
-    public Optional<JoinCriteria> joinCriteria() {
-        return joinCriteria;
-    }
-
     public JoinType joinType() {
         return joinType;
+    }
+
+    public Symbol joinCondition() {
+        return joinCondition;
     }
 
     @Override
@@ -95,6 +93,7 @@ public class JoinRelation implements AnalyzedRelation {
         }
         left.visitSymbols(consumer);
         right.visitSymbols(consumer);
+        consumer.accept(joinCondition);
     }
 
     @Override
