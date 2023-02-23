@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -295,30 +296,35 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             return null;
         }
         var joinCriteria = optCriteria.get();
-        if (joinCriteria instanceof NaturalJoin) {
-            throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "join criteria %s not supported", joinCriteria.getClass().getSimpleName())
-            );
-        }
-        Expression expr;
+        Expression expr = null;
         if (joinCriteria instanceof JoinOn joinOn) {
-            expr = (joinOn).getExpression();
+            expr = joinOn.getExpression();
         } else if (joinCriteria instanceof JoinUsing joinUsing) {
             expr = JoinUsing.toExpression(
                 joinRelation.left().relationName().toQualifiedName(),
                 joinRelation.right().relationName().toQualifiedName(),
                 (joinUsing).getColumns());
         } else {
-            return null;
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "join criteria %s not supported", joinCriteria.getClass().getSimpleName())
+            );
         }
         try {
             ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
             ExpressionAnalysisContext expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
             Symbol joinCondition = expressionAnalyzer.convert(expr, expressionAnalysisContext);
-            var it = RelationNameCollector.collect(joinCondition).iterator();
-            var x = it.next();
-            var y = it.next();
-            return JoinPair.of(x, y, joinRelation.joinType(), joinCondition);
+            var relationNames = RelationNameCollector.collect(joinCondition).iterator();
+            var first = relationNames.next();
+            var second = relationNames.next();
+            var relationsInOrder = List.copyOf(statementContext.currentRelationContext().sources().keySet());
+            var x = relationsInOrder.indexOf(first);
+            var y = relationsInOrder.indexOf(second);
+            if (x > y) {
+                var temp = first;
+                first = second;
+                second = temp;
+            }
+            return JoinPair.of(first, second, joinRelation.joinType(), joinCondition);
         } catch (RelationUnknown e) {
             throw new RelationValidationException(e.getTableIdents(),
                                                   String.format(Locale.ENGLISH,

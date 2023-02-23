@@ -196,10 +196,10 @@ public final class JoinOperations {
                     }
                 }
                 if (newJoinPair == null) {
-//                    Iterator<RelationName> namesIter = relations.iterator();
-//                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
-//                    queryIterator.remove();
-//                    newJoinPairs.add(newJoinPair);
+                    Iterator<RelationName> namesIter = relations.iterator();
+                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
+                    queryIterator.remove();
+                    newJoinPairs.add(newJoinPair);
                 } else {
                     newJoinPairs.set(existingJoinPairIdx, newJoinPair);
                 }

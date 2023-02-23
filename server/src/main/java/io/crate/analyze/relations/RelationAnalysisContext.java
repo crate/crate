@@ -42,7 +42,7 @@ public class RelationAnalysisContext {
     private final ParentRelations parents;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
-    private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
+    private final LinkedHashMap<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
     @Nullable
     private List<JoinPair> joinPairs;
@@ -59,7 +59,7 @@ public class RelationAnalysisContext {
         return aliasedRelation;
     }
 
-    public Map<RelationName, AnalyzedRelation> sources() {
+    public LinkedHashMap<RelationName, AnalyzedRelation> sources() {
         return sources;
     }
 
