@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.isScopedSymbol;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -119,5 +120,25 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
             isFunction("op_>", isReference("x"), isLiteral(1)));
         assertThat(splitPoints.windowFunctions()).satisfiesExactly(isFunction("sum"));
         assertThat(splitPoints.aggregates()).isEmpty();
+    }
+
+    @Test
+    public void test_references_inside_where_clause_are_added_to_collect() {
+        QueriedSelectRelation relation = e.analyze("select i from t1 where x > 1");
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+
+        assertThat(splitPoints.toCollect()).satisfiesExactly(
+            isReference("i"),
+            isReference("x"));
+    }
+
+    @Test
+    public void test_fields_inside_where_clause_are_added_to_collect() {
+        QueriedSelectRelation relation = e.analyze("select a.i from t1 a where a.x > 1");
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+
+        assertThat(splitPoints.toCollect()).satisfiesExactly(
+            isScopedSymbol("i"),
+            isScopedSymbol("x"));
     }
 }

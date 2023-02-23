@@ -178,6 +178,10 @@ public class Asserts extends Assertions {
         return s -> assertThat(s).isReference(expectedName, expectedType);
     }
 
+    public static Consumer<Symbol> isScopedSymbol(String expectedName) {
+        return s -> assertThat(s).isScopedSymbol(expectedName);
+    }
+
     public static Consumer<Symbol> isFetchStub(String expectedName) {
         return s -> assertThat(s).isFetchStub(expectedName);
     }
