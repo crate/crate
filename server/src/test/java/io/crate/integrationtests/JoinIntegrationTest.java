@@ -92,6 +92,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseJdbc(0)
     public void testInsertFromCrossJoin() throws Exception {
         createColorsAndSizes();
         execute("create table target (color string, size string)");
@@ -109,6 +110,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseJdbc(1)
     public void testInsertFromInnerJoin() throws Exception {
         execute("create table t1 (x int)");
         execute("create table t2 (y int)");
@@ -1351,6 +1353,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     /**
      * https://github.com/crate/crate/issues/13503
      */
+    @UseJdbc(0)
     public void test_nested_joins() {
         execute("CREATE TABLE j1 (x INT)");
         execute("CREATE TABLE j2 (x INT)");

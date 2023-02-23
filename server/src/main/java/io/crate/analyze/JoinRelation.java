@@ -22,33 +22,63 @@
 package io.crate.analyze;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.JoinPair;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinCriteria;
 
-public class JoinedRelation implements AnalyzedRelation {
+public class JoinRelation implements AnalyzedRelation {
 
-    public final List<JoinPair> joinPairs;
+    private final AnalyzedRelation left;
+    private final AnalyzedRelation right;
     private final List<Symbol> outputs;
+    private final Optional<JoinCriteria> joinCriteria;
+    private final JoinType joinType;
 
-    public JoinedRelation(List<Symbol> outputs, List<JoinPair> joinPairs) {
+
+    public JoinRelation(AnalyzedRelation left,
+                        AnalyzedRelation right,
+                        List<Symbol> outputs,
+                        Optional<JoinCriteria> joinCriteria,
+                        JoinType joinType) {
         this.outputs = outputs;
-        this.joinPairs = joinPairs;
+        this.left = left;
+        this.right = right;
+        this.joinCriteria = joinCriteria;
+        this.joinType = joinType;
+    }
+
+    public AnalyzedRelation left() {
+        return left;
+    }
+
+    public AnalyzedRelation right() {
+        return right;
+    }
+
+    public Optional<JoinCriteria> joinCriteria() {
+        return joinCriteria;
+    }
+
+    public JoinType joinType() {
+        return joinType;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return null;
+        return visitor.visitJoinRelation(this, context);
     }
 
     @Nullable
@@ -56,12 +86,21 @@ public class JoinedRelation implements AnalyzedRelation {
     public Symbol getField(ColumnIdent column,
                            Operation operation,
                            boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
-        return null;
+        throw new UnsupportedOperationException("getField is not supported on JoinRelation");
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Symbol output : outputs) {
+            consumer.accept(output);
+        }
+        left.visitSymbols(consumer);
+        right.visitSymbols(consumer);
     }
 
     @Override
     public RelationName relationName() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("relationName is not supported on JoinRelation");
     }
 
     @Nonnull
