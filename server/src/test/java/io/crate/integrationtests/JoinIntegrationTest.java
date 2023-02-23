@@ -55,7 +55,6 @@ import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -92,7 +91,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseJdbc(0)
     public void testInsertFromCrossJoin() throws Exception {
         createColorsAndSizes();
         execute("create table target (color string, size string)");
@@ -1347,22 +1345,5 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(printedTable(response.rows()), is("2| bazinga\n"));
-    }
-
-    /**
-     * https://github.com/crate/crate/issues/13503
-     */
-    @UseJdbc(0)
-    public void test_nested_joins() {
-        execute("CREATE TABLE j1 (x INT)");
-        execute("CREATE TABLE j2 (x INT)");
-        execute("CREATE TABLE j3 (x INT)");
-
-        execute("SELECT * \n" +
-                "    FROM j1 \n" +
-                "    JOIN (j2 JOIN j3 ON j2.x = j3.x) \n" +
-                "    ON j1.x = j2.x;");
-
-        assertThat(printedTable(response.rows()), is(""));
     }
 }
