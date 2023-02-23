@@ -91,6 +91,7 @@ import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -281,71 +282,63 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                      leftRel.outputs(),
                                                      node.getCriteria(),
                                                      JoinType.values()[node.getType().ordinal()]);
-        buildJoinPairs(joinRelation, statementContext);
+        var joinPair = buildJoinPairs(joinRelation, statementContext);
+        if (joinPair != null) {
+            statementContext.currentRelationContext().addJoinPair(joinPair);
+        }
         return joinRelation;
     }
 
-    private void buildJoinPairs(JoinRelation joinRelation, StatementAnalysisContext statementContext) {
-        RelationAnalysisContext relationContext = statementContext.currentRelationContext();
+    private JoinPair buildJoinPairs(JoinRelation joinRelation, StatementAnalysisContext statementContext) {
         Optional<JoinCriteria> optCriteria = joinRelation.joinCriteria();
-        if (optCriteria.isPresent()) {
-            var result = buildJoinCondition(joinRelation.left(), joinRelation.right(), optCriteria.get(), statementContext);
-            var joinPair = JoinPair.of(result.left, result.right, joinRelation.joinType(), result.joinCondition);
-            relationContext.addJoinPair(joinPair);
+        if (optCriteria.isEmpty()) {
+            return null;
+        }
+        var joinCriteria = optCriteria.get();
+        if (joinCriteria instanceof NaturalJoin) {
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "join criteria %s not supported", joinCriteria.getClass().getSimpleName())
+            );
+        }
+        Expression expr;
+        if (joinCriteria instanceof JoinOn joinOn) {
+            expr = (joinOn).getExpression();
+        } else if (joinCriteria instanceof JoinUsing joinUsing) {
+            expr = JoinUsing.toExpression(
+                joinRelation.left().relationName().toQualifiedName(),
+                joinRelation.right().relationName().toQualifiedName(),
+                (joinUsing).getColumns());
+        } else {
+            return null;
+        }
+        try {
+            ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
+            ExpressionAnalysisContext expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
+            Symbol joinCondition = expressionAnalyzer.convert(expr, expressionAnalysisContext);
+            var it = RelationNameCollector.collect(joinCondition).iterator();
+            var x = it.next();
+            var y = it.next();
+            return JoinPair.of(y, x, joinRelation.joinType(), joinCondition);
+        } catch (RelationUnknown e) {
+            throw new RelationValidationException(e.getTableIdents(),
+                                                  String.format(Locale.ENGLISH,
+                                                                "missing FROM-clause entry for relation '%s'",
+                                                                e.getTableIdents()));
         }
     }
 
-    record Result(RelationName left, RelationName right, Symbol joinCondition) {}
-
-    private Result buildJoinCondition(AnalyzedRelation left,
-                                      AnalyzedRelation right,
-                                      JoinCriteria joinCriteria,
-                                      StatementAnalysisContext statementContext) {
-        // create the join pairs based on the join criteria
-        Symbol joinCondition = null;
+    private ExpressionAnalyzer getExpressionAnalyzer(StatementAnalysisContext statementContext) {
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
-        if (joinCriteria instanceof JoinOn || joinCriteria instanceof JoinUsing) {
-            final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
-            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                coordinatorTxnCtx,
-                nodeCtx,
-                statementContext.paramTyeHints(),
-                new FullQualifiedNameFieldProvider(
-                    relationContext.sources(),
-                    relationContext.parentSources(),
-                    coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
-                new SubqueryAnalyzer(this, statementContext));
-            Expression expr;
-            if (joinCriteria instanceof JoinOn joinOn) {
-                expr = (joinOn).getExpression();
-            } else {
-                expr = JoinUsing.toExpression(
-                    left.relationName().toQualifiedName(),
-                    right.relationName().toQualifiedName(),
-                    ((JoinUsing) joinCriteria).getColumns());
-            }
-            try {
-                if (expr instanceof ComparisonExpression c) {
-                    var x = RelationNameCollector.collect(expressionAnalyzer.convert(c.getLeft(), relationContext.expressionAnalysisContext()));
-                    var y = RelationNameCollector.collect(expressionAnalyzer.convert(c.getRight(), relationContext.expressionAnalysisContext()));
-                    joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
-                    return new Result(y.iterator().next(), x.iterator().next(), joinCondition);
-                }
-                joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
-                var it = RelationNameCollector.collect(joinCondition).iterator();
-                var x = it.next();
-                var y = it.next();
-                return new Result(y, x, joinCondition);
-            } catch (RelationUnknown e) {
-                throw new RelationValidationException(e.getTableIdents(),
-                                                      String.format(Locale.ENGLISH,
-                                                                    "missing FROM-clause entry for relation '%s'",
-                                                                    e.getTableIdents()));
-            }
-        } else {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                                                                  joinCriteria.getClass().getSimpleName()));
-        }
+        final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
+        return new ExpressionAnalyzer(
+            coordinatorTxnCtx,
+            nodeCtx,
+            statementContext.paramTyeHints(),
+            new FullQualifiedNameFieldProvider(
+                relationContext.sources(),
+                relationContext.parentSources(),
+                coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
+            new SubqueryAnalyzer(this, statementContext));
     }
 
 
