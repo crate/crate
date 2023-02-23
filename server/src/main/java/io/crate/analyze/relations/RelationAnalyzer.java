@@ -23,7 +23,6 @@ package io.crate.analyze.relations;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,7 +51,6 @@ import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -76,11 +74,9 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
-import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
-import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.Expression;
@@ -88,11 +84,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
-import io.crate.sql.tree.JoinCriteria;
-import io.crate.sql.tree.JoinOn;
-import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
-import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -283,61 +275,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                      leftRel.outputs(),
                                                      node.getCriteria(),
                                                      JoinType.values()[node.getType().ordinal()]);
-        var joinPair = buildJoinPairs(joinRelation, statementContext);
-        if (joinPair != null) {
-            statementContext.currentRelationContext().addJoinPair(joinPair);
-        }
         return joinRelation;
-    }
-
-    private JoinPair buildJoinPairs(JoinRelation joinRelation, StatementAnalysisContext statementContext) {
-        Optional<JoinCriteria> optCriteria = joinRelation.joinCriteria();
-        if (optCriteria.isEmpty()) {
-            return null;
-        }
-        var joinCriteria = optCriteria.get();
-        Expression expr = null;
-        if (joinCriteria instanceof JoinOn joinOn) {
-            expr = joinOn.getExpression();
-        } else if (joinCriteria instanceof JoinUsing joinUsing) {
-            // this will break on a nested join, when one of the underlying relations is e.g. another join or a union
-            expr = JoinUsing.toExpression(
-                joinRelation.left().relationName().toQualifiedName(),
-                joinRelation.right().relationName().toQualifiedName(),
-                joinUsing.getColumns());
-        } else {
-            throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "join criteria %s not supported", joinCriteria.getClass().getSimpleName())
-            );
-        }
-        try {
-            ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
-            ExpressionAnalysisContext expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
-            Symbol joinCondition = expressionAnalyzer.convert(expr, expressionAnalysisContext);
-            var relationNames = RelationNameCollector.collect(joinCondition);
-            if (relationNames.size() == 2) {
-                var it = relationNames.iterator();
-                var left = it.next();
-                var right = it.next();
-                // Now create the Join Pair in the original order of the relations
-                var relationsInOrder = statementContext.currentRelationContext().sourceNames();
-                var leftIndex = relationsInOrder.indexOf(left);
-                var rightIndex = relationsInOrder.indexOf(right);
-                if (leftIndex > rightIndex) {
-                    var temp = left;
-                    left = right;
-                    right = temp;
-                }
-                return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
-            } else {
-                return null;
-            }
-        } catch (RelationUnknown e) {
-            throw new RelationValidationException(e.getTableIdents(),
-                                                  String.format(Locale.ENGLISH,
-                                                                "missing FROM-clause entry for relation '%s'",
-                                                                e.getTableIdents()));
-        }
     }
 
     private ExpressionAnalyzer getExpressionAnalyzer(StatementAnalysisContext statementContext) {
@@ -363,7 +301,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            relation.accept(this, statementContext);
+            var analyzedRelation = relation.accept(this, statementContext);
+            if (analyzedRelation instanceof JoinRelation joinRelation) {
+                var joinPairs = JoinPairBuilder.buildJoinPair(joinRelation,
+                                              getExpressionAnalyzer(statementContext),
+                                              statementContext.currentRelationContext().expressionAnalysisContext(),
+                                              statementContext.currentRelationContext().sourceNames());
+                for (JoinPair joinPair : joinPairs) {
+                    currentRelationContext.addJoinPair(joinPair);
+                }
+            }
             statementContext.endRelation();
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
