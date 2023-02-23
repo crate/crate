@@ -318,7 +318,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             var it = RelationNameCollector.collect(joinCondition).iterator();
             var x = it.next();
             var y = it.next();
-            return JoinPair.of(y, x, joinRelation.joinType(), joinCondition);
+            return JoinPair.of(x, y, joinRelation.joinType(), joinCondition);
         } catch (RelationUnknown e) {
             throw new RelationValidationException(e.getTableIdents(),
                                                   String.format(Locale.ENGLISH,
