@@ -177,6 +177,15 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         return this;
     }
 
+    public SymbolAssert isScopedSymbol(String expectedName) {
+        isNotNull();
+        isInstanceOf(ScopedSymbol.class);
+        assertThat(((ScopedSymbol) actual).column().sqlFqn())
+            .as("sqlFqn")
+            .isEqualTo(expectedName);
+        return this;
+    }
+
     public SymbolAssert isFunction(final String expectedName) {
         return isFunction(expectedName, (List<DataType<?>>) null);
     }
