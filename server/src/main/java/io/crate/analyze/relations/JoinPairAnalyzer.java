@@ -74,16 +74,19 @@ public class JoinPairAnalyzer extends AnalyzedRelationVisitor<JoinPairAnalyzer.C
         RelationName left;
         RelationName right;
         if (collect.size() == 1) {
+            // natural join a on b where a.x is not null
             left = joinRelation.left().relationName();
             right = joinRelation.right().relationName();
         } else {
+            // assert size and maybe check if they are all part of the
             var it = collect.iterator();
             left = it.next();
             right = it.next();
         }
         // Now create the Join Pair in the original order of the query
-        var leftIndex = context.sourceNames.indexOf(left);
-        var rightIndex = context.sourceNames.indexOf(right);
+        List<RelationName> sourceNames = context.sourceNames;
+        var leftIndex = sourceNames.indexOf(left);
+        var rightIndex = sourceNames.indexOf(right);
         if (leftIndex > rightIndex) {
             var temp = left;
             left = right;

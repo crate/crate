@@ -49,7 +49,7 @@ public class JoinRelation implements AnalyzedRelation {
                         AnalyzedRelation right,
                         List<Symbol> outputs,
                         JoinType joinType,
-                        Symbol joinCondition) {
+                        @Nullable Symbol joinCondition) {
         this.outputs = outputs;
         this.left = left;
         this.right = right;
@@ -69,6 +69,7 @@ public class JoinRelation implements AnalyzedRelation {
         return joinType;
     }
 
+    @Nullable
     public Symbol joinCondition() {
         return joinCondition;
     }

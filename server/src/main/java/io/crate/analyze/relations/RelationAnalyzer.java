@@ -274,9 +274,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         AnalyzedRelation leftRel = node.getLeft().accept(this, statementContext);
         AnalyzedRelation rightRel = node.getRight().accept(this, statementContext);
-
+        Symbol joinCondition = null;
         if (node.getCriteria().isPresent()) {
-            Expression expression = null;
+            Expression expression;
             var joinCriteria = node.getCriteria().get();
             if (joinCriteria instanceof JoinOn joinOn) {
                 expression = joinOn.getExpression();
@@ -286,22 +286,28 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     leftRel.relationName().toQualifiedName(),
                     rightRel.relationName().toQualifiedName(),
                     joinUsing.getColumns());
-            } else if (joinCriteria instanceof NaturalJoin) {
-                throw new IllegalStateException();
+            } else {
+                throw new UnsupportedOperationException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "NaturalJoin join criteria %s not supported",
+                        joinCriteria.getClass().getSimpleName()
+                    )
+                );
             }
             try {
-                ExpressionAnalyzer expressionAnalyzer = getExpressionAnalyzer(statementContext);
-                Symbol joinCondition = expressionAnalyzer.convert(expression, statementContext.currentRelationContext().expressionAnalysisContext());
-                return new JoinRelation(leftRel, rightRel, leftRel.outputs(), JoinType.values()[node.getType().ordinal()], joinCondition);
+                var expressionAnalyzer = getExpressionAnalyzer(statementContext);
+                var expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
+                joinCondition = expressionAnalyzer.convert(expression, expressionAnalysisContext);
             } catch (RelationUnknown e) {
                 throw new RelationValidationException(
                     e.getTableIdents(),
                     String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents())
                 );
             }
-        } else {
-            throw new IllegalStateException();
         }
+        var joinType = JoinType.values()[node.getType().ordinal()];
+        return new JoinRelation(leftRel, rightRel, leftRel.outputs(), joinType, joinCondition);
     }
 
     private ExpressionAnalyzer getExpressionAnalyzer(StatementAnalysisContext statementContext) {
