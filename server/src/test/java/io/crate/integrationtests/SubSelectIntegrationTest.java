@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -48,7 +49,7 @@ import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 
-@IntegTestCase.ClusterScope(minNumDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 3, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SubSelectIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -811,5 +812,50 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             """;
         execute(stmt);
         assertThat(response.rowCount()).isEqualTo(15L);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_cte_left_join() {
+
+        execute("CREATE TABLE foo (id TEXT, createdAt TIMESTAMP WITH TIME ZONE)");
+        execute("CREATE TABLE bar (id TEXT, createdAt TIMESTAMP WITH TIME ZONE)");
+
+        execute("INSERT INTO foo VALUES ('123', '2023-01-01'), ('456', '2023-02-01')");
+        execute("INSERT INTO bar VALUES ('abc', '2023-01-01'), ('def', '2023-01-01')");
+
+        execute("refresh table foo, bar");
+
+        execute("""
+            WITH foos AS (
+                SELECT date_trunc('month', createdAt) timeframe,
+                       COUNT(*)                         foosCount
+                FROM foo
+                GROUP BY 1
+            ), bars AS (
+                SELECT date_trunc('month', createdAt) timeframe,
+                       COUNT(*)                         barsCount
+                FROM bar
+                GROUP BY 1
+            ), combined AS (
+                SELECT foos.timeframe,
+                       foosCount,
+                       barsCount
+                FROM foos
+                LEFT JOIN bars ON foos.timeframe = bars.timeframe
+            ), dates AS (
+                SELECT *
+                FROM UNNEST([date_trunc('month', NOW() - '1 month'::INTERVAL),
+                             date_trunc('month', NOW())]) timeframe
+            )
+            SELECT c.*
+            FROM dates d
+            LEFT JOIN combined c ON d.timeframe = c.timeframe
+            ORDER BY d.timeframe;
+            """
+        );
+        assertThat(printedTable(response.rows()),
+            is("1672531200000| 1| 2\n" +
+                "1675209600000| 1| NULL\n"));
     }
 }
