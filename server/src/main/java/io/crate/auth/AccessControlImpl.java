@@ -85,10 +85,12 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ClusterScopeException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.CrateExceptionVisitor;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.SchemaScopeException;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
@@ -895,6 +897,24 @@ public final class AccessControlImpl implements AccessControl {
         protected Void visitTableScopeException(TableScopeException e, User user) {
             for (RelationName relationName : e.getTableIdents()) {
                 Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), user);
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitColumnUnknownException(ColumnUnknownException e, User user) {
+            if (e.relationType() == ColumnUnknownException.RelationType.TABLE_FUNCTION) {
+                RelationName relationName = e.getTableIdents().iterator().next();
+                if (relationName == null) { // ex) select '{"x":10}'::object['y']
+                    return null;
+                }
+                String schema = relationName.schema();
+                if (schema == null) { // ex) select unknown_col from empty_row()
+                    return null;
+                }
+                visitSchemaScopeException(new SchemaUnknownException(schema), user);
+            } else {
+                visitTableScopeException(e, user);
             }
             return null;
         }
