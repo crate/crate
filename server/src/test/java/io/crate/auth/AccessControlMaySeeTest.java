@@ -23,8 +23,8 @@ package io.crate.auth;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +36,12 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.Privilege;
@@ -108,6 +110,40 @@ public class AccessControlMaySeeTest extends ESTestCase {
     @Test
     public void testUnscopedException() throws Exception {
         accessControl.ensureMaySee(new UnhandledServerException("unhandled"));
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    @Test
+    public void test_ColumnUnknownException_with_null_RelationName() {
+        accessControl.ensureMaySee(
+            ColumnUnknownException.ofUnknownRelation("The object `{x=10}` does not contain the key `y`"));
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    @Test
+    public void test_ColumnUnknownException_originated_from_built_in_table_function() {
+        // select x from empty_row();
+        accessControl.ensureMaySee(
+            ColumnUnknownException.ofTableFunctionRelation(
+                "Column x unknown", new RelationName(null, "empty_row")));
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    @Test
+    public void test_ColumnUnknownException_originated_from_udf_table_function() {
+        // select x from my_schema.empty_row();
+        accessControl.ensureMaySee(
+            ColumnUnknownException.ofTableFunctionRelation(
+                "Column x unknown", new RelationName("my_schema", "empty_row")));
+        assertAskedAnyForSchema("my_schema");
+    }
+
+    @Test
+    public void test_ColumnUnknownException_originated_from_table() {
+        // select x from empty_row;
+        accessControl.ensureMaySee(
+            new ColumnUnknownException(
+                new ColumnIdent("x"), new RelationName("doc", "empty_row")));
+        assertAskedAnyForTable("doc.empty_row");
     }
 }

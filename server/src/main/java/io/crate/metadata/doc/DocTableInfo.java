@@ -431,7 +431,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 break;
             case STRICT:
                 if (forWrite) {
-                    throw new ColumnUnknownException(ident.sqlFqn(), ident());
+                    throw new ColumnUnknownException(ident, ident());
                 }
                 return null;
             case IGNORED:
@@ -460,7 +460,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (reference == null) {
             reference = getDynamic(columnIdent, forWrite, errorOnUnknownObjectKey);
             if (reference == null) {
-                throw new ColumnUnknownException(targetColumnName, ident);
+                throw new ColumnUnknownException(columnIdent, ident);
             }
         }
         return reference;

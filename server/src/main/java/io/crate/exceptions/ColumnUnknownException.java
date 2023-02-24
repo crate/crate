@@ -21,25 +21,33 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Locale;
-import java.util.Objects;
+
+import javax.annotation.Nonnull;
 
 public class ColumnUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
-    private final RelationName relationName;
-
-    private ColumnUnknownException(String message) {
-        super(message);
-        this.relationName = null;
+    public enum RelationType {
+        TABLE, TABLE_FUNCTION, UNKNOWN
     }
 
-    public ColumnUnknownException(String columnName, @Nonnull RelationName relationName) {
-        super(String.format(Locale.ENGLISH, "Column %s unknown", columnName));
-        this.relationName = Objects.requireNonNull(relationName);
+    private final RelationName relationName;
+    private final RelationType relationType;
+
+    public ColumnUnknownException(ColumnIdent columnIdent, RelationName relationName) {
+        this(String.format(Locale.ENGLISH, "Column %s unknown", columnIdent.sqlFqn()),
+             relationName,
+             RelationType.TABLE);
+    }
+
+    private ColumnUnknownException(String message, RelationName relationName, RelationType relationType) {
+        super(message);
+        this.relationName = relationName;
+        this.relationType = relationType;
     }
 
     /**
@@ -54,11 +62,25 @@ public class ColumnUnknownException extends RuntimeException implements Resource
      * </code>
      */
     public static ColumnUnknownException ofUnknownRelation(String message) {
-        return new ColumnUnknownException(message);
+        return new ColumnUnknownException(message, null, RelationType.UNKNOWN);
+    }
+
+    public static ColumnUnknownException ofTableFunctionRelation(String message, RelationName relationName) {
+        return new ColumnUnknownException(message, relationName, RelationType.TABLE_FUNCTION);
     }
 
     @Override
     public Iterable<RelationName> getTableIdents() {
         return (relationName == null) ? Collections.emptyList() : Collections.singletonList(relationName);
+    }
+
+    @Override
+    public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
+        return exceptionVisitor.visitColumnUnknownException(this, context);
+    }
+
+    @Nonnull
+    public RelationType relationType() {
+        return relationType;
     }
 }
