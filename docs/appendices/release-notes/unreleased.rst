@@ -67,3 +67,12 @@ Fixes
 - Fixed an issue that caused expressions like ``<column> !=
   ANY(<array-literal>)`` to match on partitions where the column didn't exist or
   on records where ``<column>`` had a ``null`` value.
+
+- Fixed an issue that translated ``ColumnUnknownException`` to a misleading
+  ``SchemaUnknownException`` when users without ``DQL`` on ``doc`` schema
+  queried unknown columns from :ref:`table functions <table-functions>`.
+  An example ::
+
+    SELECT unknown_col FROM abs(1);
+    SchemaUnknownException[Schema 'doc' unknown]
+

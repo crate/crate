@@ -59,7 +59,7 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
             }
         }
 
-        throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+        throw new ColumnUnknownException(columnIdent, relationName);
     }
 
     public List<Reference> references() {

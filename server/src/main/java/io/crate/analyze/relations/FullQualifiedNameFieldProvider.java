@@ -88,6 +88,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         boolean schemaMatched = false;
         boolean tableNameMatched = false;
         Symbol lastField = null;
+        ColumnUnknownException firstColUnknownException = null;
 
         for (var entry : sources.entrySet()) {
             RelationName relName = entry.getKey();
@@ -101,7 +102,14 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             tableNameMatched = true;
 
             AnalyzedRelation relation = entry.getValue();
-            Symbol newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
+            Symbol newField = null;
+            try {
+                newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
+            } catch (ColumnUnknownException e) {
+                if (firstColUnknownException == null) {
+                    firstColUnknownException = e;
+                }
+            }
             if (newField != null) {
                 if (lastField != null) {
                     if (errorOnUnknownObjectKey == false) {
@@ -157,7 +165,10 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             throw new RelationUnknown(relationName);
         }
         RelationName relationName = sources.entrySet().iterator().next().getKey();
-        throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+        if (firstColUnknownException == null) {
+            firstColUnknownException = new ColumnUnknownException(columnIdent, relationName);
+        }
+        throw firstColUnknownException;
     }
 
     private void raiseUnsupportedFeatureIfInAncestorScope(String columnSchema, String columnTableName, String schema) {

@@ -101,7 +101,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
                 return SubscriptFunctions.makeObjectSubscript(output, column);
             }
         }
-        return null;
+        throw ColumnUnknownException.ofTableFunctionRelation("Column " + column.sqlFqn() + " unknown", relationName);
     }
 
     @Override
