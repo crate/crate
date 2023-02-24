@@ -188,7 +188,7 @@ class AlterTableAddColumnAnalyzer {
                         );
                     }
                 }
-                throw new ColumnUnknownException(colIdent.sqlFqn(), relationName);
+                throw new ColumnUnknownException(colIdent, relationName);
             }
         }
 
