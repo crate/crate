@@ -70,27 +70,32 @@ public class JoinPairAnalyzer extends AnalyzedRelationVisitor<JoinPairAnalyzer.C
         joinRelation.left().accept(this, context);
         joinRelation.right().accept(this, context);
         Symbol joinCondition = joinRelation.joinCondition();
-        Set<RelationName> collect = RelationNameCollector.collect(joinCondition);
         RelationName left;
         RelationName right;
-        if (collect.size() == 1) {
-            // natural join a on b where a.x is not null
+        if (joinCondition == null)  {
             left = joinRelation.left().relationName();
             right = joinRelation.right().relationName();
         } else {
-            // assert size and maybe check if they are all part of the
-            var it = collect.iterator();
-            left = it.next();
-            right = it.next();
-        }
-        // Now create the Join Pair in the original order of the query
-        List<RelationName> sourceNames = context.sourceNames;
-        var leftIndex = sourceNames.indexOf(left);
-        var rightIndex = sourceNames.indexOf(right);
-        if (leftIndex > rightIndex) {
-            var temp = left;
-            left = right;
-            right = temp;
+            List<RelationName> relationNames = context.relationNames;
+            Set<RelationName> collect = RelationNameCollector.collect(joinCondition);
+            assert relationNames.equals(List.copyOf(collect)) : relationNames + " must equal :" + collect;
+            if (collect.size() == 1) {
+                left = joinRelation.left().relationName();
+                right = joinRelation.right().relationName();
+            } else {
+                var it = collect.iterator();
+                left = it.next();
+                right = it.next();
+            }
+            // Now create the Join Pair in the original order of the query
+            List<RelationName> sourceNames = context.sourceNames;
+            var leftIndex = sourceNames.indexOf(left);
+            var rightIndex = sourceNames.indexOf(right);
+            if (leftIndex > rightIndex) {
+                var temp = left;
+                left = right;
+                right = temp;
+            }
         }
         context.joinPair.add(JoinPair.of(left, right, joinRelation.joinType(), joinCondition));
         return null;
