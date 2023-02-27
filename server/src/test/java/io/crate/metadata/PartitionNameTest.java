@@ -127,10 +127,10 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testInvalidValueString() throws Exception {
-        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test.1";
+        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test.🐩";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(partitionName).values())
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid partition ident: 1");
+            .hasMessage("Invalid partition ident: 🐩");
     }
 
     @Test
