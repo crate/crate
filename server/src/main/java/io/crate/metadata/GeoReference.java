@@ -33,7 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataTypes;
+import io.crate.types.DataType;
 
 public class GeoReference extends SimpleReference {
 
@@ -53,11 +53,12 @@ public class GeoReference extends SimpleReference {
     public GeoReference(int position,
                         ReferenceIdent ident,
                         boolean nullable,
+                        DataType<?> type,
                         @Nullable String tree,
                         @Nullable String precision,
                         @Nullable Integer treeLevels,
                         @Nullable Double distanceErrorPct) {
-        super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
+        super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
         this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;

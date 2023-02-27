@@ -241,15 +241,18 @@ public class DocIndexMetadata {
                                  @Nullable String precision,
                                  @Nullable Integer treeLevels,
                                  @Nullable Double distanceErrorPct,
-                                 boolean nullable) {
+                                 boolean nullable,
+                                 DataType<?> type) {
         Reference info = new GeoReference(
             position,
             refIdent(column),
             nullable,
+            type,
             tree,
             precision,
             treeLevels,
-            distanceErrorPct);
+            distanceErrorPct
+        );
 
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression != null) {
@@ -438,7 +441,7 @@ public class DocIndexMetadata {
 
         for (Map.Entry<String, Object> columnEntry : columns.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
-            final DataType columnDataType = getColumnDataType(columnProperties);
+            final DataType<?> columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
@@ -455,12 +458,22 @@ public class DocIndexMetadata {
                 : "DataType used in table definition must have storage support: " + columnDataType;
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
-            if (columnDataType == DataTypes.GEO_SHAPE) {
+            DataType<?> elementType = ArrayType.unnest(columnDataType);
+            if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
                 String precision = (String) columnProperties.get("precision");
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
-                addGeoReference(position, newIdent, geoTree, precision, treeLevels, distanceErrorPct, nullable);
+                addGeoReference(
+                    position,
+                    newIdent,
+                    geoTree,
+                    precision,
+                    treeLevels,
+                    distanceErrorPct,
+                    nullable,
+                    columnDataType
+                );
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
