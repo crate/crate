@@ -607,16 +607,16 @@ public class GroupByAggregateTest extends IntegTestCase {
         /* count(payload) is implicitly optimized to use DocValueAggregator of payload['nested_payload']['col'],
            so below 3 executions are expected to have the same results. */
         execute("select device, count(payload) from tbl group by 1");
-        assertThat(response).hasRows("1| 3\n");
+        assertThat(response).hasRows("1| 3");
         execute("select device, count(payload['nested_payload']) from tbl group by 1");
-        assertThat(response).hasRows("1| 3\n");
+        assertThat(response).hasRows("1| 3");
         execute("select device, count(payload['nested_payload']['col']) from tbl group by 1");
-        assertThat(response).hasRows("1| 3\n");
+        assertThat(response).hasRows("1| 3");
         // below are just there to show that no other available columns are used instead of payload['nested_payload']['col']
         execute("select device, count(nullable_payload) from tbl group by 1");
-        assertThat(response).hasRows("1| 2\n");
+        assertThat(response).hasRows("1| 2");
         execute("select device, count(payload['col']) from tbl group by 1");
-        assertThat(response).hasRows("1| 2\n");
+        assertThat(response).hasRows("1| 2");
     }
 
     @Test
@@ -783,7 +783,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having avg(birthdate) = 181353600000.0");
         assertThat(response).hasRowCount(1L);
-        assertThat(response).hasRows("1.813536E11\n");
+        assertThat(response).hasRows("1.813536E11");
     }
 
     @Test
@@ -792,7 +792,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having min(birthdate) > '1970-01-01'");
         assertThat(response).hasRowCount(1L);
-        assertThat(response).hasRows("1.813536E11\n");
+        assertThat(response).hasRows("1.813536E11");
     }
 
 
@@ -822,11 +822,11 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select country from foo group by country having country = 'Austria'");
         assertThat(response).hasRowCount(1L);
-        assertThat(response).hasRows("Austria\n");
+        assertThat(response).hasRows("Austria");
 
         execute("select count(*), country from foo group by country having country = 'Austria'");
         assertThat(response).hasRowCount(1L);
-        assertThat(response).hasRows("3| Austria\n");
+        assertThat(response).hasRows("3| Austria");
 
         execute("select country, min(id) from foo group by country having min(id) < 5 ");
         assertThat(response).hasRowCount(2L);
@@ -898,10 +898,10 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select count(*), name from foo group by id, name order by name desc");
         assertThat(response).hasRows(
-            "1| Trillian\n" +
-            "1| Slartibardfast\n" +
-            "1| Marvin\n" +
-            "1| Arthur\n");
+            "1| Trillian",
+            "1| Slartibardfast",
+            "1| Marvin",
+            "1| Arthur");
     }
 
     @Test
@@ -977,7 +977,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 99.6d});
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
-        assertThat(response).hasRows("99.6| https://Ä.com| 99.6\n");
+        assertThat(response).hasRows("99.6| https://Ä.com| 99.6");
     }
 
     @Test
@@ -1211,7 +1211,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 " select distinct max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
                 " group by col2 order by 2, 1 limit 2" +
                 ") t order by 1 desc limit 1");
-        assertThat(response).hasRows("3| 1\n");
+        assertThat(response).hasRows("3| 1");
     }
 
     @Test
@@ -1230,10 +1230,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void testGroupByOnComplexLiterals() throws Exception {
         execute("select '{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}', count(*) " +
                 "from employees group by 1");
-        assertThat(response).hasRows("{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}| 6\n");
+        assertThat(response).hasRows("{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}| 6");
         execute("select {id1=1, id2=36}, count(*) " +
                 "from employees group by 1");
-        assertThat(response).hasRows("{id1=1, id2=36}| 6\n");
+        assertThat(response).hasRows("{id1=1, id2=36}| 6");
     }
 
     @Test
@@ -1264,7 +1264,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 });
         refresh();
         execute("select sum(i), max(s) from t1");
-        assertThat(response).hasRows("4| foobar\n");
+        assertThat(response).hasRows("4| foobar");
     }
 
     @Test
@@ -1362,7 +1362,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl (obj) values ({x=10})");
         execute("refresh table tbl");
         execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
-        assertThat(response).hasRows("10\n");
+        assertThat(response).hasRows("10");
     }
 
     @Test
@@ -1379,7 +1379,7 @@ public class GroupByAggregateTest extends IntegTestCase {
             "    └ Collect[doc.tbl | [x, name] | true]"
         );
         execute("select name, count(x), count(x) from doc.tbl group by name");
-        assertThat(response).hasRows("Apple| 3| 3\n");
+        assertThat(response).hasRows("Apple| 3| 3");
     }
 
     @Test
@@ -1397,20 +1397,20 @@ public class GroupByAggregateTest extends IntegTestCase {
         // Ensure deterministic order for assertion → sort by id
         Arrays.sort(response.rows(), (a, b) -> ((String) a[0]).compareTo((String) b[0]));
         assertThat(response).hasRows(
-            "013440476U| Avenue de Trévoux | 013440476U| Pt(x=5.20172193646431,y=46.200959966517985)| Saint-Denis-lès-Bourg\n" +
-            "021140050C| Rue Paul Doumer | 021140050C| Pt(x=3.426927952095866,y=49.04914998449385)| Brasles\n" +
-            "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez\n"
+            "013440476U| Avenue de Trévoux | 013440476U| Pt(x=5.20172193646431,y=46.200959966517985)| Saint-Denis-lès-Bourg",
+            "021140050C| Rue Paul Doumer | 021140050C| Pt(x=3.426927952095866,y=49.04914998449385)| Brasles",
+            "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez"
         );
     }
 
     @Test
     public void test_group_on_null_literal() {
         execute("select null, count(*) from unnest([1, 2]) group by 1");
-        assertThat(response).hasRows("NULL| 2\n");
+        assertThat(response).hasRows("NULL| 2");
 
         execute("SELECT nn, sum(x) from (SELECT NULL as nn, x from unnest([1]) tbl (x)) t GROUP BY nn");
         assertThat(response).hasRows(
-            "NULL| 1\n"
+            "NULL| 1"
         );
     }
 

@@ -465,7 +465,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             SQLResponse res = execute(
                 "select column_name, data_type from information_schema.columns where " +
                 " table_name='arr' order by ordinal_position desc limit 1");
-            assertThat(res).hasRows("new| real_array\n");
+            assertThat(res).hasRows("new| real_array");
         });
     }
 

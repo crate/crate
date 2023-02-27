@@ -519,7 +519,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("SELECT table_name, partition_ident, values " +
                 "FROM information_schema.table_partitions");
         assertThat(response).hasRows(
-            "parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}\n");
+            "parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}");
     }
 
     @Test
@@ -534,7 +534,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("SELECT table_name, partition_ident, values " +
                 "FROM information_schema.table_partitions");
         assertThat(response).hasRows(
-            "parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}\n");
+            "parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}");
     }
 
     @Test
@@ -1425,7 +1425,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into t (obj) (select {ts=1549966541034})");
         execute("refresh table t");
         assertThat(execute("select day, obj from t")).hasRows(
-            "1549929600000| {ts=1549966541034}\n"
+            "1549929600000| {ts=1549966541034}"
         );
     }
 
@@ -1651,7 +1651,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         String id = (String) response.rows()[0][1];
         execute("select x from tbl where id = ?", new Object[] { id });
         assertThat(response).hasRows(
-            "1\n"
+            "1"
         );
     }
 

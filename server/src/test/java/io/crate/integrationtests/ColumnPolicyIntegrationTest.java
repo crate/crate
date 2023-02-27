@@ -88,7 +88,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         execute("select * from strict_table");
         assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford\n");
+        assertThat(response).hasRows("1| Ford");
 
         Asserts.assertSQLError(() -> execute("insert into strict_table (id, name, boo) values (2, 'Trillian', true)"))
             .hasPGError(UNDEFINED_COLUMN)
@@ -108,7 +108,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         execute("select * from strict_table");
         assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford\n");
+        assertThat(response).hasRows("1| Ford");
 
         Asserts.assertSQLError(() -> execute("update strict_table set name='Trillian', boo=true where id=1"))
             .hasPGError(UNDEFINED_COLUMN)
@@ -137,7 +137,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         execute("select * from dynamic_table");
         assertThat(response).hasColumns("id", "name");
-        assertThat(response).hasRows("1| Ford\n");
+        assertThat(response).hasRows("1| Ford");
 
         execute("insert into dynamic_table (id, name, boo) values (2, 'Trillian', true)");
         execute("refresh table dynamic_table");
@@ -185,7 +185,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
         assertThat(response).hasColumns("person['name']", "person['addresses']['city']");
         assertThat(response).hasRows(
-            "Ford| [West Country]\n"
+            "Ford| [West Country]"
         );
     }
 
@@ -286,7 +286,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "name")
-            .hasRows("1| Ford\n");
+            .hasRows("1| Ford");
 
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
@@ -295,7 +295,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "name", "boo")
-            .hasRows("1| Trillian| true\n");
+            .hasRows("1| Trillian| true");
     }
 
     @Test
@@ -311,7 +311,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "score")
-            .hasRows("1| 42.24\n");
+            .hasRows("1| 42.24");
 
         execute("insert into dynamic_table (id, score, good) values (2, -0.01, false)");
         execute("refresh table dynamic_table");
@@ -338,7 +338,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "score")
-            .hasRows("1| 4656234.345\n");
+            .hasRows("1| 4656234.345");
 
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
@@ -347,7 +347,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("select * from dynamic_table");
         assertThat(response)
             .hasColumns("id", "score", "name", "good")
-            .hasRows("1| 4656234.345| Trillian| true\n");
+            .hasRows("1| 4656234.345| Trillian| true");
     }
 
     @Test

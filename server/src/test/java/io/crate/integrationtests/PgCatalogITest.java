@@ -63,7 +63,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void test_pg_class_table_with_pg_get_expr() {
         execute("select pg_get_expr(relpartbound,0) from pg_catalog.pg_class limit 1");
-        assertThat(response).hasRows("NULL\n");
+        assertThat(response).hasRows("NULL");
     }
 
     @Test
@@ -92,13 +92,13 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(response).hasRows("23\n");
+        assertThat(response).hasRows("23");
     }
 
     @Test
     public void test_pg_index_table_with_pg_get_expr() {
         execute("select pg_get_expr(indexprs,0), pg_get_expr(indpred,0) from pg_catalog.pg_index limit 1");
-        assertThat(response).hasRows("NULL| NULL\n");
+        assertThat(response).hasRows("NULL| NULL");
     }
 
     @Test
@@ -106,25 +106,27 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(response).hasRows(
             "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| NULL| NULL| " +
-            "728874843| NULL| p| 0| true| -874078436\n");
+            "728874843| NULL| p| 0| true| -874078436");
     }
 
     @Test
     public void testPgTablesTable() {
         execute("select * from pg_tables WHERE tablename = 't1'");
-        assertThat(response).hasRows("false| false| false| false| doc| t1| NULL| NULL\n");
+        assertThat(response).hasRows("false| false| false| false| doc| t1| NULL| NULL");
 
         execute("select count(*) from pg_tables WHERE tablename = 'v1'");
-        assertThat(response).hasRows("0\n");
+        assertThat(response).hasRows("0");
     }
 
     @Test
     public void testPgViewsTable() {
         execute("select * from pg_views WHERE viewname = 'v1'");
-        assertThat(response).hasRows("SELECT \"id\"\nFROM \"doc\".\"t1\"\n| doc| v1| crate\n");
+        assertThat(response).hasRows(
+            new Object[] { "SELECT \"id\"\nFROM \"doc\".\"t1\"\n", "doc", "v1", "crate" }
+        );
 
         execute("select count(*) from pg_views WHERE viewname = 't1'");
-        assertThat(response).hasRows("0\n");
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -185,7 +187,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void test_primary_key_in_pg_index() {
         execute("select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
-        assertThat(response).hasRows("-649073482| 728874843| [1]\n");
+        assertThat(response).hasRows("-649073482| 728874843| [1]");
     }
 
     @Test
@@ -193,7 +195,7 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
-        assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0\n");
+        assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0");
     }
 
     @Test
@@ -238,7 +240,7 @@ public class PgCatalogITest extends IntegTestCase {
             "SELECT typname, typreceive, typreceive::int, typreceive::text " +
             "FROM pg_type " +
             "WHERE typname = 'bool'");
-        assertThat(response).hasRows("bool| boolrecv| 994071801| boolrecv\n");
+        assertThat(response).hasRows("bool| boolrecv| 994071801| boolrecv");
     }
 
     @Test
@@ -248,7 +250,7 @@ public class PgCatalogITest extends IntegTestCase {
             "FROM pg_type " +
             "JOIN pg_proc ON pg_proc.oid = pg_type.typreceive " +
             "WHERE pg_type.typname = 'bool'");
-        assertThat(response).hasRows("bool| boolrecv| 994071801\n");
+        assertThat(response).hasRows("bool| boolrecv| 994071801");
     }
 
     @Test
@@ -274,7 +276,7 @@ public class PgCatalogITest extends IntegTestCase {
                     inner join pg_type on typreceive = pg_proc.oid
                     where proname = 'array_recv' and typname = '_int4'
                     """);
-        assertThat(response).hasRows("556695454\n");
+        assertThat(response).hasRows("556695454");
 
         execute("""
             SELECT typ.oid, typname, typrelid, typnotnull, relkind, typelem AS elemoid,
@@ -330,6 +332,6 @@ public class PgCatalogITest extends IntegTestCase {
             " '\"persons\"'::regclass::integer oid_from_relname, " +
             " oid " +
             " FROM pg_class WHERE relname ='persons'");
-        assertThat(response).hasRows("1726373441| 1726373441\n");
+        assertThat(response).hasRows("1726373441| 1726373441");
     }
 }

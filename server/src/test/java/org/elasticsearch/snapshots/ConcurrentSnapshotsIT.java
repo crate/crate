@@ -22,6 +22,7 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -699,7 +700,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .rootCause().hasMessageEndingWith("Snapshot was aborted by deletion");
 
         assertThat(execute("SELECT count(*) FROM sys.snapshots WHERE repository=?", new Object[]{repoName}))
-            .hasRows("0\n");
+            .hasRows("0");
         awaitClusterState(
             masterNode,
             state -> hasSnapshotsInProgress(state, 0) && hasDeletionsInProgress(state, 0)

@@ -472,7 +472,7 @@ public class SysShardsTest extends IntegTestCase {
         ensureGreen(); // All shards must be available before close; otherwise they're skipped
         execute("alter table doc.tbl close");
         assertBusy(() ->
-            assertThat(execute("select closed from information_schema.tables where table_name = 'tbl'")).hasRows("true\n")
+            assertThat(execute("select closed from information_schema.tables where table_name = 'tbl'")).hasRows("true")
         );
         assertThatThrownBy(() -> execute("select * from doc.tbl"))
             .satisfiesAnyOf(

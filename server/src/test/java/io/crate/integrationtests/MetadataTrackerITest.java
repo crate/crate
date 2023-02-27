@@ -148,11 +148,11 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't3'" +
                                         " ORDER BY ordinal_position");
-            assertThat(r).hasRows("id\n");
+            assertThat(r).hasRows("id");
             r = executeOnSubscriber("SELECT values FROM information_schema.table_partitions" +
                                         " WHERE table_name = 't2'" +
                                         " ORDER BY partition_ident");
-            assertThat(r).hasRows("{p=1}\n");
+            assertThat(r).hasRows("{p=1}");
             ensureGreenOnSubscriber();
         }, 50, TimeUnit.SECONDS);
     }
@@ -207,7 +207,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(r).hasRows("2| 2\n");
+            assertThat(r).hasRows("2| 2");
         });
     }
 

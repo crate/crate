@@ -139,7 +139,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " FROM pg_publication p" +
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
             " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true\n");
+        assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true");
     }
 
     @Test
@@ -485,7 +485,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " FROM pg_subscription s" +
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " JOIN pg_class r ON sr.srrelid = r.oid");
-        assertThat(res).hasRows("sub1| t1| r| NULL\n");
+        assertThat(res).hasRows("sub1| t1| r| NULL");
     }
 
     @Test
@@ -598,7 +598,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         " FROM pg_subscription s" +
                         " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " JOIN pg_class r ON sr.srrelid = r.oid");
-                assertThat(res).hasRows("sub1| t1| r| NULL\n");
+                assertThat(res).hasRows("sub1| t1| r| NULL");
             });
 
             executeOnSubscriber("DROP SUBSCRIPTION sub1");
@@ -618,7 +618,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " JOIN pg_class r ON sr.srrelid = r.oid");
-            assertThat(res).hasRows("sub1| t1| r| NULL\n");
+            assertThat(res).hasRows("sub1| t1| r| NULL");
         });
     }
 }

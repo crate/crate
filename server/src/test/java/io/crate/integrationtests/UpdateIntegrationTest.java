@@ -922,7 +922,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update test set message='msg' where id = 1 returning id");
 
         assertThat(response.cols()[0]).isEqualTo("id");
-        assertThat(response).hasRows("1\n");
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -935,7 +935,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update test set message='msg' where id = 1 returning id as renamed");
 
         assertThat(response.cols()[0]).isEqualTo("renamed");
-        assertThat(response).hasRows("1\n");
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -947,7 +947,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set message='updated' where id = (select 1) returning id");
 
-        assertThat(response).hasRows("1\n");
+        assertThat(response).hasRows("1");
     }
 
     @Test
