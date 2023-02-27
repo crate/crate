@@ -40,6 +40,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -126,6 +127,19 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      */
     static DataType<?> guessType(Object value) {
         DataType<?> type = DataTypes.guessType(value);
+        if (type instanceof ArrayType<?>) {
+            DataType<?> innerType = type;
+            int dimensions = 0;
+            while (innerType instanceof ArrayType<?> arrayType) {
+                innerType = arrayType.innerType();
+                dimensions++;
+            }
+            return ArrayType.makeArray(upcast(innerType), dimensions);
+        }
+        return upcast(type);
+    }
+
+    private static DataType<?> upcast(DataType<?> type) {
         return switch (type.id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID -> DataTypes.LONG;
             case FloatType.ID -> DataTypes.DOUBLE;
