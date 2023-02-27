@@ -390,12 +390,9 @@ public class NestedLoopJoin implements JoinPlan {
             // run join phase non-distributed on the handler
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
-                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
-            }
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
-                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
-            }
+
+            leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
+            rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
         }
         return new Tuple<>(nlExecutionNodes, Arrays.asList(leftMerge, rightMerge));
     }
