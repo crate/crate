@@ -51,6 +51,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -103,7 +104,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return (ValueIndexer) new StringIndexer(ref, getFieldType.apply(ref.column()));
+            FieldType fieldType = getFieldType.apply(ref.column());
+            if (fieldType == null) {
+                return (ValueIndexer) new StringIndexer(ref, fieldType);
+            }
+            return switch (ref.indexType()) {
+                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref, fieldType);
+                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref, fieldType);
+            };
         }
     };
 
