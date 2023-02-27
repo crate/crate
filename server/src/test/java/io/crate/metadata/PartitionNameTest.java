@@ -22,12 +22,8 @@
 package io.crate.metadata;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,22 +37,22 @@ public class PartitionNameTest extends ESTestCase {
     public void testSingleColumn() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of("1"));
 
-        assertThat(partitionName.values().size(), is(1));
-        assertEquals(List.of("1"), partitionName.values());
+        assertThat(partitionName.values()).hasSize(1);
+        assertThat(partitionName.values()).isEqualTo(List.of("1"));
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
     public void testSingleColumnSchema() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), List.of("1"));
 
-        assertThat(partitionName.values().size(), is(1));
-        assertEquals(List.of("1"), partitionName.values());
+        assertThat(partitionName.values()).hasSize(1);
+        assertThat(partitionName.values()).isEqualTo(List.of("1"));
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
@@ -66,11 +62,11 @@ public class PartitionNameTest extends ESTestCase {
             List.of("1", "foo")
         );
 
-        assertThat(partitionName.values().size(), is(2));
-        assertEquals(List.of("1", "foo"), partitionName.values());
+        assertThat(partitionName.values()).hasSize(2);
+        assertThat(partitionName.values()).isEqualTo(List.of("1", "foo"));
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
@@ -78,172 +74,170 @@ public class PartitionNameTest extends ESTestCase {
         PartitionName partitionName = new PartitionName(
             new RelationName("schema", "test"), List.of("1", "foo"));
 
-        assertThat(partitionName.values().size(), is(2));
-        assertEquals(List.of("1", "foo"), partitionName.values());
+        assertThat(partitionName.values()).hasSize(2);
+        assertThat(partitionName.values()).isEqualTo(List.of("1", "foo"));
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
     public void testNull() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), singletonList(null));
 
-        assertThat(partitionName.values().size(), is(1));
-        assertEquals(null, partitionName.values().get(0));
+        assertThat(partitionName.values()).hasSize(1);
+        assertThat(partitionName.values().get(0)).isEqualTo(null);
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
     public void testNullSchema() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), singletonList(null));
-        assertThat(partitionName.values().size(), is(1));
-        assertEquals(null, partitionName.values().get(0));
+        assertThat(partitionName.values()).hasSize(1);
+        assertThat(partitionName.values().get(0)).isEqualTo(null);
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
     public void testEmptyStringValue() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of(""));
 
-        assertThat(partitionName.values().size(), is(1));
-        assertEquals(List.of(""), partitionName.values());
+        assertThat(partitionName.values()).hasSize(1);
+        assertThat(partitionName.values()).isEqualTo(List.of(""));
 
         PartitionName partitionName1 = PartitionName.fromIndexOrTemplate(partitionName.asIndexName());
-        assertEquals(partitionName.values(), partitionName1.values());
+        assertThat(partitionName1.values()).isEqualTo(partitionName.values());
     }
 
     @Test
     public void testPartitionNameNotFromTable() throws Exception {
         String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test1._1";
-        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).relationName().name().equals("test"));
+        assertThat(PartitionName.fromIndexOrTemplate(partitionName).relationName().name().equals("test")).isFalse();
     }
 
     @Test
     public void testPartitionNameNotFromSchema() throws Exception {
         String partitionName = "schema1." + IndexParts.PARTITIONED_TABLE_PART + "test1._1";
-        assertFalse(PartitionName.fromIndexOrTemplate(partitionName).relationName().schema().equals("schema"));
+        assertThat(PartitionName.fromIndexOrTemplate(partitionName).relationName().schema().equals("schema")).isFalse();
     }
 
     @Test
     public void testInvalidValueString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition ident: 1");
-
         String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test.1";
-        PartitionName.fromIndexOrTemplate(partitionName).values();
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(partitionName).values())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid partition ident: 1");
     }
 
     @Test
     public void testIsPartition() throws Exception {
-        assertFalse(IndexParts.isPartitioned("test"));
+        assertThat(IndexParts.isPartitioned("test")).isFalse();
 
-        assertTrue(IndexParts.isPartitioned(IndexParts.PARTITIONED_TABLE_PART + "test."));
-        assertTrue(IndexParts.isPartitioned("schema." + IndexParts.PARTITIONED_TABLE_PART + "test."));
+        assertThat(IndexParts.isPartitioned(IndexParts.PARTITIONED_TABLE_PART + "test.")).isTrue();
+        assertThat(IndexParts.isPartitioned("schema." + IndexParts.PARTITIONED_TABLE_PART + "test.")).isTrue();
 
-        assertFalse(IndexParts.isPartitioned("partitioned.test.dshhjfgjsdh"));
-        assertFalse(IndexParts.isPartitioned("schema.partitioned.test.dshhjfgjsdh"));
-        assertFalse(IndexParts.isPartitioned(".test.dshhjfgjsdh"));
-        assertFalse(IndexParts.isPartitioned("schema.test.dshhjfgjsdh"));
-        assertTrue(IndexParts.isPartitioned(".partitioned.test.dshhjfgjsdh"));
-        assertTrue(IndexParts.isPartitioned("schema..partitioned.test.dshhjfgjsdh"));
+        assertThat(IndexParts.isPartitioned("partitioned.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexParts.isPartitioned("schema.partitioned.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexParts.isPartitioned(".test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexParts.isPartitioned("schema.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexParts.isPartitioned(".partitioned.test.dshhjfgjsdh")).isTrue();
+        assertThat(IndexParts.isPartitioned("schema..partitioned.test.dshhjfgjsdh")).isTrue();
     }
 
     @Test
     public void testFromIndexOrTemplate() throws Exception {
         PartitionName partitionName = new PartitionName(
             new RelationName("doc", "t"), Arrays.asList("a", "b"));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
+        assertThat(partitionName).isEqualTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName()));
 
         partitionName = new PartitionName(
             new RelationName("doc", "t"), Arrays.asList("a", "b"));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("081620j2"));
+        assertThat(partitionName).isEqualTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName()));
+        assertThat(partitionName.ident()).isEqualTo("081620j2");
 
         partitionName = new PartitionName(
             new RelationName("schema", "t"), Arrays.asList("a", "b"));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("081620j2"));
+        assertThat(partitionName).isEqualTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName()));
+        assertThat(partitionName.ident()).isEqualTo("081620j2");
 
         partitionName = new PartitionName(
             new RelationName("doc", "t"), singletonList("hoschi"));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("043mgrrjcdk6i"));
+        assertThat(partitionName).isEqualTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName()));
+        assertThat(partitionName.ident()).isEqualTo("043mgrrjcdk6i");
 
         partitionName = new PartitionName(
             new RelationName("doc", "t"), singletonList(null));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("0400"));
+        assertThat(partitionName).isEqualTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName()));
+        assertThat(partitionName.ident()).isEqualTo("0400");
     }
 
     @Test
     public void splitTemplateName() throws Exception {
         PartitionName partitionName = PartitionName.fromIndexOrTemplate(PartitionName.templateName("schema", "t"));
-        assertThat(partitionName.relationName(), is(new RelationName("schema", "t")));
-        assertThat(partitionName.ident(), is(""));
+        assertThat(partitionName.relationName()).isEqualTo(new RelationName("schema", "t"));
+        assertThat(partitionName.ident()).isEqualTo("");
     }
 
     @Test
     public void testSplitInvalid1() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
         String part = IndexParts.PARTITIONED_TABLE_PART.substring(0, IndexParts.PARTITIONED_TABLE_PART.length() - 1);
-        PartitionName.fromIndexOrTemplate(part + "lalala.n");
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(part + "lalala.n"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid index name");
     }
 
     @Test
     public void testSplitInvalid2() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
-        PartitionName.fromIndexOrTemplate(IndexParts.PARTITIONED_TABLE_PART.substring(1) + "lalala.n");
+        String indexOrTemplate = IndexParts.PARTITIONED_TABLE_PART.substring(1) + "lalala.n";
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid index name");
     }
 
     @Test
     public void testSplitInvalid3() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
-        PartitionName.fromIndexOrTemplate("lalala");
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate("lalala"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid index name: lalala");
     }
 
     @Test
     public void testSplitInvalid4() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
-        PartitionName.fromIndexOrTemplate(IndexParts.PARTITIONED_TABLE_PART + "lalala");
+        String indexOrTemplate = IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid index name");
     }
 
     @Test
     public void testSplitInvalidWithSchema1() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
-        PartitionName.fromIndexOrTemplate("schema" + IndexParts.PARTITIONED_TABLE_PART + "lalala");
+        String indexOrTemplate = "schema" + IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid index name");
     }
 
     @Test
     public void testSplitInvalidWithSchema2() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name");
-        PartitionName.fromIndexOrTemplate("schema." + IndexParts.PARTITIONED_TABLE_PART + "lalala");
+        String indexOrTemplate = "schema." + IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid index name: schema");
     }
 
     @Test
     public void testEquals() throws Exception {
-        assertTrue(
-            new PartitionName(
-                new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
-                    new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"))));
-        assertTrue(
-            new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
-                new PartitionName(
-                    new RelationName("doc", "table"), Arrays.asList("xxx"))));
-        assertFalse(
-            new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
-                new PartitionName(new RelationName("schema", "table"), Arrays.asList("xxx"))));
+        assertThat(new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")))
+            .isEqualTo(new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")));
+        assertThat(new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")))
+            .isEqualTo(new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")));
+        assertThat(new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")))
+            .isNotEqualTo(new PartitionName(new RelationName("schema", "table"), Arrays.asList("xxx")));
         PartitionName name = new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"));
-        assertTrue(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName())));
+        assertThat(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName()))).isTrue();
     }
 }
