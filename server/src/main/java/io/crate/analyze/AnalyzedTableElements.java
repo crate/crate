@@ -68,8 +68,8 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import io.crate.types.GeoShapeType;
+import io.crate.types.ObjectType;
 
 public class AnalyzedTableElements<T> {
 
@@ -475,6 +475,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 isNullable,
+                realType,
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
                 (Integer) geoMap.get("tree_levels"),
