@@ -83,6 +83,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
                 if (handleEmptyArray(type, value, xcontentBuilder)) {
+                    type = null; // guess type again with next value
                     return;
                 }
                 throw new IllegalArgumentException(

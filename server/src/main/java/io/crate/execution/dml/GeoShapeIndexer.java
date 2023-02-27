@@ -30,6 +30,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -70,5 +71,9 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         for (var field : fields) {
             addField.accept(field);
         }
+        addField.accept(new Field(
+            FieldNamesFieldMapper.NAME,
+            name,
+            FieldNamesFieldMapper.Defaults.FIELD_TYPE));
     }
 }

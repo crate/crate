@@ -518,8 +518,14 @@ public class Indexer {
             String fqn = indexColumn.name.fqn();
             for (var input : indexColumn.inputs) {
                 Object value = input.value();
+                if (value == null) {
+                    continue;
+                }
                 if (value instanceof Iterable<?> it) {
                     for (Object val : it) {
+                        if (val == null) {
+                            continue;
+                        }
                         Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
                         doc.add(field);
                     }
