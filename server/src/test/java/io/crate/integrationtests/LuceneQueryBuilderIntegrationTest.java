@@ -23,11 +23,10 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -62,7 +61,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -77,13 +76,13 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where a = [10, 10, 20]");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from t where a = [10, 20]");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where a = [null, null]");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -95,7 +94,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -109,7 +108,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select text from t where substr(text_ft, 1, 1) = 'h'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -122,12 +121,12 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from t where 3 = any(a[1]['b']['n'])");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         execute("select a[1]['b']['n'] from t where 1 = any(a[1]['b']['n'])");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((List) response.rows()[0][0]).get(0), is(1));
-        assertThat(((List) response.rows()[0][0]).get(1), is(2));
-        assertThat(((List) response.rows()[0][0]).get(2), is(3));
+        assertThat(response).hasRowCount(1L);
+        assertThat(((List<?>) response.rows()[0][0]).get(0)).isEqualTo(1);
+        assertThat(((List<?>) response.rows()[0][0]).get(1)).isEqualTo(2);
+        assertThat(((List<?>) response.rows()[0][0]).get(2)).isEqualTo(3);
     }
 
     @Test
@@ -138,8 +137,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select dummy from t where substr(_uid, 1, 1) != '{'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((String) response.rows()[0][0]), is("yalla"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(((String) response.rows()[0][0])).isEqualTo("yalla");
     }
 
     @Test
@@ -160,7 +159,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         sb.append(')');
 
         execute(sb.toString());
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -174,7 +173,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table shaped");
 
         execute("select * from shaped where within(point, shape) order by id");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -192,7 +191,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
                 "-71.06463432312012 42.35213776805158," +
                 "-71.06403350830078 42.35359665158396," +
                 "-71.06042861938477 42.35473836290108))')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
     }
 
@@ -204,7 +203,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (o) values ({x=10, y=20})");
         execute("refresh table t");
 
-        assertThat(execute("select * from t where o = {x=10, y=20}").rowCount(), is(1L));
+        assertThat(execute("select * from t where o = {x=10, y=20}").rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -216,7 +215,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where concat(x, '') in ('x', 'y')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -228,13 +227,13 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where x in (1, null)");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
 
         execute("select * from t where x in (3, null)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where coalesce(x in (3, null), true)");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -255,28 +254,28 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
         // match on partition with the columns
 
-        assertThat(printedTable(execute("select p from t where x = 10").rows()), is("2\n"));
+        assertThat(execute("select p from t where x = 10")).hasRows("2");
         // range queries all hit the same code path, so only > is tested
-        assertThat(printedTable(execute("select p from t where x > 9").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where x is not null").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where x::string like 10").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where s like 'f%'").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where s ilike 'F%'").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where obj = {x=10}").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where b").rows()), is("2\n"));
+        assertThat(execute("select p from t where x > 9")).hasRows("2");
+        assertThat(execute("select p from t where x is not null")).hasRows("2");
+        assertThat(execute("select p from t where x::string like 10")).hasRows("2");
+        assertThat(execute("select p from t where s like 'f%'")).hasRows("2");
+        assertThat(execute("select p from t where s ilike 'F%'")).hasRows("2");
+        assertThat(execute("select p from t where obj = {x=10}")).hasRows("2");
+        assertThat(execute("select p from t where b")).hasRows("2");
 
-        assertThat(printedTable(execute("select p from t where 10 = any(numbers)").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where 10 != any(numbers)").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where 15 > any(numbers)").rows()), is("2\n"));
+        assertThat(execute("select p from t where 10 = any(numbers)")).hasRows("2");
+        assertThat(execute("select p from t where 10 != any(numbers)")).hasRows("2");
+        assertThat(execute("select p from t where 15 > any(numbers)")).hasRows("2");
 
-        assertThat(printedTable(execute("select p from t where x = any([10, 20])").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where x != any([20, 30])").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where x > any([1, 2])").rows()), is("2\n"));
+        assertThat(execute("select p from t where x = any([10, 20])")).hasRows("2");
+        assertThat(execute("select p from t where x != any([20, 30])")).hasRows("2");
+        assertThat(execute("select p from t where x > any([1, 2])")).hasRows("2");
 
 
         // match on partitions where the column does not exist
-        assertThat(printedTable(execute("select p from t where x is null").rows()), is("1\n"));
-        assertThat(printedTable(execute("select p from t where obj is null").rows()), is("1\n"));
+        assertThat(execute("select p from t where x is null")).hasRows("1");
+        assertThat(execute("select p from t where obj is null")).hasRows("1");
     }
 
     @Test
@@ -287,8 +286,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select dummy from t where substr(_id, 1, 1) != '{'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("yalla"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("yalla");
     }
 
     @Test
@@ -308,24 +307,24 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select count(*) from t2 where id != any(select id from t1)");
-        assertThat(response.rows()[0][0], is(1L));
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
         execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
-        Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
+        Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
 
         Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});
         execute("insert into t1 (c) values (?)", bulkArgs);
         execute("refresh table t1");
 
         execute("select count(*) from t1 where c is null");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
 
         execute("select count(*) from t1 where c is not null");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("2\n");
     }
 
     @Test
@@ -336,7 +335,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table bag");
 
         execute("SELECT id, ob FROM bag WHERE ob IS NOT NULL");
-        assertThat(printedTable(response.rows()), is("2| [{bbb=2}]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("2| [{bbb=2}]\n");
     }
 
     @Test
@@ -351,12 +350,12 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select * from t1 where not 5 = any(a)");
-        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("[1, 2, 3]\n");
         execute("select * from t1 where not ignore3vl(5 = any(a))");
-        assertThat(printedTable(response.rows()), anyOf(is("[1, 2, 3, null]\n" +
-                                                           "[1, 2, 3]\n"),
-                                                        is("[1, 2, 3]\n" +
-                                                           "[1, 2, 3, null]\n")));
+        assertThat(printedTable(response.rows()).split("\n")).containsExactlyInAnyOrder(
+            "[1, 2, 3, null]",
+            "[1, 2, 3]"
+        );
     }
 
     @Test
@@ -366,30 +365,35 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select * from t1 where a = []");
-        assertThat(printedTable(response.rows()), is("[]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("[]\n");
 
         execute("select * from t1 where a[1] = 1");
-        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("[1, 2, 3]\n");
 
         execute("select * from t1 where a[1] != 1");
-        assertThat(printedTable(response.rows()), is("[3, 4, 5, 1]\n" +
-                                                     "[6, 7, 8]\n"));
+        assertThat(response).hasRows(
+            "[3, 4, 5, 1]",
+            "[6, 7, 8]");
 
         execute("select * from t1 where a[1] > 1");
-        assertThat(printedTable(response.rows()), is("[3, 4, 5, 1]\n" +
-                                                     "[6, 7, 8]\n"));
+        assertThat(response).hasRows(
+            "[3, 4, 5, 1]",
+            "[6, 7, 8]");
 
         execute("select * from t1 where a[3] >= 3");
-        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n" +
-                                                     "[3, 4, 5, 1]\n" +
-                                                     "[6, 7, 8]\n"));
+        assertThat(response).hasRows(
+            "[1, 2, 3]",
+            "[3, 4, 5, 1]",
+            "[6, 7, 8]"
+        );
 
         execute("select * from t1 where a[1] < 3");
-        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("[1, 2, 3]\n");
 
         execute("select * from t1 where a[2] <= 4");
-        assertThat(printedTable(response.rows()), is("[1, 2, 3]\n" +
-                                                     "[3, 4, 5, 1]\n"));
+        assertThat(response).hasRows(
+            "[1, 2, 3]",
+            "[3, 4, 5, 1]");
     }
 
     @Test
@@ -398,16 +402,12 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (obj) values ([{xs = [1, 2, 3]}, {xs = [3, 4]}])");
         execute("refresh table t");
 
-        assertThat(
-            "query matches",
-            printedTable(execute("select * from t where [1, 2, 3] = any(obj['xs'])").rows()),
-            is("[{xs=[1, 2, 3]}, {xs=[3, 4]}]\n")
-        );
+        assertThat(execute("select * from t where [1, 2, 3] = any(obj['xs'])"))
+            .as("query matches")
+            .hasRows("[{xs=[1, 2, 3]}, {xs=[3, 4]}]");
 
-        assertThat(
-            "query doesn't match",
-            printedTable(execute("select * from t where [1, 2] = any(obj['xs'])").rows()),
-            is("")
-        );
+        assertThat(execute("select * from t where [1, 2] = any(obj['xs'])"))
+            .as("query doesn't match")
+            .hasRowCount(0L);
     }
 }
