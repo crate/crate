@@ -50,7 +50,18 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         xContentBuilder.startArray();
         if (values != null) {
             for (T value : values) {
-                innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics, toValidate);
+                if (value == null) {
+                    xContentBuilder.nullValue();
+                } else {
+                    innerIndexer.indexValue(
+                        value,
+                        xContentBuilder,
+                        addField,
+                        onDynamicColumn,
+                        synthetics,
+                        toValidate
+                    );
+                }
             }
         }
         xContentBuilder.endArray();

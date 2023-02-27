@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -666,5 +667,20 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.newColumns())
             .as("Doesn't repeatedly add new column")
             .hasSize(0);
+    }
+
+    @Test
+    public void test_source_includes_null_values_in_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs int[])")
+            .build();
+
+        var indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "xs");
+        ParsedDocument doc = indexer.index(item(Arrays.asList(1, 42, null, 21)));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"xs": [1, 42, null, 21]}
+            """
+        );
     }
 }
