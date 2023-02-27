@@ -133,6 +133,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                                Consumer<? super Reference> onDynamicColumn,
                                Map<ColumnIdent, Indexer.Synthetic> synthetics,
                                Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+        int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
@@ -147,6 +148,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     innerName,
                     ref.column()
                 ));
+            }
+            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                xContentBuilder.field(innerName, innerValue);
+                continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
             innerValue = type.sanitizeValue(innerValue);
@@ -166,9 +171,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 IndexType.PLAIN,
                 nullable,
                 storageSupport.docValuesDefault(),
-                -1,
+                position,
                 defaultExpression
             );
+            position--;
             onDynamicColumn.accept(newColumn);
             var valueIndexer = (ValueIndexer<Object>) type.valueIndexer(
                 table,

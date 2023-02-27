@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.ObjectAssert;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
@@ -248,5 +249,9 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         isNotNull();
         assertThat(SQLPrinter.print(actual)).isEqualTo(expectedStmt);
         return this;
+    }
+
+    public ObjectAssert<Object> extracting(String property) {
+        return super.extracting(property, t -> assertThat(t));
     }
 }
