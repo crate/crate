@@ -59,6 +59,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -71,6 +72,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
@@ -331,9 +333,22 @@ public class Indexer {
         Function<ColumnIdent, Reference> getRef = table::getReference;
         this.valueIndexers = new ArrayList<>(targetColumns.size());
         for (var ref : targetColumns) {
-            this.valueIndexers.add(
-                ref.valueType().valueIndexer(table.ident(), ref, getFieldType, getRef)
-            );
+            ValueIndexer<?> valueIndexer;
+            if (ref instanceof DynamicReference dynamic) {
+                if (table.columnPolicy() == ColumnPolicy.STRICT) {
+                    throw new IllegalArgumentException(
+                        "Cannot add column `" + ref.column() + "` to table with column policy STRICT");
+                }
+                valueIndexer = new DynamicIndexer(ref.ident(), getFieldType, getRef);
+            } else {
+                valueIndexer = ref.valueType().valueIndexer(
+                    table.ident(),
+                    ref,
+                    getFieldType,
+                    getRef
+                );
+            }
+            this.valueIndexers.add(valueIndexer);
             addToValidate(table, ctxForRefs, ref);
         }
         this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
