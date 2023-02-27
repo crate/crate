@@ -387,12 +387,24 @@ public class NestedLoopJoin implements JoinPlan {
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
         } else {
-            // run join phase non-distributed on the handler
+            // run join phase non-distributed on the handler.
+            // It means that nlExecutionNodes contains a single element (handler node)
+            // and if JoinOperations.isMergePhaseNeeded check returns false for some side
+            // it basically means that handler node has all needed data for that side.
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
 
-            leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
-            rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
+            } else {
+                left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            }
+
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
+                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            } else {
+                right.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            }
         }
         return new Tuple<>(nlExecutionNodes, Arrays.asList(leftMerge, rightMerge));
     }
