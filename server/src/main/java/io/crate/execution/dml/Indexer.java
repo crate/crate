@@ -332,14 +332,20 @@ public class Indexer {
         );
         Function<ColumnIdent, Reference> getRef = table::getReference;
         this.valueIndexers = new ArrayList<>(targetColumns.size());
+        int position = -1;
         for (var ref : targetColumns) {
             ValueIndexer<?> valueIndexer;
             if (ref instanceof DynamicReference dynamic) {
                 if (table.columnPolicy() == ColumnPolicy.STRICT) {
-                    throw new IllegalArgumentException(
-                        "Cannot add column `" + ref.column() + "` to table with column policy STRICT");
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot add column `%s` to table `%s` with column policy `strict`",
+                        ref.column(),
+                        table.ident()
+                    ));
                 }
-                valueIndexer = new DynamicIndexer(ref.ident(), getFieldType, getRef);
+                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef);
+                position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
                     table.ident(),
