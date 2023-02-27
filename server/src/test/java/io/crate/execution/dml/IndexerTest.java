@@ -167,7 +167,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
-                col1 -> assertThat(col1).isReference("o['xs']", new ArrayType<>(DataTypes.INTEGER))
+                col1 -> assertThat(col1).isReference("o['xs']", new ArrayType<>(DataTypes.LONG))
             );
 
         assertThat(parsedDoc.source().utf8ToString()).isIn(
