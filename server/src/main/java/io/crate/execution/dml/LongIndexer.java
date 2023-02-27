@@ -27,12 +27,14 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
@@ -62,6 +64,11 @@ public class LongIndexer implements ValueIndexer<Long> {
         addField.accept(new LongPoint(name, longValue));
         if (ref.hasDocValues()) {
             addField.accept(new SortedNumericDocValuesField(name, longValue));
+        } else {
+            addField.accept(new Field(
+                FieldNamesFieldMapper.NAME,
+                name,
+                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
         }
         if (fieldType.stored()) {
             addField.accept(new StoredField(name, longValue));

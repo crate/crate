@@ -59,6 +59,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final RelationName table;
     private final Reference ref;
     private final Function<ColumnIdent, FieldType> getFieldType;
+    private final HashMap<String, DataType<?>> innerTypes;
 
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
@@ -72,13 +73,21 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.column = ref.column();
         this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         this.innerIndexers = new HashMap<>();
+        this.innerTypes = new HashMap<>(objectType.innerTypes());
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
             ColumnIdent child = column.getChild(innerName);
             Reference childRef = getRef.apply(child);
-            ValueIndexer<?> valueIndexer = value.valueIndexer(table, childRef, getFieldType, getRef);
-            innerIndexers.put(entry.getKey(), (ValueIndexer<Object>) valueIndexer);
+            if (childRef.granularity() != RowGranularity.PARTITION) {
+                ValueIndexer<?> valueIndexer = value.valueIndexer(
+                    table,
+                    childRef,
+                    getFieldType,
+                    getRef
+                );
+                innerIndexers.put(entry.getKey(), (ValueIndexer<Object>) valueIndexer);
+            }
         }
     }
 
@@ -90,11 +99,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
-        if (value != null) {
-            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
-        }
-        for (var entry : objectType.innerTypes().entrySet()) {
+        for (var entry : innerTypes.entrySet()) {
             String innerName = entry.getKey();
+            DataType<?> type = entry.getValue();
             ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = value == null ? null : value.get(innerName);
             if (innerValue == null) {
@@ -111,17 +118,21 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             var valueIndexer = innerIndexers.get(innerName);
-            assert valueIndexer != null : "ValueIndexer must exist for inner column retrieved from ObjectType information";
-
-            xContentBuilder.field(innerName);
-            valueIndexer.indexValue(
-                innerValue,
-                xContentBuilder,
-                addField,
-                onDynamicColumn,
-                synthetics,
-                checks
-            );
+            // valueIndexer is null for partitioned columns
+            if (valueIndexer != null) {
+                xContentBuilder.field(innerName);
+                valueIndexer.indexValue(
+                    type.sanitizeValue(innerValue),
+                    xContentBuilder,
+                    addField,
+                    onDynamicColumn,
+                    synthetics,
+                    checks
+                );
+            }
+        }
+        if (value != null) {
+            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
         }
         xContentBuilder.endObject();
     }
@@ -137,8 +148,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !objectType.innerTypes().containsKey(innerName);
+            boolean isNewColumn = !innerTypes.containsKey(innerName);
             if (!isNewColumn) {
+                continue;
+            }
+            if (innerValue == null) {
+                xContentBuilder.nullField(innerName);
                 continue;
             }
             if (ref.columnPolicy() == ColumnPolicy.STRICT) {
@@ -187,6 +202,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 getRef
             );
             innerIndexers.put(innerName, valueIndexer);
+            innerTypes.put(innerName, type);
             xContentBuilder.field(innerName);
             valueIndexer.indexValue(
                 innerValue,

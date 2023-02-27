@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -32,6 +34,7 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
@@ -44,9 +47,9 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     private final FieldType fieldType;
     private final String name;
 
-    public DoubleIndexer(Reference ref, FieldType fieldType) {
+    public DoubleIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
-        this.fieldType = fieldType;
+        this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
         this.name = ref.column().fqn();
     }
 

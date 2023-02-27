@@ -57,6 +57,7 @@ import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -68,10 +69,13 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
@@ -118,12 +122,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx,
                                                  Schemas schemas) {
-            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient,
+            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient, mock(TransportAddColumnAction.class),
                 tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 
         @Override
-        protected IndexItemResponse insert(ShardUpsertRequest request,
+        protected IndexItemResponse insert(Indexer indexer,
+                                           ShardUpsertRequest request,
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard,
                                            boolean isRetry,
@@ -154,7 +159,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         when(indicesService.indexServiceSafe(charactersIndex)).thenReturn(indexService);
         when(indicesService.indexServiceSafe(partitionIndex)).thenReturn(indexService);
-        indexShard = mock(IndexShard.class);
+        indexShard = mock(IndexShard.class, Answers.RETURNS_MOCKS);
         when(indexService.getShard(0)).thenReturn(indexShard);
 
         // Avoid null pointer exceptions
@@ -286,6 +291,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
 

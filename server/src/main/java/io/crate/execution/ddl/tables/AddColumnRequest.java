@@ -56,6 +56,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         this.colsToAdd = colsToAdd;
         this.checkConstraints = checkConstraints;
         this.pKeyIndices = pKeyIndices;
+        assert colsToAdd.isEmpty() == false : "Columns to add must not be empty";
     }
 
     public AddColumnRequest(StreamInput in) throws IOException {

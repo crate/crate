@@ -353,7 +353,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                                     new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed");
+            .hasMessageContaining("Cannot add column `another_new_col` to strict object `strict_field`");
     }
 
     @Test
@@ -470,7 +470,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             SQLResponse res = execute(
                 "select column_name, data_type from information_schema.columns where " +
                 " table_name='arr' order by ordinal_position desc limit 1");
-            assertThat(res).hasRows("new| real_array");
+            assertThat(res).hasRows("new| double precision_array");
         });
     }
 

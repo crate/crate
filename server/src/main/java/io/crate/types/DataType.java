@@ -237,9 +237,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     @Nullable
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
-                                              Reference ref,
-                                              Function<ColumnIdent, FieldType> getFieldType,
-                                              Function<ColumnIdent, Reference> getRef) {
+                                                      Reference ref,
+                                                      Function<ColumnIdent, FieldType> getFieldType,
+                                                      Function<ColumnIdent, Reference> getRef) {
         StorageSupport<? super T> storageSupport = storageSupport();
         if (storageSupport == null) {
             throw new IllegalArgumentException(
