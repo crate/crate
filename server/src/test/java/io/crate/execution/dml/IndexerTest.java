@@ -48,12 +48,15 @@ import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
@@ -133,16 +136,41 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20));
+        Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20, "z", 30));
         ParsedDocument parsedDoc = indexer.index(item(value));
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(10);
+            .hasSize(12);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
                 col1 -> assertThat(col1).isReference("o['obj']"),
                 col2 -> assertThat(col2).isReference("o['obj']['y']")
+                    .extracting("position")
+                    .isEqualTo(-1),
+                col3 -> assertThat(col3).isReference("o['obj']['z']")
+                    .extracting("position")
+                    .isEqualTo(-2)
             );
+    }
+
+    @Test
+    public void test_ignored_object_values_are_ignored_and_added_to_source() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object (ignored))")
+            .build();
+
+        var indexer = getIndexer(e, "tbl", null, "o");
+        ParsedDocument doc = indexer.index(item(Map.of("x", 10)));
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"o": {"x": 10}}
+            """
+        );
+        assertThat(doc.doc().getFields("o.x")).hasSize(0);
+        assertThat(doc.doc().getFields("o.y")).hasSize(0);
+        assertThat(doc.doc().getFields())
+            .as("source, seqNo, id...")
+            .hasSize(6);
     }
 
     @Test
@@ -654,8 +682,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         ParsedDocument doc = indexer.index(item(42, "Hello", 21));
         assertThat(doc.newColumns()).satisfiesExactly(
-            x -> assertThat(x).isReference("y", DataTypes.STRING),
-            x -> assertThat(x).isReference("z", DataTypes.LONG)
+            x -> assertThat(x)
+                .isReference("y", DataTypes.STRING)
+                .extracting("position")
+                .isEqualTo(-1),
+            x -> assertThat(x)
+                .isReference("z", DataTypes.LONG)
+                .extracting("position")
+                .isEqualTo(-2)
         );
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
@@ -667,6 +701,32 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.newColumns())
             .as("Doesn't repeatedly add new column")
             .hasSize(0);
+    }
+
+    @Test
+    public void test_cannot_add_dynamic_column_on_strict_table() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        assertThatThrownBy(() -> {
+            new Indexer(
+                table.ident().indexNameOrAlias(),
+                table,
+                new CoordinatorTxnCtx(e.getSessionSettings()),
+                e.nodeCtx,
+                column -> NumberFieldMapper.FIELD_TYPE,
+                List.<Reference>of(
+                    new DynamicReference(
+                        new ReferenceIdent(table.ident(), "y"),
+                        RowGranularity.DOC,
+                        -1
+                    )
+                ),
+                null
+            );
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot add column `y` to table `doc.tbl` with column policy `strict`");
     }
 
     @Test
