@@ -433,7 +433,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t(id) values(-1)");
         refresh();
         execute("select id from t");
-        assertThat(response).hasRows("-1\n");
+        assertThat(response).hasRows("-1");
     }
 
     @Test
@@ -456,12 +456,12 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("select data_type from information_schema.columns where " +
                 "table_name = 't' and column_name = 'name'");
-        assertThat(response).hasRows("text\n");
+        assertThat(response).hasRows("text");
 
         execute("alter table t add column o object as (age int)");
         execute("select data_type from information_schema.columns where " +
                 "table_name = 't' and column_name = 'o'");
-        assertThat(response).hasRows("object\n");
+        assertThat(response).hasRows("object");
     }
 
     @Test
@@ -664,7 +664,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         refresh();
         execute("select attributes from t");
-        assertThat(response).hasRows("[{name=Trillian, is_nice=true}]\n");
+        assertThat(response).hasRows("[{name=Trillian, is_nice=true}]");
     }
 
     @Test
@@ -818,11 +818,11 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("select name from a.t");
         assertThat(response).hasRowCount(1);
-        assertThat(response).hasRows("Ford\n");
+        assertThat(response).hasRows("Ford");
 
         execute("select table_schema from information_schema.tables where table_name = 't'");
         assertThat(response).hasRowCount(1);
-        assertThat(response).hasRows("a\n");
+        assertThat(response).hasRows("a");
     }
 
     @Test

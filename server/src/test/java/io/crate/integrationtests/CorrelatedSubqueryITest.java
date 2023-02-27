@@ -391,7 +391,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "            └ Collect[doc.b | [1, f1, f2, f3, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
         );
         assertThat(execute(stmt)).hasRows(
-            "1\n"
+            "1"
         );
     }
 }
