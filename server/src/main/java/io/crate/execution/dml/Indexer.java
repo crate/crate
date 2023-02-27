@@ -420,7 +420,9 @@ public class Indexer {
                 Input<?> input = ctxForRefs.add(sourceRef);
                 indexInputs.add(input);
             }
-            indexColumns.add(new IndexColumn(ref.column(), fieldType, indexInputs));
+            if (fieldType.indexOptions() != IndexOptions.NONE) {
+                indexColumns.add(new IndexColumn(ref.column(), fieldType, indexInputs));
+            }
         }
         if (returnValues == null) {
             this.returnValueInputs = null;
@@ -513,10 +515,16 @@ public class Indexer {
         xContentBuilder.endObject();
 
         for (var indexColumn : indexColumns) {
+            String fqn = indexColumn.name.fqn();
             for (var input : indexColumn.inputs) {
-                String value = (String) input.value();
-                if (indexColumn.fieldType.indexOptions() != IndexOptions.NONE) {
-                    Field field = new Field(indexColumn.name.fqn(), value, indexColumn.fieldType);
+                Object value = input.value();
+                if (value instanceof Iterable<?> it) {
+                    for (Object val : it) {
+                        Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
+                        doc.add(field);
+                    }
+                } else {
+                    Field field = new Field(fqn, value.toString(), indexColumn.fieldType);
                     doc.add(field);
                 }
             }
