@@ -30,7 +30,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -59,6 +65,21 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     static IndexItem item(Object ... values) {
         return new IndexItem.StaticItem("dummy-id-1", List.of(), values, 0L, 0L);
+    }
+
+    static Indexer getIndexer(SQLExecutor e, String tableName, FieldType fieldType, String ... columns) {
+        DocTableInfo table = e.resolveTableInfo(tableName);
+        return new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            column -> fieldType,
+            Stream.of(columns)
+                .map(x -> table.getReference(new ColumnIdent(x)))
+                .toList(),
+            null
+        );
     }
 
     @Test
@@ -496,6 +517,24 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(null, o));
         assertThat(doc.source().utf8ToString()).isEqualTo(
             "{\"o\":{}}"
+        );
+    }
+
+    @Test
+    public void test_indexing_float_results_in_float_point() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x float)")
+            .build();
+
+        Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
+        ParsedDocument doc = indexer.index(item(42.2f));
+        IndexableField[] fields = doc.doc().getFields("x");
+        assertThat(fields).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(FloatPoint.class),
+            x -> assertThat(x)
+                .isExactlyInstanceOf(SortedNumericDocValuesField.class)
+                .extracting("fieldsData")
+                .isEqualTo((long) NumericUtils.floatToSortableInt(42.2f))
         );
     }
 
