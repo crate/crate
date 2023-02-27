@@ -19,35 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
+
 package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
-
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
-public class StringIndexer implements ValueIndexer<String> {
+public class FulltextIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
     private final FieldType fieldType;
 
-    public StringIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public FulltextIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.fieldType = fieldType == null ? KeywordFieldMapper.Defaults.FIELD_TYPE : fieldType;
+        this.fieldType = fieldType;
     }
 
     @Override
@@ -58,20 +54,20 @@ public class StringIndexer implements ValueIndexer<String> {
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
+        if (value == null) {
+            return;
+        }
         String name = ref.column().fqn();
-        BytesRef binaryValue = new BytesRef(value);
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            Field field = new Field(name, binaryValue, fieldType);
+            Field field = new Field(name, value, fieldType);
             addField.accept(field);
-            if (ref.hasDocValues() == false && fieldType.omitNorms()) {
+
+            if (fieldType.omitNorms()) {
                 addField.accept(new Field(
                     FieldNamesFieldMapper.NAME,
                     name,
                     FieldNamesFieldMapper.Defaults.FIELD_TYPE));
             }
-        }
-        if (ref.hasDocValues()) {
-            addField.accept(new SortedSetDocValuesField(name, binaryValue));
         }
     }
 }

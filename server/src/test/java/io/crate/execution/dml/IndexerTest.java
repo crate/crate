@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -42,6 +43,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
@@ -536,6 +538,25 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .extracting("fieldsData")
                 .isEqualTo((long) NumericUtils.floatToSortableInt(42.2f))
         );
+    }
+
+    @Test
+    public void test_can_index_fulltext_column() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x text index using fulltext with (analyzer = 'english'))")
+            .build();
+
+        var indexer = getIndexer(e, "tbl", TextFieldMapper.Defaults.FIELD_TYPE, "x");
+        ParsedDocument doc = indexer.index(item("Hello World"));
+        IndexableField[] fields = doc.doc().getFields("x");
+        assertThat(fields).satisfiesExactly(
+            x -> assertThat(x)
+                .isExactlyInstanceOf(Field.class)
+                .extracting("fieldsData")
+                .as("value is indexed as string instead of BytesRef")
+                .isEqualTo("Hello World")
+        );
+        assertThat(fields[0].fieldType().tokenized()).isTrue();
     }
 
     @Test
