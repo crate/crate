@@ -118,6 +118,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"o\":{\"x\":10,\"y\":20}}",
             "{\"o\":{\"y\":20,\"x\":10}}"
         );
+
+        value = Map.of("x", 10, "y", 20);
+        parsedDoc = indexer.index(item(value));
+        assertThat(parsedDoc.newColumns()).isEmpty();
     }
 
     @Test

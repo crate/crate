@@ -77,7 +77,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     private final DataType<T> innerType;
     private Streamer<List<T>> streamer;
 
-    private StorageSupport<? super T> storageSupport;
+    private final StorageSupport<? super T> storageSupport;
 
     /**
      * Construct a new Collection type
@@ -137,7 +137,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @SuppressWarnings("unchecked")
     public ArrayType(StreamInput in) throws IOException {
-        innerType = (DataType<T>) DataTypes.fromStream(in);
+        this((DataType<T>) DataTypes.fromStream(in));
     }
 
     @Override

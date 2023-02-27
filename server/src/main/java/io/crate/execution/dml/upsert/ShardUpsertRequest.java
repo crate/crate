@@ -42,6 +42,7 @@ import org.elasticsearch.index.translog.Translog;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -272,7 +273,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     /**
      * A single update item.
      */
-    public static final class Item extends ShardRequest.Item {
+    public static final class Item extends ShardRequest.Item implements IndexItem {
 
         public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Item.class);
 

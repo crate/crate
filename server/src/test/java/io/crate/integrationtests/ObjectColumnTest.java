@@ -161,7 +161,7 @@ public class ObjectColumnTest extends IntegTestCase {
             new Object[]{"Life, the Universe and Everything", authorMap}))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("dynamic introduction of [middle_name] within [author.name] is not allowed");
+            .hasMessageContaining("Cannot add column `middle_name` to strict object `author['name']`");
     }
 
     @Test
