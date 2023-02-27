@@ -42,6 +42,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.TextFieldMapper;
@@ -740,6 +741,21 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
             {"xs": [1, 42, null, 21]}
+            """
+        );
+    }
+
+    @Test
+    public void test_can_have_ft_index_for_array() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs text[], index ft using fulltext (xs))")
+            .build();
+        var indexer = getIndexer(e, "tbl", KeywordFieldMapper.Defaults.FIELD_TYPE, "xs");
+        ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
+        assertThat(doc.doc().getFields("ft")).hasSize(3);
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"xs": ["foo", "bar", "baz"]}
             """
         );
     }
