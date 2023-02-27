@@ -47,11 +47,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
 import io.crate.types.ObjectType;
-import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
@@ -152,22 +148,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     ref.column()
                 ));
             }
-            var type = DataTypes.guessType(innerValue);
-            switch (type.id()) {
-                case ShortType.ID:
-                case IntegerType.ID:
-                    type = DataTypes.LONG;
-                    innerValue = type.sanitizeValue(innerValue);
-                    break;
-
-                case FloatType.ID:
-                    type = DataTypes.DOUBLE;
-                    innerValue = type.sanitizeValue(innerValue);
-                    break;
-
-                default:
-                    break;
-            }
+            var type = DynamicIndexer.guessType(innerValue);
+            innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
                 throw new IllegalArgumentException(

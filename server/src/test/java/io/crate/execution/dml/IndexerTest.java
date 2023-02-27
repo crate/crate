@@ -630,4 +630,41 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             }
         }
     }
+
+    @Test
+    public void test_can_add_dynamic_ref_as_new_top_level_column() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
+            .build();
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("x")),
+                table.getDynamic(new ColumnIdent("y"), true, false),
+                table.getDynamic(new ColumnIdent("z"), true, false)
+            ),
+            null
+        );
+        ParsedDocument doc = indexer.index(item(42, "Hello", 21));
+        assertThat(doc.newColumns()).satisfiesExactly(
+            x -> assertThat(x).isReference("y", DataTypes.STRING),
+            x -> assertThat(x).isReference("z", DataTypes.LONG)
+        );
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"x": 42, "y": "Hello", "z": 21}
+            """
+        );
+
+        doc = indexer.index(item(42, "Hello", 22));
+        assertThat(doc.newColumns())
+            .as("Doesn't repeatedly add new column")
+            .hasSize(0);
+    }
 }
