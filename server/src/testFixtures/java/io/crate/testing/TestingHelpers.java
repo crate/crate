@@ -104,6 +104,16 @@ public class TestingHelpers {
         );
     }
 
+    static String printRow(Object[] row) {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+        boolean first = true;
+        for (Object o : row) {
+            first = printObject(out, first, o);
+        }
+        return os.toString();
+    }
+
     public static String printRows(Iterable<Object[]> rows) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);

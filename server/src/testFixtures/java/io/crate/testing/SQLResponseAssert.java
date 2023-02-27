@@ -23,9 +23,12 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.assertj.core.api.AbstractAssert;
+
+import io.crate.data.Row;
 
 public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, SQLResponse> {
 
@@ -43,6 +46,14 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         String result = TestingHelpers.printedTable(actual.rows());
         String[] resultRows = result.split("\n");
         assertThat(resultRows).containsExactly(rows);
+        return this;
+    }
+
+
+    public SQLResponseAssert hasRow(String row) {
+        hasRowCount(1L);
+        String result = TestingHelpers.printRow(actual.rows()[0]);
+        assertThat(result).isEqualTo(row);
         return this;
     }
 

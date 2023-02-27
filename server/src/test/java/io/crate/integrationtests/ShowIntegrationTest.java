@@ -22,12 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.Locale;
 
@@ -260,9 +256,9 @@ public class ShowIntegrationTest extends IntegTestCase {
     }
 
     private void assertRow(String expected) {
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1L);
         try {
-            assertThat(((String) response.rows()[0][0]), startsWith(expected));
+            assertThat((String) response.rows()[0][0]).startsWith(expected);
         } catch (Throwable e) {
             String msg = String.format(Locale.ENGLISH, "Row does not start with expected string:%n%n" +
                                                        "Expected: %s%nActual: %s%n", expected, response.rows()[0][0]);
@@ -275,8 +271,8 @@ public class ShowIntegrationTest extends IntegTestCase {
         execute("create table my_s1.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("create table my_s2.my_table (id long) clustered into 1 shards with (number_of_replicas='0')");
         execute("show schemas like 'my_%'");
-        assertThat(printedTable(response.rows()), is("my_s1\n" +
-                                                                    "my_s2\n"));
+        assertThat(response).hasRows("my_s1",
+                                     "my_s2");
     }
 
     @Test
@@ -299,36 +295,35 @@ public class ShowIntegrationTest extends IntegTestCase {
         );
 
         execute("show columns from my_table1");
-        assertThat(printedTable(response.rows()),
-            is("column11| integer\n" +
-               "column12| integer\n" +
-               "column13| bigint\n" +
-               "column21| integer\n" +
-               "column22| text\n" +
-               "column31| integer\n"));
+        assertThat(response).hasRows(
+            "column11| integer",
+               "column12| integer",
+               "column13| bigint",
+               "column21| integer",
+               "column22| text",
+               "column31| integer");
 
         execute("show columns in my_table1 like '%2'");
-        assertThat(printedTable(response.rows()),
-            is("column12| integer\n" +
-               "column22| text\n"));
+        assertThat(response)
+            .hasRows("column12| integer",
+                     "column22| text");
 
         execute("show columns from my_table1 where column_name = 'column12'");
-        assertThat(printedTable(response.rows()), is("column12| integer\n"));
+        assertThat(response).hasRow("column12| integer");
 
         execute("show columns in my_table1 from my_s1 where data_type = 'bigint'");
-        assertThat(printedTable(response.rows()), is("col22| bigint\n"));
+        assertThat(response).hasRow("col22| bigint");
 
         execute("show columns in my_table1 from my_s1 like 'col1%'");
-        assertThat(printedTable(response.rows()),
-            is("col11| timestamp with time zone\n" +
-               "col12| integer\n" +
-               "col13| integer\n"));
+        assertThat(response).hasRows(
+            "col11| timestamp with time zone",
+               "col12| integer",
+               "col13| integer");
 
         execute("show columns from my_table1 in my_s1 like '%1'");
-        assertThat(printedTable(response.rows()),
-            is("col11| timestamp with time zone\n" +
-               "col31| integer\n"));
-
+        assertThat(response).hasRows(
+            "col11| timestamp with time zone",
+            "col31| integer");
     }
 
     @Test
@@ -339,55 +334,53 @@ public class ShowIntegrationTest extends IntegTestCase {
         execute("create table foo (id long, name string)");
 
         execute("show tables");
-        assertThat(printedTable(response.rows()), is("foo\n" +
-                                                                    "test\n"));
+        assertThat(response).hasRows("foo", "test");
 
         execute(String.format(Locale.ENGLISH, "show tables from %s", schemaName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute(String.format(Locale.ENGLISH, "show tables in %s", schemaName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute(String.format(Locale.ENGLISH, "show tables from %s like 'hello'", schemaName));
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0L);
 
         execute(String.format(Locale.ENGLISH, "show tables from %s like '%%'", schemaName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute("show tables like '%es%'");
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute("show tables like '%'");
-        assertThat(printedTable(response.rows()), is("foo\n" +
-                                                                    "test\n"));
+        assertThat(response).hasRows("foo", "test");
 
         execute(String.format(Locale.ENGLISH, "show tables where table_name = '%s'", tableName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRows("test");
 
         execute("show tables where table_name like '%es%'");
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute(String.format(Locale.ENGLISH, "show tables from %s where table_name like '%%es%%'", schemaName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute(String.format(Locale.ENGLISH, "show tables in %s where table_name like '%%es%%'", schemaName));
-        assertThat(printedTable(response.rows()), is("test\n"));
+        assertThat(response).hasRow("test");
 
         execute(String.format(Locale.ENGLISH, "show tables from %s where table_name = 'hello'", schemaName));
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
     public void testShowSearchPath() {
         execute("show search_path");
-        assertThat(printedTable(response.rows()), is("doc\n"));
+        assertThat(response).hasRow("doc");
     }
 
     @UseHashJoins(1)
     @Test
     public void testShowEnableHashJoin() {
         execute("show enable_hashjoin");
-        assertThat(printedTable(response.rows()), is("true\n"));
+        assertThat(response).hasRow("true");
     }
 
     @Test
@@ -403,39 +396,39 @@ public class ShowIntegrationTest extends IntegTestCase {
     @Test
     public void testShowAll() {
         execute("show all");
-        assertThat(printedTable(response.rows()), is(
-            "application_name| PostgreSQL JDBC Driver| Optional application name. Can be set by a client to identify the application which created the connection\n" +
-            "datestyle| ISO| Display format for date and time values.\n" +
-            "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n" +
-            "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.\n" +
-            "max_index_keys| 32| Shows the maximum number of index keys.\n" +
-            "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.\n" +
-            "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.\n" +
-            "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.\n" +
-            "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.\n" +
-            "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.\n" +
-            "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.\n" +
-            "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.\n" +
-            "optimizer_move_filter_beneath_hash_join| true| Indicates if the optimizer rule MoveFilterBeneathHashJoin is activated.\n" +
-            "optimizer_move_filter_beneath_nested_loop| true| Indicates if the optimizer rule MoveFilterBeneathNestedLoop is activated.\n" +
-            "optimizer_move_filter_beneath_order| true| Indicates if the optimizer rule MoveFilterBeneathOrder is activated.\n" +
-            "optimizer_move_filter_beneath_project_set| true| Indicates if the optimizer rule MoveFilterBeneathProjectSet is activated.\n" +
-            "optimizer_move_filter_beneath_rename| true| Indicates if the optimizer rule MoveFilterBeneathRename is activated.\n" +
-            "optimizer_move_filter_beneath_union| true| Indicates if the optimizer rule MoveFilterBeneathUnion is activated.\n" +
-            "optimizer_move_filter_beneath_window_agg| true| Indicates if the optimizer rule MoveFilterBeneathWindowAgg is activated.\n" +
-            "optimizer_move_order_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveOrderBeneathFetchOrEval is activated.\n" +
-            "optimizer_move_order_beneath_nested_loop| true| Indicates if the optimizer rule MoveOrderBeneathNestedLoop is activated.\n" +
-            "optimizer_move_order_beneath_rename| true| Indicates if the optimizer rule MoveOrderBeneathRename is activated.\n" +
-            "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.\n" +
-            "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.\n" +
-            "optimizer_remove_redundant_fetch_or_eval| true| Indicates if the optimizer rule RemoveRedundantFetchOrEval is activated.\n" +
-            "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.\n" +
-            "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.\n" +
-            "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.\n" +
-            "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.\n" +
-            "search_path| doc| Sets the schema search order.\n" +
-            "server_version| 11.0| Reports the emulated PostgreSQL version number\n" +
-            "server_version_num| 110000| Reports the emulated PostgreSQL version number\n")
+        assertThat(response).hasRows(
+            "application_name| PostgreSQL JDBC Driver| Optional application name. Can be set by a client to identify the application which created the connection",
+            "datestyle| ISO| Display format for date and time values.",
+            "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.",
+            "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
+            "max_index_keys| 32| Shows the maximum number of index keys.",
+            "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.",
+            "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.",
+            "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.",
+            "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.",
+            "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.",
+            "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.",
+            "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.",
+            "optimizer_move_filter_beneath_hash_join| true| Indicates if the optimizer rule MoveFilterBeneathHashJoin is activated.",
+            "optimizer_move_filter_beneath_nested_loop| true| Indicates if the optimizer rule MoveFilterBeneathNestedLoop is activated.",
+            "optimizer_move_filter_beneath_order| true| Indicates if the optimizer rule MoveFilterBeneathOrder is activated.",
+            "optimizer_move_filter_beneath_project_set| true| Indicates if the optimizer rule MoveFilterBeneathProjectSet is activated.",
+            "optimizer_move_filter_beneath_rename| true| Indicates if the optimizer rule MoveFilterBeneathRename is activated.",
+            "optimizer_move_filter_beneath_union| true| Indicates if the optimizer rule MoveFilterBeneathUnion is activated.",
+            "optimizer_move_filter_beneath_window_agg| true| Indicates if the optimizer rule MoveFilterBeneathWindowAgg is activated.",
+            "optimizer_move_order_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveOrderBeneathFetchOrEval is activated.",
+            "optimizer_move_order_beneath_nested_loop| true| Indicates if the optimizer rule MoveOrderBeneathNestedLoop is activated.",
+            "optimizer_move_order_beneath_rename| true| Indicates if the optimizer rule MoveOrderBeneathRename is activated.",
+            "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.",
+            "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.",
+            "optimizer_remove_redundant_fetch_or_eval| true| Indicates if the optimizer rule RemoveRedundantFetchOrEval is activated.",
+            "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.",
+            "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.",
+            "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.",
+            "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.",
+            "search_path| doc| Sets the schema search order.",
+            "server_version| 11.0| Reports the emulated PostgreSQL version number",
+            "server_version_num| 110000| Reports the emulated PostgreSQL version number"
         );
     }
 }
