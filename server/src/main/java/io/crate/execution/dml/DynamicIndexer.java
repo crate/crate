@@ -54,15 +54,18 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     private final ReferenceIdent refIdent;
     private final Function<ColumnIdent, FieldType> getFieldType;
     private final Function<ColumnIdent, Reference> getRef;
+    private final int position;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
 
     public DynamicIndexer(ReferenceIdent refIdent,
+                          int position,
                           Function<ColumnIdent, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef) {
         this.refIdent = refIdent;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
+        this.position = position;
     }
 
     @Override
@@ -82,7 +85,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                     "Storage is not supported for this type");
             }
             boolean nullable = true;
-            int position = -1;
             Symbol defaultExpression = null;
             Reference newColumn = new SimpleReference(
                 refIdent,
