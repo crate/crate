@@ -21,13 +21,15 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.types.DataTypes;
 
 public class GeoReferenceTest extends ESTestCase {
 
@@ -35,22 +37,40 @@ public class GeoReferenceTest extends ESTestCase {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
-        GeoReference geoReferenceInfo = new GeoReference(1, referenceIdent, true, "some_tree", "1m", 3, 0.5d);
+        GeoReference geoReferenceInfo = new GeoReference(
+            1,
+            referenceIdent,
+            true,
+            DataTypes.GEO_SHAPE,
+            "some_tree",
+            "1m",
+            3,
+            0.5d
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(geoReferenceInfo, out);
         StreamInput in = out.bytes().streamInput();
         GeoReference geoReferenceInfo2 = Reference.fromStream(in);
 
-        assertThat(geoReferenceInfo2, is(geoReferenceInfo));
+        assertThat(geoReferenceInfo2).isEqualTo(geoReferenceInfo);
 
-        GeoReference geoReferenceInfo3 = new GeoReference(2, referenceIdent, false, "some_tree", null, null, null);
+        GeoReference geoReferenceInfo3 = new GeoReference(
+            2,
+            referenceIdent,
+            false,
+            DataTypes.GEO_SHAPE,
+            "some_tree",
+            null,
+            null,
+            null
+        );
         out = new BytesStreamOutput();
         Reference.toStream(geoReferenceInfo3, out);
         in = out.bytes().streamInput();
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
-        assertThat(geoReferenceInfo4, is(geoReferenceInfo3));
+        assertThat(geoReferenceInfo4).isEqualTo(geoReferenceInfo3);
 
     }
 }
