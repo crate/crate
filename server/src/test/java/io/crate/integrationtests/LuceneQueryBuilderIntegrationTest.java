@@ -177,6 +177,19 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_neq_on_partition_missing_column() throws Exception {
+        execute("create table tbl (p int) clustered into 1 shards partitioned by (p) with (number_of_replicas = 0)");
+        execute("insert into tbl (p) values (1)");
+        execute("alter table tbl add column x int");
+        execute("insert into tbl (p, x) values (2, 2)");
+        execute("insert into tbl (p, x) values (3, null)");
+        execute("refresh table tbl");
+        assertThat(execute("select p, x from tbl where x != ANY([10, 20])")).hasRows(
+            "2| 2"
+        );
+    }
+
+    @Test
     public void testWithinQueryMatches() throws Exception {
         // test a regression where wrong lucene query was used and therefore did not return any results
         execute("CREATE TABLE locations (id INT, point GEO_POINT) WITH (number_of_replicas=0)");
