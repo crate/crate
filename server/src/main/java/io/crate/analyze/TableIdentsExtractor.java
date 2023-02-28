@@ -21,13 +21,9 @@
 
 package io.crate.analyze;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -36,17 +32,16 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -61,10 +56,7 @@ public class TableIdentsExtractor {
     public static Collection<RelationName> extract(Iterable<? extends Symbol> symbols) {
         Collection<RelationName> relationNames = new HashSet<>();
         for (Symbol symbol : symbols) {
-            Collection<RelationName> relationNameList = symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, null);
-            if (relationNameList != null) {
-                relationNames.addAll(relationNameList);
-            }
+            symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, relationNames);
         }
         return relationNames;
     }
@@ -73,110 +65,104 @@ public class TableIdentsExtractor {
      * Extracts all table idents from the given symbol if possible (some symbols don't provide any table ident info)
      */
     public static Iterable<RelationName> extract(Symbol symbol) {
-        return symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, null);
+        Set<RelationName> relationNames = new HashSet<>();
+        symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, relationNames);
+        return relationNames;
     }
 
-    private static class TableIdentSymbolVisitor extends SymbolVisitor<Void, Collection<RelationName>> {
+    private static class TableIdentSymbolVisitor extends DefaultTraversalSymbolVisitor<Collection<RelationName>, Void> {
 
         @Override
-        protected Collection<RelationName> visitSymbol(Symbol symbol, Void context) {
+        protected Void visitSymbol(Symbol symbol, Collection<RelationName> context) {
             throw new IllegalStateException(String.format(Locale.ENGLISH,
                 "Symbol '%s' not supported", Symbol.class.getName()));
         }
 
         @Override
-        public Collection<RelationName> visitAggregation(Aggregation symbol, Void context) {
-            return extract(symbol.inputs());
+        public Void visitAggregation(Aggregation symbol, Collection<RelationName> context) {
+            context.addAll(extract(symbol.inputs()));
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitReference(Reference symbol, Void context) {
-            return Collections.singletonList(symbol.ident().tableIdent());
+        public Void visitReference(Reference symbol, Collection<RelationName> context) {
+            context.add(symbol.ident().tableIdent());
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitDynamicReference(DynamicReference symbol, Void context) {
+        public Void visitDynamicReference(DynamicReference symbol, Collection<RelationName> context) {
             return visitReference(symbol, context);
         }
 
         @Override
-        public Collection<RelationName> visitFunction(Function symbol, Void context) {
-            return Collections.emptyList();
+        public Void visitFunction(Function symbol, Collection<RelationName> context) {
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitLiteral(Literal symbol, Void context) {
-            return Collections.emptyList();
+        public Void visitLiteral(Literal<?> symbol, Collection<RelationName> context) {
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitInputColumn(InputColumn inputColumn, Void context) {
-            return Collections.emptyList();
+        public Void visitInputColumn(InputColumn inputColumn, Collection<RelationName> context) {
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitField(ScopedSymbol field, Void context) {
-            return List.of(field.relation());
+        public Void visitField(ScopedSymbol field, Collection<RelationName> context) {
+            context.add(field.relation());
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
-            Set<RelationName> relationNames = new HashSet<>();
-            for (Map.Entry<Symbol, Symbol> entry : matchPredicate.identBoostMap().entrySet()) {
-                relationNames.addAll(entry.getKey().accept(this, context));
-                relationNames.addAll(entry.getValue().accept(this, context));
-            }
-            relationNames.addAll(matchPredicate.queryTerm().accept(this, context));
-            relationNames.addAll(matchPredicate.options().accept(this, context));
-            return relationNames;
-        }
-
-        @Override
-        public Collection<RelationName> visitFetchReference(FetchReference fetchReference, Void context) {
+        public Void visitFetchReference(FetchReference fetchReference, Collection<RelationName> context) {
             return ((Symbol) fetchReference.ref()).accept(this, context);
         }
 
         @Override
-        public Collection<RelationName> visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
-            return Collections.emptyList();
+        public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Collection<RelationName> context) {
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Collection<RelationName> context) {
             return selectSymbol.relation().accept(RELATION_TABLE_IDENT_EXTRACTOR, context);
         }
     }
 
-    private static class TableIdentRelationVisitor extends AnalyzedRelationVisitor<Void, Collection<RelationName>> {
+    private static class TableIdentRelationVisitor extends AnalyzedRelationVisitor<Collection<RelationName>, Void> {
 
         @Override
-        protected Collection<RelationName> visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, Collection<RelationName> context) {
             throw new IllegalStateException(String.format(Locale.ENGLISH,
                 "AnalyzedRelation '%s' not supported", relation.getClass()));
         }
 
         @Override
-        public Collection<RelationName> visitTableRelation(TableRelation tableRelation, Void context) {
-            return Collections.singletonList(tableRelation.tableInfo().ident());
+        public Void visitTableRelation(TableRelation tableRelation, Collection<RelationName> context) {
+            context.add(tableRelation.tableInfo().ident());
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitDocTableRelation(DocTableRelation relation, Void context) {
-            return Collections.singletonList(relation.tableInfo().ident());
+        public Void visitDocTableRelation(DocTableRelation relation, Collection<RelationName> context) {
+            context.add(relation.tableInfo().ident());
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, Void context) {
-            return List.of();
+        public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, Collection<RelationName> context) {
+            return null;
         }
 
         @Override
-        public Collection<RelationName> visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
-            ArrayList<RelationName> names = new ArrayList<>();
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Collection<RelationName> context) {
             for (AnalyzedRelation analyzedRelation : relation.from()) {
-                names.addAll(analyzedRelation.accept(this, context));
+                analyzedRelation.accept(this, context);
             }
-            return names;
+            return null;
         }
     }
 }
