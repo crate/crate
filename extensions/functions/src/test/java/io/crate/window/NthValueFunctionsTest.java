@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
@@ -163,7 +164,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
                                  new Object[] {1, 2},
                                  new Object[] {3, 2},
                                  new Object[] {2, 3}))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessage("Unknown function: first_value(doc.t1.x, NULL), no overload found for matching argument types: " +
                         "(integer, undefined). Possible candidates: first_value(E):E");
     }
@@ -178,7 +179,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
                                  new Object[] {1, 2},
                                  new Object[] {3, 2},
                                  new Object[] {2, 3}))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessage("Unknown function: last_value(doc.t1.x, NULL), no overload found for matching argument types: " +
                         "(integer, undefined). Possible candidates: last_value(E):E");
     }

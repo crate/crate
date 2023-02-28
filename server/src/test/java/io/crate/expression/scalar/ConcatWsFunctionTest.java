@@ -26,6 +26,8 @@ import static io.crate.testing.Asserts.isNull;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
+
 public class ConcatWsFunctionTest extends ScalarTestCase {
 
     @Test
@@ -65,7 +67,7 @@ public class ConcatWsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidArrayArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: concat_ws(',', 'foo', []), " +
             "no overload found for matching argument types: (text, text, undefined_array). " +

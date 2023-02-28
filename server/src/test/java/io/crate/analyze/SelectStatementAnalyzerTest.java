@@ -56,6 +56,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
@@ -799,7 +800,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
 
         assertThatThrownBy(() -> executor.analyze("select id, name from parted where not date"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: (NOT doc.parted.date), " +
                                     "no overload found for matching argument types: (timestamp with time zone).");
     }
@@ -989,7 +990,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         assertThatThrownBy(() -> executor.analyze("select * from users where 'George' = ANY (name)"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: ('George' = ANY(doc.users.name)), " +
                                     "no overload found for matching argument types: (text, text).");
     }
@@ -1048,7 +1049,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         assertThatThrownBy(() -> executor.analyze("select * from users where 5 = friends['id']"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5), " +
                                     "no overload found for matching argument types: (bigint_array, integer).");
     }
@@ -1240,7 +1241,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         assertThatThrownBy(() -> executor.analyze("select * from users where 'awesome' LIKE ANY (name)"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: ('awesome' LIKE ANY(doc.users.name)), " +
                                     "no overload found for matching argument types: (text, text).");
     }
@@ -2148,7 +2149,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .build();
         assertThatThrownBy(() -> executor.analyze("select * from unnest(1, 'foo')"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: unnest(1, 'foo'), " +
                                     "no overload found for matching argument types: (integer, text).");
     }

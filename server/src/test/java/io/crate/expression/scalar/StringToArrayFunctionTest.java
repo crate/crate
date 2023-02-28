@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 
 
@@ -37,14 +38,14 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: string_to_array()");
         assertEvaluateNull("string_to_array()");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: string_to_array('xyz')," +
                                         " no overload found for matching argument types: (text).");
         assertEvaluateNull("string_to_array('xyz')");

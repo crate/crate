@@ -31,6 +31,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.geo.GeoJSONUtils;
@@ -76,7 +77,7 @@ public class AreaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: area(doc.users.geoshape, 'foo'), no overload found for matching argument types: (geo_shape, text). Possible candidates: area(geo_shape):double precision");
         assertNormalize("area(geoShape, 'foo')", isNull());
@@ -84,7 +85,7 @@ public class AreaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: area(1), no overload found for matching argument types: (integer). Possible candidates: area(geo_shape):double precision");
         assertEvaluateNull("area(1)");

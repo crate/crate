@@ -29,6 +29,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -37,7 +38,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo')," +
                                         " no overload found for matching argument types: (text, text, text).");
         assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", s -> assertThat(s).isNull());
@@ -45,7 +46,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: distance(1, 'POINT (11 21)')," +
                                         " no overload found for matching argument types: (integer, text).");
         assertNormalize("distance(1, 'POINT (11 21)')", s -> assertThat(s).isNull());

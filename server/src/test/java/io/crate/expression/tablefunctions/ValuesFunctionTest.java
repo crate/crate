@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
@@ -108,7 +109,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_function_arguments_must_have_array_types() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: _values(200)," +
                                         " no overload found for matching argument types: (integer).");
         assertExecute("_values(200)", "");

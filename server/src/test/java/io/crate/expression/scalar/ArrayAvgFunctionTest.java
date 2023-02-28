@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -119,7 +120,7 @@ public class ArrayAvgFunctionTest extends ScalarTestCase {
     public void test_array_avg_with_array_of_undefined_inner_type_throws_exception() {
         assertThatThrownBy(
             () -> assertEvaluateNull("array_avg([])"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: array_avg([]), no overload found for matching argument types: (undefined_array).");
     }
 }

@@ -175,6 +175,7 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
@@ -1944,7 +1945,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         // function if the function was deleted.
                         assertThat(func.boundSignature().argTypes()).isNotEqualTo(Symbols.typeView(arguments));
                     }
-                } catch (UnsupportedOperationException e) {
+                } catch (UnsupportedFunctionException e) {
                     assertThat(e.getMessage()).startsWith("Unknown function");
                 }
 

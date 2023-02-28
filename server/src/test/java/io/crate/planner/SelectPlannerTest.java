@@ -41,6 +41,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -442,7 +443,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = UnsupportedFunctionException.class)
     public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addPartitionedTable(

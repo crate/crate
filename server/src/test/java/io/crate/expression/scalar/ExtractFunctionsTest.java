@@ -27,6 +27,7 @@ import java.util.Locale;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 
@@ -45,7 +46,7 @@ public class ExtractFunctionsTest extends ScalarTestCase {
 
     private void assertEvaluateIntervalException(String timeUnit) {
         assertThatThrownBy(() -> assertEvaluate("extract(" + timeUnit + " from INTERVAL '10 days')", -1))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: extract(" + timeUnit.toUpperCase(Locale.ENGLISH) + " FROM");
     }
 
