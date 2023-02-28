@@ -67,6 +67,9 @@ Changes
 
 - Allowed schema and table names to start with ``_``.
 
+- Improved the performance of queries using a correlated sub-query inside the
+  ``WHERE`` clause in conjunction with a non-correlated filter clause.
+
 Fixes
 =====
 
@@ -74,5 +77,7 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused expressions like ``<column> !=
+  ANY(<array-literal>)`` to match on partitions where the column didn't exist or
+  on records where ``<column>`` had a ``null`` value.
 

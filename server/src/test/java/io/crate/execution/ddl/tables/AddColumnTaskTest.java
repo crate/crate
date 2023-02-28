@@ -23,6 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -113,5 +114,81 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
         var updatedRequest = AddColumnTask.addMissingParentColumns(request, table);
         assertThat(updatedRequest.references()).hasSize(3);
+    }
+
+    @Test
+    public void test_is_no_op_if_columns_exist() throws Exception {
+        /**
+         * The cluster state update logic later asserts that the mapping source must have changed if
+         * the version increases. Without no-op check this assertion would trip
+         * if there are concurrent alter table (or more likely: Dynamic mapping updates due to concurrent inserts)
+         **/
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
+            SimpleReference newColumn = new SimpleReference(
+                refIdent,
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                3,
+                null
+            );
+            List<Reference> columns = List.of(newColumn);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            ClusterState newState = addColumnTask.execute(state, request);
+            assertThat(newState).isSameAs(state);
+        }
+    }
+
+    @Test
+    public void test_raises_error_if_column_already_exists_with_different_type() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
+            SimpleReference newColumn = new SimpleReference(
+                refIdent,
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                3,
+                null
+            );
+            List<Reference> columns = List.of(newColumn);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            assertThatThrownBy(() -> addColumnTask.execute(state, request))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
+        }
     }
 }

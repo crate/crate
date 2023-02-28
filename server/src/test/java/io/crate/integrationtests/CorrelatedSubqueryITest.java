@@ -23,20 +23,32 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
 public class CorrelatedSubqueryITest extends IntegTestCase {
+
+    private Properties properties;
+
+    @Before
+    public void setup() {
+        properties = new Properties();
+        properties.setProperty("user", "crate");
+    }
 
     @Test
     public void test_simple_correlated_subquery() {
@@ -382,9 +394,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             + "WHERE EXISTS (SELECT 1 FROM b where a.f1 = b.f1 and a.f2 = b.f2 and b.f3 ='c') and a.f3 IN ('a','b','c')";
         assertThat(execute("explain " + stmt)).hasRows(
             "HashAggregate[count(*)]",
-            "  └ Filter[(EXISTS (SELECT 1 FROM (doc.b)) AND (f3 = ANY(['a', 'b', 'c'])))]",
+            "  └ Filter[EXISTS (SELECT 1 FROM (doc.b))]",
             "    └ CorrelatedJoin[f1, f2, f3, (SELECT 1 FROM (doc.b))]",
-            "      └ Collect[doc.a | [f1, f2, f3] | true]",
+            "      └ Collect[doc.a | [f1, f2, f3] | (f3 = ANY(['a', 'b', 'c']))]",
             "      └ SubPlan",
             "        └ Eval[1]",
             "          └ Limit[1;0]",
@@ -393,5 +405,17 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         assertThat(execute(stmt)).hasRows(
             "1"
         );
+
+        // Execute again with disabled optimizer rule to verify that the query is still working
+        try (var conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            Statement statement = conn.createStatement();
+            conn.setAutoCommit(false);
+            statement.execute("SET SESSION search_path TO 'doc'");
+            statement.execute("SET optimizer_move_filter_beneath_correlated_join = false");
+
+            ResultSet result = statement.executeQuery(stmt);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(1);
+        }
     }
 }

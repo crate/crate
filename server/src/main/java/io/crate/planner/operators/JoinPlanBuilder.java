@@ -273,7 +273,7 @@ public class JoinPlanBuilder {
     /**
      * Splits the given Symbol tree into a list of correlated sub-queries and a list of remaining symbols.
      */
-    private static CorrelatedSubQueries extractCorrelatedSubQueries(@Nullable Symbol from) {
+    public static CorrelatedSubQueries extractCorrelatedSubQueries(@Nullable Symbol from) {
         if (from == null) {
             return new CorrelatedSubQueries(List.of(), List.of());
         }
@@ -290,5 +290,5 @@ public class JoinPlanBuilder {
         return new CorrelatedSubQueries(correlatedSubQueries, remainder);
     }
 
-    private record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {}
+    public record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {}
 }

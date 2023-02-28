@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -79,6 +80,24 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
+
+        boolean allExist = true;
+        for (Reference ref : request.references()) {
+            Reference exists = currentTable.getReference(ref.column());
+            if (exists == null) {
+                allExist = false;
+                break;
+            } else if (ref.valueType().id() != exists.valueType().id()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
+                    ref.column(),
+                    exists.valueType().getName(),
+                    ref.valueType().getName()));
+            }
+        }
+        if (allExist) {
+            return currentState;
+        }
 
         request = addMissingParentColumns(request, currentTable);
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(request.references());
