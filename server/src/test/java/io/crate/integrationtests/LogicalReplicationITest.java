@@ -467,7 +467,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertBusy(
             () -> {
                 synchronized (subscriptionStates) {
-                    assertThat(subscriptionStates).contains(
+                    assertThat(subscriptionStates).containsExactly(
                         Subscription.State.INITIALIZING,
                         Subscription.State.RESTORING,
                         Subscription.State.MONITORING

@@ -38,7 +38,7 @@ public class ReservoirTest {
         for (int i = 0; i < 100; i++) {
             samples.update(i);
         }
-        assertThat(samples.samples().buffer).contains(83, 50, 13, 18, 38);
+        assertThat(samples.samples().buffer).containsExactly(83, 50, 13, 18, 38, 0L, 0L, 0L, 0L, 0L);
     }
 
     @Test

@@ -202,13 +202,11 @@ public class PgCatalogITest extends IntegTestCase {
     public void test_pg_proc_return_correct_column_names() {
         execute("select * from pg_proc");
         assertThat(response).hasColumns(
-            "oid", "proname", "pronamespace", "proowner", "prolang",
-            "procost", "prorows", "provariadic", "protransform", "proisagg",
-            "proiswindow", "prosecdef", "proleakproof", "proisstrict", "proretset",
-            "provolatile", "proparallel", "pronargs", "pronargdefaults",
-            "prorettype", "proargtypes", "proallargtypes", "proargmodes",
-            "proargnames", "proargdefaults", "protrftypes", "prosrc", "probin",
-            "proconfig", "proacl");
+            "oid", "proacl", "proallargtypes", "proargdefaults", "proargmodes", "proargnames", "proargtypes",
+            "probin", "proconfig", "procost", "proisagg", "proisstrict", "proiswindow", "prolang", "proleakproof",
+            "proname", "pronamespace", "pronargdefaults", "pronargs", "proowner", "proparallel", "proretset",
+            "prorettype", "prorows", "prosecdef", "prosrc", "protransform", "protrftypes", "provariadic", "provolatile"
+        );
     }
 
     @Test

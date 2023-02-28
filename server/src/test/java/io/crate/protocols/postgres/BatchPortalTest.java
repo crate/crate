@@ -95,7 +95,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         });
         session.sync().get(5, TimeUnit.SECONDS);
 
-        assertThat(s1Rows).contains(new Object[0]);
-        assertThat(s2Rows).contains(new Object[] { 2 });
+        assertThat(s1Rows).containsExactly(new Object[0]);
+        assertThat(s2Rows).containsExactly(new Object[] { 2 });
     }
 }

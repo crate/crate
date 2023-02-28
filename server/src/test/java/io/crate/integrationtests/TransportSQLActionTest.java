@@ -1876,8 +1876,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (x, y) values (?, ?)", args);
         execute("refresh table tbl");
         Object[][] rows = execute("select x, y from tbl order by y desc").rows();
-        assertThat(rows[0]).contains(Integer.toString(numItems - 1), numItems - 1);
-        assertThat(rows[1]).contains(Integer.toString(numItems - 2), numItems - 2);
+        assertThat(rows[0]).containsExactly(Integer.toString(numItems - 1), numItems - 1);
+        assertThat(rows[1]).containsExactly(Integer.toString(numItems - 2), numItems - 2);
     }
 
 
@@ -1918,7 +1918,7 @@ public class TransportSQLActionTest extends IntegTestCase {
                 results.add(string);
             }
         }
-        assertThat(results).contains(
+        assertThat(results).containsExactly(
             "0000",
             "0001",
             "0011",
@@ -2039,7 +2039,7 @@ public class TransportSQLActionTest extends IntegTestCase {
                 results.add(string);
             }
         }
-        assertThat(results).contains(
+        assertThat(results).containsExactly(
             "four",
             "two "
         );

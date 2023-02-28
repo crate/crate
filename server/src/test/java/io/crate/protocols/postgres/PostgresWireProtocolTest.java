@@ -685,7 +685,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         sendCancelRequest(channel, new KeyData(pg1.session.id(), pg1.session.secret()));
 
         KillJobsNodeRequest request = captureReq.getValue();
-        assertThat(request.innerRequest().toKill()).contains(pg1.session.getMostRecentJobID());
+        assertThat(request.innerRequest().toKill()).containsExactly(pg1.session.getMostRecentJobID());
 
         assertThat(channel.isOpen()).isFalse();
     }

@@ -42,6 +42,6 @@ public class CountdownFutureCallbackTest {
             .withThrowableOfType(ExecutionException.class)
             .havingRootCause()
             .isSameAs(dummy2)
-            .satisfies(t -> assertThat(t.getSuppressed()).contains(dummy1));
+            .satisfies(t -> assertThat(t.getSuppressed()).containsExactly(dummy1));
     }
 }

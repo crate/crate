@@ -306,7 +306,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .filter(f -> f.stringValue() != null)
             .map(IndexableField::stringValue)
             .toList();
-        Assertions.assertThat(values).contains("T", "1");
+        Assertions.assertThat(values).containsExactly("T", "1");
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         // column position calculation is carried out within clusterstate changes, so 'new' still has position = null
         assertThat(
