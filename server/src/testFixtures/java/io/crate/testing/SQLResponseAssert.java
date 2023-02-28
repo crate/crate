@@ -47,7 +47,7 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
     }
 
     public SQLResponseAssert hasRows(Object[] ... rows) {
-        assertThat(List.of(actual.rows())).contains(rows);
+        assertThat(List.of(actual.rows())).containsExactly(rows);
         return this;
     }
 
@@ -57,7 +57,7 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
     }
 
     public SQLResponseAssert hasColumns(String ... names) {
-        assertThat(actual.cols()).contains(names);
+        assertThat(actual.cols()).containsExactly(names);
         return this;
     }
 }

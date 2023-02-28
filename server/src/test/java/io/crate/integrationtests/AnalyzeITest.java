@@ -58,7 +58,7 @@ public class AnalyzeITest extends IntegTestCase {
         assertThat(row[2]).isEqualTo(3.0f);
         assertThat(((List<String>) row[3])).isEmpty();
         assertThat(((List<Double>) row[4])).isEmpty();
-        assertThat(((List<String>) row[5])).contains("1", "2", "3");
+        assertThat(((List<String>) row[5])).containsExactly("1", "2", "3");
     }
 
     @Test

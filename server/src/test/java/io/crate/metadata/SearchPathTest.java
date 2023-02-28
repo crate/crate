@@ -77,7 +77,7 @@ public class SearchPathTest {
     @Test
     public void test_pg_catalog_is_included_in_show_path_if_set_explicitly() throws Exception {
         SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
-        assertThat(searchPath.showPath()).contains("pg_catalog", "secondSchema");
+        assertThat(searchPath.showPath()).containsExactly("pg_catalog", "secondSchema");
     }
 
     @Test
