@@ -109,7 +109,7 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
         return currentState;
     }
 
-    private AddColumnRequest addMissingParentColumns(AddColumnRequest request, DocTableInfo currentTable) {
+    static AddColumnRequest addMissingParentColumns(AddColumnRequest request, DocTableInfo currentTable) {
         List<Reference> newColumns = new ArrayList<>();
         boolean anyMissing = false;
         for (var newColumn : request.references()) {
@@ -118,7 +118,8 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
             } else {
                 ColumnIdent parent = newColumn.column();
                 while ((parent = parent.getParent()) != null) {
-                    if (!Symbols.containsColumn(request.references(), parent)) {
+                    if (!Symbols.containsColumn(request.references(), parent)
+                            && !Symbols.containsColumn(newColumns, parent)) {
                         newColumns.add(currentTable.getReference(parent));
                         anyMissing = true;
                     }
@@ -213,11 +214,11 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
 
             MapperService mapperService = createMapperService.apply(indexMetadata);
 
-            mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
-            DocumentMapper mapper = mapperService.documentMapper();
+            DocumentMapper mapper = mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
 
             IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
             imBuilder.putMapping(new MappingMetadata(mapper.mappingSource())).mappingVersion(1 + imBuilder.mappingVersion());
+
             metadataBuilder.put(imBuilder); // implicitly increments metadata version.
         }
 
