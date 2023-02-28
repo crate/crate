@@ -53,6 +53,7 @@ import org.junit.Test;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
@@ -389,7 +390,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     public void testRangeQueryOnDocThrowsException() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: (doc.users._doc > _map('name', 'foo'))," +
                                         " no overload found for matching argument types: (object, object).");
         convert("_doc > {\"name\"='foo'}");

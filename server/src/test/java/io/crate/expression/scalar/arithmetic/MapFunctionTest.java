@@ -27,13 +27,14 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 
 public class MapFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMapWithWrongNumOfArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: _map('foo', 1, 'bar')," +
                                         " no overload found for matching argument types: (text, integer, text).");
         assertEvaluateNull("_map('foo', 1, 'bar')");

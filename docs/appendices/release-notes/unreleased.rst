@@ -95,3 +95,6 @@ Fixes
     IllegalStateException[Symbol 'io.crate.expression.symbol.Symbol' not supported]
     // r is an alias of a and is ambiguous from the perspective of the outer query
 
+ - Fixed an issue that translated ``UnsupportedOperationException`` to a
+   misleading ``MissingPrivilegeException`` when executing functions with
+   invalid names or signatures.

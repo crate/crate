@@ -29,6 +29,7 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 
 import javax.annotation.Nullable;
@@ -77,7 +78,9 @@ public class PGError {
 
     public static PGError fromThrowable(Throwable throwable) {
         var status = PGErrorStatus.INTERNAL_ERROR;
-        if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
+        if (throwable instanceof IllegalArgumentException ||
+            throwable instanceof UnsupportedOperationException ||
+            throwable instanceof UnsupportedFunctionException) {
             status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
         } else if (throwable instanceof DuplicateKeyException) {
             status = PGErrorStatus.UNIQUE_VIOLATION;

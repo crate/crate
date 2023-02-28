@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -122,7 +123,7 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: arbitrary(INPUT(0))," +
                                         " no overload found for matching argument types: (object).");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});

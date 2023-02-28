@@ -29,6 +29,7 @@ import java.util.Locale;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -83,7 +84,7 @@ public class ArrayMinFunctionTest extends ScalarTestCase {
     @Test
     public void test_empty_array_given_directly_throws_exception() {
         assertThrowsMatches(() -> assertEvaluate("array_min([])", null),
-                            UnsupportedOperationException.class,
+                            UnsupportedFunctionException.class,
                             "Unknown function: array_min([]), no overload found for matching argument types: (undefined_array).");
     }
 }

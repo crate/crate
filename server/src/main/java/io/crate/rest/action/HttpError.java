@@ -54,6 +54,7 @@ import io.crate.exceptions.SnapshotUnknownException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
@@ -159,7 +160,8 @@ public class HttpError {
                 httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
             } else if (crateException instanceof SQLParseException) {
                 httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
-            } else if (crateException instanceof UnsupportedFeatureException) {
+            } else if (crateException instanceof UnsupportedFeatureException ||
+                       crateException instanceof UnsupportedFunctionException) {
                 httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
             } else if (crateException instanceof VersioningValidationException) {
                 httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;

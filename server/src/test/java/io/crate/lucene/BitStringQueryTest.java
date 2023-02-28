@@ -37,6 +37,7 @@ import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.sql.tree.BitString;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
@@ -117,7 +118,7 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_range_query_on_bit_type_is_not_supported() throws Exception {
         try (var tester = builder("create table tbl (bits bit(8))").build()) {
             assertThrows(
-                UnsupportedOperationException.class,
+                UnsupportedFunctionException.class,
                 () -> tester.toQuery("bits > B'01'"));
         }
     }
