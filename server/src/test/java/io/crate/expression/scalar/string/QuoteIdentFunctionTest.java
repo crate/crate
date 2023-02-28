@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -36,7 +37,7 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: quote_ident()." +
                                         " Possible candidates: pg_catalog.quote_ident(text):text");
         assertEvaluateNull("quote_ident()");

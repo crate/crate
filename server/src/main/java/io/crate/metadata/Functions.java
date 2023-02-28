@@ -42,6 +42,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
@@ -136,7 +137,7 @@ public class Functions {
      * }
      * </pre>
      *
-     * @throws UnsupportedOperationException if the function wasn't found
+     * @throws UnsupportedFunctionException if the function wasn't found
      */
     private FunctionImplementation get(@Nullable String suppliedSchema,
                                        String functionName,
@@ -302,11 +303,11 @@ public class Functions {
      *
      * @param signature The function signature.
      * @return The function implementation.
-     * @throws UnsupportedOperationException if no implementation is found.
+     * @throws UnsupportedFunctionException if no implementation is found.
      */
     public FunctionImplementation getQualified(Signature signature,
                                                List<DataType<?>> actualArgumentTypes,
-                                               DataType<?> actualReturnType) throws UnsupportedOperationException {
+                                               DataType<?> actualReturnType) throws UnsupportedFunctionException {
         FunctionImplementation impl = get(signature, actualArgumentTypes, actualReturnType, functionImplementations);
         if (impl == null) {
             impl = get(signature, actualArgumentTypes, actualReturnType, udfFunctionImplementations);
@@ -353,7 +354,7 @@ public class Functions {
                       ;
         }
 
-        throw new UnsupportedOperationException(message);
+        throw new UnsupportedFunctionException(message, suppliedSchema);
     }
 
     private static List<ApplicableFunction> selectMostSpecificFunctions(List<ApplicableFunction> applicableFunctions,

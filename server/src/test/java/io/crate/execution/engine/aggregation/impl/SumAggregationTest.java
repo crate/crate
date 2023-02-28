@@ -32,6 +32,7 @@ import org.elasticsearch.Version;
 import org.joda.time.Period;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -192,7 +193,7 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: sum(NULL)," +
             " no overload found for matching argument types: (geo_point).");

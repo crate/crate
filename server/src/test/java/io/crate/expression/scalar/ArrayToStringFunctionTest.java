@@ -23,18 +23,20 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
+
 public class ArrayToStringFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_to_string()");
         assertEvaluateNull("array_to_string()");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_to_string(_array(1, 2))," +
                                         " no overload found for matching argument types: (integer_array).");
         assertEvaluateNull("array_to_string([1, 2])");

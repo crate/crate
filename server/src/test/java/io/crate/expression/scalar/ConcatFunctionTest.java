@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.types.DataTypes;
 
 public class ConcatFunctionTest extends ScalarTestCase {
@@ -41,7 +42,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testArgumentThatHasNoStringRepr() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: concat('foo', _array(1))," +
                                         " no overload found for matching argument types: (text, integer_array).");
         assertNormalize("concat('foo', [1])", isNull());
@@ -90,7 +91,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: concat(_array(1, 2), _array(_array(1, 2)))," +
                                         " no overload found for matching argument types: (integer_array, integer_array_array).");
         assertNormalize("concat([1, 2], [[1, 2]])", isNull());

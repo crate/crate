@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -41,7 +42,7 @@ public class NegateFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testNegateOnStringResultsInError() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: - doc.users.name," +
                                         " no overload found for matching argument types: (text).");
         assertEvaluate("- name", nullValue(), Literal.of("foo"));

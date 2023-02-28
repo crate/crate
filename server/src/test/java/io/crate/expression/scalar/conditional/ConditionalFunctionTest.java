@@ -24,6 +24,7 @@ package io.crate.expression.scalar.conditional;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -63,7 +64,7 @@ public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: nullif(1, 2, 3)," +
                                         " no overload found for matching argument types: (integer, integer, integer).");
         assertEvaluateNull("nullif(1, 2, 3)");

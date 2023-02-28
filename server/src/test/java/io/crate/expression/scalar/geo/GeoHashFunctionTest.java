@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -55,7 +56,7 @@ public class GeoHashFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: geohash('POINT (10 20)', 'foo')," +
                                         " no overload found for matching argument types: (text, text).");
         assertNormalize("geohash('POINT (10 20)', 'foo')", s -> assertThat(s).isNull());
@@ -63,7 +64,7 @@ public class GeoHashFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: geohash(1), no overload found for matching argument types: (integer)");
         assertEvaluateNull("geohash(1)");

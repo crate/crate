@@ -23,6 +23,7 @@ package io.crate.expression.operator;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -70,7 +71,7 @@ public class CIDROperatorTest extends ScalarTestCase {
 
     @Test
     public void test_both_operands_are_of_wrong_type() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: (1.2 << _map('cidr', '192.168.0.0/24'))," +
                                         " no overload found for matching argument types: (double precision, object).");
         assertEvaluate("1.2 << { cidr = '192.168.0.0/24'}", false);

@@ -55,6 +55,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.NotPredicate;
@@ -392,7 +393,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereClauseObjectArrayField() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
                                         " no overload found for matching argument types: (bigint_array, integer).");
         analyze("update users set awesome=true where friends['id'] = 5");

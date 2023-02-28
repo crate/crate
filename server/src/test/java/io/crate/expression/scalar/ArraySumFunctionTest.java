@@ -31,6 +31,7 @@ import java.util.Objects;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingHelpers;
@@ -135,7 +136,7 @@ public class ArraySumFunctionTest extends ScalarTestCase {
     @Test
     public void test_empty_array_given_directly_throws_exception() {
         assertThrowsMatches(() -> assertEvaluate("array_sum([])", null),
-                            UnsupportedOperationException.class,
+                            UnsupportedFunctionException.class,
                             "Unknown function: array_sum([]), no overload found for matching argument types: (undefined_array).");
     }
 }

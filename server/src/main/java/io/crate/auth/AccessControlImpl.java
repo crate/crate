@@ -94,6 +94,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -930,6 +931,14 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitSchemaScopeException(SchemaScopeException e, User context) {
             Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, e.getSchemaName(), context);
+            return null;
+        }
+
+        @Override
+        protected Void visitUnsupportedFunctionException(UnsupportedFunctionException e, User user) {
+            if (e.getSchemaName() != null) {
+                visitSchemaScopeException(e, user);
+            }
             return null;
         }
 

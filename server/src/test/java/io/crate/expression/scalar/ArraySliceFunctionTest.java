@@ -26,6 +26,7 @@ import java.util.List;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 
 public class ArraySliceFunctionTest extends ScalarTestCase {
 
@@ -120,7 +121,7 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testBaseIsNotAnArray() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
         assertEvaluateNull("'not an array'[1:3]");
     }
