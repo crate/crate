@@ -22,17 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-import io.crate.testing.TestingHelpers;
 
 public class FulltextIntegrationTest extends IntegTestCase {
 
@@ -44,8 +41,9 @@ public class FulltextIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select quote from quotes where match(quote, ?)", new Object[] {"don't panic"});
-        assertEquals(1L, response.rowCount());
-        assertEquals("don't panic", response.rows()[0][0]);
+        assertThat(response).hasRows(
+            "don't panic"
+        );
     }
 
     @Test
@@ -57,8 +55,9 @@ public class FulltextIntegrationTest extends IntegTestCase {
 
         execute("select quote from quotes where not match(quote, ?)",
             new Object[]{"don't panic"});
-        assertEquals(1L, response.rowCount());
-        assertEquals("hello", response.rows()[0][0]);
+        assertThat(response).hasRows(
+            "hello"
+        );
     }
 
     @Test
@@ -82,13 +81,14 @@ public class FulltextIntegrationTest extends IntegTestCase {
         );
         refresh();
 
-        execute("select * from quotes");
-        execute("select quote, \"_score\" from quotes where match(quote_ft, ?) " +
+        execute("select quote from quotes where match(quote_ft, ?) " +
                 "order by \"_score\" desc",
             new Object[]{"time"}
         );
-        assertEquals(2L, response.rowCount());
-        assertEquals("Time is an illusion. Lunchtime doubly so", response.rows()[0][0]);
+        assertThat(response).hasRows(
+            "Time is an illusion. Lunchtime doubly so",
+            "Would it save you a lot of time if I just gave up and went mad now?"
+        );
     }
 
     @Test
@@ -102,9 +102,9 @@ public class FulltextIntegrationTest extends IntegTestCase {
         execute("refresh table quotes");
 
         execute("select quote, \"_score\" from quotes");
-        assertEquals(2L, response.rowCount());
-        assertEquals(1.0f, response.rows()[0][1]);
-        assertEquals(1.0f, response.rows()[1][1]);
+        assertThat(response).hasRowCount(2L);
+        assertThat(response.rows()[0][1]).isEqualTo(1.0f);
+        assertThat(response.rows()[1][1]).isEqualTo(1.0f);
     }
 
     @Test
@@ -120,14 +120,14 @@ public class FulltextIntegrationTest extends IntegTestCase {
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 1.12");
-        assertEquals(1L, response.rowCount());
-        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(1.12f));
+        assertThat(response).hasRowCount(1L);
+        assertThat((Float) response.rows()[0][1]).isGreaterThanOrEqualTo(1.12f);
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 1.12 order by quote");
-        assertEquals(1L, response.rowCount());
-        assertEquals(false, Float.isNaN((Float) response.rows()[0][1]));
-        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(1.12f));
+        assertThat(response).hasRowCount(1L);
+        assertThat(Float.isNaN((Float) response.rows()[0][1])).isEqualTo(false);
+        assertThat((Float) response.rows()[0][1]).isGreaterThanOrEqualTo(1.12f);
     }
 
     @Test
@@ -142,15 +142,15 @@ public class FulltextIntegrationTest extends IntegTestCase {
         refresh();
         // matching a term must work
         execute("SELECT id, keywords FROM t_string_array WHERE match(keywords_ft, 'foo')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         // also equals term must work
         execute("SELECT id, keywords FROM t_string_array WHERE keywords_ft = 'foo'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "1| [foo bar]\n"
-        ));
+        assertThat(response).hasRows(
+            "1| [foo bar]"
+        );
 
         // equals original whole string must not work
         execute("SELECT id, keywords FROM t_string_array WHERE keywords_ft = 'foo bar'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 }
