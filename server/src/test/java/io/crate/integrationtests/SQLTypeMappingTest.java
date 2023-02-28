@@ -24,19 +24,15 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -95,15 +91,15 @@ public class SQLTypeMappingTest extends IntegTestCase {
         refresh();
         SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");
 
-        assertEquals(1, response.rows()[0][0]);
-        assertEquals("With", response.rows()[0][1]);
-        assertEquals(0L, response.rows()[0][2]);
-        assertEquals((byte) 127, response.rows()[0][3]);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat(response.rows()[0][1]).isEqualTo("With");
+        assertThat(response.rows()[0][2]).isEqualTo(0L);
+        assertThat(response.rows()[0][3]).isEqualTo((byte) 127);
 
-        assertEquals(2, response.rows()[1][0]);
-        assertEquals("Without", response.rows()[1][1]);
-        assertEquals(3600000L, response.rows()[1][2]);
-        assertEquals((byte) -128, response.rows()[1][3]);
+        assertThat(response.rows()[1][0]).isEqualTo(2);
+        assertThat(response.rows()[1][1]).isEqualTo("Without");
+        assertThat(response.rows()[1][2]).isEqualTo(3600000L);
+        assertThat(response.rows()[1][3]).isEqualTo((byte) -128);
     }
 
     public void setUpObjectTable() {
@@ -125,6 +121,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
      */
     @UseJdbc(0)
     @Test
+    @SuppressWarnings("unchecked")
     public void testParseInsertObject() throws Exception {
         setUpObjectTable();
 
@@ -143,33 +140,27 @@ public class SQLTypeMappingTest extends IntegTestCase {
         refresh();
 
         SQLResponse response = execute("select object_field, strict_field, no_dynamic_field from test12");
-        assertEquals(1, response.rowCount());
-        assertThat(response.rows()[0][0], instanceOf(Map.class));
-        @SuppressWarnings("unchecked")
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isInstanceOf(Map.class);
         Map<String, Object> objectMap = (Map<String, Object>) response.rows()[0][0];
-        assertEquals(1384819200000L, objectMap.get("created"));
-        assertEquals((byte) 127, objectMap.get("size"));
+        assertThat(objectMap.get("created")).isEqualTo(1384819200000L);
+        assertThat(objectMap.get("size")).isEqualTo((byte) 127);
 
-        assertThat(response.rows()[0][1], instanceOf(Map.class));
-        @SuppressWarnings("unchecked")
+        assertThat(response.rows()[0][1]).isInstanceOf(Map.class);
         Map<String, Object> strictMap = (Map<String, Object>) response.rows()[0][1];
-        assertEquals("/dev/null", strictMap.get("path"));
-        assertEquals(0L, strictMap.get("created"));
+        assertThat(strictMap.get("path")).isEqualTo("/dev/null");
+        assertThat(strictMap.get("created")).isEqualTo(0L);
 
-        assertThat(response.rows()[0][2], instanceOf(Map.class));
-        @SuppressWarnings("unchecked")
+        assertThat(response.rows()[0][2]).isInstanceOf(Map.class);
         Map<String, Object> noDynamicMap = (Map<String, Object>) response.rows()[0][2];
-        assertEquals("/etc/shadow", noDynamicMap.get("path"));
-        assertEquals(
-            Map.of("field", 1384790145289L),
-            noDynamicMap.get("dynamic_again")
-        );
+        assertThat(noDynamicMap.get("path")).isEqualTo("/etc/shadow");
+        assertThat(noDynamicMap.get("dynamic_again")).isEqualTo(Map.of("field", 1384790145289L));
 
         response = execute("select object_field['created'], object_field['size'], " +
                            "no_dynamic_field['dynamic_again']['field'] from test12");
-        assertEquals(1384819200000L, response.rows()[0][0]);
-        assertEquals((byte) 127, response.rows()[0][1]);
-        assertEquals(1384790145289L, response.rows()[0][2]);
+        assertThat(response.rows()[0][0]).isEqualTo(1384819200000L);
+        assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
+        assertThat(response.rows()[0][2]).isEqualTo(1384790145289L);
     }
 
     @Test
@@ -251,21 +242,21 @@ public class SQLTypeMappingTest extends IntegTestCase {
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
                                        "float_field, double_field, boolean_field, string_field, timestamp_field," +
                                        "object_field, ip_field from t1 where id=0");
-        assertEquals(1, response.rowCount());
-        assertEquals(0, response.rows()[0][0]);
-        assertEquals((byte) 127, response.rows()[0][1]);
-        assertEquals((short) -32768, response.rows()[0][2]);
-        assertEquals(0x7fffffff, response.rows()[0][3]);
-        assertEquals(0x8000000000000000L, response.rows()[0][4]);
-        assertEquals(1.0f, ((Number) response.rows()[0][5]).floatValue(), 0.01f);
-        assertEquals(Math.PI, response.rows()[0][6]);
-        assertEquals(true, response.rows()[0][7]);
-        assertEquals("a string", response.rows()[0][8]);
-        assertEquals(1384905600000L, response.rows()[0][9]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(0);
+        assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
+        assertThat(response.rows()[0][2]).isEqualTo((short) -32768);
+        assertThat(response.rows()[0][3]).isEqualTo(0x7fffffff);
+        assertThat(response.rows()[0][4]).isEqualTo(0x8000000000000000L);
+        assertThat(((Number) response.rows()[0][5]).floatValue()).isCloseTo(1.0f, Offset.offset(0.01f));
+        assertThat(response.rows()[0][6]).isEqualTo(Math.PI);
+        assertThat(response.rows()[0][7]).isEqualTo(true);
+        assertThat(response.rows()[0][8]).isEqualTo("a string");
+        assertThat(response.rows()[0][9]).isEqualTo(1384905600000L);
         assertEquals(
             Map.of("inner", 1384905600000L),
             response.rows()[0][10]);
-        assertEquals("127.0.0.1", response.rows()[0][11]);
+        assertThat(response.rows()[0][11]).isEqualTo("127.0.0.1");
     }
 
     /**
@@ -289,7 +280,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         SQLResponse getResponse = execute("select * from t1 where id=0");
         SQLResponse searchResponse = execute("select * from t1 limit 1");
         for (int i = 0; i < getResponse.rows()[0].length; i++) {
-            assertThat(getResponse.rows()[0][i], is(searchResponse.rows()[0][i]));
+            assertThat(getResponse.rows()[0][i]).isEqualTo(searchResponse.rows()[0][i]);
         }
     }
 
@@ -327,13 +318,13 @@ public class SQLTypeMappingTest extends IntegTestCase {
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
-        assertEquals("1970-01-01", mapped.get("a_date"));
-        assertEquals(0x7fffffffffffffffL, mapped.get("a_long"));
-        assertEquals(true, mapped.get("a_boolean"));
+        assertThat(mapped.get("a_date")).isEqualTo("1970-01-01");
+        assertThat(mapped.get("a_long")).isEqualTo(0x7fffffffffffffffL);
+        assertThat(mapped.get("a_boolean")).isEqualTo(true);
 
         // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
         // will define integers as longs (no concrete type was specified so use long to be safe)
-        assertEquals(127L, mapped.get("an_int"));
+        assertThat(mapped.get("an_int")).isEqualTo(127L);
     }
 
     @Test
@@ -346,12 +337,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
             new Object[]{objectContent});
         refresh();
         SQLResponse response = execute("select object_field from test12");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         @SuppressWarnings("unchecked")
         Map<String, Object> selectedObject = (Map<String, Object>) response.rows()[0][0];
 
-        assertThat((String) selectedObject.get("new_col"), is("a string"));
-        assertEquals("1970-01-01T00:00:00", selectedObject.get("another_new_col"));
+        assertThat((String) selectedObject.get("new_col")).isEqualTo("a string");
+        assertThat(selectedObject.get("another_new_col")).isEqualTo("1970-01-01T00:00:00");
     }
 
     @Test
@@ -376,12 +367,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
             new Object[]{notDynamicContent});
         refresh();
         SQLResponse response = execute("select no_dynamic_field from test12");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         @SuppressWarnings("unchecked")
         Map<String, Object> selectedNoDynamic = (Map<String, Object>) response.rows()[0][0];
         // no mapping applied
-        assertThat((String) selectedNoDynamic.get("new_col"), is("a string"));
-        assertThat((String) selectedNoDynamic.get("another_new_col"), is("1970-01-01T00:00:00"));
+        assertThat((String) selectedNoDynamic.get("new_col")).isEqualTo("a string");
+        assertThat((String) selectedNoDynamic.get("another_new_col")).isEqualTo("1970-01-01T00:00:00");
     }
 
     /* TODO: find a good policy for unknown types or support them all
@@ -389,12 +380,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testUnknownTypesSelect() throws Exception {
         this.setup.setUpObjectMappingWithUnknownTypes();
         SQLResponse response = execute("select * from ut");
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2);
         assertArrayEquals(new String[]{"name", "population"}, response.cols());
 
         response = execute("select name, location from ut order by name");
-        assertEquals("Berlin", response.rows()[0][0]);
-        assertEquals(null, response.rows()[0][1]);
+        assertThat(response.rows()[0][0]).isEqualTo("Berlin");
+        assertThat(response.rows()[0][1]).isEqualTo(null);
     }
 
 
@@ -405,19 +396,19 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 "insert into ut (name, location, population) values (?, ?, ?)",
                 new Object[]{"Köln", "2014-01-09", 0}
         );
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         refresh();
 
         response = execute("select name, location, population from ut order by name");
-        assertEquals(3, response.rowCount());
-        assertEquals("Berlin", response.rows()[0][0]);
-        assertEquals(null, response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(3);
+        assertThat(response.rows()[0][0]).isEqualTo("Berlin");
+        assertThat(response.rows()[0][1]).isEqualTo(null);
 
-        assertEquals("Dornbirn", response.rows()[1][0]);
-        assertEquals(null, response.rows()[1][1]);
+        assertThat(response.rows()[1][0]).isEqualTo("Dornbirn");
+        assertThat(response.rows()[1][1]).isEqualTo(null);
 
-        assertEquals("Köln", response.rows()[2][0]);
-        assertEquals(null, response.rows()[2][1]);
+        assertThat(response.rows()[2][0]).isEqualTo("Köln");
+        assertThat(response.rows()[2][1]).isEqualTo(null);
     }
 
     @Test
@@ -425,35 +416,49 @@ public class SQLTypeMappingTest extends IntegTestCase {
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("update ut set location='2014-01-09' where name='Berlin'");
         SQLResponse response = execute("select name, location from ut where name='Berlin'");
-        assertEquals(1, response.rowCount());
-        assertEquals("Berlin", response.rows()[0][0]);
-        assertEquals("52.5081,13.4416", response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo("Berlin");
+        assertThat(response.rows()[0][1]).isEqualTo("52.5081,13.4416");
     } */
 
     @Test
-    public void testDynamicEmptyArray() throws Exception {
+    public void test_dynamic_empty_array_does_not_result_in_new_column() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
         refresh();
         waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr'");
-        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
-        assertThat(Arrays.asList(columns), not(hasItems((Object) "new")));
+        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
+        assertThat(response).hasRows(
+            "id| smallint",
+            "tags| text_array"
+        );
+        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
+            """
+            {"id":1,"tags":["wow","much","wow"],"new":[]}
+            """
+        );
     }
 
     @Test
-    public void testDynamicNullArray() throws Exception {
+    public void testDynamicNullArray_does_not_result_in_new_column() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
         refresh();
         waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr'");
-        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
-        assertThat(Arrays.asList(columns), not(hasItems((Object) "new")));
+        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
+        assertThat(response).hasRows(
+            "id| smallint",
+            "tags| text_array"
+        );
+        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
+            """
+            {"id":2,"tags":["wow","much","wow"],"new":[null]}
+            """
+        );
     }
 
     @Test
@@ -481,9 +486,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("select categories['items']['id'] from assets");
         Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType)new ArrayType(new ArrayType(IntegerType.INSTANCE))));
-        assertThat(((List) ((List) columns[0]).get(0)).get(0), is(10));
-        assertThat(((List) ((List) columns[0]).get(0)).get(1), is(20));
+//        assertThat(response.columnTypes()[0]).isEqualTo((DataType)new ArrayType(new ArrayType(IntegerType.INSTANCE)));
+        assertThat(((List<?>) ((List<?>) columns[0]).get(0)).get(0)).isEqualTo(10);
+        assertThat(((List<?>) ((List<?>) columns[0]).get(0)).get(1)).isEqualTo(20);
     }
 
     @Test
@@ -501,8 +506,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0],
 //                   is((DataType)new ArrayType(new ArrayType(new ArrayType(IntegerType.INSTANCE)))));
-        assertThat(((List) ((List) ((List) columns[0]).get(0)).get(0)).get(0), is(10));
-        assertThat(((List) ((List) ((List) columns[0]).get(0)).get(0)).get(1), is(20));
+        assertThat(((List<?>) ((List<?>) ((List<?>) columns[0]).get(0)).get(0)).get(0)).isEqualTo(10);
+        assertThat(((List<?>) ((List<?>) ((List<?>) columns[0]).get(0)).get(0)).get(1)).isEqualTo(20);
     }
 
     @Test
@@ -518,8 +523,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
         refresh();
         waitNoPendingTasksOnAll();
         SQLResponse response = execute("select categories[1]['subcategories']['id'] from assets");
-        assertEquals(response.rowCount(), 1L);
-        assertThat((Integer) response.rows()[0][0], is(10));
+        assertThat(1L).isEqualTo(response.rowCount());
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(10);
     }
 
     @Test
@@ -543,7 +548,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         // TODO: select timestamps with correct sorting
         refresh();
         SQLResponse response = execute("select * from ts_table order by ts desc");
-        assertEquals(response.rowCount(), 3L);
+        assertThat(3L).isEqualTo(response.rowCount());
     }
 
     @Test
@@ -555,7 +560,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into ts_table (ts) values (?)", new Object[]{ "2016" });
         refresh();
         SQLResponse response = execute("select ts from ts_table order by ts asc");
-        assertThat((Long) response.rows()[0][0], is(1000L));
-        assertThat((Long) response.rows()[1][0], is(2016L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1000L);
+        assertThat((Long) response.rows()[1][0]).isEqualTo(2016L);
     }
 }
