@@ -289,12 +289,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testNeqAnyOnArrayLiteral() throws Exception {
-        Query neqQuery = convert("name != any (['a', 'b', 'c'])");
-        assertThat(neqQuery, instanceOf(BooleanQuery.class));
-
-        BooleanClause booleanClause = ((BooleanQuery) neqQuery).clauses().get(1);
-        assertThat(booleanClause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(booleanClause.getQuery().toString(), is("+name:a +name:b +name:c"));
+        Query query = convert("name != any (['a', 'b', 'c'])");
+        assertThat(query.toString(), is(
+            "+(+*:* -(+name:a +name:b +name:c)) #FieldExistsQuery [field=name]"
+        ));
     }
 
     @Test
@@ -436,7 +434,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testAnyNotEqOnTimestampColumn() {
         assertThat(
             convert("ts != ANY([1129224512000])").toString(),
-            is("+*:* -(+ts:[1129224512000 TO 1129224512000])")
+            is("+(+*:* -(+ts:[1129224512000 TO 1129224512000])) #FieldExistsQuery [field=ts]")
         );
     }
 

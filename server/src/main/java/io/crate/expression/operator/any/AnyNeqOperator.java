@@ -22,12 +22,14 @@
 package io.crate.expression.operator.any;
 
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
@@ -64,7 +66,11 @@ public final class AnyNeqOperator extends AnyOperator {
         for (Object value : (Iterable<?>) candidates.value()) {
             andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
         }
-        return Queries.not(andBuilder.build());
+        Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
+        return new BooleanQuery.Builder()
+            .add(Queries.not(andBuilder.build()), Occur.MUST)
+            .add(exists, Occur.FILTER)
+            .build();
     }
 
     @Override
