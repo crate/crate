@@ -157,6 +157,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
+                xContentBuilder.field(innerName);
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                    continue;
+                }
                 throw new IllegalArgumentException(
                     "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
