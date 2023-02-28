@@ -759,4 +759,34 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
     }
+
+    @Test
+    public void test_empty_array_and_array_with_nulls_does_not_result_in_new_column() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("o")),
+                table.getDynamic(new ColumnIdent("n1"), true, false),
+                table.getDynamic(new ColumnIdent("n2"), true, false)
+            ),
+            null
+        );
+        List<Object> n1 = List.of();
+        List<Object> n2 = Arrays.asList(null, null);
+        ParsedDocument doc = indexer.index(item(Map.of("inner", n1), n1, n2));
+        assertThat(doc.newColumns()).isEmpty();
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"o":{"inner":[]},"n1":[],"n2":[null,null]}
+            """
+        );
+    }
 }
