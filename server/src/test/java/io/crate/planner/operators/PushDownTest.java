@@ -494,9 +494,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             """
             Eval[mountain]
               └ Filter[EXISTS (SELECT 1 FROM (b))]
-                └ CorrelatedJoin[mountain, height, country, (SELECT 1 FROM (b))]
-                  └ Rename[mountain, height, country] AS a
-                    └ Collect[sys.summits | [mountain, height, country] | (country = 'DE')]
+                └ CorrelatedJoin[mountain, height, (SELECT 1 FROM (b))]
+                  └ Rename[mountain, height] AS a
+                    └ Collect[sys.summits | [mountain, height] | (country = 'DE')]
                   └ SubPlan
                     └ Eval[1]
                       └ Rename[1, height, height] AS b
