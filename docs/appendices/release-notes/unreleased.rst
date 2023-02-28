@@ -76,3 +76,12 @@ Fixes
     SELECT unknown_col FROM abs(1);
     SchemaUnknownException[Schema 'doc' unknown]
 
+- Fixed an issue that translated an ``AmbiguousColumnException`` to a
+  misleading ``IllegalStateException`` when aliased columns are queried that
+  are also ambiguous.
+  An example ::
+
+    SELECT r FROM (SELECT a AS r, a AS r FROM t) AS q
+    IllegalStateException[Symbol 'io.crate.expression.symbol.Symbol' not supported]
+    // r is an alias of a and is ambiguous from the perspective of the outer query
+
