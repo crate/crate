@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.metadata.RowGranularity;
@@ -101,7 +102,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereClauseObjectArrayField() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
                                         " no overload found for matching argument types: (bigint_array, integer).");
         e.analyze("delete from users where friends['id'] = 5");

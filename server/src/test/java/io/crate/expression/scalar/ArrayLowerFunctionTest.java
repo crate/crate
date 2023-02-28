@@ -23,6 +23,8 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
+
 public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
@@ -86,7 +88,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_lower()." +
                                         " Possible candidates: array_lower(array(E), integer):integer");
         assertEvaluateNull("array_lower()");
@@ -94,7 +96,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
         assertEvaluateNull("array_lower([1])");
@@ -102,7 +104,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testThreeArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1), 2, _array(3))," +
                                         " no overload found for matching argument types: (integer_array, integer, integer_array).");
         assertEvaluateNull("array_lower([1], 2, [3])");
@@ -110,7 +112,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSecondArgumentNotANumber() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1), _array(2))," +
                                         " no overload found for matching argument types: (integer_array, integer_array).");
         assertEvaluateNull("array_lower([1], [2])");

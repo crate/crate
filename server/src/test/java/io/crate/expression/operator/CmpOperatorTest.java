@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -100,7 +101,7 @@ public class CmpOperatorTest extends ScalarTestCase {
     public void test_comparison_for_intervals_is_not_allowed() {
         for (String op : List.of(">", ">=", "<", "<=")) {
             assertThatThrownBy(() -> assertEvaluate("INTERVAL '1' DAY " + op + " INTERVAL '2' HOUR", null))
-                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .isExactlyInstanceOf(UnsupportedFunctionException.class)
                 .hasMessageStartingWith("Unknown function: ('P1D'::interval " + op + " 'PT2H'::interval), " +
                                         "no overload found for matching argument types: (interval, interval).");
         }

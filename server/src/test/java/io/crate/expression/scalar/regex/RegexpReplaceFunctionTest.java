@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -82,13 +83,13 @@ public class RegexpReplaceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         assertNormalize("regexp_replace('foobar')", isLiteral(""));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: regexp_replace('foobar', '.*', _array(1, 2))," +
                                         " no overload found for matching argument types: (text, text, integer_array).");
 

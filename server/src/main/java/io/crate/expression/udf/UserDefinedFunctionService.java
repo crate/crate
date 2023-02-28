@@ -28,6 +28,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -312,7 +313,7 @@ public class UserDefinedFunctionService {
                     Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
                     try {
                         exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings()));
-                    } catch (UnsupportedOperationException e) {
+                    } catch (UnsupportedFunctionException e) {
                         throw new IllegalArgumentException(
                             "Cannot drop function '" + functionName + "', it is still in use by '" +
                                 tableInfo + "." + genRef + "'"

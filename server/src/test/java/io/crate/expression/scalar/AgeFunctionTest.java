@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.SystemClock;
 
 public class AgeFunctionTest extends ScalarTestCase {
@@ -125,7 +126,7 @@ public class AgeFunctionTest extends ScalarTestCase {
     public void test_3_args_throws_exception() {
         assertThatThrownBy(
             () -> assertEvaluate("pg_catalog.age(null, null, null)", null))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessage("Unknown function: pg_catalog.age(NULL, NULL, NULL), no overload found for matching argument types: (undefined, undefined, undefined). " +
                 "Possible candidates: pg_catalog.age(timestamp without time zone):interval, " +
                 "pg_catalog.age(timestamp without time zone, timestamp without time zone):interval");
