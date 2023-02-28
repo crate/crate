@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -175,6 +176,19 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
         execute("select * from shaped where within(point, shape) order by id");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void test_neq_on_partition_missing_column() throws Exception {
+        execute("create table tbl (p int) clustered into 1 shards partitioned by (p) with (number_of_replicas = 0)");
+        execute("insert into tbl (p) values (1)");
+        execute("alter table tbl add column x int");
+        execute("insert into tbl (p, x) values (2, 2)");
+        execute("insert into tbl (p, x) values (3, null)");
+        execute("refresh table tbl");
+        assertThat(execute("select p, x from tbl where x != ANY([10, 20])")).hasRows(
+            "2| 2\n"
+        );
     }
 
     @Test
