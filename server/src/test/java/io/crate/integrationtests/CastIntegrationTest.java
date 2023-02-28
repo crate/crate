@@ -21,38 +21,39 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class CastIntegrationTest extends IntegTestCase {
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testTryCastValidLiteralCasting() {
         execute("select try_cast('2' as integer), try_cast(['1', '2'] as array(integer))," +
                 " try_cast(null as integer) from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2));
-        assertThat((List<Object>) response.rows()[0][1], Matchers.contains(1, 2));
-        assertThat(response.rows()[0][2], is(nullValue()));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2);
+        assertThat((List<Object>) response.rows()[0][1]).containsExactly(1, 2);
+        assertThat(response.rows()[0][2]).isNull();
     }
 
     @Test
     public void testTryCastNotValidLiteralCasting() {
         execute("select try_cast('2e' as integer), try_cast('2' as boolean), try_cast(128 as byte) from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(nullValue()));
-        assertThat(response.rows()[0][1], is(nullValue()));
-        assertThat(response.rows()[0][2], is(nullValue()));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isNull();
+        assertThat(response.rows()[0][1]).isNull();
+        assertThat(response.rows()[0][2]).isNull();
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testTryCastReturnNullWhenCastingFailsOnRows() {
         execute("create table types (i integer, str string, arr array(long))");
         execute("insert into types (i, str, arr) values (?, ?, ?)", new Object[]{1, null, new Object[]{1, 2}});
@@ -60,15 +61,15 @@ public class CastIntegrationTest extends IntegTestCase {
         refresh();
         execute("select try_cast(i as integer), try_cast(str as integer), try_cast(arr as array(byte))" +
                 " from types order by i asc");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is(1));
-        assertThat((response.rows()[0][1]), is(nullValue()));
-        assertThat((List<Object>) response.rows()[0][2], Matchers.contains((byte) 1, (byte) 2));
-        assertThat(response.rows()[1][0], is(2));
-        assertThat(response.rows()[1][1], is(nullValue()));
-        assertThat(response.rows()[1][2], is(nullValue()));
+        assertThat(response).hasRowCount(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat((response.rows()[0][1])).isNull();
+        assertThat((List<Object>) response.rows()[0][2]).containsExactly((byte) 1, (byte) 2);
+        assertThat(response.rows()[1][0]).isEqualTo(2);
+        assertThat(response.rows()[1][1]).isNull();
+        assertThat(response.rows()[1][2]).isNull();
 
         execute("select try_cast(name as integer) from sys.nodes limit 1");
-        assertThat(response.rows()[0][0], is(nullValue()));
+        assertThat(response.rows()[0][0]).isNull();
     }
 }
