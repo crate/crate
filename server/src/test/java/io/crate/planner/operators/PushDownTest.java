@@ -499,9 +499,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                     └ Collect[sys.summits | [mountain, height] | (country = 'DE')]
                   └ SubPlan
                     └ Eval[1]
-                      └ Rename[1, height, height] AS b
+                      └ Rename[1, height] AS b
                         └ Limit[1;0]
-                          └ Collect[sys.summits | [1, height, height] | (height = height)]
+                          └ Collect[sys.summits | [1, height] | (height = height)]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }
