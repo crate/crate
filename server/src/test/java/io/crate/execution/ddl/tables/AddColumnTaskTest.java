@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -80,5 +81,37 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             Reference addedColumn = newTable.getReference(newColumn.column());
             assertThat(addedColumn).isEqualTo(newColumn);
         }
+    }
+
+    @Test
+    public void test_adds_parent_column_only_once() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, o object)")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        SimpleReference oxRef = new SimpleReference(
+            new ReferenceIdent(table.ident(), "o", List.of("x")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            3,
+            null
+        );
+        SimpleReference oyRef = new SimpleReference(
+            new ReferenceIdent(table.ident(), "o", List.of("y")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            4,
+            null
+        );
+        List<Reference> columns = List.of(oxRef, oyRef);
+        var request = new AddColumnRequest(
+            table.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+
+        var updatedRequest = AddColumnTask.addMissingParentColumns(request, table);
+        assertThat(updatedRequest.references()).hasSize(3);
     }
 }
