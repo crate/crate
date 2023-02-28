@@ -400,7 +400,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ SubPlan",
             "        └ Eval[1]",
             "          └ Limit[1;0]",
-            "            └ Collect[doc.b | [1, f1, f2, f3, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
+            "            └ Collect[doc.b | [1, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
         );
         assertThat(execute(stmt)).hasRows(
             "1"
