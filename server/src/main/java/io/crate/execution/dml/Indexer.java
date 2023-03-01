@@ -25,6 +25,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +65,7 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
@@ -104,6 +106,7 @@ public class Indexer {
     private final List<TableConstraint> tableConstraints;
     private final List<IndexColumn> indexColumns;
     private final List<Input<?>> returnValueInputs;
+    private final List<Synthetic> undeterministic = new ArrayList<>();
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -236,7 +239,7 @@ public class Indexer {
     /**
      * For DEFAULT expressions or GENERATED columns
      **/
-    record Synthetic(Input<?> input, ValueIndexer<Object> indexer) {
+    record Synthetic(Reference ref, Input<?> input, ValueIndexer<Object> indexer) {
     }
 
     interface ColumnConstraint {
@@ -410,7 +413,12 @@ public class Indexer {
                 getFieldType,
                 getRef
             );
-            this.synthetics.put(column, new Synthetic(input, valueIndexer));
+            Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
+            this.synthetics.put(column, synthetic);
+
+            if (!Symbols.isDeterministic(ref.defaultExpression())) {
+                undeterministic.add(synthetic);
+            }
         }
         for (var ref : table.generatedColumns()) {
             if (ref.granularity() == RowGranularity.PARTITION) {
@@ -426,7 +434,12 @@ public class Indexer {
                 getFieldType,
                 getRef
             );
-            this.synthetics.put(ref.column(), new Synthetic(input, valueIndexer));
+            Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
+            this.synthetics.put(ref.column(), synthetic);
+
+            if (!Symbols.isDeterministic(ref.generatedExpression())) {
+                undeterministic.add(synthetic);
+            }
         }
         this.indexColumns = new ArrayList<>(table.indexColumns().size());
         for (var ref : table.indexColumns()) {
@@ -479,7 +492,9 @@ public class Indexer {
                                       DocTableInfo table,
                                       Context<?> ctxForRefs,
                                       Reference ref) {
-        if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
+        if (ref instanceof GeneratedReference generated
+                && ref.granularity() == RowGranularity.DOC
+                && Symbols.isDeterministic(generated.generatedExpression())) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
@@ -674,5 +689,55 @@ public class Indexer {
                 constraint.verify(values);
             }
         };
+    }
+
+    public boolean hasUndeterministicSynthetics() {
+        return !undeterministic.isEmpty();
+    }
+
+    public Collection<Reference> insertColumns(List<Reference> columns) {
+        if (undeterministic.isEmpty()) {
+            return columns;
+        }
+        List<Reference> newColumns = new ArrayList<>(columns);
+        for (var synthetic : undeterministic) {
+            if (synthetic.ref.column().isTopLevel() && !newColumns.contains(synthetic.ref)) {
+                newColumns.add(synthetic.ref);
+            }
+        }
+        return newColumns;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Object[] addGeneratedValues(IndexItem item) {
+        Object[] insertValues = item.insertValues();
+        int numExtra = (int) undeterministic.stream()
+            .filter(x -> x.ref().column().isTopLevel())
+            .count();
+        Object[] result = new Object[insertValues.length + numExtra];
+        System.arraycopy(insertValues, 0, result, 0, insertValues.length);
+
+        int i = 0;
+        for (var synthetic : undeterministic) {
+            ColumnIdent column = synthetic.ref.column();
+            if (column.isTopLevel()) {
+                result[insertValues.length + i] = synthetic.input.value();
+                i++;
+            } else {
+                int valueIdx = Reference.indexOf(columns, column.getRoot());
+                assert valueIdx > -1 : "synthetic column must exist in columns";
+
+                ColumnIdent child = column.shiftRight();
+                Object value = synthetic.input.value();
+                Object object = insertValues[valueIdx];
+                Maps.mergeInto(
+                    (Map<String, Object>) object,
+                    child.name(),
+                    child.path(),
+                    value
+                );
+            }
+        }
+        return result;
     }
 }

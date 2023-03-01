@@ -187,6 +187,23 @@ public class Symbols {
         return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
     }
 
+    public static boolean isDeterministic(Symbol symbol) {
+        boolean[] isDeterministic = new boolean[] { true };
+        symbol.accept(new DefaultTraversalSymbolVisitor<boolean[], Void>() {
+
+            @Override
+            public Void visitFunction(io.crate.expression.symbol.Function func,
+                                      boolean[] isDeterministic) {
+                if (!func.signature().isDeterministic()) {
+                    isDeterministic[0] = false;
+                    return null;
+                }
+                return super.visitFunction(func, isDeterministic);
+            }
+        }, isDeterministic);
+        return isDeterministic[0];
+    }
+
     /**
      * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
      * for the given <code>messageTmpl</code>.
