@@ -48,6 +48,7 @@ import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -801,5 +802,34 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(new Object[] { null }));
         assertThat(doc.newColumns()).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualTo("{}");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_adds_non_deterministic_defaults_and_generated_columns() throws Exception {
+        long now = System.currentTimeMillis();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    o object as (
+                        x int generated always as random(),
+                        y int
+                    ),
+                    z timestamp default now()
+                )
+                """)
+            .build();
+        Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "o");
+        IndexItem item = item(MapBuilder.newMapBuilder().put("y", 2).map());
+        ParsedDocument doc = indexer.index(item);
+        Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
+        assertThat(source).containsKeys("o", "z");
+        assertThat((Map<String, ?>) source.get("o")).containsKeys("x", "y");
+
+        assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
+        Object[] insertValues = indexer.addGeneratedValues(item);
+        assertThat(insertValues).hasSize(2);
+        assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
+        assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
     }
 }

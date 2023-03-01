@@ -476,7 +476,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
             // Stream References
             if (insertValues != null) {
-                assert insertValueStreamers != null : "streamers are required to stream insert values";
+                assert insertValueStreamers != null && insertValueStreamers.length >= insertValues.length
+                    : "streamers are required to stream insert values and must have a streamer for each value";
                 out.writeVInt(insertValues.length);
                 for (int i = 0; i < insertValues.length; i++) {
                     insertValueStreamers[i].writeValueTo(out, insertValues[i]);
