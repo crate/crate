@@ -59,14 +59,14 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             .indexValues(
                 "xs",
                 null,
-                new Object[0],
-                new Object[0],
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(),
+                List.of(),
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
             .build();
     }
@@ -280,7 +280,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             Object val2 = dataGenerator.get();
-            Object[] arr = {val1, val2, val1, null, null}; // Need some duplicates and nulls to cover edge cases.
+            List<Object> arr = Arrays.asList(val1, val2, val1, null, null); // Need some duplicates and nulls to cover edge cases.
             Object[] values = new Object[] {
                 arr
             };
@@ -302,7 +302,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
                 if (type.id() != ObjectType.ID) {
-                    assertThat(arrayType.compare((List) result.get(0), Arrays.asList(arr)), is(0));
+                    assertThat(arrayType.compare((List) result.get(0), arr), is(0));
                 }
             }
         }

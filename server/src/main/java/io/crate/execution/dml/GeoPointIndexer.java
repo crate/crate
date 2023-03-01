@@ -33,6 +33,7 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -49,7 +50,7 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
     public GeoPointIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
         this.name = ref.column().fqn();
-        this.fieldType = fieldType;
+        this.fieldType = fieldType == null ? GeoShapeFieldMapper.FIELD_TYPE : fieldType;
     }
 
     @Override

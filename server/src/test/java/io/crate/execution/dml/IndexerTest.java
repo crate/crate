@@ -437,7 +437,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         assertThatThrownBy(() -> indexer.index(item(8, 10)))
-            .hasMessage("Failed CONSTRAINT c1 CHECK (\"x\" > 10)");
+            .hasMessage("Failed CONSTRAINT c1 CHECK (\"x\" > 10) for values: [8, 10]");
 
         ParsedDocument parsedDoc = indexer.index(item(20, null));
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
