@@ -95,6 +95,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
@@ -164,9 +165,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 request.returnValues()
             );
 
-        InsertSourceGen insertSourceGen = insertColumns == null
-            ? null
-            : InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), Arrays.asList(insertColumns));
+        InsertSourceGen insertSourceGen = insertColumns != null && insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW)
+            ? InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), Arrays.asList(insertColumns))
+            : null;
+
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
