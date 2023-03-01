@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -47,7 +48,8 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements BiConsumer<ShardedRequests<TReq, TItem>, Row> {
+    implements BiFunction<ShardedRequests<TReq, TItem>, Row, TItem>,
+               BiConsumer<ShardedRequests<TReq, TItem>, Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
 
@@ -105,6 +107,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
     @Override
     public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
+        apply(shardedRequests, row);
+    }
+
+    @Override
+    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
         // `Row` can be a `InputRow` which may be backed by expressions which have expensive `.value()` implementations
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
@@ -131,11 +138,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         }
         if (hasSourceFailure.test(shardedRequests)) {
             // source uri failed processing (reading)
-            return;
+            return null;
         }
         if (err != null) {
             itemFailureRecorder.accept(shardedRequests, err.getMessage());
-            return;
+            return null;
         }
         try {
             rowShardResolver.setNextRow(spareRow);
@@ -156,10 +163,12 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             } else {
                 shardedRequests.add(item, shardLocation, rowSourceInfo);
             }
+            return item;
         } catch (CircuitBreakingException e) {
             throw e;
         } catch (Throwable t) {
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
+            return null;
         }
     }
 
