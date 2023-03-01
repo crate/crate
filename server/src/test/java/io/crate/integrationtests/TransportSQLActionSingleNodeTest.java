@@ -21,10 +21,9 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,9 +54,8 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name = 'locations' and state = 'UNASSIGNED'");
-        assertThat(response.rowCount(), is(1L));
-        assertEquals(1, response.cols().length);
-        assertThat((Long) response.rows()[0][0], is(expectedUnassignedShards));
+        assertThat(response).hasColumns("count(*)");
+        assertThat(response).hasRows(new Object[] { expectedUnassignedShards });
     }
 
     @Test
@@ -72,13 +70,13 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         ensureYellow();
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
-        assertThat(response.rowCount(), is(2L));
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals("UNASSIGNED", response.rows()[0][1]);
-        assertEquals(15L, response.rows()[0][2]);
-        assertEquals(true, response.rows()[1][0]);
-        assertEquals("STARTED", response.rows()[1][1]);
-        assertEquals(5L, response.rows()[1][2]);
+        assertThat(response).hasRowCount(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
+        assertThat(response.rows()[0][2]).isEqualTo(15L);
+        assertThat(response.rows()[1][0]).isEqualTo(true);
+        assertThat(response.rows()[1][1]).isEqualTo("STARTED");
+        assertThat(response.rows()[1][2]).isEqualTo(5L);
     }
 
     @Test
@@ -95,13 +93,13 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         ensureYellow();
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
-        assertThat(response.rowCount(), is(2L));
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals("UNASSIGNED", response.rows()[0][1]);
-        assertEquals(10L, response.rows()[0][2]);
-        assertEquals(true, response.rows()[1][0]);
-        assertEquals("STARTED", response.rows()[1][1]);
-        assertEquals(10L, response.rows()[1][2]);
+        assertThat(response).hasRowCount(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
+        assertThat(response.rows()[0][2]).isEqualTo(10L);
+        assertThat(response.rows()[1][0]).isEqualTo(true);
+        assertThat(response.rows()[1][1]).isEqualTo("STARTED");
+        assertThat(response.rows()[1][2]).isEqualTo(10L);
     }
 
     @Test
@@ -119,14 +117,14 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
 
         execute("select table_name, partition_ident, state from sys.shards where table_name = 'locations' " +
                 "group by table_name, partition_ident, state order by partition_ident, state");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response).hasRowCount(4L);
 
         String expected = "locations| 04132| STARTED\n" +
                           "locations| 04132| UNASSIGNED\n" +
                           "locations| 04134| STARTED\n" +
                           "locations| 04134| UNASSIGNED\n";
 
-        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(expected);
     }
 
     @Test
@@ -156,7 +154,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 new Object[] {1},
             });
         // One is inserted, the other fails because of a cast error
-        assertThat(rowCounts[0] + rowCounts[1], is(-1L));
+        assertThat(rowCounts[0] + rowCounts[1]).isEqualTo(-1L);
     }
 
     @Test
@@ -169,13 +167,13 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 new Object[]{listWithNull},
                 new Object[]{List.of(1, 2)},
             });
-        assertThat(rowCounts[0], is(1L));
-        assertThat(rowCounts[1], is(1L));
+        assertThat(rowCounts[0]).isEqualTo(1L);
+        assertThat(rowCounts[1]).isEqualTo(1L);
 
         waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         // integer values for unknown columns will be result in a long type for range safety
-        assertThat(response.rows()[0][0], is("bigint_array"));
+        assertThat(response.rows()[0][0]).isEqualTo("bigint_array");
     }
 
     @Test
@@ -203,8 +201,8 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
 
     private void assertResponseWithTypes(String stmt) {
         SQLResponse sqlResponse = execute(stmt);
-        assertThat(sqlResponse.columnTypes(), is(notNullValue()));
-        assertThat(sqlResponse.columnTypes().length, is(sqlResponse.cols().length));
+        assertThat(sqlResponse.columnTypes()).isNotNull();
+        assertThat(sqlResponse.columnTypes().length).isEqualTo(sqlResponse.cols().length);
     }
 
     @Test
@@ -216,8 +214,8 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             new Object[]{1, Arrays.asList("Arthur", "Ford")});
         refresh();
         execute("select names[1] from test");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Arthur"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("Arthur");
     }
 
     @Test
@@ -229,8 +227,8 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 new Object[] {1, Arrays.asList(Map.of("surname", "Adams"))});
         refresh();
         execute("select names[1]['surname'] from test");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Adams"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("Adams");
     }
 
     @Test
@@ -242,9 +240,9 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         refresh();
         execute("select regexp_matches(text, '(\\w+)\\s(\\w+)')[1] as first_word," +
                 "regexp_matches(text, '(\\w+)\\s(\\w+)')[2] as matched from test order by first_word");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Time"));
-        assertThat((String) response.rows()[0][1], is("is"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("Time");
+        assertThat(response.rows()[0][1]).isEqualTo("is");
     }
 
 
@@ -284,7 +282,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             // in this case the job was successfully killed, so it must occur as killed the jobs log
             SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"Job killed", stmt});
             if (response.rowCount() < 1L) {
-                throw new AssertionError(TestingHelpers.printedTable(execute("select * from sys.jobs_log").rows()));
+                assertThat(execute("select * from sys.jobs_log").rows()).isEmpty();
             }
         }
         waitUntilShardOperationsFinished();
