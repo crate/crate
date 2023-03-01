@@ -25,20 +25,21 @@ package io.crate.expression.predicate;
 import static io.crate.analyze.AnalyzedColumnDefinition.UNSUPPORTED_INDEX_TYPE_IDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.crate.testing.DataTypeTesting;
-import io.crate.types.DataType;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
-
-import java.util.Map;
+import io.crate.types.DataType;
 
 public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
 
-    private static final Object[] ARRAY_VALUES = new Object[] {new Object[] {}, null};
+    private static final Object[] ARRAY_VALUES = new Object[] {List.of(), null};
 
     private static final Object[] OBJECT_VALUES = new Object[] {Map.of(), null};
 

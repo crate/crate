@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +61,8 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -177,6 +180,11 @@ public class Indexer {
                 }
                 Symbol defaultExpression = ref.defaultExpression();
                 if (defaultExpression == null) {
+                    if (ref instanceof GeneratedReference generated) {
+                        return NestableCollectExpression.forFunction(
+                            item -> fromGenerated(generated, item)
+                        );
+                    }
                     return NestableCollectExpression.constant(null);
                 }
                 return NestableCollectExpression.constant(
@@ -192,6 +200,9 @@ public class Indexer {
                 }
             }
             final int rootIndex = rootIdx;
+            if (rootIndex == -1) {
+                return NestableCollectExpression.constant(null);
+            }
             Function<IndexItem, Object> getValue = item -> {
                 Object val = item.insertValues()[rootIndex];
                 if (val instanceof Map<?, ?> m) {
@@ -202,11 +213,23 @@ public class Indexer {
                     Symbol defaultExpression = ref.defaultExpression();
                     if (defaultExpression != null) {
                         val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
+                    } else if (ref instanceof GeneratedReference generated) {
+                        return fromGenerated(generated, item);
                     }
                 }
                 return val;
             };
             return NestableCollectExpression.forFunction(getValue);
+        }
+
+        private Object fromGenerated(GeneratedReference generated, IndexItem item) {
+            Symbol generatedExpression = RefReplacer.replaceRefs(generated.generatedExpression(), x -> {
+                var collectExpression = getImplementation(x);
+                collectExpression.setNextRow(item);
+                return Literal.ofUnchecked(x.valueType(), collectExpression.value());
+            });
+            Input<?> accept = generatedExpression.accept(symbolEval, Row.EMPTY);
+            return accept.value();
         }
     }
 
@@ -223,13 +246,13 @@ public class Indexer {
 
     interface TableConstraint {
 
-        void verify();
+        void verify(Object[] values);
     }
 
     record NotNullTableConstraint(ColumnIdent column, Input<?> input) implements TableConstraint {
 
         @Override
-        public void verify() {
+        public void verify(Object[] values) {
             Object value = input.value();
             if (value == null) {
                 throw new IllegalArgumentException("\"" + column + "\" must not be null");
@@ -242,7 +265,7 @@ public class Indexer {
             CheckConstraint<Symbol> checkConstraint) implements TableConstraint {
 
         @Override
-        public void verify() {
+        public void verify(Object[] values) {
             Object value = input.value();
             // SQL semantics: If a column is omitted from an INSERT/UPDATE statement,
             // CHECK constraints should not fail. Same for writing explicit `null` values.
@@ -250,9 +273,10 @@ public class Indexer {
                 if (!bool) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
-                        "Failed CONSTRAINT %s CHECK (%s)",
+                        "Failed CONSTRAINT %s CHECK (%s) for values: %s",
                         checkConstraint.name(),
-                        checkConstraint.expressionStr()));
+                        checkConstraint.expressionStr(),
+                        Arrays.toString(values)));
                 }
             }
         }
@@ -273,6 +297,8 @@ public class Indexer {
                 return check1;
             }
             ArrayList<ColumnConstraint> checks = new ArrayList<>(2);
+            checks.add(check1);
+            checks.add(check2);
             return new MultiCheck(checks);
         }
     }
@@ -355,22 +381,16 @@ public class Indexer {
                 );
             }
             this.valueIndexers.add(valueIndexer);
-            addToValidate(table, ctxForRefs, ref);
+            addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
         }
         this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
-        for (var column : table.notNullColumns()) {
-            Reference ref = table.getReference(column);
-            assert ref != null : "Column in #notNullColumns must be available via table.getReference";
-            if (targetColumns.contains(ref)) {
-                columnConstraints.merge(ref.column(), new NotNull(column), MultiCheck::merge);
-            } else if (ref instanceof GeneratedReference generated) {
-                Input<?> input = ctxForRefs.add(generated.generatedExpression());
-                tableConstraints.add(new NotNullTableConstraint(column, input));
-            } else {
-                Input<?> input = ctxForRefs.add(ref);
-                tableConstraints.add(new NotNullTableConstraint(column, input));
-            }
-        }
+        addNotNullConstraints(
+            tableConstraints,
+            columnConstraints,
+            table,
+            targetColumns,
+            ctxForRefs
+        );
         for (var constraint : table.checkConstraints()) {
             Symbol expression = constraint.expression();
             Input<?> input = ctxForRefs.add(expression);
@@ -435,9 +455,30 @@ public class Indexer {
         this.expressions = ctxForRefs.expressions();
     }
 
-    private void addToValidate(DocTableInfo table,
-                               Context<?> ctxForRefs,
-                               Reference ref) {
+    private static void addNotNullConstraints(List<TableConstraint> tableConstraints,
+                                              Map<ColumnIdent, ColumnConstraint> columnConstraints,
+                                              DocTableInfo table,
+                                              List<Reference> targetColumns,
+                                              Context<CollectExpression<IndexItem, Object>> ctxForRefs) {
+        for (var column : table.notNullColumns()) {
+            Reference ref = table.getReference(column);
+            assert ref != null : "Column in #notNullColumns must be available via table.getReference";
+            if (targetColumns.contains(ref)) {
+                columnConstraints.merge(ref.column(), new NotNull(column), MultiCheck::merge);
+            } else if (ref instanceof GeneratedReference generated) {
+                Input<?> input = ctxForRefs.add(generated.generatedExpression());
+                tableConstraints.add(new NotNullTableConstraint(column, input));
+            } else {
+                Input<?> input = ctxForRefs.add(ref);
+                tableConstraints.add(new NotNullTableConstraint(column, input));
+            }
+        }
+    }
+
+    private static void addGeneratedToVerify(Map<ColumnIdent, ColumnConstraint> columnConstraints,
+                                      DocTableInfo table,
+                                      Context<?> ctxForRefs,
+                                      Reference ref) {
         if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
@@ -450,7 +491,7 @@ public class Indexer {
                 if (reference == null) {
                     continue;
                 }
-                addToValidate(table, ctxForRefs, reference);
+                addGeneratedToVerify(columnConstraints, table, ctxForRefs, reference);
             }
         }
     }
@@ -537,7 +578,7 @@ public class Indexer {
         }
 
         for (var constraint : tableConstraints) {
-            constraint.verify();
+            constraint.verify(item.insertValues());
         }
 
         NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
@@ -577,5 +618,58 @@ public class Indexer {
             result[i] = this.returnValueInputs.get(i).value();
         }
         return result;
+    }
+
+    public static Consumer<IndexItem> createConstraintCheck(String indexName,
+                                                            DocTableInfo table,
+                                                            TransactionContext txnCtx,
+                                                            NodeContext nodeCtx,
+                                                            List<Reference> targetColumns) {
+        var symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
+        PartitionName partitionName = table.isPartitioned()
+            ? PartitionName.fromIndexOrTemplate(indexName)
+            : null;
+        InputFactory inputFactory = new InputFactory(nodeCtx);
+        var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
+        Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
+            txnCtx,
+            referenceResolver
+        );
+        Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
+        for (var ref : targetColumns) {
+            addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
+        }
+        List<TableConstraint> tableConstraints = new ArrayList<>(table.checkConstraints().size());
+        addNotNullConstraints(
+            tableConstraints, columnConstraints, table, targetColumns, ctxForRefs);
+
+        for (var constraint : table.checkConstraints()) {
+            Symbol expression = constraint.expression();
+            Input<?> input = ctxForRefs.add(expression);
+            tableConstraints.add(new TableCheckConstraint(input, constraint));
+        }
+        return indexItem -> {
+            for (var expression : ctxForRefs.expressions()) {
+                expression.setNextRow(indexItem);
+            }
+            Object[] values = indexItem.insertValues();
+            for (int i = 0; i < values.length; i++) {
+                Reference reference = targetColumns.get(i);
+                Object value = reference.valueType().valueForInsert(values[i]);
+                ColumnConstraint check = columnConstraints.get(reference.column());
+                if (check != null) {
+                    check.verify(value);
+                }
+                if (reference.granularity() == RowGranularity.PARTITION) {
+                    continue;
+                }
+                if (value == null) {
+                    continue;
+                }
+            }
+            for (var constraint : tableConstraints) {
+                constraint.verify(values);
+            }
+        };
     }
 }

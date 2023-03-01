@@ -157,7 +157,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
             () -> execute("INSERT INTO test(col1) VALUES(0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col1=0, col2=0}");
+            .hasMessageContaining("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) for values: [0]");
 
         execute("INSERT INTO test(col1) VALUES(1),(2),(3)");
         assertThat(printedTable(response.rows()))

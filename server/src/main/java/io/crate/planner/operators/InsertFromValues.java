@@ -45,8 +45,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -62,6 +60,8 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
@@ -79,11 +79,13 @@ import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -254,15 +256,15 @@ public class InsertFromValues implements LogicalPlan {
             false);
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
-        HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
+        HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         for (Row row : rows) {
-            grouper.accept(shardedRequests, row);
+            Item item = grouper.apply(shardedRequests, row);
 
             try {
                 checkPrimaryKeyValuesNotNull(primaryKeyInputs);
                 checkClusterByValueNotNull(clusterByInput);
                 checkConstraintsOnGeneratedSource(
-                    row.materialize(),
+                    item,
                     indexNameResolver.get(),
                     tableInfo,
                     plannerContext,
@@ -370,7 +372,7 @@ public class InsertFromValues implements LogicalPlan {
             true);
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
-        HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
+        HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList();
         List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
@@ -404,12 +406,12 @@ public class InsertFromValues implements LogicalPlan {
 
                 while (rows.hasNext()) {
                     Row row = rows.next();
-                    grouper.accept(shardedRequests, row);
+                    Item item = grouper.apply(shardedRequests, row);
 
                     checkPrimaryKeyValuesNotNull(primaryKeyInputs);
                     checkClusterByValueNotNull(clusterByInput);
                     checkConstraintsOnGeneratedSource(
-                        row.materialize(),
+                        item,
                         indexNameResolver.get(),
                         tableInfo,
                         plannerContext,
@@ -503,21 +505,25 @@ public class InsertFromValues implements LogicalPlan {
         }
     }
 
-    private void checkConstraintsOnGeneratedSource(Object[] cells,
+    private void checkConstraintsOnGeneratedSource(@Nullable IndexItem indexItem,
                                                    String indexName,
                                                    DocTableInfo tableInfo,
                                                    PlannerContext plannerContext,
-                                                   HashMap<String, InsertSourceFromCells> validatorsCache) throws Throwable {
+                                                   HashMap<String, Consumer<IndexItem>> validatorsCache) throws Throwable {
+        if (indexItem == null) {
+            return;
+        }
         var validator = validatorsCache.computeIfAbsent(
             indexName,
-            index -> new InsertSourceFromCells(
+            index -> Indexer.createConstraintCheck(
+                indexName,
+                tableInfo,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                tableInfo,
-                index,
-                true,
-                writerProjection.allTargetColumns()));
-        validator.generateSourceAndCheckConstraints(cells, List.of());
+                writerProjection.allTargetColumns()
+            )
+        );
+        validator.accept(indexItem);
     }
 
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,

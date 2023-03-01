@@ -21,10 +21,32 @@
 
 package io.crate.testing;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.BatchIterators;
 import io.crate.data.Input;
-import io.crate.execution.dml.upsert.InsertSourceGen;
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -42,30 +64,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.symbol.Optimizer;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public final class QueryTester implements AutoCloseable {
 
@@ -131,23 +129,18 @@ public final class QueryTester implements AutoCloseable {
         }
 
         void indexValue(String column, Object value) throws IOException {
-            DocumentMapper mapper = indexEnv.mapperService().documentMapper();
-            InsertSourceGen sourceGen = InsertSourceGen.of(
-                CoordinatorTxnCtx.systemTransactionContext(),
-                plannerContext.nodeContext(),
+            MapperService mapperService = indexEnv.mapperService();
+            Indexer indexer = new Indexer(
+                table.concreteIndices()[0],
                 table,
-                table.concreteIndices()[0],
-                false,
-                Collections.singletonList(table.getReference(ColumnIdent.fromPath(column)))
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext(),
+                col -> mapperService.getLuceneFieldType(col.fqn()),
+                List.of(table.getReference(ColumnIdent.fromPath(column))),
+                null
             );
-            BytesReference source = sourceGen.generateSourceAndCheckConstraintsAsBytesReference(new Object[]{value});
-            SourceToParse sourceToParse = new SourceToParse(
-                table.concreteIndices()[0],
-                UUIDs.randomBase64UUID(),
-                source,
-                XContentType.JSON
-            );
-            ParsedDocument parsedDocument = mapper.parse(sourceToParse);
+            var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
+            ParsedDocument parsedDocument = indexer.index(item);
             indexEnv.writer().addDocument(parsedDocument.doc());
         }
 
