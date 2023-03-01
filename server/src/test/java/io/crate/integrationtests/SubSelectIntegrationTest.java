@@ -845,8 +845,8 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 LEFT JOIN bars ON foos.timeframe = bars.timeframe
             ), dates AS (
                 SELECT *
-                FROM UNNEST([date_trunc('month', NOW() - '1 month'::INTERVAL),
-                             date_trunc('month', NOW())]) timeframe
+                FROM UNNEST([date_trunc('month', '2023-01-01T00:00:00'),
+                             date_trunc('month', '2023-02-01T00:00:00')]) timeframe
             )
             SELECT c.*
             FROM dates d
