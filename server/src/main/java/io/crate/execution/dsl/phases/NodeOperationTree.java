@@ -70,9 +70,9 @@ public class NodeOperationTree {
 
     @Override
     public String toString() {
-        return "NodeOperationTree{" +
-               "nodeOperations=" + nodeOperations +
-               ", leaf=" + leaf +
-               '}';
+        return "{NodeOperationTree: {" +
+               "nodeOperations: " + nodeOperations +
+               ", leaf: " + ExecutionPhases.debugPrint(leaf) +
+               "}}";
     }
 }

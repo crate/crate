@@ -65,19 +65,23 @@ public class ExecutionPhases {
     }
 
     public static String debugPrint(ExecutionPhase phase) {
-        StringBuilder sb = new StringBuilder("phase{id=");
+        StringBuilder sb = new StringBuilder("{phase:{id: ");
+        sb.append("'");
         sb.append(phase.phaseId());
         sb.append("/");
         sb.append(phase.name());
+        sb.append("'");
         sb.append(", ");
-        sb.append("nodes=");
+        sb.append("nodes:");
+        sb.append("'");
         sb.append(phase.nodeIds());
+        sb.append("'");
         if (phase instanceof UpstreamPhase) {
             UpstreamPhase uPhase = (UpstreamPhase) phase;
-            sb.append(", dist=");
+            sb.append(", dist:");
             sb.append(uPhase.distributionInfo().distributionType());
         }
-        sb.append("}");
+        sb.append("}}");
         return sb.toString();
     }
 }

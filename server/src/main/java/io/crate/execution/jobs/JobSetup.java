@@ -417,6 +417,7 @@ public class JobSetup {
                 if (executionPhase instanceof UpstreamPhase &&
                     ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
                     DistributionType.SAME_NODE) {
+                    var x = sourcePhase;
                     continue;
                 }
 

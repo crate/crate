@@ -166,6 +166,7 @@ public class JobLauncher {
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
 
+        var tree = nodeOperationTree.toString();
         List<ExecutionPhase> handlerPhases = Collections.singletonList(nodeOperationTree.leaf());
         List<RowConsumer> handlerConsumers = Collections.singletonList(consumer);
         try {

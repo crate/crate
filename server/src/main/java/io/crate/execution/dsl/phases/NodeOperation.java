@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class NodeOperation implements Writeable {
 
@@ -142,11 +143,11 @@ public class NodeOperation implements Writeable {
 
     @Override
     public String toString() {
-        return "NodeOp{ " + ExecutionPhases.debugPrint(executionPhase) +
-               ", downstreamNodes=" + downstreamNodes +
-               ", downstreamPhase=" + downstreamExecutionPhaseId +
-               ", downstreamInputId=" + downstreamExecutionPhaseInputId +
-               '}';
+        return "{NodeOp: " + ExecutionPhases.debugPrint(executionPhase) +
+               ", downstreamNodes: [" + downstreamNodes.stream().map(s -> "\"" + s + "\"").collect(Collectors.joining(", ")) + "]" +
+               ", downstreamPhase:" + downstreamExecutionPhaseId +
+               ", downstreamInputId:" + downstreamExecutionPhaseInputId +
+               "}";
     }
 
     public byte downstreamExecutionPhaseInputId() {
