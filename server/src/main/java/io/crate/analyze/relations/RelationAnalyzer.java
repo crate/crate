@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,12 +30,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -46,7 +50,6 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -74,6 +77,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
+import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -273,12 +277,24 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         AnalyzedRelation leftRel = node.getLeft().accept(this, statementContext);
         AnalyzedRelation rightRel = node.getRight().accept(this, statementContext);
 
-        RelationAnalysisContext relationContext = statementContext.currentRelationContext();
         Optional<JoinCriteria> optCriteria = node.getCriteria();
         Symbol joinCondition = null;
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
-            if (joinCriteria instanceof JoinOn || joinCriteria instanceof JoinUsing) {
+            Expression expression;
+            if (joinCriteria instanceof JoinOn joinOn) {
+                expression = joinOn.getExpression();
+            } else if (joinCriteria instanceof JoinUsing joinUsing) {
+                expression = JoinUsing.toExpression(
+                    leftRel.relationName().toQualifiedName(),
+                    rightRel.relationName().toQualifiedName(),
+                    joinUsing.getColumns());
+            } else {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
+                        joinCriteria.getClass().getSimpleName()));
+            }
+            try {
+                RelationAnalysisContext relationContext = statementContext.currentRelationContext();
                 final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     coordinatorTxnCtx,
@@ -289,32 +305,41 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         relationContext.parentSources(),
                         coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));
-                Expression expr;
-                if (joinCriteria instanceof JoinOn) {
-                    expr = ((JoinOn) joinCriteria).getExpression();
-                } else {
-                    expr = JoinUsing.toExpression(
-                        leftRel.relationName().toQualifiedName(),
-                        rightRel.relationName().toQualifiedName(),
-                        ((JoinUsing) joinCriteria).getColumns());
-                }
-                try {
-                    joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
-                } catch (RelationUnknown e) {
-                    throw new RelationValidationException(e.getTableIdents(),
-                        String.format(Locale.ENGLISH,
-                        "missing FROM-clause entry for relation '%s'", e.getTableIdents()));
-                }
-            } else {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                    joinCriteria.getClass().getSimpleName()));
+                var expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
+                joinCondition = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+            } catch (RelationUnknown e) {
+                throw new RelationValidationException(
+                    e.getTableIdents(),
+                    String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents())
+                );
             }
         }
-
-        relationContext.addJoinType(node.getType(), joinCondition);
-        return null;
+        JoinRelation joinRelation = new JoinRelation(leftRel, rightRel, node.getType(), joinCondition);
+        JoinPair joinPair = extractJoinPair(joinRelation, statementContext.currentRelationContext().sourceNames());
+        statementContext.currentRelationContext().addJoinPair(joinPair);
+        return joinRelation;
     }
 
+    private static JoinPair extractJoinPair(JoinRelation joinRelation, List<RelationName> relevantRelationsInOrder) {
+        assert relevantRelationsInOrder.size() >= 2 : "sources must be added first, cannot add join pair for only 1 source";
+
+        var joinCondition = joinRelation.joinCondition();
+        if (joinCondition != null) {
+            Set<RelationName> relationsInJoinConditions = RelationNameCollector.collect(joinCondition);
+            if (relationsInJoinConditions.size() > 1) {
+                // We have join conditions with two relations or more. The join conditions such as
+                // `t1.x = t2.x` determines which relations are joined together.
+                // For this reason we keep only the relations which are part of the join conditions.
+                // This makes sure we don't pick the wrong relations at the right/left assignment
+                // for the join pair but keep the original order.
+                relevantRelationsInOrder.retainAll(relationsInJoinConditions);
+            }
+        }
+        var left = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 2);
+        var right = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 1);
+        return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
+    }
+    
     @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
@@ -519,7 +544,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
         List<String> parts = expression.getName().getParts();
         if (parts.size() == 1) {
-            return SelectListFieldProvider.getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
+            return SelectListFieldProvider.getOneOrAmbiguous(selectAnalysis.outputMultiMap(), getOnlyElement(parts));
         }
         return null;
     }
