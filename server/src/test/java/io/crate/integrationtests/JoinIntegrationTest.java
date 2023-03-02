@@ -22,14 +22,9 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printRows;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,14 +41,12 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.data.CollectionBucket;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -70,24 +63,24 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testCrossJoinOrderByOnBothTables() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes order by colors.name, sizes.name");
-        assertThat(printedTable(response.rows()), is(
-            "blue| large\n" +
-            "blue| small\n" +
-            "green| large\n" +
-            "green| small\n" +
-            "red| large\n" +
-            "red| small\n"));
+        assertThat(response).hasRows(
+            "blue| large",
+            "blue| small",
+            "green| large",
+            "green| small",
+            "red| large",
+            "red| small");
     }
 
     @Test
     public void testCrossJoinOrderByOnOneTableWithLimit() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes order by sizes.name, colors.name limit 4");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "blue| large\n" +
-                                                     "green| large\n" +
-                                                     "red| large\n" +
-                                                     "blue| small\n"));
+        assertThat(response).hasRows(
+            "blue| large",
+            "green| large",
+            "red| large",
+            "blue| small");
     }
 
     @Test
@@ -100,11 +93,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table target");
 
         execute("select color, size from target order by size, color limit 4");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "blue| large\n" +
-                                                     "green| large\n" +
-                                                     "red| large\n" +
-                                                     "blue| small\n"));
+        assertThat(response).hasRows(
+            "blue| large",
+            "green| large",
+            "red| large",
+            "blue| small");
     }
 
     @Test
@@ -122,7 +115,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table target");
 
         execute("select x, y from target order by x, y");
-        assertThat(printedTable(response.rows()), is("2| 2\n"));
+        assertThat(response).hasRows("2| 2");
     }
 
     @Test
@@ -135,15 +128,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
         ensureGreen();
         execute("SELECT * FROM t1 AS rel1 INNER JOIN t2 USING (num, value) ORDER BY rel1.num");
-        assertThat(printedTable(response.rows()), is(
-            "1| xxx| 1| xxx| 12\n" +
-            "3| yyy| 3| yyy| 7\n" +
-            "5| zzz| 5| zzz| 0\n"));
+        assertThat(response).hasRows(
+            "1| xxx| 1| xxx| 12",
+            "3| yyy| 3| yyy| 7",
+            "5| zzz| 5| zzz| 0");
         execute("SELECT * FROM (SELECT * FROM t1) AS rel1 JOIN (SELECT * FROM t2) AS rel2 USING (num, value) ORDER BY rel1.num;");
-        assertThat(printedTable(response.rows()), is(
-            "1| xxx| 1| xxx| 12\n" +
-            "3| yyy| 3| yyy| 7\n" +
-            "5| zzz| 5| zzz| 0\n"));
+        assertThat(response).hasRows(
+            "1| xxx| 1| xxx| 12",
+            "3| yyy| 3| yyy| 7",
+            "5| zzz| 5| zzz| 0");
     }
 
     @Test
@@ -152,10 +145,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table bar (id long) partitioned by (id)");
         ensureYellow();
         execute("select * from foo f, bar b where f.id = b.id");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response).hasRows("");
 
         execute("select * from foo f, bar b");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response).hasRows("");
     }
 
     @Test
@@ -168,7 +161,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         // which employee fits in which office?
         execute("select employees.name, offices.name from employees, offices limit 1");
-        assertThat(response.rows().length, is(1));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -181,7 +174,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select round(t1.price * t2.price) as total_price from t1, t2 order by total_price");
-        assertThat(printedTable(response.rows()), is("425\n574\n"));
+        assertThat(response).hasRows("425","574");
     }
 
     @Test
@@ -194,7 +187,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select t1.price as total_price from t1 cross join t2 order by total_price limit 10");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -207,11 +200,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select t2.price, t1.price, name from t1, t2 order by t2.price, t1.price, t2.name");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "28.3| 15.0| foobar\n" +
-                                                     "28.3| 20.3| foobar\n" +
-                                                     "40.1| 15.0| bar\n" +
-                                                     "40.1| 20.3| bar\n"));
+        assertThat(response).hasRows(
+                                                     "28.3| 15.0| foobar",
+                                                     "28.3| 20.3| foobar",
+                                                     "40.1| 15.0| bar",
+                                                     "40.1| 20.3| bar");
     }
 
     @Test
@@ -224,11 +217,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table colors, articles");
 
         execute("select colors.name, articles.name from colors, articles order by articles.price, colors.name, articles.name");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "black| towel\n" +
-                                                     "grey| towel\n" +
-                                                     "black| cheese\n" +
-                                                     "grey| cheese\n"));
+        assertThat(response).hasRows(
+            "black| towel",
+            "grey| towel",
+            "black| cheese",
+            "grey| cheese");
 
     }
 
@@ -236,33 +229,33 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testCrossJoinWithoutLimitAndOrderByAndCrossJoinSyntax() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors cross join sizes");
-        assertThat(response.rowCount(), is(6L));
+        assertThat(response).hasRowCount(6L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
             new int[]{0, 1}, new boolean[]{false, false}, new boolean[]{false, false}));
-        assertThat(printRows(rows), is(
-            "blue| large\n" +
-            "blue| small\n" +
-            "green| large\n" +
-            "green| small\n" +
-            "red| large\n" +
-            "red| small\n"
-        ));
+        assertThat(response).hasRows(
+            "blue| large",
+            "blue| small",
+            "green| large",
+            "green| small",
+            "red| large",
+            "red| small"
+        );
     }
 
     @Test
     public void testOutputFromOnlyOneTable() throws Exception {
         createColorsAndSizes();
         execute("select colors.name from colors, sizes order by colors.name");
-        assertThat(response.rowCount(), is(6L));
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "blue\n" +
-                                                     "blue\n" +
-                                                     "green\n" +
-                                                     "green\n" +
-                                                     "red\n" +
-                                                     "red\n"));
+        assertThat(response).hasRowCount(6L);
+        assertThat(response).hasRows(
+            "blue",
+            "blue",
+            "green",
+            "green",
+            "red",
+            "red");
     }
 
     @Test
@@ -273,14 +266,14 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select shards.id, t.name from sys.shards, t where shards.table_name = 't' order by shards.id, t.name");
-        assertThat(response.rowCount(), is(6L));
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "0| bar\n" +
-                                                     "0| foo\n" +
-                                                     "1| bar\n" +
-                                                     "1| foo\n" +
-                                                     "2| bar\n" +
-                                                     "2| foo\n"));
+        assertThat(response).hasRowCount(6L);
+        assertThat(response).hasRows(
+            "0| bar",
+            "0| foo",
+            "1| bar",
+            "1| foo",
+            "2| bar",
+            "2| foo");
     }
 
     @Test
@@ -293,13 +286,13 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "and tables.table_name = columns.table_name " +
                 "order by columns.column_name " +
                 "limit 5");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(printedTable(response.rows()),
-            is("strict| blob_path\n" +
-               "strict| closed\n" +
-               "strict| flush_stats\n" +
-               "strict| flush_stats['count']\n" +
-               "strict| flush_stats['periodic_count']\n"));
+        assertThat(response).hasRowCount(5L);
+        assertThat(response).hasRows(
+            "strict| blob_path",
+               "strict| closed",
+               "strict| flush_stats",
+               "strict| flush_stats['count']",
+               "strict| flush_stats['periodic_count']");
     }
 
     @Test
@@ -308,36 +301,38 @@ public class JoinIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2 order by s1.id asc, s2.id desc");
-        assertThat(response.rowCount(), is(9L));
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "0| 2| t\n" +
-                                                     "0| 1| t\n" +
-                                                     "0| 0| t\n" +
-                                                     "1| 2| t\n" +
-                                                     "1| 1| t\n" +
-                                                     "1| 0| t\n" +
-                                                     "2| 2| t\n" +
-                                                     "2| 1| t\n" +
-                                                     "2| 0| t\n"));
+        assertThat(response).hasRowCount(9L);
+
+        assertThat(response).hasRows(
+            "0| 2| t",
+            "0| 1| t",
+            "0| 0| t",
+            "1| 2| t",
+            "1| 1| t",
+            "1| 0| t",
+            "2| 2| t",
+            "2| 1| t",
+            "2| 0| t");
 
         execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2");
-        assertThat(response.rowCount(), is(9L));
+        assertThat(response).hasRowCount(9L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
             new int[]{0, 1}, new boolean[]{false, true}, new boolean[]{false, true}));
 
-        assertThat(printedTable(new CollectionBucket(rows)),
-            is("" +
-               "0| 2| t\n" +
-               "0| 1| t\n" +
-               "0| 0| t\n" +
-               "1| 2| t\n" +
-               "1| 1| t\n" +
-               "1| 0| t\n" +
-               "2| 2| t\n" +
-               "2| 1| t\n" +
-               "2| 0| t\n"));
+        assertThat(rows).containsExactly(
+            new Object[][]{
+                {0, 2, "t"},
+                {0, 1, "t"},
+                {0, 0, "t"},
+                {1, 2, "t"},
+                {1, 1, "t"},
+                {1, 0, "t"},
+                {2, 2, "t"},
+                {2, 1, "t"},
+                {2, 0, "t"}}
+        );
     }
 
     @Test
@@ -348,7 +343,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (id) values (1)");
         refresh();
         execute("select t.id, tt.id from t1 as t, t2 as tt where tt.id = t.a['b']");
-        assertThat(printedTable(response.rows()), is("1| 1\n"));
+        assertThat(response).hasRows("1| 1");
     }
 
     @Test
@@ -356,34 +351,33 @@ public class JoinIntegrationTest extends IntegTestCase {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
                 "order by t1.schema_name, t2.schema_name");
-        assertThat(response.rowCount(), is(25L));
-        assertThat(printedTable(response.rows()),
-            is("" +
-               "blob| blob\n" +
-               "blob| doc\n" +
-               "blob| information_schema\n" +
-               "blob| pg_catalog\n" +
-               "blob| sys\n" +
-               "doc| blob\n" +
-               "doc| doc\n" +
-               "doc| information_schema\n" +
-               "doc| pg_catalog\n" +
-               "doc| sys\n" +
-               "information_schema| blob\n" +
-               "information_schema| doc\n" +
-               "information_schema| information_schema\n" +
-               "information_schema| pg_catalog\n" +
-               "information_schema| sys\n" +
-               "pg_catalog| blob\n" +
-               "pg_catalog| doc\n" +
-               "pg_catalog| information_schema\n" +
-               "pg_catalog| pg_catalog\n" +
-               "pg_catalog| sys\n" +
-               "sys| blob\n" +
-               "sys| doc\n" +
-               "sys| information_schema\n" +
-               "sys| pg_catalog\n" +
-               "sys| sys\n"));
+        assertThat(response).hasRowCount(25L);
+        assertThat(response).hasRows(
+               "blob| blob",
+               "blob| doc",
+               "blob| information_schema",
+               "blob| pg_catalog",
+               "blob| sys",
+               "doc| blob",
+               "doc| doc",
+               "doc| information_schema",
+               "doc| pg_catalog",
+               "doc| sys",
+               "information_schema| blob",
+               "information_schema| doc",
+               "information_schema| information_schema",
+               "information_schema| pg_catalog",
+               "information_schema| sys",
+               "pg_catalog| blob",
+               "pg_catalog| doc",
+               "pg_catalog| information_schema",
+               "pg_catalog| pg_catalog",
+               "pg_catalog| sys",
+               "sys| blob",
+               "sys| doc",
+               "sys| information_schema",
+               "sys| pg_catalog",
+               "sys| sys");
     }
 
     @Test
@@ -393,11 +387,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
         execute("select * from t as t1, t as t2");
-        assertThat(response.rowCount(), is(4L));
-        assertThat(Arrays.asList(response.rows()), containsInAnyOrder(new Object[]{1, 1},
+        assertThat(response).hasRowCount(4L);
+        assertThat(response).hasRowsInAnyOrder(
+            new Object[]{1, 1},
             new Object[]{1, 2},
             new Object[]{2, 1},
-            new Object[]{2, 2}));
+            new Object[]{2, 2});
     }
 
     @Test
@@ -406,10 +401,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
         execute("select * from t as t1, t as t2 order by t1.x, t2.x");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "1| 2\n" +
-                                                     "2| 1\n" +
-                                                     "2| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "1| 2",
+            "2| 1",
+            "2| 2");
     }
 
     @Test
@@ -418,22 +414,22 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
         execute("refresh table doc.t");
         execute("explain select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
-        assertThat(printedTable(response.rows()), is(
-            "Fetch[x, y, x, y]\n" +
-            "  └ Limit[3::bigint;0]\n" +
-            "    └ OrderBy[x ASC x ASC]\n" +
-            "      └ NestedLoopJoin[CROSS]\n" +
-            "        ├ Rename[t1._fetchid, x] AS t1\n" +
-            "        │  └ Collect[doc.t | [_fetchid, x] | true]\n" +
-            "        └ Rename[t2._fetchid, x] AS t2\n" +
-            "          └ Collect[doc.t | [_fetchid, x] | true]\n"
-        ));
+        assertThat(response).hasRows(
+            "Fetch[x, y, x, y]",
+            "  └ Limit[3::bigint;0]",
+            "    └ OrderBy[x ASC x ASC]",
+            "      └ NestedLoopJoin[CROSS]",
+            "        ├ Rename[t1._fetchid, x] AS t1",
+            "        │  └ Collect[doc.t | [_fetchid, x] | true]",
+            "        └ Rename[t2._fetchid, x] AS t2",
+            "          └ Collect[doc.t | [_fetchid, x] | true]"
+        );
         execute("select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
-        assertThat(printedTable(response.rows()), is(
-            "1| 10| 1| 10\n" +
-            "1| 10| 2| 20\n" +
-            "2| 20| 1| 10\n"
-        ));
+        assertThat(response).hasRows(
+            "1| 10| 1| 10",
+            "1| 10| 2| 20",
+            "2| 20| 1| 10"
+        );
     }
 
     @Test
@@ -446,9 +442,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less " +
                 "where more.salary > less.salary " +
                 "order by more.salary desc, less.salary desc");
-        assertThat(printedTable(response.rows()), is("Douglas Adams| Trillian| 200.0\n" +
-                                                     "Douglas Adams| Ford Perfect| 600.0\n" +
-                                                     "Trillian| Ford Perfect| 400.0\n"));
+        assertThat(response).hasRows("Douglas Adams| Trillian| 200.0",
+                                                     "Douglas Adams| Ford Perfect| 600.0",
+                                                     "Trillian| Ford Perfect| 400.0");
     }
 
     @Test
@@ -460,7 +456,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("select t1.id, t2.id from test as t1 inner join test as t2 on t1.num = t2.num " +
                 "where t1.txt = '1111' and t2.txt='2222'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 3\n"));
+        assertThat(response).hasRows("1| 3");
     }
 
     @Test
@@ -475,27 +471,27 @@ public class JoinIntegrationTest extends IntegTestCase {
         // which employee fits in which office?
         execute("select employees.name, offices.name from employees inner join offices on size < height " +
                 "where size < height order by height - size limit 3");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "Douglas Adams| Chief Office\n" +
-                                                     "Trillian| Entresol\n" +
-                                                     "Ford Perfect| Hobbit House\n"));
+        assertThat(response).hasRows(
+            "Douglas Adams| Chief Office",
+            "Trillian| Entresol",
+            "Ford Perfect| Hobbit House");
     }
 
     @Test
     public void testFetchWithoutOrder() throws Exception {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes limit 3");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3L);
     }
 
     @Test
     public void testJoinWithFunctionInOutputAndOrderBy() throws Exception {
         createColorsAndSizes();
         execute("select substr(colors.name, 0, 1), sizes.name from colors, sizes order by colors.name, sizes.name limit 3");
-        assertThat(printedTable(response.rows()),
-            is("b| large\n" +
-               "b| small\n" +
-               "g| large\n"));
+        assertThat(response).hasRows(
+            "b| large",
+            "b| small",
+            "g| large");
     }
 
     private void createColorsAndSizes() {
@@ -519,8 +515,8 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testJoinTableWithEmptyRouting() throws Exception {
         // no shards in sys.shards -> empty routing
         execute("SELECT s.id, n.id, n.name FROM sys.shards s, sys.nodes n");
-        assertThat(response.cols(), arrayContaining("id", "id", "name"));
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasColumns("id", "id", "name");
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -561,13 +557,13 @@ public class JoinIntegrationTest extends IntegTestCase {
 
 
         execute("select temp, name from t_left inner join t_right on t_left.ref_id = t_right.id order by temp");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("-1.2| Vienna\n" +
-               "-0.5| Vienna\n" +
-               "0.2| Vienna\n" +
-               "19.7| San Francisco\n" +
-               "20.8| San Francisco\n" +
-               "23.2| San Francisco\n"));
+        assertThat(response).hasRows(
+            "-1.2| Vienna",
+            "-0.5| Vienna",
+            "0.2| Vienna",
+            "19.7| San Francisco",
+            "20.8| San Francisco",
+            "23.2| San Francisco");
     }
 
     @Test
@@ -582,8 +578,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2, t3");
 
         execute("select * from t1, t2, t3");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 2| 3\n"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("1| 2| 3");
     }
 
     @Test
@@ -607,10 +603,10 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "join logs on users.id = logs.user_id " +
                 "join events on events.id = logs.event_id " +
                 "order by users.name, events.id");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Arthur| Earth destroyed\n" +
-               "Arthur| Hitch hiking on a vogon ship\n" +
-               "Trillian| Meeting Arthur\n"));
+        assertThat(response).hasRows(
+            "Arthur| Earth destroyed",
+            "Arthur| Hitch hiking on a vogon ship",
+            "Trillian| Meeting Arthur");
     }
 
     @Test
@@ -623,8 +619,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select text, tags from t1 join t2 on t1.id = t2.id");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Hello World| [foo, bar]\n"));
+        assertThat(response).hasRows(
+            "Hello World| [foo, bar]");
     }
 
     @Test
@@ -638,8 +634,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 (z) values (3)");
         execute("refresh table t1, t2, t3");
         execute("select x+y+z from t1,t2,t3 order by x,y,z");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("6\n"));
+        assertThat(response).hasRows("6");
     }
 
     @Test
@@ -653,15 +648,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 (z) values (5), (6)");
         execute("refresh table t1, t2, t3");
         execute("select x,y,z from t1,t2,t3 order by x-y+z, x+y");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 4| 5\n" +
-               "1| 4| 6\n" +
-               "1| 2| 5\n" +
-               "3| 4| 5\n" +
-               "1| 2| 6\n" +
-               "3| 4| 6\n" +
-               "3| 2| 5\n" +
-               "3| 2| 6\n"));
+        assertThat(response).hasRows(
+            "1| 4| 5",
+            "1| 4| 6",
+            "1| 2| 5",
+            "3| 4| 5",
+            "1| 2| 6",
+            "3| 4| 6",
+            "3| 2| 5",
+            "3| 2| 6");
     }
 
     @Test
@@ -673,15 +668,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (x) values (1), (2)");
         execute("refresh table t1, t2");
         execute("select a, x from t1, t2 order by a, x");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 1\n" +
-               "1| 1\n" +
-               "1| 2\n" +
-               "1| 2\n" +
-               "2| 1\n" +
-               "2| 1\n" +
-               "2| 2\n" +
-               "2| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "1| 1",
+            "1| 2",
+            "1| 2",
+            "2| 1",
+            "2| 1",
+            "2| 2",
+            "2| 2");
     }
 
     @Test
@@ -691,7 +686,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t (id, name) values ('0-1', 'Marvin')");
         execute("refresh table t");
         execute("select * from t inner join information_schema.tables on t.id = tables.number_of_replicas");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -718,19 +713,19 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select sum(t1.x) from t1, t1 as t2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("6\n"));
+        assertThat(response).hasRows("6");
     }
 
     @Test
     public void testAggOnJoinWithScalarAfterAggregation() throws Exception {
         execute("select sum(t1.t1) * 2 from unnest([1, 2]) t1, unnest([3, 4]) t2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("12\n"));
+        assertThat(response).hasRows("12");
     }
 
     @Test
     public void testAggOnJoinWithHaving() throws Exception {
         execute("select sum(t1.t1) from unnest([1, 2]) t1, unnest([3, 4]) t2 having sum(t1.t1) > 8");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -739,7 +734,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "   sum(t1.t1) " +
                 "from unnest([1, 2]) t1, unnest([3, 4]) t2 " +
                 "limit 0");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -748,13 +743,13 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "   sum(t1.t1) " +
                 "from unnest([1, 1]) t1, unnest([1, 1]) t2 " +
                 "limit 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
+        assertThat(response).hasRows("4");
     }
 
     @Test
     public void testJoinOnAggWithOrderBy() throws Exception {
         execute("select sum(t1.t1) from unnest([1, 1]) t1, unnest([1, 1]) t2 order by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
+        assertThat(response).hasRows("4");
     }
 
     @Test
@@ -785,7 +780,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         refresh();
         execute("select sum(t1.val), avg(t2.id), min(t3.id) from t1 inner join t2 on t1.t2 = t2.id inner join t3 on t2.t3 = t3.id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3.69| 2.0| 1\n"));
+        assertThat(response).hasRows("3.69| 2.0| 1");
     }
 
     @Test
@@ -806,10 +801,10 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "   (select unnest as x from unnest([1, 2, 3])) t1, " +
                 "   (select max(unnest) as y from unnest([4])) t2 " +
                 "order by t1.x");
-        assertThat(printedTable(response.rows()),
-            is("1| 4\n" +
-               "2| 4\n" +
-               "3| 4\n"));
+        assertThat(response).hasRows(
+            "1| 4",
+            "2| 4",
+            "3| 4");
     }
 
     @Test
@@ -825,9 +820,9 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "   order by tt1.x desc limit 2 " +
                 "   ) ttt1, " +
                 "   (select unnest as y from unnest([10])) tt2 ");
-        assertThat(printedTable(response.rows()),
-            is("4| 10\n" +
-               "3| 10\n"));
+        assertThat(response).hasRows(
+            "4| 10",
+            "3| 10");
 
         execute("select * from " +
                 "   (select x from " +
@@ -837,9 +832,9 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "   (select max(y) as y from " +
                 "       (select min(unnest) as y from unnest([10])) tt2 " +
                 "   ) ttt2 ");
-        assertThat(printedTable(response.rows()),
-            is("4| 10\n" +
-               "3| 10\n"));
+        assertThat(response).hasRows(
+            "4| 10",
+            "3| 10");
     }
 
     @Test
@@ -870,9 +865,9 @@ public class JoinIntegrationTest extends IntegTestCase {
                       "order by price limit 3 offset 1";
 
         execute(stmt);
-        assertThat(printedTable(response.rows()),
-            is("1| Greece| 1| Marios| 1| 3| 30.0\n" +
-               "1| Greece| 1| Marios| 1| 4| 40.0\n"));
+        assertThat(response).hasRows(
+            "1| Greece| 1| Marios| 1| 3| 30.0",
+            "1| Greece| 1| Marios| 1| 4| 40.0");
     }
 
     @Test
@@ -886,7 +881,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "    FROM\n" +
                 "        unnest([1]) tt1," +
                 "        unnest([2]) tt2");
-        assertThat(printedTable(response.rows()), is("1| 1| 2\n"));
+        assertThat(response).hasRows("1| 1| 2");
     }
 
     @Test
@@ -906,11 +901,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
 
         execute("select a, x from t1 join t2 on t1.a + 1 = t2.x order by a, x");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0| 1\n" +
-               "0| 1\n" +
-               "2| 3\n" +
-               "2| 3\n"));
+        assertThat(response).hasRows(
+            "0| 1",
+            "0| 1",
+            "2| 3",
+            "2| 3");
     }
 
     private void resetTableStats() {
@@ -937,9 +932,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         }
 
         execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 1\n" +
-               "1| 1\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "1| 1");
     }
 
     /**
@@ -968,9 +963,9 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("select a, x, y from t1 join t2 on t1.a = t2.x join t3 on t3.y = t2.x where t1.a < t2.x + 1 " +
                 "and t2.x < t3.y + 1 order by a, x, y");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0| 0| 0\n" +
-               "1| 1| 1\n"));
+        assertThat(response).hasRows(
+            "0| 0| 0",
+            "1| 1| 1");
     }
 
     @Test
@@ -987,17 +982,17 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +
                 "ON left_rel.x = right_rel.x2 order by left_rel.x");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0\n" +
-               "1\n" +
-               "2\n" +
-               "3\n" +
-               "4\n" +
-               "5\n" +
-               "6\n" +
-               "7\n" +
-               "8\n" +
-               "9\n"));
+        assertThat(response).hasRows(
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9");
     }
 
     private void randomiseAndConfigureJoinBlockSize(String relationName, long rowsCount, CircuitBreaker circuitBreaker) {
@@ -1034,25 +1029,23 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("INSERT INTO t2 (id, name, id_t1) VALUES (1, 'A', 1), (2, 'B', 2), (3, 'C', 2)");
         execute("REFRESH TABLE t1, t2");
 
-        assertThat(printedTable(execute(
-            "SELECT t1.id, t2.id FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
-            is("1| 1\n" +
-               "2| 2\n" +
-               "2| 3\n")
-        );
+        execute("SELECT t1.id, t2.id FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)");
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 2",
+            "2| 3");
 
-        assertThat(printedTable(execute(
-            "SELECT t1.id, t2.id, t2.name FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
-            is("1| 1| A\n" +
-               "2| 2| B\n" +
-               "2| 3| C\n"));
+        execute("SELECT t1.id, t2.id, t2.name FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)");
+        assertThat(response).hasRows(
+            "1| 1| A",
+            "2| 2| B",
+            "2| 3| C");
 
-        assertThat(printedTable(execute(
-            "SELECT t1.id, t2.id, lower(t2.name) FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
-            is("1| 1| a\n" +
-               "2| 2| b\n" +
-               "2| 3| c\n")
-        );
+        execute("SELECT t1.id, t2.id, lower(t2.name) FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)");
+        assertThat(response).hasRows(
+            "1| 1| a",
+            "2| 2| b",
+            "2| 3| c");
     }
 
     @Test
@@ -1061,12 +1054,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t1 (x) values (1) ");
         execute("refresh table t1");
         // regression test; the repeat requirement wasn't set correctly for the right side
-        assertThat(
-            printedTable(execute(
-                "select * from (select * from t1 order by x) t1 " +
-                "join (select * from t1 order by x) t2 on t1.x=t2.x").rows()),
-            is("1| 1\n")
-        );
+        execute(
+            "select * from (select * from t1 order by x) t1 " +
+            "join (select * from t1 order by x) t2 on t1.x=t2.x");
+        assertThat(response).hasRows("1| 1");
     }
 
     @Test
@@ -1080,7 +1071,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                       "   AND c.relnamespace = n.oid " +
                       "   AND (false)";
         execute(stmt);
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1121,7 +1112,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             + "    con.conname,\n"
             + "    pos.n\n";
         execute(stmt);
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1129,9 +1120,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         String stmt = "SELECT c.name as name, max(h.severity) as severity " +
             "FROM sys.health h, sys.cluster c " +
             "GROUP BY 1";
-        assertThat(printedTable(execute(stmt).rows()), is(
-            ""
-        ));
+        execute(stmt);
+        assertThat(response).hasRows("");
     }
 
 
@@ -1167,15 +1157,16 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(printedTable(response.rows()), is(
-            "NestedLoopJoin[LEFT | (id = id)]\n" +
-                "  ├ HashJoin[(id = id)]\n" +
-                "  │  ├ HashJoin[(id = id)]\n" +
-                "  │  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
-                "  │  │  └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
-                "  │  └ Collect[doc.t3 | [id, c] | true]\n" +
-                "  └ Collect[doc.t4 | [id, d] | true]\n"
-        ));
+        assertThat(response.rows()[0][0]).isEqualTo(
+            """
+                NestedLoopJoin[LEFT | (id = id)]
+                  ├ HashJoin[(id = id)]
+                  │  ├ HashJoin[(id = id)]
+                  │  │  ├ Collect[doc.t1 | [id, a] | true]
+                  │  │  └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]
+                  │  └ Collect[doc.t3 | [id, c] | true]
+                  └ Collect[doc.t4 | [id, d] | true]"""
+        );
         execute(stmt);
     }
 
@@ -1212,12 +1203,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(printedTable(response.rows()), is(
-            "NestedLoopJoin[INNER | (id = id)]\n" +
-                "  ├ NestedLoopJoin[INNER | (id = id)]\n" +
-                "  │  ├ Collect[doc.t1 | [id, a] | true]\n" +
-                "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
-                "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
+        assertThat(response).hasRows(
+            "NestedLoopJoin[INNER | (id = id)]",
+                "  ├ NestedLoopJoin[INNER | (id = id)]",
+                "  │  ├ Collect[doc.t1 | [id, a] | true]",
+                "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]",
+                "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]");
         execute(stmt);
     }
 
@@ -1242,16 +1233,17 @@ public class JoinIntegrationTest extends IntegTestCase {
                 shards.id
             """;
         execute("EXPLAIN " + stmt);
-        assertThat(printedTable(response.rows()), is(
-            "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]\n" +
-            "  └ OrderBy[id ASC id ASC]\n" +
-            "    └ HashJoin[(node['id'] = id)]\n" +
-            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]\n" +
-            "      └ Rename[id, name] AS nodes\n" +
-            "        └ Collect[sys.nodes | [id, name] | true]\n"
-        ));
+        assertThat(response.rows()[0][0]).isEqualTo(
+            """
+            Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]
+              └ OrderBy[id ASC id ASC]
+                └ HashJoin[(node['id'] = id)]
+                  ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]
+                  └ Rename[id, name] AS nodes
+                    └ Collect[sys.nodes | [id, name] | true]"""
+        );
         execute(stmt);
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1279,7 +1271,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("EXPLAIN " + stmt);
 
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response.rows()[0][0]).isEqualTo(
             """
                 HashJoin[(name = name)]
                   ├ Rename[name] AS x
@@ -1291,11 +1283,10 @@ public class JoinIntegrationTest extends IntegTestCase {
                     └ GroupHashAggregate[name]
                       └ Union[name]
                         ├ Collect[doc.t1 | [name] | (name = 'a')]
-                        └ Collect[doc.t2 | [name] | (name = 'b')]
-                """
-        ));
+                        └ Collect[doc.t2 | [name] | (name = 'b')]"""
+        );
         execute(stmt);
-        assertThat(printedTable(response.rows()), is("a| a\n"));
+        assertThat(response).hasRows("a| a");
     }
 
 
@@ -1325,11 +1316,11 @@ public class JoinIntegrationTest extends IntegTestCase {
                 AND doc.t2.kind = 'bar'
                 LEFT OUTER JOIN doc.t2 AS temp ON temp.cluster_id = doc.t1.id
                 AND temp.kind = 'bar'
-                WHERE doc.t3.reference = 'bazinga';
+                WHERE doc.t3.reference = 'bazinga'
             """;
 
         execute("EXPLAIN " + stmt);
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response.rows()[0][0]).isEqualTo(
             """
                 Eval[id, reference]
                   └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]
@@ -1339,11 +1330,10 @@ public class JoinIntegrationTest extends IntegTestCase {
                     │  │  └ Collect[doc.t1 | [subscription_id, id] | true]
                     │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]
                     └ Rename[cluster_id, kind] AS temp
-                      └ Collect[doc.t2 | [cluster_id, kind] | true]
-                """
-        ));
+                      └ Collect[doc.t2 | [cluster_id, kind] | true]"""
+        );
 
         execute(stmt);
-        assertThat(printedTable(response.rows()), is("2| bazinga\n"));
+        assertThat(response).hasRows("2| bazinga");
     }
 }
