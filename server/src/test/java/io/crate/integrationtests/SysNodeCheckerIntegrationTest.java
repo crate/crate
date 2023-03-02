@@ -42,10 +42,10 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
                                        "order by id, node_id asc");
         assertThat(response.rowCount(), equalTo(14L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 3| false\n" +  // 1 = recoveryExpectedNodesCheck
-               "1| 3| false\n" +
-               "2| 3| false\n" +  // 2 = RecoveryAfterNodes
-               "2| 3| false\n" +
+            is("1| 2| false\n" +  // 1 = recoveryExpectedNodesCheck
+               "1| 2| false\n" +
+               "2| 2| false\n" +  // 2 = RecoveryAfterNodes
+               "2| 2| false\n" +
                "3| 2| true\n" +   // 3 = RecoveryAfterTime
                "3| 2| true\n" +
                "5| 3| true\n" +   // 5 = HighDiskWatermark

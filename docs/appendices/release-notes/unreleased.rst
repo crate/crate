@@ -104,6 +104,10 @@ Changes
   :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
   read-only session setting for improved compatibility with PostgreSQL clients.
 
+- The severity of the node checks on the metadata gateway recovery settings
+  has been lowered from `HIGH` to `MEDIUM` as leaving these to default
+  or suboptimal values does not translate into data corruption or loss.
+
 Fixes
 =====
 

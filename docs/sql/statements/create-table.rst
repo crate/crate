@@ -686,17 +686,6 @@ Sets size of transaction log prior to flushing.
   Size (bytes) of translog.
 
 
-.. _sql-create-table-translog-interval:
-
-``translog.interval``
----------------------
-
-Sets frequency of flush necessity check.
-
-:value:
-  Frequency in milliseconds.
-
-
 .. _sql-create-table-translog-sync-interval:
 
 ``translog.sync_interval``

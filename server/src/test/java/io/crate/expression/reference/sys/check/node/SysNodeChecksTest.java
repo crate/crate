@@ -79,7 +79,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryExpectedNodesCheck.isValid(), is(true));
     }
 
@@ -100,7 +100,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
     }
 
@@ -119,7 +119,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
     }
 
@@ -141,7 +141,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryExpectedNodesCheck.isValid(), is(true));
     }
 
@@ -163,7 +163,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryExpectedNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryExpectedNodesCheck.isValid(), is(false));
     }
 
@@ -173,7 +173,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.isValid(), is(true));
     }
 
@@ -195,7 +195,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.isValid(), is(false));
     }
 
@@ -215,7 +215,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.isValid(), is(false));
     }
 
@@ -230,14 +230,14 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
         var settings = Settings.builder()
             .put(GatewayService.RECOVER_AFTER_DATA_NODES_SETTING.getKey(), 2)
-            .put(GatewayService.EXPECTED_DATA_NODES_SETTING.getKey(), 2)
+            .put(GatewayService.EXPECTED_DATA_NODES_SETTING.getKey(), 3)
             .build();
 
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, settings);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.isValid(), is(true));
     }
 

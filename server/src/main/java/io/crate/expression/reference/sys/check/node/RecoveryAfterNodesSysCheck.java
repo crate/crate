@@ -34,15 +34,15 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 2;
-    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_data_nodes' " +
-                                              "(or the deprecated `gateway.recovery_after_nodes` setting)" +
-                                              "needs to be greater than half of the maximum/expected number of (data) " +
-                                              "nodes and equal or less than the maximum/expected number of (data) nodes " +
+    private static final String DESCRIPTION = "The cluster setting 'gateway.recover_after_data_nodes' " +
+                                              "(or the deprecated `gateway.recovery_after_nodes` setting) " +
+                                              "is not configured or it is set to a value that seems low in " +
+                                              "relation to the the maximum/expected number of (data) nodes " +
                                               "in the cluster.";
 
     @Inject
     public RecoveryAfterNodesSysCheck(ClusterService clusterService, Settings settings) {
-        super(ID, DESCRIPTION, Severity.HIGH);
+        super(ID, DESCRIPTION, Severity.MEDIUM);
         this.clusterService = clusterService;
         this.settings = settings;
     }
