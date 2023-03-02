@@ -66,6 +66,7 @@ import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -754,5 +755,144 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "          └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]\n" +
             "            └ TableFunction[empty_row | [] | true]"
         )));
+    }
+
+    @Test
+    public void test_nested_join_pair_ordering() throws Exception {
+        QueriedSelectRelation relation = e.analyze(
+            """
+                SELECT *
+                FROM
+                t1
+                  JOIN (t2 JOIN t3 ON t2.i = t3.z)
+                  ON t1.i = t2.i
+                """
+        );
+
+        assertThat(relation.joinPairs().size(), is(2));
+        assertThat(relation.joinPairs().get(0).left(), is(T3.T2));
+        assertThat(relation.joinPairs().get(0).right(), is(T3.T3));
+        assertThat(relation.joinPairs().get(1).left(), is(T3.T1));
+        assertThat(relation.joinPairs().get(1).right(), is(T3.T2));
+    }
+
+    @Test
+    public void test_nested_join_pair_ordering_with_three_relations_in_join_condition() throws Exception {
+        QueriedSelectRelation relation = e.analyze(
+            """
+             SELECT * from t1
+             join t2 ON t1.i = t2.i
+             join t3 on array_length(array_unique(ARRAY[t1.i, t2.i, t3.z]), 1) > 2"""
+        );
+
+        assertThat(relation.joinPairs().size(), is(2));
+        assertThat(relation.joinPairs().get(0).left(), is(T3.T1));
+        assertThat(relation.joinPairs().get(0).right(), is(T3.T2));
+        assertThat(relation.joinPairs().get(1).left(), is(T3.T2));
+        assertThat(relation.joinPairs().get(1).right(), is(T3.T3));
+    }
+
+
+
+    @Test
+    public void test_nested_joins_with_sub_query_join_pair_ordering() throws Exception {
+        QueriedSelectRelation relation = e.analyze(
+            """
+                SELECT *
+                    FROM t1
+                    JOIN t2 on (t1.i = t2.i)
+                    JOIN (select 1 as foo) temp ON (temp.foo = t1.i AND t2.i = temp.foo)
+                """);
+
+        assertThat(relation.joinPairs().size(), is(2));
+        assertThat(relation.joinPairs().get(0).left(), is(T3.T1));
+        assertThat(relation.joinPairs().get(0).right(), is(T3.T2));
+        assertThat(relation.joinPairs().get(1).left(), is(T3.T2));
+        assertThat(relation.joinPairs().get(1).right(), is(relation("temp")));
+    }
+
+    @Test
+    public void test_nested_join_pg_query_join_pair_ordering() {
+        QueriedSelectRelation relation = e.analyze(
+            """
+                SELECT
+                  c.oid,
+                  a.attnum,
+                  a.attname,
+                  c.relname,
+                  n.nspname,
+                  a.attnotnull
+                  OR (
+                    t.typtype = 'd'
+                    AND t.typnotnull
+                  ),
+                  a.attidentity != ''
+                  OR pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%'
+                FROM
+                  pg_catalog.pg_class c
+                  JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid)
+                  JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid)
+                  JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid)
+                  LEFT JOIN pg_catalog.pg_attrdef d ON (
+                    d.adrelid = a.attrelid
+                    AND d.adnum = a.attnum
+                  )
+                  JOIN (
+                    SELECT
+                      -2002935028 AS oid,
+                      1 AS attnum
+                    UNION ALL
+                    SELECT
+                      -2002935028,
+                      2
+                  ) vals ON (
+                    c.oid = vals.oid
+                    AND a.attnum = vals.attnum
+                  )
+                """
+        );
+
+        assertThat(relation.joinPairs().size(), is(5));
+        assertThat(relation.joinPairs().get(0).left(), is(relation("c")));
+        assertThat(relation.joinPairs().get(0).right(), is(relation("n")));
+        assertThat(relation.joinPairs().get(1).left(), is(relation("c")));
+        assertThat(relation.joinPairs().get(1).right(), is(relation("a")));
+        assertThat(relation.joinPairs().get(2).left(), is(relation("a")));
+        assertThat(relation.joinPairs().get(2).right(), is(relation("t")));
+        assertThat(relation.joinPairs().get(3).left(), is(relation("a")));
+        assertThat(relation.joinPairs().get(3).right(), is(relation("d")));
+        assertThat(relation.joinPairs().get(4).left(), is(relation("a")));
+        assertThat(relation.joinPairs().get(4).right(), is(relation("vals")));
+    }
+
+    private static RelationName relation(String name) {
+        return RelationName.of(new QualifiedName(name), null);
+    }
+
+    @Test
+    public void test_multiple_nested_join_raises_error() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("create table a (x int)")
+            .addTable("create table b (y int)")
+            .addTable("create table c (z int)")
+            .build();
+
+        var stmt = """
+            SELECT
+              y, z
+            FROM
+              a
+              JOIN (
+                b
+                JOIN (
+                  c
+                  JOIN a ON c.z = a.x
+                ) temp1 ON b.y = temp1.x
+              ) temp2 on a.x = temp2.x;
+            """;
+
+        assertThatThrownBy(() -> executor.analyze(stmt))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageContaining("Joins do not support this operation");
     }
 }
