@@ -34,6 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Input;
 import io.crate.execution.dsl.projection.Projection;
@@ -99,6 +100,10 @@ public class Asserts extends Assertions {
 
     public static LogicalPlanAssert assertThat(LogicalPlan actual) {
         return new LogicalPlanAssert(actual);
+    }
+
+    public static JoinPairAssert assertThat(JoinPair actual) {
+        return new JoinPairAssert(actual);
     }
 
     // generic helper methods
