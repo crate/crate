@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused nested joins such as
+  ``SELECT * FROM t1 JOIN (t2 JOIN t3 ON t2.x = t3.x) ON t1.x = t2.x``
+  fail with an internal error.
+
 - Fixed an issue that could cause errors for queries with aggregations and
   ``UNION``, e.g. ::
 

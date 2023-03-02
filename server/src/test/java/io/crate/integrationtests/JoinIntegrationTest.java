@@ -1405,4 +1405,48 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "3| NULL\n"
         ));
     }
+
+    /*
+     * https://github.com/crate/crate/issues/13503
+     */
+    @Test
+    @UseHashJoins(1)
+    public void test_nested_joins() {
+        execute("CREATE TABLE doc.j1 (x INT)");
+        execute("CREATE TABLE doc.j2 (x INT)");
+        execute("CREATE TABLE doc.j3 (x INT)");
+
+        execute("insert into doc.j1(x) values (1),(2),(3)");
+        execute("insert into doc.j2(x) values (1),(2),(3)");
+        execute("insert into doc.j3(x) values (1),(2),(3)");
+
+        execute("refresh table doc.j1, doc.j2, doc.j3");
+
+        var stmt = """
+            SELECT *
+              FROM doc.j1
+              JOIN (doc.j2 JOIN doc.j3 ON doc.j2.x = doc.j3.x)
+               ON doc.j1.x = doc.j2.x
+            ORDER BY doc.j1.x;
+            """;
+
+        execute("explain " + stmt);
+        assertThat((String) response.rows()[0][0], is(
+            """
+                Eval[x, x, x]
+                  └ OrderBy[x ASC]
+                    └ HashJoin[(x = x)]
+                      ├ HashJoin[(x = x)]
+                      │  ├ Collect[doc.j2 | [x] | true]
+                      │  └ Collect[doc.j3 | [x] | true]
+                      └ Collect[doc.j1 | [x] | true]"""
+        ));
+
+        execute(stmt);
+        assertThat(printedTable(response.rows()), is(
+            "1| 1| 1\n" +
+            "2| 2| 2\n" +
+            "3| 3| 3\n"));
+
+    }
 }
