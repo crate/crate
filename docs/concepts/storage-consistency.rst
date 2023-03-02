@@ -206,16 +206,17 @@ following information:
 Every node has its own copy of the cluster state. However there is only one
 node allowed to change the cluster state at runtime. This node is called the
 "master" node and gets auto-elected. The "master" node has no special
-configuration at all, any node in the cluster can be elected as a master. There
+configuration at all, all nodes are master-eligible by default, and any 
+master-eligible node can be elected as the master. There
 is also an automatic re-election if the current master node goes down for some
 reason.
 
 .. NOTE::
 
-  To avoid a scenario where two masters are elected due to network partitioning
-  it's required to define a quorum of nodes with which it's possible to elect a
-  master. For details in how to do this and further information see
-  :ref:`concept-master-election`.
+  To avoid a scenario where two masters could be elected due to network 
+  partitioning, CrateDB automatically defines a quorum of nodes with 
+  which it is possible to elect a master. For details on how this works
+  and further information see :ref:`concept-master-election`.
 
 To explain the flow of events for any cluster state change, here is an example
 flow for an ``ALTER TABLE`` statement which changes the schema of a table:

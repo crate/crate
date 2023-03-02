@@ -115,8 +115,7 @@ Cluster state management
 
 The cluster state is versioned and all nodes in a cluster keep a copy of the
 latest cluster state. However, only a single node in the cluster -- the
-*master node* -- is allowed to change the state at runtime. This node is
-elected by all nodes in the cluster.
+*master node* -- is allowed to change the state at runtime.
 
 Settings, metadata, and routing
 ................................
@@ -138,48 +137,53 @@ the next update.
 Master Node Election
 --------------------
 
-The process of electing a node as the master node in a cluster is called Master
-Node Election. There must be only one master node per cluster at any single
-time. In a CrateDB cluster any node is eligible to be elected as a master node,
-although this could also be restricted to a subset of nodes if required. These
-nodes will then elect a single node as master to coordinate the cluster state
-across the cluster.
+In a CrateDB cluster there can only be one master node at any single time.
+The cluster only becomes available to serve requests once a master has been 
+elected, and a new election takes place if the current master node becomes 
+unavailable.
+By default all nodes are master-eligible, but 
+:ref:`a node setting <node.master>`
+is available to indicate, if desired, that a node must not take on the role
+of master. To elect a master among the eligible nodes, a majority 
+(``floor(half)+1``), also known as *quorum*, is required among a subset of 
+all master-eligible nodes, this subset of nodes is known as the
+*voting configuration*.
+The *voting configuration* is a list which is persisted as part of the cluster
+state. It is maintained automatically in a way that makes so that split-brain
+scenarios are never possible.
+Every time a node joins the cluster, or leaves the cluster, even if it is 
+for a few seconds, CrateDB re-evaluates the voting configuration.
+If the new number of master-eligible nodes in the cluster is odd, CrateDB will
+put them all in the voting configuration.
+If the number is even, CrateDB will exclude one of the master-eligible nodes
+from the voting configuration.
+The voting configuration is not shrunk below 3 nodes, meaning that if there
+were 3 nodes in the voting configuration and one of them becomes unavailable,
+they all stay in the voting configuration and a quorum of 2 nodes is still 
+required.
+A master node rescinds its role if it cannot contact a quorum of nodes from
+the latest voting configuration.
 
+.. WARNING::
+
+   If you do infrastructure maintenance, please note that as nodes are shutdown 
+   or rebooted, they will temporarily leave the voting configuration, and for
+   the cluster to elect a master a quorum is required among the
+   nodes that were last in the voting configuration. For instance, if you
+   have a 5-nodes cluster, with all nodes master-eligible, and node 1 is 
+   currently the master, and you shutdown node 5, then node 4, then node 3, 
+   the cluster will stay available as the voting configuration will have 
+   adapted to only have nodes 1, 2, and 3 on it.
+   If you then shutdown one more node the cluster will become unavailable as
+   a quorum of 2 nodes is now required and not available.
+   To bring the cluster back online at this point you will require two nodes 
+   among 1, 2, and 3. Bringing back nodes 3, 4, and 5, will not be sufficient.
+  
 .. NOTE::
 
-   The following only applies to CrateDB versions 3.x and below. CrateDB
-   versions 4.x and above `determine quorum size automatically
-   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
-
-A minimum number of nodes (referred as a *quorum*) needs to configured (using the
-`discovery.zen.minimum_master_nodes`_ setting) to ensure that in case of a
-network partition (when some nodes become unavailable) the cluster
-can elect a master node.
-
-If the quorum is smaller than half the expected nodes in the cluster, and the
-cluster is split in half by a network partition, neither partition will be able to
-elect a new master node.
-
-If the quorum is exactly half the expected nodes in the cluster, and the
-cluster is split in half, both sides of the partition will be able to elect a
-master node. This is known as a `split-brain` scenario, and can lead to data
-loss because the master nodes may disagree with each other when the full
-cluster is restored.
-
-To avoid both of these problems, the quorum must be greater than half the
-expected nodes in the cluster:
-
-  .. code-block:: mathematica
-
-    q = FLOOR(n / 2) + 1
-
-It also helps if your cluster has an odd nodes. That way, no matter how the
-cluster gets split, one side of the split will be able to elect a master node.
-
-For example: a five node cluster should have a quorum set at three. The largest
-network partition would split the cluster into three nodes and two nodes. In
-this scenario, the three node cluster would elect a master node and the two
-node cluster would not.
+   Special `settings and considerations 
+   <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
+   applied prior to CrateDB version 4.0.0.
 
 .. _concept-discovery:
 
@@ -319,5 +323,4 @@ will taken out of the load balancing.
 .. _abstract syntax tree: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 .. _POJOs: https://en.wikipedia.org/wiki/Plain_Old_Java_Object
 .. _full mesh: https://en.wikipedia.org/wiki/Network_topology#Mesh
-.. _discovery.zen.minimum_master_nodes: https://crate.io/docs/crate/reference/en/3.3/config/cluster.html#discovery-zen-minimum-master-nodes
 .. _split-brain: https://en.wikipedia.org/wiki/Split-brain_(computing)
