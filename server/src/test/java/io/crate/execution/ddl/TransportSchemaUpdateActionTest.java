@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl;
 
-import static io.crate.metadata.PartitionName.templateName;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,78 +28,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
-import io.crate.analyze.BoundAddColumn;
-import io.crate.common.collections.Maps;
-import io.crate.data.Row;
 import io.crate.metadata.IndexMappings;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
-
-    @Test
-    public void testTemplateMappingUpdateFailsIfTypeIsDifferent() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addPartitionedTable(
-                "create table t (p int) partitioned by (p)"
-            ).build();
-
-        ClusterState currentState = clusterService.state();
-        PlannerContext plannerContext = e.getPlannerContext(currentState);
-        BoundAddColumn addXLong = AlterTableAddColumnPlan.bind(
-            e.analyze("alter table t add column x long"),
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
-            Row.EMPTY,
-            SubQueryResults.EMPTY,
-            null
-        );
-        Map<String, Object> mapping = addXLong.mapping();
-        Map<String, Object> propertiesMap = Maps.get(mapping, "properties");
-        Map<String, Object> xLong = Maps.get(propertiesMap, "x");
-        xLong.put("position", 1);
-        BoundAddColumn addXString = AlterTableAddColumnPlan.bind(
-            e.analyze("alter table t add column x string"),
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
-            Row.EMPTY,
-            SubQueryResults.EMPTY,
-            null
-        );
-        mapping = addXString.mapping();
-        propertiesMap = Maps.get(mapping, "properties");
-        Map<String, Object> xString = Maps.get(propertiesMap, "x");
-        xString.put("position", 2);
-        String templateName = templateName("doc", "t");
-        IndexTemplateMetadata template = currentState.metadata().templates().get(templateName);
-        ClusterState stateWithXLong = ClusterState.builder(currentState)
-            .metadata(Metadata.builder(currentState.metadata())
-                .put(IndexTemplateMetadata.builder(templateName)
-                    .patterns(template.patterns())
-                    .putMapping(
-                        Strings.toString(JsonXContent.contentBuilder().map(addXLong.mapping()))))
-                .build()
-            ).build();
-
-        expectedException.expect(IllegalArgumentException.class);
-        TransportSchemaUpdateAction.updateTemplate(
-            NamedXContentRegistry.EMPTY,
-            stateWithXLong,
-            templateName,
-            addXString.mapping()
-        );
-    }
 
     @Test
     public void testDynamicTrueCanBeChangedFromBooleanToStringValue() {

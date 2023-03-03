@@ -395,12 +395,12 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         assertThat(execute("explain " + stmt)).hasRows(
             "HashAggregate[count(*)]",
             "  └ Filter[EXISTS (SELECT 1 FROM (doc.b))]",
-            "    └ CorrelatedJoin[f1, f2, f3, (SELECT 1 FROM (doc.b))]",
-            "      └ Collect[doc.a | [f1, f2, f3] | (f3 = ANY(['a', 'b', 'c']))]",
+            "    └ CorrelatedJoin[f1, f2, (SELECT 1 FROM (doc.b))]",
+            "      └ Collect[doc.a | [f1, f2] | (f3 = ANY(['a', 'b', 'c']))]",
             "      └ SubPlan",
             "        └ Eval[1]",
             "          └ Limit[1;0]",
-            "            └ Collect[doc.b | [1, f1, f2, f3, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
+            "            └ Collect[doc.b | [1, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
         );
         assertThat(execute(stmt)).hasRows(
             "1"
