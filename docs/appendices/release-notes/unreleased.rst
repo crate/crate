@@ -81,9 +81,13 @@ Fixes
   ANY(<array-literal>)`` to match on partitions where the column didn't exist or
   on records where ``<column>`` had a ``null`` value.
 
+- Fixed an issue that allowed users to execute
+  :ref:`user-defined functions <user-defined-functions>` without ``DQL``
+  privileges on the schemas that the functions are defined in.
+
 - Fixed an issue that translated ``ColumnUnknownException`` to a misleading
-  ``SchemaUnknownException`` when users without ``DQL`` on ``doc`` schema
-  queried unknown columns from :ref:`table functions <table-functions>`.
+  ``SchemaUnknownException`` when users without ``DQL`` privilege on ``doc``
+  schema queried unknown columns from :ref:`table functions <table-functions>`.
   An example ::
 
     SELECT unknown_col FROM abs(1);
