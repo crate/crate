@@ -49,7 +49,7 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
         udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeContext), nodeContext);
     }
 
-    static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
+    public static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override
         public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
                                                    Signature signature,
