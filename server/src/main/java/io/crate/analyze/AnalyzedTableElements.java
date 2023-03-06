@@ -541,7 +541,7 @@ public class AnalyzedTableElements<T> {
         for (Object additionalPrimaryKey : elements.additionalPrimaryKeys) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey.toString());
             if (!elements.columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+                throw new ColumnUnknownException(columnIdent, relationName);
             }
         }
         // will collect both column constraint and additional defined once and check for duplicates
@@ -552,7 +552,7 @@ public class AnalyzedTableElements<T> {
         for (Map.Entry<Object, Set<String>> entry : tableElements.copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey().toString());
             if (!tableElements.columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+                throw new ColumnUnknownException(columnIdent, relationName);
             }
             if (!DataTypes.STRING.equals(tableElements.columnTypes.get(columnIdent))) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -630,7 +630,7 @@ public class AnalyzedTableElements<T> {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), relationName);
+            throw new ColumnUnknownException(partitionedByIdent, relationName);
         }
         DataType<?> columnType = columnDefinition.dataType();
         if (!DataTypes.isPrimitive(columnType)) {

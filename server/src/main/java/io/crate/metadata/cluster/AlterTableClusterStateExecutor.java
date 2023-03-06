@@ -21,12 +21,12 @@
 
 package io.crate.metadata.cluster;
 
+import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,21 +42,19 @@ import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
@@ -64,7 +62,6 @@ import org.elasticsearch.indices.ShardLimitValidator;
 
 import io.crate.analyze.TableParameters;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -108,7 +105,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         if (request.isPartitioned()) {
             if (request.partitionIndexName() != null) {
                 assert request.mappingDelta() == null
-                    : "Cannot add column to a single partition. Template and index mappings must stay in sync";
+                    : "Cannot SET column policy to a single partition.";
                 Index[] concreteIndices = resolveIndices(currentState, request.partitionIndexName());
                 currentState = updateSettings(currentState, request.settings(), concreteIndices);
             } else {
@@ -117,7 +114,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     currentState,
                     request.tableIdent(),
                     request.settings(),
-                    request.mappingDeltaAsMap(),
+                    request.mappingDeltaAsMap(), // In case of SET COLUMN column_policy delta in request will be not null and will contain a new policy.
                     (name, settings) -> validateSettings(name,
                                                          settings,
                                                          indexScopedSettings,
@@ -138,12 +135,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     supportedSettings.add(AutoExpandReplicas.SETTING);
 
                     currentState = updateSettings(currentState, filterSettings(request.settings(), supportedSettings), concreteIndices);
-                    currentState = updateMapping(currentState, request, concreteIndices);
+                    currentState = updateMapping(currentState, concreteIndices, request.mappingDeltaAsMap());
                 }
             }
         } else {
             Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
-            currentState = updateMapping(currentState, request, concreteIndices);
+            currentState = updateMapping(currentState, concreteIndices, request.mappingDeltaAsMap());
             currentState = updateSettings(currentState, request.settings(), concreteIndices);
         }
 
@@ -153,148 +150,43 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         return currentState;
     }
 
+    /**
+     * @param mappingDelta is dynamic policy setting which for now is the only mapping change allowed by ALTER TABLE SET
+     */
+    private ClusterState updateMapping(ClusterState currentState,
+                                       Index[] concreteIndices,
+                                       Map<String, Object> mappingDelta) throws IOException {
 
-    private ClusterState updateMapping(ClusterState currentState, AlterTableRequest request, Index[] concreteIndices) throws Exception {
-        if (request.mappingDelta() == null) {
+        if (mappingDelta.isEmpty()) {
             return currentState;
         }
-        Map<Index, MapperService> indexMapperServices = new HashMap<>();
-        Map<String, Object> currentMeta = new HashMap<>();
+
+        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-            Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-            Map<String, Object> meta = (Map<String, Object>) sourceAsMap.get("_meta");
-            if (meta != null) {
-                Maps.extendRecursive(currentMeta, meta);
+
+            Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
+            if (indexMapping.get(ES_MAPPING_NAME).equals(mappingDelta.get(ES_MAPPING_NAME))) {
+                return currentState;
             }
-            if (indexMapperServices.containsKey(indexMetadata.getIndex()) == false) {
-                MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-                indexMapperServices.put(index, mapperService);
-                // add mappings for all types, we need them for cross-type validation
-                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
-            }
+            indexMapping.put(ES_MAPPING_NAME, mappingDelta.get(ES_MAPPING_NAME));
+
+
+            MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
+
+            mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
+            DocumentMapper mapper = mapperService.documentMapper();
+
+            IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
+            imBuilder.putMapping(new MappingMetadata(mapper.mappingSource())).mappingVersion(1 + imBuilder.mappingVersion());
+            metadataBuilder.put(imBuilder); // implicitly increments metadata version.
         }
-        String mappingDelta = addExistingMeta(request, currentMeta);
-        return metadataMappingService.putMappingExecutor.applyMapping(
-            currentState,
-            mappingDelta,
-            concreteIndices,
-            indexMapperServices
-        );
+
+        return ClusterState.builder(currentState).metadata(metadataBuilder).build();
     }
 
-    @SuppressWarnings("unchecked")
-    @VisibleForTesting
-    static String addExistingMeta(AlterTableRequest request, Map<String, Object> currentMeta) throws IOException {
-        // The putMappingExtractor doesn't contain logic to merge _meta
-        // and we need to preserve existing information.
-        //
-        // _meta format:
-        //   {
-        //       primary_keys: [],
-        //       partitioned_by: []     -- items are a tuple of (column_name, type_name)
-        //       constraints: {
-        //           not_null : [],
-        //       },
-        //       indices: {
-        //          <index_name>: <options>
-        //      }
-        //       check_constraints: {
-        //           <constraint_name>: <expression>
-        //       }
-        //   }
-        //
-        //   - partitioned_by cannot be changed
-        //
-        //   - primary_keys are always additive
-        //      - If present in delta, ALL keys are present (We should change this to gain atomicity)
-        //
-        //   - not_null constraints are always additive
-        //      - If present in delta, NEW columns are present
-        //
-        //   - indices can only be added
-        //      - If present in delta, NEW indices are present
-        //
-        //   - check_constraints can be added OR removed
-        //      If removed, delta contains *ALL* but the one to remove
-        //      If added:
-        //          Empty if new column doesn't have a constraint
-        //          All constraints present if new column has a constraint
-        //          (We should change this to gain atomicity)
-        //
-        // Why is everything behaving differently? Because reasons 🤷
-        // This would be simpler if we distinguished between additions and deletions in the AlterTableRequest
-        Map<String, Object> mappingDeltaAsMap = request.mappingDeltaAsMap();
-        Map<String, Object> metaDelta = (Map<String, Object>) mappingDeltaAsMap.get("_meta");
-        if (metaDelta != null) {
-            var curPartitionedBy = currentMeta.get("partitioned_by");
-            if (curPartitionedBy != null) {
-                metaDelta.put("partitioned_by", curPartitionedBy);
-            }
-            var curPrimaryKeys = currentMeta.get("primary_keys");
-            if (curPrimaryKeys != null) {
-                metaDelta.putIfAbsent("primary_keys", curPrimaryKeys);
-            }
 
-            Map<String, Object> checkConstraints = (Map<String, Object>) metaDelta.get("check_constraints");
-            if (checkConstraints == null || checkConstraints.isEmpty()) {
-                var curCheckConstraints = currentMeta.get("check_constraints");
-                if (curCheckConstraints != null) {
-                    metaDelta.put("check_constraints", curCheckConstraints);
-                }
-            }
-
-            var curConstraints = currentMeta.get("constraints");
-            if (curConstraints != null) {
-                metaDelta.merge(
-                    "constraints",
-                    curConstraints,
-                    (delta, current) -> {
-                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
-                        return delta;
-                    }
-                );
-            }
-
-            var curIndices = currentMeta.get("indices");
-            if (curIndices != null) {
-                metaDelta.merge(
-                    "indices",
-                    curIndices,
-                    (delta, current) -> {
-                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
-                        return delta;
-                    }
-                );
-            }
-
-            var curGeneratedColumns = currentMeta.get("generated_columns");
-            if (curGeneratedColumns != null) {
-                metaDelta.merge(
-                    "generated_columns",
-                    curGeneratedColumns,
-                    (delta, current) -> {
-                        Maps.extendRecursive((Map<String, Object>) delta, (Map<String, Object>) current);
-                        return delta;
-                    }
-                );
-            }
-
-            if (metaDelta.containsKey("routing")) {
-                throw new IllegalArgumentException("Requested to change the routing column to " +
-                                                   metaDelta.get("routing") +
-                                                   ", but routing columns cannot be changed");
-            }
-            var curRouting = currentMeta.get("routing");
-            if (curRouting != null) {
-                metaDelta.put("routing", curRouting);
-            }
-        }
-        var builder = XContentFactory.contentBuilder(XContentType.JSON);
-        builder.map(mappingDeltaAsMap);
-        String mappingDelta = XContentHelper.convertToJson(BytesReference.bytes(builder), XContentType.JSON);
-        return mappingDelta;
-    }
 
     /**
      * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}

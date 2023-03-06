@@ -59,7 +59,7 @@ public class NameFieldProvider implements FieldProvider<Symbol> {
 
         Symbol field = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
         if (field == null) {
-            throw new ColumnUnknownException(columnIdent.sqlFqn(), relation.relationName());
+            throw new ColumnUnknownException(columnIdent, relation.relationName());
         }
         return field;
     }
