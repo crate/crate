@@ -366,7 +366,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("update t set qty = -1 where id = 0"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values");
+            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) for values: [0, -1]");
 
     }
 
