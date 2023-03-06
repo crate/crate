@@ -543,6 +543,9 @@ public class Indexer {
             Synthetic synthetic = entry.getValue();
             ValueIndexer<Object> indexer = synthetic.indexer();
             Object value = synthetic.input().value();
+            if (value == null) {
+                continue;
+            }
             xContentBuilder.field(column.leafName());
             indexer.indexValue(
                 value,

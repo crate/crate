@@ -793,4 +793,15 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
     }
+
+    @Test
+    public void test_leaves_out_generated_column_if_dependency_is_null() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int generated always as x + 1)")
+            .build();
+        Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
+        ParsedDocument doc = indexer.index(item(new Object[] { null }));
+        assertThat(doc.newColumns()).isEmpty();
+        assertThat(doc.source().utf8ToString()).isEqualTo("{}");
+    }
 }
