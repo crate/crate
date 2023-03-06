@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.metadata.Reference.OID_UNASSIGNED;
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
@@ -82,24 +83,29 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
 
+        request = addMissingParentColumns(request, currentTable);
+
+        long currentOID = currentState.metadata().columnOID();
         boolean allExist = true;
-        for (Reference ref : request.references()) {
-            Reference exists = currentTable.getReference(ref.column());
-            if (exists == null) {
+        for (int i = 0; i < request.references().size(); i++) {
+            Reference existingRef = currentTable.getReference(request.references().get(i).column());
+            var refWithOid = tryToAssignOid(existingRef, request.references().get(i), currentOID);
+            if (refWithOid != null) {
                 allExist = false;
-            } else if (ref.valueType().id() != exists.valueType().id()) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
-                    ref.column(),
-                    exists.valueType().getName(),
-                    ref.valueType().getName()));
+                request.references().set(i, refWithOid);
+                currentOID = refWithOid.oid(); // Reference which got last assigned OID has the actual value
+            } else {
+                request.references().set(i, existingRef);
             }
         }
+
         if (allExist) {
             return currentState;
         }
 
-        request = addMissingParentColumns(request, currentTable);
+        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+        metadataBuilder.columnOID(currentOID);
+
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(request.references());
         Map<String, Map<String, Object>> propertiesMap = buildMapping(null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
@@ -126,6 +132,42 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
         docTableInfoFactory.create(request.relationName(), currentState);
         return currentState;
+    }
+
+    /**
+     * @return Reference with assignedOID or null if reference already exists.
+     * Reference being added can already exist in case of concurrent dynamic mapping updates or
+     * when parent columns, added directly via normalizeColumns(), overlap with existing object's path.
+     * If we are adding o[a][b] to the table with existing column o[a][c], overlapping parts o, o[a] are already created and have their OIDs assigned.
+     */
+    @Nullable
+    private static Reference tryToAssignOid(@Nullable Reference existingRef, Reference newReference, long currentOID) {
+        if (existingRef == null) {
+            if (newReference.oid() == OID_UNASSIGNED) {
+                currentOID++;
+                return newReference.assignOid(currentOID);
+            } else {
+                // Normally must be impossible
+                throw new IllegalStateException(
+                    String.format(Locale.ENGLISH, "Non-existing reference %s already has OID %d", newReference.column(), newReference.oid())
+                );
+            }
+        } else {
+            if (newReference.valueType().id() != existingRef.valueType().id()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
+                    newReference.column(),
+                    existingRef.valueType().getName(),
+                    newReference.valueType().getName()));
+            }
+            // Normally must be impossible
+            if (existingRef.oid() == OID_UNASSIGNED) {
+                throw new IllegalStateException(
+                    String.format(Locale.ENGLISH, "Existing reference %s has no OID", existingRef.column().fqn())
+                );
+            }
+            return null;
+        }
     }
 
     static AddColumnRequest addMissingParentColumns(AddColumnRequest request, DocTableInfo currentTable) {

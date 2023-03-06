@@ -143,7 +143,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 3,
                 null
             );
-            List<Reference> columns = List.of(newColumn);
+            List<Reference> columns = new ArrayList<>();
+            columns.add(newColumn);
             var request = new AddColumnRequest(
                 tbl.ident(),
                 columns,
