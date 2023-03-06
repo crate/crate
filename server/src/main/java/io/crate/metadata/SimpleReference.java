@@ -52,16 +52,19 @@ public class SimpleReference implements Reference {
 
     protected DataType<?> type;
 
-    private final int position;
-    private final ReferenceIdent ident;
-    private final ColumnPolicy columnPolicy;
-    private final RowGranularity granularity;
-    private final IndexType indexType;
-    private final boolean nullable;
-    private final boolean hasDocValues;
+    protected final int position;
+
+    private final long oid;
+
+    protected final ReferenceIdent ident;
+    protected final ColumnPolicy columnPolicy;
+    protected final RowGranularity granularity;
+    protected final IndexType indexType;
+    protected final boolean nullable;
+    protected final boolean hasDocValues;
 
     @Nullable
-    private final Symbol defaultExpression;
+    protected final Symbol defaultExpression;
 
     public SimpleReference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
@@ -70,6 +73,11 @@ public class SimpleReference implements Reference {
             position = pos == null ? 0 : pos;
         } else {
             position = in.readVInt();
+        }
+        if (in.getVersion().onOrAfter(Version.V_5_3_0)) {
+            oid = in.readLong();
+        } else {
+            oid = OID_UNASSIGNED;
         }
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
@@ -111,7 +119,30 @@ public class SimpleReference implements Reference {
                            boolean hasDocValues,
                            int position,
                            @Nullable Symbol defaultExpression) {
+        this(ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            OID_UNASSIGNED,
+            defaultExpression);
+    }
+
+    public SimpleReference(ReferenceIdent ident,
+                           RowGranularity granularity,
+                           DataType<?> type,
+                           ColumnPolicy columnPolicy,
+                           IndexType indexType,
+                           boolean nullable,
+                           boolean hasDocValues,
+                           int position,
+                           long oid,
+                           @Nullable Symbol defaultExpression) {
         this.position = position;
+        this.oid = oid;
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
@@ -125,6 +156,7 @@ public class SimpleReference implements Reference {
     /**
      * Returns a cloned Reference with the given ident
      */
+    @Override
     public Reference getRelocated(ReferenceIdent newIdent) {
         return new SimpleReference(
             newIdent,
@@ -135,6 +167,26 @@ public class SimpleReference implements Reference {
             nullable,
             hasDocValues,
             position,
+            oid,
+            defaultExpression
+        );
+    }
+
+    /**
+     * Returns a cloned Reference with the given oid
+     */
+    @Override
+    public Reference assignOid(long newOid) {
+        return new SimpleReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            newOid,
             defaultExpression
         );
     }
@@ -199,6 +251,11 @@ public class SimpleReference implements Reference {
         return position;
     }
 
+
+    public long oid() {
+        return oid;
+    }
+
     @Nullable
     public Symbol defaultExpression() {
         return defaultExpression;
@@ -210,6 +267,7 @@ public class SimpleReference implements Reference {
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
+        mapping.put("oid", oid);
         if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
         }
@@ -257,6 +315,9 @@ public class SimpleReference implements Reference {
         if (indexType != reference.indexType) {
             return false;
         }
+        if (oid != reference.oid) {
+            return false;
+        }
         return Objects.equals(defaultExpression, reference.defaultExpression);
     }
 
@@ -270,6 +331,7 @@ public class SimpleReference implements Reference {
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
         result = 31 * result + (hasDocValues ? 1 : 0);
+        result = 31 * result + Long.hashCode(oid);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
     }
@@ -281,6 +343,9 @@ public class SimpleReference implements Reference {
             out.writeOptionalVInt(position);
         } else {
             out.writeVInt(position);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_3_0)) {
+            out.writeLong(oid);
         }
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);

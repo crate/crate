@@ -54,6 +54,8 @@ public interface Reference extends Symbol {
         return -1;
     }
 
+    long OID_UNASSIGNED = 0L;
+
     ReferenceIdent ident();
 
     ColumnIdent column();
@@ -68,12 +70,19 @@ public interface Reference extends Symbol {
 
     int position();
 
+    /**
+     * This is used as a column name in the source
+     */
+    long oid();
+
     boolean hasDocValues();
 
     @Nullable
     Symbol defaultExpression();
 
     Reference getRelocated(ReferenceIdent referenceIdent);
+
+    Reference assignOid(long newOid);
 
     /**
      * Creates the {@link IndexMetadata} mapping representation of the Column.

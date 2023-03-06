@@ -31,6 +31,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -40,6 +42,8 @@ import io.crate.types.DataTypes;
 
 
 public class IndexReference extends SimpleReference {
+
+
 
     public static class Builder {
         private final ReferenceIdent ident;
@@ -114,6 +118,33 @@ public class IndexReference extends SimpleReference {
         this.analyzer = analyzer;
     }
 
+    public IndexReference(ReferenceIdent ident,
+                          RowGranularity granularity,
+                          DataType<?> type,
+                          ColumnPolicy columnPolicy,
+                          IndexType indexType,
+                          boolean nullable,
+                          boolean hasDocValues,
+                          int position,
+                          long newOid,
+                          Symbol defaultExpression,
+                          List<Reference> columns,
+                          String analyzer) {
+        super(ident,
+              granularity,
+              type,
+              columnPolicy,
+              indexType,
+              nullable,
+              hasDocValues,
+              position,
+              newOid,
+              defaultExpression
+        );
+        this.columns = columns;
+        this.analyzer = analyzer;
+    }
+
     public List<Reference> columns() {
         return columns;
     }
@@ -126,6 +157,24 @@ public class IndexReference extends SimpleReference {
     @Override
     public SymbolType symbolType() {
         return SymbolType.INDEX_REFERENCE;
+    }
+
+    @Override
+    public Reference assignOid(long newOid) {
+        return new IndexReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            newOid,
+            defaultExpression,
+            columns,
+            analyzer
+        );
     }
 
     @Override

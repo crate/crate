@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.metadata.Reference.OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 import java.io.IOException;
@@ -206,6 +207,7 @@ public class DocIndexMetadata {
     }
 
     private void add(int position,
+                     long oid,
                      ColumnIdent column,
                      DataType<?> type,
                      @Nullable String defaultExpression,
@@ -219,7 +221,7 @@ public class DocIndexMetadata {
         if (partitionByColumn) {
             indexType = IndexType.PLAIN;
         }
-        Reference simpleRef = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, nullable, hasDocValues);
+        Reference simpleRef = newInfo(position, oid, column, type, defaultExpression, columnPolicy, indexType, nullable, hasDocValues);
         if (generatedExpression == null) {
             ref = simpleRef;
         } else {
@@ -236,6 +238,7 @@ public class DocIndexMetadata {
     }
 
     private void addGeoReference(Integer position,
+                                 long oid,
                                  ColumnIdent column,
                                  @Nullable String tree,
                                  @Nullable String precision,
@@ -245,6 +248,7 @@ public class DocIndexMetadata {
                                  DataType<?> type) {
         Reference info = new GeoReference(
             position,
+            oid,
             refIdent(column),
             nullable,
             type,
@@ -279,6 +283,7 @@ public class DocIndexMetadata {
     }
 
     private Reference newInfo(Integer position,
+                              long oid,
                               ColumnIdent column,
                               DataType<?> type,
                               @Nullable String formattedDefaultExpression,
@@ -302,6 +307,7 @@ public class DocIndexMetadata {
             nullable,
             hasDocValues,
             position,
+            oid,
             defaultExpression
         );
     }
@@ -469,6 +475,11 @@ public class DocIndexMetadata {
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
             DataType<?> elementType = ArrayType.unnest(columnDataType);
+
+            // Just columnProperties.getOrDefault doesn't work here for OID values fitting into int,
+            // since we are dealing with deserialized map, no type info here
+            long oid = Long.valueOf(columnProperties.getOrDefault("oid", OID_UNASSIGNED).toString());
+
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
                 String precision = (String) columnProperties.get("precision");
@@ -476,6 +487,7 @@ public class DocIndexMetadata {
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
                 addGeoReference(
                     position,
+                    oid,
                     newIdent,
                     geoTree,
                     precision,
@@ -488,7 +500,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
+                add(position, oid, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -504,6 +516,7 @@ public class DocIndexMetadata {
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
                         builder.addColumn(newInfo(
                             position,
+                            oid,
                             newIdent,
                             columnDataType,
                             defaultExpression,
@@ -520,7 +533,7 @@ public class DocIndexMetadata {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
+                    add(position, oid, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
         }

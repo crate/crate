@@ -27,6 +27,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.expression.symbol.Symbol;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
@@ -66,8 +67,56 @@ public class GeoReference extends SimpleReference {
                         @Nullable String precision,
                         @Nullable Integer treeLevels,
                         @Nullable Double distanceErrorPct) {
-        super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
+        super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, OID_UNASSIGNED, null);
         this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
+        this.precision = precision;
+        this.treeLevels = treeLevels;
+        this.distanceErrorPct = distanceErrorPct;
+    }
+
+    public GeoReference(int position,
+                        long oid,
+                        ReferenceIdent ident,
+                        boolean nullable,
+                        DataType<?> type,
+                        @Nullable String tree,
+                        @Nullable String precision,
+                        @Nullable Integer treeLevels,
+                        @Nullable Double distanceErrorPct) {
+        super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, oid, null);
+        this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
+        this.precision = precision;
+        this.treeLevels = treeLevels;
+        this.distanceErrorPct = distanceErrorPct;
+    }
+
+
+    public GeoReference(ReferenceIdent ident,
+                          RowGranularity granularity,
+                          DataType<?> type,
+                          ColumnPolicy columnPolicy,
+                          IndexType indexType,
+                          boolean nullable,
+                          boolean hasDocValues,
+                          int position,
+                          long newOid,
+                          Symbol defaultExpression,
+                          String geoTree,
+                          String precision,
+                          Integer treeLevels,
+                          Double distanceErrorPct) {
+        super(ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            newOid,
+            defaultExpression
+        );
+        this.geoTree = geoTree;
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
@@ -126,6 +175,26 @@ public class GeoReference extends SimpleReference {
         precision = in.readOptionalString();
         treeLevels = in.readBoolean() ? null : in.readVInt();
         distanceErrorPct = in.readBoolean() ? null : in.readDouble();
+    }
+
+    @Override
+    public Reference assignOid(long newOid) {
+        return new GeoReference(
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            newOid,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
     }
 
     @Override

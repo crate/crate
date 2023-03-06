@@ -207,6 +207,11 @@ public class GeneratedReference implements Reference {
         return ref.position();
     }
 
+    @Override
+    public long oid() {
+        return ref.oid();
+    }
+
     public boolean hasDocValues() {
         return ref.hasDocValues();
     }
@@ -239,6 +244,15 @@ public class GeneratedReference implements Reference {
     public Reference getRelocated(ReferenceIdent referenceIdent) {
         return new GeneratedReference(
             ref.getRelocated(referenceIdent),
+            formattedGeneratedExpression,
+            generatedExpression
+        );
+    }
+
+    @Override
+    public Reference assignOid(long newOid) {
+        return new GeneratedReference(
+            ref.assignOid(newOid),
             formattedGeneratedExpression,
             generatedExpression
         );
