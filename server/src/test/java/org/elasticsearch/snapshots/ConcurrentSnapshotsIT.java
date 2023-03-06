@@ -22,7 +22,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -884,13 +883,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final String repoName = "test-repo";
         createRepo(repoName, "mock");
         createTableWithRecord("tbl1");
-        String[] snapshotNames = createNSnapshots(repoName, randomIntBetween(1, 5));
+        createNSnapshots(repoName, randomIntBetween(1, 5));
 
         blockMasterFromDeletingIndexNFile(repoName);
         final int deletes = randomIntBetween(2, 10);
         final List<CompletableFuture<AcknowledgedResponse>> deleteResponses = new ArrayList<>(deletes);
         for (int i = 0; i < deletes; ++i) {
-            deleteResponses.add(startDelete(repoName, snapshotNames));
+            deleteResponses.add(startDelete(repoName, "*"));
         }
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
         awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
