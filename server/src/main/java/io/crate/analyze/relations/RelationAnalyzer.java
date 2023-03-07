@@ -74,7 +74,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -312,7 +311,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
 
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
+        relationContext.addJoinType(node.getType(), joinCondition);
         return null;
     }
 

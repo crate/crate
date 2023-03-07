@@ -34,7 +34,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 public class RelationAnalysisContext {
 

@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 import javax.annotation.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 public interface JoinPlan extends LogicalPlan {
 

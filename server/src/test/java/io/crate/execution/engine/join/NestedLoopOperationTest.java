@@ -34,7 +34,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;
 import io.crate.data.join.CrossJoinNLBatchIterator;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 public class NestedLoopOperationTest {
 
