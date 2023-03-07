@@ -24,7 +24,7 @@ package io.crate.execution.dsl.phases;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;

@@ -46,7 +46,7 @@ import io.crate.data.join.FullOuterJoinNLBatchIterator;
 import io.crate.data.join.LeftJoinNLBatchIterator;
 import io.crate.data.join.RightJoinNLBatchIterator;
 import io.crate.data.join.SemiJoinNLBatchIterator;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataType;
 
 

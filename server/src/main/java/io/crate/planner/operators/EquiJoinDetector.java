@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 /**
  * Helper to detect if a join is an Equi join and could be executed with a hash join algorithm.

@@ -58,7 +58,7 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

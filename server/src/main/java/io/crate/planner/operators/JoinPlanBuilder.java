@@ -51,7 +51,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 /**
  * A logical plan builder for `Join` operations. It will also evaluate which `Join` operator to use and build the

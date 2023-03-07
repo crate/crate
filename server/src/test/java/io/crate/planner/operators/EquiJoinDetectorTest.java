@@ -28,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
