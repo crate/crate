@@ -27,13 +27,14 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -62,11 +63,14 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();
-        addField.accept(new DoublePoint(name, doubleValue));
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(
+            addField.accept(new DoubleField(name, doubleValue));
+        } else {
+            addField.accept(new DoublePoint(name, doubleValue));
+            addField.accept(new Field(
+                FieldNamesFieldMapper.NAME,
                 name,
-                NumericUtils.doubleToSortableLong(doubleValue)));
+                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
         }
         if (fieldType.stored()) {
             addField.accept(new StoredField(name, doubleValue));

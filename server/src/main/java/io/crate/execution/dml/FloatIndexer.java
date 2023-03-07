@@ -25,13 +25,14 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
@@ -59,11 +60,14 @@ public class FloatIndexer implements ValueIndexer<Float> {
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         float floatValue = value.floatValue();
-        addField.accept(new FloatPoint(name, floatValue));
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(
+            addField.accept(new FloatField(name, floatValue));
+        } else {
+            addField.accept(new FloatPoint(name, floatValue));
+            addField.accept(new Field(
+                FieldNamesFieldMapper.NAME,
                 name,
-                NumericUtils.floatToSortableInt(floatValue)));
+                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
         }
         if (fieldType.stored()) {
             addField.accept(new StoredField(name, floatValue));
