@@ -1248,10 +1248,13 @@ public class InternalEngine extends Engine {
         versionMap.enforceSafeAccess();
         assert Objects.equals(delete.uid().field(), IdFieldMapper.NAME) : delete.uid().field();
         assert assertIncomingSequenceNumber(delete.origin(), delete.seqNo());
+        final boolean doThrottle = delete.origin().isRecovery() == false;
         final DeleteResult deleteResult;
-        // NOTE: we don't throttle this when merges fall behind because delete-by-id does not create new segments:
         try (ReleasableLock ignored = readLock.acquire(); Releasable ignored2 = versionMap.acquireLock(delete.uid().bytes())) {
             ensureOpen();
+            if (doThrottle) {
+                throttle.acquireThrottle();
+            }
             lastWriteNanos = delete.startTime();
             final DeletionStrategy plan = deletionStrategyForOperation(delete);
 
