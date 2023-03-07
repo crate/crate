@@ -133,7 +133,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                            IndexShard indexShard,
                                            boolean isRetry,
                                            @Nullable ReturnValueGen returnGen,
-                                           @Nullable InsertSourceGen insertSourceGen) throws Exception {
+                                           @Nullable InsertSourceGen insertSourceGen,
+                                           long version) throws Exception {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
