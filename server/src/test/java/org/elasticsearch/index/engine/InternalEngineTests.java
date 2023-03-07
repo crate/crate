@@ -6249,6 +6249,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
     }
 
+    @Test
     public void testIndexThrottling() throws Exception {
         final Engine.Index indexWithThrottlingCheck = spy(indexForDoc(createParsedDoc("1", randomBoolean())));
         final Engine.Index indexWithoutThrottlingCheck = spy(indexForDoc(createParsedDoc("2", randomBoolean())));
@@ -6274,6 +6275,22 @@ public class InternalEngineTests extends EngineTestCase {
         engine.index(indexWithoutThrottlingCheck);
         verify(indexWithThrottlingCheck, atLeastOnce()).startTime();
         verify(indexWithoutThrottlingCheck, atLeastOnce()).startTime();
+    }
+
+    @Test
+    public void test_deletes_are_throttled() throws Exception {
+        Engine.Delete delete = spy(new Engine.Delete("1", newUid("1"), 1));
+        doAnswer(invocation -> {
+            try {
+                assertTrue(engine.throttleLockIsHeldByCurrentThread());
+                return invocation.callRealMethod();
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        }).when(delete).startTime();
+        engine.activateThrottling();
+        engine.delete(delete);
+        engine.deactivateThrottling();
     }
 
     @Test
