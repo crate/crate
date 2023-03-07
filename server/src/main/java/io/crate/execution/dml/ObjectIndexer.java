@@ -79,7 +79,11 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             DataType<?> value = entry.getValue();
             ColumnIdent child = column.getChild(innerName);
             Reference childRef = getRef.apply(child);
-            if (childRef.granularity() != RowGranularity.PARTITION) {
+            if (childRef == null) {
+                // Race, either column got deleted or stale DocTableInfo?
+                // Treat it as dynamic column if a value for the nested column is found
+                innerTypes.remove(innerName);
+            } else if (childRef.granularity() != RowGranularity.PARTITION) {
                 ValueIndexer<?> valueIndexer = value.valueIndexer(
                     table,
                     childRef,
