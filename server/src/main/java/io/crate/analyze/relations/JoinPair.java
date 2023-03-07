@@ -23,7 +23,7 @@ package io.crate.analyze.relations;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 import javax.annotation.Nullable;
 import java.util.Objects;

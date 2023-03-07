@@ -90,6 +90,7 @@ import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NaturalJoin;
@@ -916,7 +917,7 @@ public final class SqlFormatter {
                 builder.append(" ON (")
                     .append(formatStandaloneExpression(on.getExpression(), parameters))
                     .append(")");
-            } else if (node.getType() != Join.Type.CROSS && !(criteria instanceof NaturalJoin)) {
+            } else if (node.getType() != JoinType.CROSS && !(criteria instanceof NaturalJoin)) {
                 throw new UnsupportedOperationException("unknown join criteria: " + criteria);
             }
 

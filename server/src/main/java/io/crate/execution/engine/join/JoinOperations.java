@@ -33,7 +33,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
