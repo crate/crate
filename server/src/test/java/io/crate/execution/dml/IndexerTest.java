@@ -35,8 +35,7 @@ import java.util.stream.Stream;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.FloatPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.FloatField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -109,7 +108,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> value = Map.of("x", 10, "y", 20);
         ParsedDocument parsedDoc = indexer.index(item(value));
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(10);
+            .hasSize(8);
 
         assertThat(parsedDoc.newColumns())
             .hasSize(1);
@@ -144,7 +143,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20, "z", 30));
         ParsedDocument parsedDoc = indexer.index(item(value));
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(12);
+            .hasSize(9);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
@@ -209,7 +208,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(14);
+            .hasSize(10);
     }
 
     @Test
@@ -251,7 +250,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"x\":10,\"y\":0}"
         );
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(10);
+            .hasSize(8);
     }
 
     @Test
@@ -557,7 +556,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_indexing_float_results_in_float_point() throws Exception {
+    public void test_indexing_float_results_in_float_field() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x float)")
             .build();
@@ -566,9 +565,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(42.2f));
         IndexableField[] fields = doc.doc().getFields("x");
         assertThat(fields).satisfiesExactly(
-            x -> assertThat(x).isExactlyInstanceOf(FloatPoint.class),
             x -> assertThat(x)
-                .isExactlyInstanceOf(SortedNumericDocValuesField.class)
+                .isExactlyInstanceOf(FloatField.class)
                 .extracting("fieldsData")
                 .isEqualTo((long) NumericUtils.floatToSortableInt(42.2f))
         );
