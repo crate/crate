@@ -129,7 +129,7 @@ public class TableParameters {
     /**
      * Settings which are not included in table default settings
      */
-    static final Set<Setting> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
+    static final Set<Setting<?>> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
         IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
         IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,

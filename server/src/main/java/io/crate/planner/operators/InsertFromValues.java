@@ -526,6 +526,7 @@ public class InsertFromValues implements LogicalPlan {
         validator.accept(indexItem);
     }
 
+    @SuppressWarnings("unchecked")
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,
                                                             List<Symbol> arguments,
                                                             List<Reference> allTargetReferences,
@@ -543,7 +544,6 @@ public class InsertFromValues implements LogicalPlan {
         for (int i = 0; i < arguments.size(); i++) {
             boundArguments.add(eval.apply(arguments.get(i)));
         }
-        //noinspection unchecked
         Iterable<Row> rows = funcImplementation.evaluate(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),

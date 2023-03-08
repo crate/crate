@@ -21,12 +21,12 @@
 
 package io.crate.breaker;
 
+import java.util.Collection;
+import java.util.List;
+
 import io.crate.data.Row;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
-
-import java.util.Collection;
-import java.util.List;
 
 public class RowAccountingWithEstimators implements RowAccounting<Row> {
 
@@ -37,7 +37,7 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
     /**
      * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccounting, int)}
      */
-    public RowAccountingWithEstimators(List<? extends DataType> columnTypes, RamAccounting ramAccounting) {
+    public RowAccountingWithEstimators(List<? extends DataType<?>> columnTypes, RamAccounting ramAccounting) {
         this.estimateRowSize = new EstimateRowSize(columnTypes);
         this.ramAccounting = ramAccounting;
     }
@@ -48,7 +48,7 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
      * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
      *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
-    public RowAccountingWithEstimators(List<? extends DataType> columnTypes,
+    public RowAccountingWithEstimators(List<? extends DataType<?>> columnTypes,
                                        RamAccounting ramAccounting,
                                        int extraSizePerRow) {
         this(columnTypes, ramAccounting);

@@ -21,6 +21,14 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.NodeContext;
@@ -31,14 +39,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class ValuesFunction {
 
@@ -88,12 +88,14 @@ public class ValuesFunction {
         }
 
         @Override
+        @SafeVarargs
         public final Iterable<Row> evaluate(TransactionContext txnCtx,
                                             NodeContext nodeCtx,
-                                            Input<List<Object>>[] arguments) {
+                                            Input<List<Object>> ... arguments) {
             return new ColumnOrientedRowsIterator(() -> iteratorsFrom(arguments));
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         private Iterator<Object>[] iteratorsFrom(Input<List<Object>>[] arguments) {
             Iterator[] iterators = new Iterator[arguments.length];
             for (int i = 0; i < arguments.length; i++) {

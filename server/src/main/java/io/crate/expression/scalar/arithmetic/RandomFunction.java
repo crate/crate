@@ -22,6 +22,10 @@
 package io.crate.expression.scalar.arithmetic;
 
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.util.Random;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -32,10 +36,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.Random;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class RandomFunction extends Scalar<Double, Void> {
 
@@ -80,7 +80,8 @@ public class RandomFunction extends Scalar<Double, Void> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Double evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void> ... args) {
         assert args.length == 0 : "number of args must be 0";
         return this.random.nextDouble();
     }
