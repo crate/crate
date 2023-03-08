@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine;
 
+import java.util.List;
+
+import org.elasticsearch.action.ActionListener;
+
+import io.crate.common.collections.Tuple;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.jobs.transport.JobResponse;
-import org.elasticsearch.action.ActionListener;
-import io.crate.common.collections.Tuple;
-
-import java.util.List;
 
 class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 

@@ -21,6 +21,11 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,11 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
@@ -58,7 +58,8 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
+    @SafeVarargs
+    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
         List<Object> argArray = args[0].value();
         if (argArray == null) {
             return null;

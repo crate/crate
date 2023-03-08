@@ -23,17 +23,17 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public final class CreateTableAs extends Statement {
+public final class CreateTableAs<T> extends Statement {
 
-    private final Table name;
+    private final Table<T> name;
     private final Query query;
 
-    public CreateTableAs(Table name, Query query) {
+    public CreateTableAs(Table<T> name, Query query) {
         this.name = name;
         this.query = query;
     }
 
-    public Table name() {
+    public Table<T> name() {
         return this.name;
     }
 
@@ -54,7 +54,7 @@ public final class CreateTableAs extends Statement {
         if (!(o instanceof CreateTableAs)) {
             return false;
         }
-        CreateTableAs that = (CreateTableAs) o;
+        CreateTableAs<?> that = (CreateTableAs<?>) o;
         return name.equals(that.name) &&
                query.equals(that.query);
     }

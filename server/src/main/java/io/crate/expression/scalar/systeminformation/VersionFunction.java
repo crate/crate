@@ -21,6 +21,11 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.Locale;
+
+import org.elasticsearch.Build;
+import org.elasticsearch.Version;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -31,10 +36,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Build;
-import org.elasticsearch.Version;
-
-import java.util.Locale;
 
 public class VersionFunction extends Scalar<String, Void> {
 
@@ -92,7 +93,8 @@ public class VersionFunction extends Scalar<String, Void> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void>... args) {
+    @SafeVarargs
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void>... args) {
         return VERSION;
     }
 

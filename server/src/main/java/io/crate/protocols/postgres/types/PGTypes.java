@@ -43,7 +43,7 @@ import io.crate.types.StringType;
 
 public class PGTypes {
 
-    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType>newLinkedHashMapBuilder()
+    private static final Map<DataType<?>, PGType<?>> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType<?>>newLinkedHashMapBuilder()
         .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.CHARACTER, CharacterType.INSTANCE)
@@ -96,10 +96,10 @@ public class PGTypes {
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
-    private static final Set<PGType> TYPES;
+    private static final Set<PGType<?>> TYPES;
 
     static {
-        for (Map.Entry<DataType<?>, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
+        for (Map.Entry<DataType<?>, PGType<?>> e : CRATE_TO_PG_TYPES.entrySet()) {
             int oid = e.getValue().oid();
             // crate string and ip types both map to pg varchar, avoid overwriting the mapping that is first established.
             if (!PG_TYPES_TO_CRATE_TYPE.containsKey(oid)) {
@@ -127,7 +127,7 @@ public class PGTypes {
         TYPES.add(PGArray.TEXT_ARRAY);
     }
 
-    public static Iterable<PGType> pgTypes() {
+    public static Iterable<PGType<?>> pgTypes() {
         return TYPES;
     }
 
@@ -136,7 +136,7 @@ public class PGTypes {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);
     }
 
-    public static PGType get(DataType<?> type) {
+    public static PGType<?> get(DataType<?> type) {
         switch (type.id()) {
             case ArrayType.ID: {
                 DataType<?> innerType = ((ArrayType<?>) type).innerType();
@@ -152,9 +152,9 @@ public class PGTypes {
                     return new PGArray(PGArray.EMPTY_RECORD_ARRAY.oid(), get(innerType));
                 }
 
-                PGType pgType = CRATE_TO_PG_TYPES.get(type);
+                PGType<?> pgType = CRATE_TO_PG_TYPES.get(type);
                 if (pgType == null) {
-                    PGType innerPGType = get(innerType);
+                    PGType<?> innerPGType = get(innerType);
                     if (innerPGType == null) {
                         throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
@@ -184,7 +184,7 @@ public class PGTypes {
                 return new BitType(((BitStringType) type).length());
 
             default: {
-                PGType pgType = CRATE_TO_PG_TYPES.get(type);
+                PGType<?> pgType = CRATE_TO_PG_TYPES.get(type);
                 if (pgType == null) {
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
@@ -192,6 +192,5 @@ public class PGTypes {
                 return pgType;
             }
         }
-
     }
 }

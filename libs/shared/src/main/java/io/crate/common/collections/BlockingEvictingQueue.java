@@ -22,9 +22,8 @@
 package io.crate.common.collections;
 
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
-public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> implements BlockingQueue<E> {
+public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> {
 
     public BlockingEvictingQueue(int capacity) {
         super(capacity);

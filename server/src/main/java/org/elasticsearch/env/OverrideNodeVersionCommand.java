@@ -19,17 +19,17 @@
 
 package org.elasticsearch.env;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Arrays;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Arrays;
+import joptsimple.OptionSet;
 
 public class OverrideNodeVersionCommand extends ElasticsearchNodeCommand {
     private static final String TOO_NEW_MESSAGE =
@@ -94,10 +94,5 @@ public class OverrideNodeVersionCommand extends ElasticsearchNodeCommand {
         PersistedClusterStateService.overrideVersion(Version.CURRENT, dataPaths);
 
         terminal.println(SUCCESS_MESSAGE);
-    }
-
-    //package-private for testing
-    protected OptionParser getParser() {
-        return parser;
     }
 }
