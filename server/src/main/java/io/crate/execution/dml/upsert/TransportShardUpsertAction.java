@@ -25,12 +25,8 @@ import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -88,7 +84,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -581,26 +576,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 "Requested version: " + version + " but got version: " + doc.getVersion());
         }
         return doc;
-    }
-
-    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
-                                                                        DocTableInfo tableInfo) {
-        Set<String> targetColumnsSet = new HashSet<>();
-        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
-
-        if (targetColumns != null) {
-            for (Reference targetColumn : targetColumns) {
-                targetColumnsSet.add(targetColumn.column().fqn());
-            }
-        }
-
-        for (var reference : tableInfo.columns()) {
-            if (!reference.isNullable() && !(reference instanceof GeneratedReference || reference.defaultExpression() != null)) {
-                if (!targetColumnsSet.contains(reference.column().fqn())) {
-                    columnsNotUsed.add(reference.column());
-                }
-            }
-        }
-        return columnsNotUsed;
     }
 }
