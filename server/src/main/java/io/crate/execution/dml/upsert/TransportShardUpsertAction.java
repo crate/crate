@@ -170,13 +170,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             insertColumns,
             request.returnValues()
         );
-        InsertSourceGen insertSourceGen = insertColumns != null && insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)
-            ? InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), insertColumns)
-            : null;
-
-        ReturnValueGen returnValueGen = request.returnValues() == null
-            ? null
-            : new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
+        InsertSourceGen insertSourceGen = null;
+        ReturnValueGen returnValueGen = null;
+        if (insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
+            insertSourceGen = InsertSourceGen.of(
+                txnCtx,
+                nodeCtx,
+                tableInfo,
+                indexName,
+                request.validation(),
+                insertColumns
+            );
+            if (request.returnValues() != null) {
+                returnValueGen = new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
+            }
+        }
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
