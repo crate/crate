@@ -29,8 +29,8 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -61,10 +61,10 @@ public class LongIndexer implements ValueIndexer<Long> {
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         long longValue = value.longValue();
-        addField.accept(new LongPoint(name, longValue));
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(name, longValue));
+            addField.accept(new LongField(name, longValue));
         } else {
+            addField.accept(new LongPoint(name, longValue));
             addField.accept(new Field(
                 FieldNamesFieldMapper.NAME,
                 name,

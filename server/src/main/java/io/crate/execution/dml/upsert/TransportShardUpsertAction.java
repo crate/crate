@@ -26,10 +26,8 @@ import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +78,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -149,33 +148,31 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        Reference[] insertColumns = request.insertColumns();
         var mapperService = indexShard.mapperService();
         Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-        Indexer indexer = insertColumns == null
+        UpdateToInsert updateToInsert = request.updateColumns() == null
             ? null
-            : new Indexer(
-                indexName,
-                tableInfo,
-                txnCtx,
-                nodeCtx,
-                getFieldType,
-                List.of(insertColumns),
-                request.returnValues()
-            );
-
-        InsertSourceGen insertSourceGen = insertColumns != null && insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW)
-            ? InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), Arrays.asList(insertColumns))
+            : new UpdateToInsert(nodeCtx, txnCtx, tableInfo, request.updateColumns());
+        List<Reference> insertColumns;
+        if (request.insertColumns() == null) {
+            insertColumns = updateToInsert.columns();
+            request.insertColumns(updateToInsert.columns());
+        } else {
+            insertColumns = List.of(request.insertColumns());
+        }
+        Indexer indexer = new Indexer(
+            indexName,
+            tableInfo,
+            txnCtx,
+            nodeCtx,
+            getFieldType,
+            insertColumns,
+            request.returnValues()
+        );
+        InsertSourceGen insertSourceGen = insertColumns != null && insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)
+            ? InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), insertColumns)
             : null;
-
-
-        UpdateSourceGen updateSourceGen = request.updateColumns() == null
-            ? null
-            : new UpdateSourceGen(txnCtx,
-                                  nodeCtx,
-                                  tableInfo,
-                                  request.updateColumns());
 
         ReturnValueGen returnValueGen = request.returnValues() == null
             ? null
@@ -197,7 +194,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     request,
                     item,
                     indexShard,
-                    updateSourceGen,
+                    updateToInsert,
                     insertSourceGen,
                     returnValueGen
                 );
@@ -296,20 +293,44 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
-                                        @Nullable UpdateSourceGen updateSourceGen,
+                                        @Nullable UpdateToInsert updateToInsert,
                                         @Nullable InsertSourceGen insertSourceGen,
                                         @Nullable ReturnValueGen returnValueGen) throws Exception {
         VersionConflictEngineException lastException = null;
-        boolean tryInsertFirst = item.insertValues() != null;
-        boolean isRetry;
+        Object[] insertValues = item.insertValues();
+        boolean tryInsertFirst = insertValues != null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                isRetry = retryCount > 0 || request.isRetry();
+                boolean isRetry = retryCount > 0 || request.isRetry();
+                long version;
                 if (tryInsertFirst) {
-                    return insert(indexer, request, item, indexShard, isRetry, returnValueGen, insertSourceGen);
+                    version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
+                        ? Versions.MATCH_ANY
+                        : Versions.MATCH_DELETED;
                 } else {
-                    return update(item, indexShard, isRetry, returnValueGen, updateSourceGen);
+                    Doc doc = getDocument(
+                        indexShard,
+                        item.id(),
+                        item.version(),
+                        item.seqNo(),
+                        item.primaryTerm());
+                    version = doc.getVersion();
+                    IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                    item.pkValues(indexItem.pkValues());
+                    item.insertValues(indexItem.insertValues());
+                    assert request.insertColumns().length == indexItem.insertValues().length
+                        : "insertColumns length must match insertValues length";
                 }
+                return insert(
+                    indexer,
+                    request,
+                    item,
+                    indexShard,
+                    isRetry,
+                    returnValueGen,
+                    insertSourceGen,
+                    version
+                );
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -359,14 +380,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        IndexShard indexShard,
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
-                                       InsertSourceGen insertSourceGen) throws Exception {
+                                       InsertSourceGen insertSourceGen,
+                                       long version) throws Exception {
         if (insertSourceGen instanceof RawInsertSource
                 || insertSourceGen instanceof ValidatedRawInsertSource) {
             return legacyInsert(request, item, indexShard, isRetry, returnGen, insertSourceGen);
         }
-        final long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
-            ? Versions.MATCH_ANY
-            : Versions.MATCH_DELETED;
 
         long startTime = System.nanoTime();
         ParsedDocument parsedDoc = indexer.index(item);
@@ -469,43 +488,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     -1,
                     indexShard.shardId().getIndexName(),
                     item.id(),
-                    indexResult.getVersion(),
-                    indexResult.getSeqNo(),
-                    indexResult.getTerm(),
-                    source,
-                    rawSource::utf8ToString
-                )
-            );
-        }
-        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
-    }
-
-    protected IndexItemResponse update(ShardUpsertRequest.Item item,
-                                       IndexShard indexShard,
-                                       boolean isRetry,
-                                       @Nullable ReturnValueGen returnGen,
-                                       UpdateSourceGen updateSourceGen) throws Exception {
-        assert updateSourceGen != null : "UpdateSourceGen must not be null";
-        Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-        LinkedHashMap<String, Object> source = updateSourceGen.generateSource(
-            fetchedDoc,
-            item.updateAssignments(),
-            item.insertValues()
-        );
-        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
-        item.source(rawSource);
-        long seqNo = item.seqNo();
-        long primaryTerm = item.primaryTerm();
-        long version = Versions.MATCH_ANY;
-
-        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
-        Object[] returnvalues = null;
-        if (returnGen != null) {
-            returnvalues = returnGen.generateReturnValues(
-                new Doc(
-                    fetchedDoc.docId(),
-                    fetchedDoc.getIndex(),
-                    fetchedDoc.getId(),
                     indexResult.getVersion(),
                     indexResult.getSeqNo(),
                     indexResult.getTerm(),

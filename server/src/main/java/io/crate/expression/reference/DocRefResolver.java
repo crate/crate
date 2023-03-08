@@ -94,7 +94,8 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                             var partitionValue = partitionName.values().get(idx);
                             var source = response.getSource();
                             Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
-                            return ref.valueType().sanitizeValue(ValueExtractors.fromMap(source, column));
+                            Object value = ValueExtractors.fromMap(source, column);
+                            return ref.valueType().implicitCast(value);
                         });
                     }
                 }
