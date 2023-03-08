@@ -25,11 +25,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.crate.testing.Asserts;
-import io.crate.testing.DataTypeTesting;
-import io.crate.testing.QueryTester;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import java.util.List;
 
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
@@ -37,8 +33,11 @@ import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.metadata.doc.DocSysColumns;
-
-import java.util.List;
+import io.crate.testing.Asserts;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.QueryTester;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class EqOperatorTest extends ScalarTestCase {
 
@@ -113,7 +112,7 @@ public class EqOperatorTest extends ScalarTestCase {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             // Universal values for all types, '=[]' should match 1 row for all types.
             // Also covers cases when we need to add extra generic filter to differentiate between null and empty array.
-            Object[] values = new Object[] {new Object[] {}, null};
+            Object[] values = new Object[] {List.of(), null};
 
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();

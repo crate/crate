@@ -1418,6 +1418,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     public void test_group_by_on_ignored_column() {
         execute("create table tbl (o object (ignored))");
         execute("insert into tbl (o) values ({x='foo'}), ({x=10})");
+        assertThat(response).hasRowCount(2);
         execute("refresh table tbl");
         execute("select o['x'], count(*) from tbl group by o['x']");
         assertThat(printedTable(response.rows())).satisfiesAnyOf(

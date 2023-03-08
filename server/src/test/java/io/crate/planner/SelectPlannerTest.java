@@ -78,7 +78,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;

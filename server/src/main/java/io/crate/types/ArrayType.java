@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +49,12 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
+import io.crate.execution.dml.ArrayIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -71,12 +77,33 @@ public class ArrayType<T> extends DataType<List<T>> {
     private final DataType<T> innerType;
     private Streamer<List<T>> streamer;
 
+    private final StorageSupport<? super T> storageSupport;
+
     /**
      * Construct a new Collection type
      * @param innerType The type of the elements inside the collection
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public ArrayType(DataType<T> innerType) {
         this.innerType = Objects.requireNonNull(innerType, "Inner type must not be null.");
+        StorageSupport innerStorage = innerType.storageSupport();
+        if (innerStorage == null) {
+            this.storageSupport = null;
+        } else {
+            this.storageSupport = new StorageSupport<T>(
+                    innerStorage.docValuesDefault(),
+                    innerStorage.hasFieldNamesIndex(),
+                    innerStorage.eqQuery()) {
+
+                @Override
+                public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
+                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<ColumnIdent, Reference> getRef) {
+                    return new ArrayIndexer<>(
+                        innerStorage.valueIndexer(table, ref, getFieldType, getRef));
+                }
+            };
+        }
     }
 
     public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
@@ -110,7 +137,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @SuppressWarnings("unchecked")
     public ArrayType(StreamInput in) throws IOException {
-        innerType = (DataType<T>) DataTypes.fromStream(in);
+        this((DataType<T>) DataTypes.fromStream(in));
     }
 
     @Override
@@ -367,8 +394,9 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public StorageSupport storageSupport() {
-        return innerType.storageSupport();
+        return storageSupport;
     }
 
     @Override

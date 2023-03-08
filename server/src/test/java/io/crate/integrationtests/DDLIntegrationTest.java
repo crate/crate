@@ -351,7 +351,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(2, -1)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values");
+            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) for values: [2, -1]");
     }
 
     @Test
@@ -366,7 +366,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("update t set qty = -1 where id = 0"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values");
+            .hasMessageContaining("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) for values: [0, -1]");
 
     }
 
@@ -378,7 +378,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {id=0, qty=1, bazinga=42}");
+            .hasMessageContaining("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) for values: [0, 1, 42]");
     }
 
     @Test
@@ -411,7 +411,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(0, 0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {id=0, qty=0}");
+            .hasMessageContaining("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) for values: [0, 0]");
     }
 
     @Test

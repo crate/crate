@@ -66,6 +66,6 @@ public interface InsertSourceGen {
                 return new ValidatedRawInsertSource(table, txnCtx, nodeCtx, indexName);
             }
         }
-        return new InsertSourceFromCells(txnCtx, nodeCtx, table, indexName, validate, targets);
+        throw new UnsupportedOperationException("InsertSourceGen is only available for _raw, Use Indexer for other use-cases");
     }
 }

@@ -26,10 +26,12 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -40,6 +42,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import com.fasterxml.jackson.core.Base64Variants;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.BitStringIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -74,7 +81,16 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                 return null;
             }
         }
-    );
+    ) {
+
+        @Override
+        public ValueIndexer<BitString> valueIndexer(RelationName table,
+                                                    Reference ref,
+                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<ColumnIdent, Reference> getRef) {
+            return new BitStringIndexer(ref, getFieldType.apply(ref.column()));
+        }
+    };
 
     public BitStringType(StreamInput in) throws IOException {
         this.length = in.readVInt();

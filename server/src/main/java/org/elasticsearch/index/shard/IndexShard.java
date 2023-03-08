@@ -770,7 +770,23 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                 ifSeqNo, ifPrimaryTerm);
     }
 
-    private Engine.IndexResult index(Engine engine, Engine.Index index) throws IOException {
+    public Engine.IndexResult index(Engine.Index index) throws IOException {
+        assert index.primaryTerm() <= getOperationPrimaryTerm()
+                : "op term [ " + index.primaryTerm() + " ] > shard term [" + getOperationPrimaryTerm() + "]";
+        ensureWriteAllowed(index.origin());
+        try {
+            return index(getEngine(), index);
+        } catch (Exception e) {
+            // We treat any exception during parsing and or mapping update as a document level failure
+            // with the exception side effects of closing the shard. Since we don't have the shard, we
+            // can not raise an exception that may block any replication of previous operations to the
+            // replicas
+            verifyNotClosed(e);
+            return new Engine.IndexResult(e, index.version(), index.primaryTerm(), index.seqNo());
+        }
+    }
+
+    public Engine.IndexResult index(Engine engine, Engine.Index index) throws IOException {
         active.set(true);
         final Engine.IndexResult result;
         index = indexingOperationListeners.preIndex(shardId, index);

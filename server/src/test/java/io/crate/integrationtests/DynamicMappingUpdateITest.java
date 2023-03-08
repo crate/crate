@@ -21,12 +21,9 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
-import org.elasticsearch.test.IntegTestCase;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +32,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
+
+import org.elasticsearch.test.IntegTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class DynamicMappingUpdateITest extends IntegTestCase {
 
@@ -126,9 +128,74 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         concurrentUpdates8.join();
         concurrentUpdates9.join();
 
+        execute("""
+            SELECT
+                column_name
+            FROM
+                information_schema.columns
+            WHERE
+                table_name = 't'
+                AND column_name LIKE 'b%'
+            ORDER BY
+                column_name
+            """
+        );
+        assertThat(response).hasRows(
+            "b",
+            "b['newcol0']",
+            "b['newcol1']",
+            "b['newcol10']",
+            "b['newcol11']",
+            "b['newcol12']",
+            "b['newcol13']",
+            "b['newcol14']",
+            "b['newcol2']",
+            "b['newcol20']",
+            "b['newcol21']",
+            "b['newcol22']",
+            "b['newcol23']",
+            "b['newcol24']",
+            "b['newcol3']",
+            "b['newcol30']",
+            "b['newcol31']",
+            "b['newcol32']",
+            "b['newcol33']",
+            "b['newcol34']",
+            "b['newcol4']",
+            "b['newcol40']",
+            "b['newcol41']",
+            "b['newcol42']",
+            "b['newcol43']",
+            "b['newcol44']",
+            "b['newcol50']",
+            "b['newcol51']",
+            "b['newcol52']",
+            "b['newcol53']",
+            "b['newcol54']",
+            "b['newcol60']",
+            "b['newcol61']",
+            "b['newcol62']",
+            "b['newcol63']",
+            "b['newcol64']",
+            "b['newcol70']",
+            "b['newcol71']",
+            "b['newcol72']",
+            "b['newcol73']",
+            "b['newcol74']",
+            "b['newcol80']",
+            "b['newcol81']",
+            "b['newcol82']",
+            "b['newcol83']",
+            "b['newcol84']",
+            "b['x']"
+        );
         execute("select count(distinct ordinal_position), max(ordinal_position) from information_schema.columns where table_name = 't'");
-        assertThat(response.rows()[0][0]).isEqualTo(3L + 45L);
-        assertThat(response.rows()[0][1]).isEqualTo(3 + 45);
+        assertThat(response.rows()[0][0])
+            .as("distinct ordinal positions")
+            .isEqualTo(3L + 45L);
+        assertThat(response.rows()[0][1])
+            .as("max ordinal position")
+            .isEqualTo(3 + 45);
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't' order by ordinal_position limit 3");
         assertThat(printedTable(response.rows())).isEqualTo(

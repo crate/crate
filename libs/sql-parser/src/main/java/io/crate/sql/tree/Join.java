@@ -28,8 +28,8 @@ import static java.util.Objects.requireNonNull;
 
 public class Join extends Relation {
 
-    public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
-        if (type.equals(Type.CROSS)) {
+    public Join(JoinType type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
+        if (type.equals(JoinType.CROSS)) {
             if (criteria.isPresent()) {
                 throw new IllegalArgumentException("Cross join cannot have join criteria");
             }
@@ -45,16 +45,12 @@ public class Join extends Relation {
         this.criteria = criteria;
     }
 
-    public enum Type {
-        CROSS, INNER, LEFT, RIGHT, FULL
-    }
-
-    private final Type type;
+    private final JoinType type;
     private final Relation left;
     private final Relation right;
     private final Optional<JoinCriteria> criteria;
 
-    public Type getType() {
+    public JoinType getType() {
         return type;
     }
 

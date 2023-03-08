@@ -27,16 +27,22 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -137,6 +143,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @param value The value of the {@link DataType<T>}.
      * @return The prepared for insertion value of the {@link DataType<T>}.
      */
+    @SuppressWarnings("unchecked")
     public T valueForInsert(Object value) {
         return (T) value;
     }
@@ -226,6 +233,21 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public StorageSupport<? super T> storageSupport() {
         return null;
     }
+
+
+    @Nullable
+    public final ValueIndexer<? super T> valueIndexer(RelationName table,
+                                                      Reference ref,
+                                                      Function<ColumnIdent, FieldType> getFieldType,
+                                                      Function<ColumnIdent, Reference> getRef) {
+        StorageSupport<? super T> storageSupport = storageSupport();
+        if (storageSupport == null) {
+            throw new IllegalArgumentException(
+                this + " has no storage support. Cannot index " + ref.column());
+        }
+        return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
+    }
+
 
     public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {

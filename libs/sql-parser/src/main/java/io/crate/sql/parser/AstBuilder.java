@@ -163,6 +163,7 @@ import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LikePredicate;
@@ -1544,7 +1545,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
         if (context.CROSS() != null) {
             right = (Relation) visit(context.right);
-            return new Join(Join.Type.CROSS, left, right, Optional.empty());
+            return new Join(JoinType.CROSS, left, right, Optional.empty());
         }
 
         JoinCriteria criteria;
@@ -1565,16 +1566,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new Join(getJoinType(context.joinType()), left, right, Optional.of(criteria));
     }
 
-    private static Join.Type getJoinType(SqlBaseParser.JoinTypeContext joinTypeContext) {
-        Join.Type joinType;
+    private static JoinType getJoinType(SqlBaseParser.JoinTypeContext joinTypeContext) {
+        JoinType joinType;
         if (joinTypeContext.LEFT() != null) {
-            joinType = Join.Type.LEFT;
+            joinType = JoinType.LEFT;
         } else if (joinTypeContext.RIGHT() != null) {
-            joinType = Join.Type.RIGHT;
+            joinType = JoinType.RIGHT;
         } else if (joinTypeContext.FULL() != null) {
-            joinType = Join.Type.FULL;
+            joinType = JoinType.FULL;
         } else {
-            joinType = Join.Type.INNER;
+            joinType = JoinType.INNER;
         }
         return joinType;
     }

@@ -26,20 +26,14 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,9 +64,9 @@ public class ObjectColumnTest extends IntegTestCase {
             });
         refresh();
         execute("select title, author from ot order by title");
-        assertEquals(2, response.rowCount());
-        assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
-        assertEquals(authorMap, response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo("Life, the Universe and Everything");
+        assertThat(response.rows()[0][1]).isEqualTo(authorMap);
     }
 
     @Test
@@ -94,10 +88,10 @@ public class ObjectColumnTest extends IntegTestCase {
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author, author['dead'] from ot order by title");
-        assertEquals(2, response.rowCount());
-        assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
-        assertEquals(authorMap, response.rows()[0][1]);
-        assertEquals(true, response.rows()[0][2]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo("Life, the Universe and Everything");
+        assertThat(response.rows()[0][1]).isEqualTo(authorMap);
+        assertThat(response.rows()[0][2]).isEqualTo(true);
     }
 
     @Test
@@ -115,11 +109,11 @@ public class ObjectColumnTest extends IntegTestCase {
             });
         refresh();
         execute("select title, details, details['weight'], details['publishing_date'] from ot order by title");
-        assertEquals(2, response.rowCount());
-        assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
-        assertEquals(detailMap, response.rows()[0][1]);
-        assertEquals(4.8d, response.rows()[0][2]);
-        assertEquals("1982-01-01", response.rows()[0][3]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo("Life, the Universe and Everything");
+        assertThat(response.rows()[0][1]).isEqualTo(detailMap);
+        assertThat(response.rows()[0][2]).isEqualTo(4.8d);
+        assertThat(response.rows()[0][3]).isEqualTo("1982-01-01");
     }
 
     @Test
@@ -135,7 +129,7 @@ public class ObjectColumnTest extends IntegTestCase {
             });
         refresh();
         execute("select * from ot where details['isbn'] = '978-0345391827'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
         // Check to get zero rows after deletion
         // and following access with filter on non-indexed, dynamic field of the ignored object.
@@ -145,7 +139,7 @@ public class ObjectColumnTest extends IntegTestCase {
         // num_pages is indexed as it's specified in Setup.setUpObjectTable, filtering by any other field to verify that
         // SourceParser.parse is null safe.
         execute("select * from ot where details['isbn'] = '978-0345391827'");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
@@ -161,7 +155,7 @@ public class ObjectColumnTest extends IntegTestCase {
             new Object[]{"Life, the Universe and Everything", authorMap}))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("dynamic introduction of [middle_name] within [author.name] is not allowed");
+            .hasMessageContaining("Cannot add column `middle_name` to strict object `author['name']`");
     }
 
     @Test
@@ -172,7 +166,7 @@ public class ObjectColumnTest extends IntegTestCase {
         waitForMappingUpdateOnAll("ot", "author.job");
         execute("select author, author['job'] from ot " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         assertEquals(
             Map.of(
                 "name", Map.of(
@@ -182,7 +176,7 @@ public class ObjectColumnTest extends IntegTestCase {
                 "job", "Writer"),
             response.rows()[0][0]
         );
-        assertEquals("Writer", response.rows()[0][1]);
+        assertThat(response.rows()[0][1]).isEqualTo("Writer");
     }
 
     @Test
@@ -192,14 +186,12 @@ public class ObjectColumnTest extends IntegTestCase {
         refresh();
         execute("select details, details['published'] from ot where title=?",
             new Object[]{"The Hitchhiker's Guide to the Galaxy"});
-        assertThat(response.rowCount(), is(1L));
-        assertThat(
-            response.rows()[0][0],
-            is(Map.of(
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(
+            Map.of(
                 "num_pages", 224,
                 "published", "1978-01-01"
-            ))
-        );
+            ));
     }
 
     @Test
@@ -228,8 +220,8 @@ public class ObjectColumnTest extends IntegTestCase {
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select author from ot where author['dead']=true");
-        assertEquals(1, response.rowCount());
-        assertEquals(authorMap, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(authorMap);
     }
 
     @Test
@@ -246,11 +238,11 @@ public class ObjectColumnTest extends IntegTestCase {
             });
         refresh();
         execute("select details from ot where details['isbn']='978-0345391827'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
         execute("select details from ot where details['num_pages']>224");
-        assertEquals(1, response.rowCount());
-        assertEquals(detailMap, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(detailMap);
     }
 
     @Test
@@ -281,15 +273,15 @@ public class ObjectColumnTest extends IntegTestCase {
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author['dead'] from ot order by author['dead'] desc");
-        assertEquals(3, response.rowCount());
-        assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[0][0]);
-        assertNull(response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(3);
+        assertThat(response.rows()[0][0]).isEqualTo("The Hitchhiker's Guide to the Galaxy");
+        assertThat(response.rows()[0][1]).isNull();
 
-        assertEquals("Life, the Universe and Everything", response.rows()[1][0]);
-        assertEquals(true, response.rows()[1][1]);
+        assertThat(response.rows()[1][0]).isEqualTo("Life, the Universe and Everything");
+        assertThat(response.rows()[1][1]).isEqualTo(true);
 
-        assertEquals("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"", response.rows()[2][0]);
-        assertEquals(false, response.rows()[2][1]);
+        assertThat(response.rows()[2][0]).isEqualTo("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"");
+        assertThat(response.rows()[2][1]).isEqualTo(false);
     }
 
     @Test
@@ -303,15 +295,16 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
 
-        assertEquals(1L, response.rowCount());
-        assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
-            response.cols());
-        assertThat(
-            response.rows()[0],
-            arrayContaining("I'm addicted to kite", "Youri", List.of("Dirksland")));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.cols()).containsExactly(
+            "message", "person['name']", "person['addresses']['city']");
+        assertThat(response.rows()[0]).containsExactly(
+            "I'm addicted to kite", "Youri",
+            List.of("Dirksland"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSelectObject() throws Exception {
         execute("create table test (a object as (nested integer)) with (number_of_replicas=0)");
         ensureYellow();
@@ -321,10 +314,11 @@ public class ObjectColumnTest extends IntegTestCase {
         refresh();
 
         execute("select a from test");
-        assertArrayEquals(new String[]{"a"}, response.cols());
-        assertEquals(1, response.rowCount());
-        assertEquals(1, response.rows()[0].length);
-        assertThat((Map<String, Object>) response.rows()[0][0], Matchers.<String, Object>hasEntry("nested", 2));
+        assertThat(response.cols()).containsExactly("a");
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0].length).isEqualTo(1);
+        assertThat((Map<String, Object>) response.rows()[0][0])
+            .containsExactly(Map.entry("nested", 2));
     }
 
     @Test
@@ -334,7 +328,7 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("INSERT INTO test (o) (select {\"_w\"= 20})");
         refresh();
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(1L));
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -345,6 +339,6 @@ public class ObjectColumnTest extends IntegTestCase {
             execute("explain select a['u'] = 123 from t", session);
         }
         // make sure that a['u'] is kept as requested.
-        assertThat(printedTable(response.rows()), containsString("[(123 = _cast(a['u'], 'integer'))]"));
+        assertThat(printedTable(response.rows())).contains("[(123 = _cast(a['u'], 'integer'))]");
     }
 }

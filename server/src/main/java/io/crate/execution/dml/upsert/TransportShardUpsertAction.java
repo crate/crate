@@ -25,17 +25,16 @@ import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.Term;
+import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,8 +52,12 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.mapper.IdFieldMapper;
+import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
@@ -62,11 +65,17 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.ddl.tables.AddColumnRequest;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
@@ -75,12 +84,12 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
@@ -94,6 +103,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private final Schemas schemas;
     private final NodeContext nodeCtx;
+    private final TransportAddColumnAction addColumnAction;
 
 
     @Inject
@@ -102,6 +112,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
+                                      TransportAddColumnAction addColumnAction,
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
@@ -121,6 +132,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         );
         this.schemas = schemas;
         this.nodeCtx = nodeCtx;
+        this.addColumnAction = addColumnAction;
         tasksService.addListener(this);
     }
 
@@ -131,23 +143,43 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        Reference[] insertColumns = request.insertColumns();
-
+        var mapperService = indexShard.mapperService();
+        Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-        InsertSourceGen insertSourceGen = insertColumns == null
+        UpdateToInsert updateToInsert = request.updateColumns() == null
             ? null
-            : InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), Arrays.asList(insertColumns));
-
-        UpdateSourceGen updateSourceGen = request.updateColumns() == null
-            ? null
-            : new UpdateSourceGen(txnCtx,
-                                  nodeCtx,
-                                  tableInfo,
-                                  request.updateColumns());
-
-        ReturnValueGen returnValueGen = request.returnValues() == null
-            ? null
-            : new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
+            : new UpdateToInsert(nodeCtx, txnCtx, tableInfo, request.updateColumns());
+        List<Reference> insertColumns;
+        if (request.insertColumns() == null) {
+            insertColumns = updateToInsert.columns();
+            request.insertColumns(updateToInsert.columns());
+        } else {
+            insertColumns = List.of(request.insertColumns());
+        }
+        Indexer indexer = new Indexer(
+            indexName,
+            tableInfo,
+            txnCtx,
+            nodeCtx,
+            getFieldType,
+            insertColumns,
+            request.returnValues()
+        );
+        InsertSourceGen insertSourceGen = null;
+        ReturnValueGen returnValueGen = null;
+        if (insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
+            insertSourceGen = InsertSourceGen.of(
+                txnCtx,
+                nodeCtx,
+                tableInfo,
+                indexName,
+                request.validation(),
+                insertColumns
+            );
+            if (request.returnValues() != null) {
+                returnValueGen = new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
+            }
+        }
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -161,10 +193,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             try {
                 IndexItemResponse indexItemResponse = indexItem(
+                    indexer,
                     request,
                     item,
                     indexShard,
-                    updateSourceGen,
+                    updateToInsert,
                     insertSourceGen,
                     returnValueGen
                 );
@@ -259,23 +292,48 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Nullable
-    private IndexItemResponse indexItem(ShardUpsertRequest request,
+    private IndexItemResponse indexItem(Indexer indexer,
+                                        ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
-                                        @Nullable UpdateSourceGen updateSourceGen,
+                                        @Nullable UpdateToInsert updateToInsert,
                                         @Nullable InsertSourceGen insertSourceGen,
                                         @Nullable ReturnValueGen returnValueGen) throws Exception {
         VersionConflictEngineException lastException = null;
-        boolean tryInsertFirst = item.insertValues() != null;
-        boolean isRetry;
+        Object[] insertValues = item.insertValues();
+        boolean tryInsertFirst = insertValues != null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                isRetry = retryCount > 0 || request.isRetry();
+                boolean isRetry = retryCount > 0 || request.isRetry();
+                long version;
                 if (tryInsertFirst) {
-                    return insert(request, item, indexShard, isRetry, returnValueGen, insertSourceGen);
+                    version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
+                        ? Versions.MATCH_ANY
+                        : Versions.MATCH_DELETED;
                 } else {
-                    return update(item, indexShard, isRetry, returnValueGen, updateSourceGen);
+                    Doc doc = getDocument(
+                        indexShard,
+                        item.id(),
+                        item.version(),
+                        item.seqNo(),
+                        item.primaryTerm());
+                    version = doc.getVersion();
+                    IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                    item.pkValues(indexItem.pkValues());
+                    item.insertValues(indexItem.insertValues());
+                    assert request.insertColumns().length == indexItem.insertValues().length
+                        : "insertColumns length must match insertValues length";
                 }
+                return insert(
+                    indexer,
+                    request,
+                    item,
+                    indexShard,
+                    isRetry,
+                    returnValueGen,
+                    insertSourceGen,
+                    version
+                );
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -319,12 +377,79 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    protected IndexItemResponse insert(ShardUpsertRequest request,
+    protected IndexItemResponse insert(Indexer indexer,
+                                       ShardUpsertRequest request,
                                        ShardUpsertRequest.Item item,
                                        IndexShard indexShard,
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
-                                       InsertSourceGen insertSourceGen) throws Exception {
+                                       InsertSourceGen insertSourceGen,
+                                       long version) throws Exception {
+        if (insertSourceGen instanceof RawInsertSource
+                || insertSourceGen instanceof ValidatedRawInsertSource) {
+            return legacyInsert(request, item, indexShard, isRetry, returnGen, insertSourceGen);
+        }
+
+        long startTime = System.nanoTime();
+        ParsedDocument parsedDoc = indexer.index(item);
+
+        // Remove this once replica uses indexer as well
+        item.source(parsedDoc.source());
+
+        if (!parsedDoc.newColumns().isEmpty()) {
+            var addColumnRequest = new AddColumnRequest(
+                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
+                parsedDoc.newColumns(),
+                Map.of(),
+                new IntArrayList(0)
+            );
+            addColumnAction.execute(addColumnRequest).get();
+        }
+
+        Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+        Engine.Index index = new Engine.Index(
+            uid,
+            parsedDoc,
+            SequenceNumbers.UNASSIGNED_SEQ_NO,
+            indexShard.getOperationPrimaryTerm(),
+            version,
+            VersionType.INTERNAL,
+            Engine.Operation.Origin.PRIMARY,
+            startTime,
+            item.autoGeneratedTimestamp(),
+            isRetry,
+            SequenceNumbers.UNASSIGNED_SEQ_NO,
+            SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+        );
+        IndexResult result = indexShard.index(index);
+        switch (result.getResultType()) {
+            case SUCCESS:
+                item.seqNo(result.getSeqNo());
+                item.version(result.getVersion());
+                item.primaryTerm(result.getTerm());
+                return new IndexItemResponse(result.getTranslogLocation(), indexer.returnValues(item));
+
+            case FAILURE:
+                Exception failure = result.getFailure();
+                assert failure != null : "Failure must not be null if resultType is FAILURE";
+                throw failure;
+
+            case MAPPING_UPDATE_REQUIRED:
+                throw new ReplicationOperation.RetryOnPrimaryException(
+                    indexShard.shardId(),
+                    "Dynamic mappings are not available on the node that holds the primary yet"
+                );
+            default:
+                throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
+        }
+    }
+
+    private IndexItemResponse legacyInsert(ShardUpsertRequest request,
+                                           ShardUpsertRequest.Item item,
+                                           IndexShard indexShard,
+                                           boolean isRetry,
+                                           ReturnValueGen returnGen,
+                                           InsertSourceGen insertSourceGen) throws Exception, IOException {
         assert insertSourceGen != null : "InsertSourceGen must not be null";
         BytesReference rawSource;
         Map<String, Object> source = null;
@@ -366,43 +491,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     -1,
                     indexShard.shardId().getIndexName(),
                     item.id(),
-                    indexResult.getVersion(),
-                    indexResult.getSeqNo(),
-                    indexResult.getTerm(),
-                    source,
-                    rawSource::utf8ToString
-                )
-            );
-        }
-        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
-    }
-
-    protected IndexItemResponse update(ShardUpsertRequest.Item item,
-                                       IndexShard indexShard,
-                                       boolean isRetry,
-                                       @Nullable ReturnValueGen returnGen,
-                                       UpdateSourceGen updateSourceGen) throws Exception {
-        assert updateSourceGen != null : "UpdateSourceGen must not be null";
-        Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-        LinkedHashMap<String, Object> source = updateSourceGen.generateSource(
-            fetchedDoc,
-            item.updateAssignments(),
-            item.insertValues()
-        );
-        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
-        item.source(rawSource);
-        long seqNo = item.seqNo();
-        long primaryTerm = item.primaryTerm();
-        long version = Versions.MATCH_ANY;
-
-        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
-        Object[] returnvalues = null;
-        if (returnGen != null) {
-            returnvalues = returnGen.generateReturnValues(
-                new Doc(
-                    fetchedDoc.docId(),
-                    fetchedDoc.getIndex(),
-                    fetchedDoc.getId(),
                     indexResult.getVersion(),
                     indexResult.getSeqNo(),
                     indexResult.getTerm(),
@@ -488,26 +576,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 "Requested version: " + version + " but got version: " + doc.getVersion());
         }
         return doc;
-    }
-
-    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
-                                                                        DocTableInfo tableInfo) {
-        Set<String> targetColumnsSet = new HashSet<>();
-        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
-
-        if (targetColumns != null) {
-            for (Reference targetColumn : targetColumns) {
-                targetColumnsSet.add(targetColumn.column().fqn());
-            }
-        }
-
-        for (var reference : tableInfo.columns()) {
-            if (!reference.isNullable() && !(reference instanceof GeneratedReference || reference.defaultExpression() != null)) {
-                if (!targetColumnsSet.contains(reference.column().fqn())) {
-                    columnsNotUsed.add(reference.column());
-                }
-            }
-        }
-        return columnsNotUsed;
     }
 }

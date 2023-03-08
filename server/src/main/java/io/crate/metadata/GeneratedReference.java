@@ -216,7 +216,18 @@ public class GeneratedReference implements Reference {
     }
 
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        return ref.cast(targetType, modes);
+        Symbol result = ref.cast(targetType, modes);
+        if (ref == result) {
+            return this;
+        }
+        if (result instanceof Reference castRef) {
+            return new GeneratedReference(
+                castRef,
+                formattedGeneratedExpression,
+                generatedExpression
+            );
+        }
+        return result;
     }
 
     @Override

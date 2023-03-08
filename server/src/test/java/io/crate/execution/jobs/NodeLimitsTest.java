@@ -21,11 +21,8 @@
 
 package io.crate.execution.jobs;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -40,18 +37,17 @@ public class NodeLimitsTest extends ESTestCase {
     private ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
     private NodeLimits nodeLimits = new NodeLimits(clusterSettings);
 
-
     @Test
     public void test_can_receive_limits_for_null_node() {
         ConcurrencyLimit limit = nodeLimits.get(null);
-        assertThat(limit, notNullValue());
+        assertThat(limit).isNotNull();
     }
 
     @Test
     public void test_successive_calls_return_same_instance_for_same_node() {
-        assertThat(nodeLimits.get(null), sameInstance(nodeLimits.get(null)));
-        assertThat(nodeLimits.get("n1"), sameInstance(nodeLimits.get("n1")));
-        assertThat(nodeLimits.get("n1"), not(sameInstance(nodeLimits.get("n2"))));
+        assertThat(nodeLimits.get(null)).isSameAs(nodeLimits.get(null));
+        assertThat(nodeLimits.get("n1")).isSameAs(nodeLimits.get("n1"));
+        assertThat(nodeLimits.get("n1")).isNotSameAs(nodeLimits.get("n2"));
     }
 
     @Test
@@ -62,8 +58,8 @@ public class NodeLimitsTest extends ESTestCase {
             .build()
         );
         ConcurrencyLimit updatedLimit = nodeLimits.get("n1");
-        assertThat(limit, not(sameInstance(updatedLimit)));
-        assertThat(limit.getLimit(), is(5));
-        assertThat(updatedLimit.getLimit(), is(10));
+        assertThat(limit).isNotSameAs(updatedLimit);
+        assertThat(limit.getLimit()).isEqualTo(5);
+        assertThat(updatedLimit.getLimit()).isEqualTo(10);
     }
 }

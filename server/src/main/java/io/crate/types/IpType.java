@@ -21,8 +21,11 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -30,8 +33,12 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 
-import java.io.IOException;
-import java.net.InetAddress;
+import io.crate.Streamer;
+import io.crate.execution.dml.IpIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class IpType extends DataType<String> implements Streamer<String> {
 
@@ -72,7 +79,16 @@ public class IpType extends DataType<String> implements Streamer<String> {
                 return InetAddressPoint.newRangeQuery(field, lower, upper);
             }
         }
-    );
+    ) {
+
+        @Override
+        public ValueIndexer<String> valueIndexer(RelationName table,
+                                                 Reference ref,
+                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<ColumnIdent, Reference> getRef) {
+            return new IpIndexer(ref, getFieldType.apply(ref.column()));
+        }
+    };
 
     @Override
     public int id() {
