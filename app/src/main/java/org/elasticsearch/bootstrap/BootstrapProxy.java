@@ -21,9 +21,16 @@
 
 package org.elasticsearch.bootstrap;
 
-import io.crate.bootstrap.BootstrapException;
-import io.crate.common.SuppressForbidden;
-import io.crate.node.CrateNode;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
@@ -43,21 +50,22 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.IfConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
+import org.elasticsearch.transport.Netty4Plugin;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import io.crate.bootstrap.BootstrapException;
+import io.crate.common.SuppressForbidden;
+import io.crate.plugin.SrvPlugin;
+import io.crate.udc.plugin.UDCPlugin;
 
 /**
  * <p>
@@ -72,7 +80,15 @@ public class BootstrapProxy {
 
     private static volatile BootstrapProxy INSTANCE;
 
-    private volatile CrateNode node;
+    private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
+        SrvPlugin.class,
+        UDCPlugin.class,
+        URLRepositoryPlugin.class,
+        S3RepositoryPlugin.class,
+        Ec2DiscoveryPlugin.class,
+        Netty4Plugin.class);
+
+    private volatile Node node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
     private final Thread keepAliveThread;
 
@@ -189,7 +205,7 @@ public class BootstrapProxy {
 
         IfConfig.logIfNecessary();
 
-        node = new CrateNode(environment) {
+        node = new Node(environment, DEFAULT_PLUGINS, true) {
 
             @Override
             protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
