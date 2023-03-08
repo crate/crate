@@ -819,7 +819,7 @@ public class Node implements Closeable {
 
     private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(
-            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
+            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}]",
             Version.displayVersion(Version.CURRENT, Version.CURRENT.isSnapshot()),
             jvmInfo.pid(),
             Build.CURRENT.hashShort(),
@@ -829,8 +829,7 @@ public class Node implements Closeable {
             Constants.OS_ARCH,
             Constants.JVM_VENDOR,
             Constants.JVM_NAME,
-            Constants.JAVA_VERSION,
-            Constants.JVM_VERSION);
+            Runtime.version());
         warnIfPreRelease(Version.CURRENT, Version.CURRENT.isSnapshot(), logger);
     }
 
