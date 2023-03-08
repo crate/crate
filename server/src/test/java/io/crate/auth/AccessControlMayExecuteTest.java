@@ -21,6 +21,7 @@
 
 package io.crate.auth;
 
+import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
 import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 import static io.crate.user.User.CRATE_USER;
 import static java.util.Collections.singletonList;
@@ -50,11 +51,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -67,6 +70,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookupService;
@@ -97,7 +101,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new User("normal", Set.of(), Set.of(), null) {
+        user = new User("normal",
+                        Set.of(),
+                        Set.of(new Privilege(Privilege.State.GRANT,
+                                             Privilege.Type.DQL,
+                                             Privilege.Clazz.SCHEMA,
+                                             "custom_schema",
+                                             "crate")),
+                        null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
@@ -143,6 +154,15 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")
             .setUserManager(userManager)
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(
+                new UserDefinedFunctionMetadata(
+                    "custom_schema",
+                    "foo",
+                    List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
+                    DUMMY_LANG.name(),
+                    "function foo(i) { return i; }")
+            )
             .build();
     }
 
@@ -480,9 +500,15 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testTableFunctionsDoNotRequireAnyPermissions() {
+    public void testFunctionsUnboundToSchemaDoNotRequireAnyPermissions() {
         analyze("select 1");
         assertThat(validationCallArguments.size(), is(0));
+    }
+
+    @Test
+    public void testFunctionsBoundToSchemaRequirePermissions() {
+        analyze("select * from custom_schema.foo(1)");
+        assertAskedForSchema(Privilege.Type.DQL, "custom_schema");
     }
 
     @Test

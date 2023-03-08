@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
@@ -131,10 +132,10 @@ public class MaximumAggregationTest extends AggregationTestCase {
     @Test
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.INTERVAL, new Object[][]{{new Object()}}))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: max(INPUT(0)), no overload found for matching argument types: (interval).");
         assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: max(INPUT(0)), no overload found for matching argument types: (object).");
     }
 }

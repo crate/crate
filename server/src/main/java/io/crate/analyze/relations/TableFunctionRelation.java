@@ -63,7 +63,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         this.outputs = new ArrayList<>(rowType.numElements());
         int idx = 0;
         FunctionName functionName = function.signature().getName();
-        this.relationName = new RelationName(null, functionName.name());
+        this.relationName = new RelationName(functionName.schema(), functionName.name());
         for (int i = 0; i < rowType.numElements(); i++) {
             DataType<?> type = rowType.getFieldType(i);
             String fieldName = rowType.getFieldName(i);

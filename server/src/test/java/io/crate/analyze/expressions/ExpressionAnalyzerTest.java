@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.types.BitStringType;
 
 import org.joda.time.Period;
@@ -308,7 +309,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
         assertThatThrownBy(() -> executor.analyze("select * from tarr where xs = ANY([10, 20])"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
                         " no overload found for matching argument types: (integer_array, integer_array).");
     }
@@ -316,7 +317,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
         assertThatThrownBy(() -> executor.analyze("select foo.bar(1)"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessage("Unknown function: foo.bar(1)");
     }
 

@@ -41,6 +41,10 @@ public class CrateExceptionVisitor<C, R> {
         return visitCrateException(e, context);
     }
 
+    protected R visitUnsupportedFunctionException(UnsupportedFunctionException e, C context) {
+        return visitCrateException(e, context);
+    }
+
     protected R visitClusterScopeException(ClusterScopeException e, C context) {
         return visitCrateException(e, context);
     }

@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.functions.Signature;
@@ -179,7 +180,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: percentile(INPUT(0), INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point, double precision).");
         execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{});
