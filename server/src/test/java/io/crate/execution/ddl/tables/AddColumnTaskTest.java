@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -171,15 +170,23 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
-            SimpleReference newColumn = new SimpleReference(
-                refIdent,
+            ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
+            ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
+            SimpleReference newColumn1 = new SimpleReference(
+                refIdent1,
                 RowGranularity.DOC,
                 DataTypes.STRING,
                 3,
                 null
             );
-            List<Reference> columns = List.of(newColumn);
+            SimpleReference newColumn2 = new SimpleReference(
+                refIdent2,
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                4,
+                null
+            );
+            List<Reference> columns = List.of(newColumn1, newColumn2);
             var request = new AddColumnRequest(
                 tbl.ident(),
                 columns,
