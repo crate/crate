@@ -86,7 +86,6 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
             Reference exists = currentTable.getReference(ref.column());
             if (exists == null) {
                 allExist = false;
-                break;
             } else if (ref.valueType().id() != exists.valueType().id()) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
