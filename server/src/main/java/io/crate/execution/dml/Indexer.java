@@ -498,8 +498,8 @@ public class Indexer {
 
     @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
-        assert item.insertValues().length == valueIndexers.size()
-            : "Number of values must match number of targetColumns/valueIndexers";
+        assert item.insertValues().length <= valueIndexers.size()
+            : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
         Document doc = new Document();
         Consumer<? super IndexableField> addField = doc::add;

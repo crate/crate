@@ -713,13 +713,23 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
         execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
 
-        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated'");
+        execute("insert into t1 (id) values (1) ON CONFLICT (id) DO UPDATE SET other = 'updated_once'");
         assertThat(response).hasRowCount(1L);
         refresh();
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
-            "1| updated",
+            "1| updated_once",
+            "2| test2"
+        );
+
+        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated_twice'");
+        assertThat(response).hasRowCount(1L);
+        refresh();
+
+        execute("select id, other from t1 order by id");
+        assertThat(response).hasRows(
+            "1| updated_twice",
             "2| test2"
         );
 
