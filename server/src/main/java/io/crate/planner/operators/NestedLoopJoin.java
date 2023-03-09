@@ -372,7 +372,7 @@ public class NestedLoopJoin implements JoinPlan {
         MergePhase rightMerge = null;
 
         if (leftResultDesc.nodeIds().size() == 1
-            && leftResultDesc.nodeIds().equals(rightResultDesc.nodeIds())
+            && Lists2.equals(leftResultDesc.nodeIds(), rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // if the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
@@ -426,7 +426,7 @@ public class NestedLoopJoin implements JoinPlan {
     private static boolean isBlockNlPossible(ExecutionPlan left, ExecutionPlan right) {
         return left.resultDescription().orderBy() == null &&
                left.resultDescription().nodeIds().size() <= 1 &&
-               left.resultDescription().nodeIds().equals(right.resultDescription().nodeIds());
+               Lists2.equals(left.resultDescription().nodeIds(), right.resultDescription().nodeIds());
     }
 
     public boolean orderByWasPushedDown() {
