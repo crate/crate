@@ -146,13 +146,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         var mapperService = indexShard.mapperService();
         Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-        UpdateToInsert updateToInsert = request.updateColumns() == null
+        UpdateToInsert updateToInsert = request.updateColumns() == null || request.updateColumns().length == 0
             ? null
             : new UpdateToInsert(nodeCtx, txnCtx, tableInfo, request.updateColumns());
         List<Reference> insertColumns;
-        if (request.insertColumns() == null) {
+        if (updateToInsert != null) {
             insertColumns = updateToInsert.columns();
-            request.insertColumns(updateToInsert.columns());
         } else {
             insertColumns = List.of(request.insertColumns());
         }
@@ -321,6 +320,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
+                    request.insertColumns(updateToInsert.columns());
                     assert request.insertColumns().length == indexItem.insertValues().length
                         : "insertColumns length must match insertValues length";
                 }
