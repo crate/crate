@@ -68,7 +68,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                long estimatedNumberOfRowsLeft,
                                boolean blockNestedLoop) {
         this.resultConsumer = nlResultConsumer;
-        this.leftConsumer = new CapturingRowConsumer(false, nlResultConsumer.completionFuture());
+        this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
         this.rightConsumer = new CapturingRowConsumer(true, nlResultConsumer.completionFuture());
         CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
             .whenComplete((result, failure) -> {

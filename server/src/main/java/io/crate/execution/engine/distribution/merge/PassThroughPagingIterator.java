@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Iterators;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Iterators;
 
 public class PassThroughPagingIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
@@ -93,6 +93,9 @@ public class PassThroughPagingIterator<TKey, TRow> implements PagingIterator<TKe
 
     @Override
     public Iterable<TRow> repeat() {
+        if (!repeatable) {
+            throw new IllegalStateException("Can't repeat a non-repeatable iterator");
+        }
         Iterable<TRow> repeatMe = storedForRepeat;
         if (repeatMe == null) {
             repeatMe = Iterables.concat(List.copyOf(this.iterables));
