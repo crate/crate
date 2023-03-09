@@ -30,10 +30,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Offset.offset;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +52,7 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testInsertWithColumnNames() throws Exception {
@@ -208,9 +205,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("select * from test order by \"name\"");
 
-        assertThat(response).hasRowCount(2);
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
+        assertThat(response).hasRows(
+            "42| Ruben",
+            "32| Youri");
     }
 
     @Test
@@ -224,9 +221,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("select * from test where name = 'Youri'");
 
-        assertThat(response).hasRowCount(1);
-        assertThat(response.rows()[0][0]).isEqualTo(32);
-        assertThat(response.rows()[0][1]).isEqualTo("Youri");
+        assertThat(response).hasRows("32| Youri");
     }
 
     @Test
@@ -239,9 +234,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from test");
-        assertThat(response).hasRowCount(1);
-        assertThat(response.rows()[0][0]).isEqualTo(32);
-        assertThat(response.rows()[0][1]).isEqualTo("Yo");
+        assertThat(response).hasRows("32| Yo");
     }
 
     @Test
@@ -256,9 +249,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("select * from test order by \"name\"");
 
-        assertThat(response).hasRowCount(2);
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
+        assertThat(response).hasRows(
+            "42| Ruben",
+            "32| Youri");
     }
 
     @Test
@@ -277,8 +270,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("select * from test");
 
-        assertThat(response).hasRowCount(1);
-        assertArrayEquals(args, response.rows()[0]);
+        assertThat(response).hasRows("I'm addicted to kite| {first_name=Youri, last_name=Zoon}");
     }
 
     @Test
@@ -554,7 +546,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][1]).isEqualTo("björk");
 
         friends = ((List<Object>) response.rows()[1][0]);
-        assertNull(friends.get(0));
+        assertThat(friends.get(0)).isNull();
     }
 
     @Test
@@ -1022,11 +1014,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     public void testInsertMutipleRowsWithGeneratedColumn() throws Exception {
-        execute("CREATE TABLE computed (\n" +
-                "   dividend double,\n" +
-                "   divisor double,\n" +
-                "   quotient AS (dividend / divisor)\n" +
-                ")");
+        execute(
+            """
+            CREATE TABLE computed (
+                dividend double,
+                divisor double,
+                quotient AS (dividend / divisor)
+            )
+            """);
         ensureYellow();
         execute("INSERT INTO computed (dividend, divisor) VALUES (1.0, 1.0), (0.0, 10.0)");
         assertThat(response).hasRowCount(2L);
@@ -1195,11 +1190,13 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     public void testInsertIntoGeneratedPartitionedColumnValueGiven() throws Exception {
         execute("create table export(col1 integer, col2 int)");
-        execute("create table import (\n" +
-                "  col1 int, \n" +
-                "  col2 int, \n" +
-                "  gen_new as (col1 + col2)" +
-                ") partitioned by (gen_new)");
+        execute(
+            """
+            create table import (
+                col1 int,\s
+                col2 int,\s
+                gen_new as (col1 + col2)) partitioned by (gen_new)
+            """);
         ensureYellow();
         execute("insert into export (col1, col2) values (1, 2)");
         refresh();
@@ -1687,17 +1684,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows()))
             // the same order as provided by '.. values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})'
             .contains(
-                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
-                "   \"o\" OBJECT(DYNAMIC) AS (\n" +
-                "      \"c\" BIGINT,\n" +
-                "      \"a\" OBJECT(DYNAMIC) AS (\n" +
-                "         \"d\" BIGINT,\n" +
-                "         \"b\" BIGINT,\n" +
-                "         \"c\" BIGINT,\n" +
-                "         \"a\" BIGINT\n" +
-                "      ),\n" +
-                "      \"b\" BIGINT\n" +
-                "   )"
+                """
+                    CREATE TABLE IF NOT EXISTS "doc"."t" (
+                       "o" OBJECT(DYNAMIC) AS (
+                          "c" BIGINT,
+                          "a" OBJECT(DYNAMIC) AS (
+                             "d" BIGINT,
+                             "b" BIGINT,
+                             "c" BIGINT,
+                             "a" BIGINT
+                          ),
+                          "b" BIGINT
+                       )"""
             );
     }
 
