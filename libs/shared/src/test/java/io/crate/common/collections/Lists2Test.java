@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.junit.Before;
@@ -108,5 +109,26 @@ public class Lists2Test {
     public void test_find_first_lte_probe_when_less_than_all_items_is_minus_one() {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(findFirstLTEProbeValue(numbers, numbers.size(), 5, 0, integerComparator)).isEqualTo(-1);
+    }
+
+    @Test
+    public void test_collections_are_equal() {
+        var list = List.of(1, 2, 3);
+        var set = new LinkedHashSet<>(List.of(1, 2, 3));
+        assertThat(Lists2.equals(list, set)).isTrue();
+    }
+
+    @Test
+    public void test_collections_different_order_arent_equal() {
+        var list = List.of(1, 2, 3);
+        var set = new LinkedHashSet<>(List.of(1, 3, 2));
+        assertThat(Lists2.equals(list, set)).isFalse();
+    }
+
+    @Test
+    public void test_collections_different_size_arent_equal() {
+        var list = List.of(1, 2, 3);
+        var set = new LinkedHashSet<>(List.of(1, 2));
+        assertThat(Lists2.equals(list, set)).isFalse();
     }
 }

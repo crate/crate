@@ -72,6 +72,28 @@ public final class Lists2 {
     }
 
     /**
+     * Compares two {@link Collection}s for equality of their members by exact order and size.
+     */
+    public static boolean equals(Collection<?> list1, Collection<?> list2) {
+        if (list1 == list2) {
+            return true;
+        }
+        if (list1 == null || list2 == null) {
+            return false;
+        }
+        if (list1.size() != list2.size()) {
+            return false;
+        }
+
+        Iterator<?> it1 = list1.iterator();
+        Iterator<?> it2 = list2.iterator();
+        while (it1.hasNext() && it2.hasNext()) {
+            if (!Objects.equals(it1.next(), it2.next())) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Create a copy of the given list with {@code mapper} applied on each item.

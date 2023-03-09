@@ -178,7 +178,7 @@ public class HashJoin implements LogicalPlan {
             isDistributed = false;
         }
         if (joinExecutionNodes.size() == 1
-            && joinExecutionNodes.equals(rightResultDesc.nodeIds())
+            && Lists2.equals(joinExecutionNodes, rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // If the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
