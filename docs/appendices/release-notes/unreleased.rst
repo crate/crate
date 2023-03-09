@@ -108,3 +108,7 @@ Fixes
  - Fixed an issue that translated ``UnsupportedOperationException`` to a
    misleading ``MissingPrivilegeException`` when executing functions with
    invalid names or signatures.
+
+- Fixed an issue causing nested join statements using the ``NESTED LOOP`` plan
+  to return incorrect results in some scenarios when issued on a multi-node
+  cluster.
