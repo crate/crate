@@ -27,6 +27,9 @@ import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.vali
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -45,6 +48,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -145,5 +149,43 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         indexSettingsBuilder.put(settings);
         setIndexVersionCreatedSetting(indexSettingsBuilder, state);
         validateSoftDeletesSetting(indexSettingsBuilder.build());
+    }
+
+    /**
+     * @param columnsMap is "properties" map of the index metadata.
+     *
+     * On regular or partitioned table creation, we get columns map from the user specified mapping
+     * and assign OID to each column. We don't need to check existence of columns
+     * since atomic table creation is the very first operation on any table.
+     *
+     * @return new columnOID value which MUST BE updated in the cluster state by the caller.
+     */
+    @SuppressWarnings("unchecked")
+    public static long assignOidsToColumns(Map<String, Map<String, Object>> columnsMap, long currentOID) {
+        for (Map<String, Object> colProps: columnsMap.values()) {
+            if (colProps.get("oid") != null) {
+                throw new IllegalArgumentException("OID cannot be already assigned on table creation, it's the first possible operation");
+            }
+            currentOID++;
+            String type = (String) colProps.get("type");
+
+            if (type.equals(ArrayType.NAME)) {
+                Map<String, Object> inner = (Map<String, Object>) colProps.get("inner");
+                inner.put("oid", currentOID);
+                String innerType = (String) inner.get("type");
+                if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                    currentOID = assignOidsToColumns((Map<String, Map<String, Object>>) inner.get("properties"), currentOID);
+                }
+            } else {
+                colProps.put("oid", currentOID);
+                if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
+                    // DataTypes.ofMappingName can be null if type is array, check is NULL safe
+                    // In case of object column with sub-columns, mapping has all nested columns in "properties" sub-map.
+                    // We need to keep incrementing OID recursively for sub-columns.
+                    currentOID = assignOidsToColumns((Map<String, Map<String, Object>>) colProps.get("properties"), currentOID);
+                }
+            }
+        }
+        return currentOID;
     }
 }

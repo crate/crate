@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static io.crate.execution.ddl.tables.TransportCreateTableAction.assignOidsToColumns;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -298,6 +299,7 @@ public class MetadataCreateIndexService {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public ClusterState execute(ClusterState currentState) throws Exception {
             Index createdIndex = null;
             String removalExtraInfo = null;
@@ -327,8 +329,16 @@ public class MetadataCreateIndexService {
                 } else {
                     mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
                 }
-                final Index recoverFromIndex = request.recoverFrom();
 
+                Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+                // Empty mapping is a blob table, don't assign OIDs if there is no properties.
+                if (mapping.isEmpty() == false) {
+                    // Mapping is mutated and has OIDs after this
+                    long updatedOID = assignOidsToColumns((Map<String, Map<String, Object>>) mapping.get("properties"), currentState.metadata().columnOID());
+                    metadataBuilder.columnOID(updatedOID);
+                }
+
+                final Index recoverFromIndex = request.recoverFrom();
                 if (recoverFromIndex == null) {
                     // apply templates, merging the mappings into the request mapping if exists
                     for (IndexTemplateMetadata template : templates) {
@@ -494,7 +504,9 @@ public class MetadataCreateIndexService {
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(indexMetadata.getIndex(),
                     indexMetadata.getSettings());
 
-                final Metadata newMetadata = Metadata.builder(currentState.metadata())
+
+
+                final Metadata newMetadata = metadataBuilder
                     .put(indexMetadata, false)
                     .build();
 

@@ -33,6 +33,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -568,7 +569,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testAlterTableAddObjectColumnToExistingObject() {
+    public void testAlterTableAddObjectColumnToExistingObject() throws IOException {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
@@ -590,6 +591,14 @@ public class DDLIntegrationTest extends IntegTestCase {
             fqColumnNames.add((String) row[0]);
         }
         assertThat(fqColumnNames).containsExactly("o", "o['x']", "o['y']");
+
+        String expectedMapping = "{\"default\":" +
+            "{\"dynamic\":\"strict\",\"_meta\":{}," +
+            "\"properties\":{\"o\":{\"position\":1,\"oid\":1,\"dynamic\":\"true\"," +
+            "\"properties\":" +
+            "{\"x\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
+            "\"y\":{\"type\":\"integer\",\"position\":3,\"oid\":3}}}}}}";
+        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
     }
 
     @Test

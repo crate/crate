@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static io.crate.execution.ddl.tables.TransportCreateTableAction.assignOidsToColumns;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
 
@@ -27,8 +28,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import io.crate.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CollectionUtil;
@@ -42,11 +45,13 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -175,7 +180,8 @@ public class MetadataIndexTemplateService {
                         throw new IllegalArgumentException("index_template [" + request.name + "] already exists");
                     }
 
-                    validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry, currentState);
+                    Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+                    validateAndAddTemplate(request, metadataBuilder, templateBuilder, indicesService, xContentRegistry, currentState);
 
                     for (Alias alias : request.aliases) {
                         AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
@@ -184,10 +190,8 @@ public class MetadataIndexTemplateService {
                     }
                     IndexTemplateMetadata template = templateBuilder.build();
 
-                    Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(template);
-
                     LOGGER.info("adding template [{}] for index patterns {}", request.name, request.indexPatterns);
-                    return ClusterState.builder(currentState).metadata(builder).build();
+                    return ClusterState.builder(currentState).metadata(metadataBuilder.put(template)).build();
                 }
 
                 @Override
@@ -215,7 +219,9 @@ public class MetadataIndexTemplateService {
         return matchedTemplates;
     }
 
+    @SuppressWarnings("unchecked")
     private static void validateAndAddTemplate(final PutRequest request,
+                                               Metadata.Builder metadataBuilder,
                                                IndexTemplateMetadata.Builder templateBuilder,
                                                IndicesService indicesService,
                                                NamedXContentRegistry xContentRegistry,
@@ -251,13 +257,24 @@ public class MetadataIndexTemplateService {
 
             templateBuilder.settings(templateSettingsBuilder.build());
 
+
             if (request.mapping != null) {
+                Map<String, Object> mapping;
                 try {
-                    templateBuilder.putMapping(request.mapping);
+                    mapping = MapperService.parseMapping(xContentRegistry, request.mapping);
+                    Map<String, Object> source = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
+                    if (source.isEmpty() == false) {
+                        // mapping is mutated and has OIDs after this
+                        long updatedOID = assignOidsToColumns((Map<String, Map<String, Object>>) source.get("properties"), currentState.metadata().columnOID());
+                        metadataBuilder.columnOID(updatedOID);
+                        templateBuilder.putMapping(new CompressedXContent(Strings.toString(XContentFactory.jsonBuilder().map(mapping))));
+                    } else {
+                        templateBuilder.putMapping(request.mapping);
+                    }
                 } catch (Exception e) {
                     throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
                 }
-                dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, request.mapping), MergeReason.MAPPING_UPDATE);
+                dummyIndexService.mapperService().merge(mapping, MergeReason.MAPPING_UPDATE);
             }
         } finally {
             if (createdIndex != null) {
