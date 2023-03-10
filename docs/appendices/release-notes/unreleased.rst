@@ -70,6 +70,10 @@ Changes
 - Improved the performance of queries using a correlated sub-query inside the
   ``WHERE`` clause in conjunction with a non-correlated filter clause.
 
+- Added the :ref:`col_description(integer, integer) <scalar-col_description>` scalar
+  function for improved PostgreSQL compatibility. CrateDB does not support
+  comments for columns, so this function always returns ``NULL``.
+
 Fixes
 =====
 
