@@ -52,7 +52,7 @@ public class TestingBatchIterators {
     }
 
     public static <T> BatchIterator<Row> ofValues(List<T> values) {
-        List<RowN> rows = values.stream().map(i -> new RowN(new Object[]{i})).collect(Collectors.toList());
+        List<RowN> rows = values.stream().map(RowN::new).collect(Collectors.toList());
         return InMemoryBatchIterator.of(rows, SENTINEL, true);
     }
 }

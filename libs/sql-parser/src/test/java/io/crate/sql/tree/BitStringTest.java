@@ -35,10 +35,10 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
 
-@RunWith(JUnitQuickcheck.class)
+class BitStringTest {
 
     @Test
-    public void test_can_parse_bit_string_with_zeros_and_ones() {
+    void test_can_parse_bit_string_with_zeros_and_ones() {
         BitString bit = BitString.ofRawBits("00000110");
         BitSet expected = new BitSet(8);
         expected.set(5, true);
@@ -47,7 +47,7 @@ import net.jqwik.api.Provide;
     }
 
     @Test
-    public void test_bit_string_cannot_contain_values_other_than_zeros_or_ones() {
+    void test_bit_string_cannot_contain_values_other_than_zeros_or_ones() {
         assertThatThrownBy(
             () -> BitString.ofRawBits("0021💀"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -55,14 +55,14 @@ import net.jqwik.api.Provide;
     }
 
     @Test
-    public void test_can_render_bitstring_as_string() {
+    void test_can_render_bitstring_as_string() {
         String text = "00000110";
         BitString bit = BitString.ofRawBits(text);
         assertThat(bit.asPrefixedBitString()).isEqualTo("B'00000110'");
     }
 
     @Test
-    public void test_lexicographically_order() {
+    void test_lexicographically_order() {
         assertThat(BitString.ofRawBits("1001").compareTo(BitString.ofRawBits("1111"))).isEqualTo(-1);
         assertThat(BitString.ofRawBits("1111").compareTo(BitString.ofRawBits("1001"))).isEqualTo(1);
         assertThat(BitString.ofRawBits("111").compareTo(BitString.ofRawBits("0001")))

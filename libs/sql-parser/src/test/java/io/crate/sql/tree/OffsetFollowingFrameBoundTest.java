@@ -37,13 +37,13 @@ class OffsetFollowingFrameBoundTest {
     private static final Comparator<Integer> INT_COMPARATOR = Comparator.comparing(x -> x);
 
     @Test
-    public void test_following_end_in_range_mode() {
+    void test_following_end_in_range_mode() {
         int frameStart = FOLLOWING.getEnd(RANGE, 1, 5, 1, 2, 4, INT_COMPARATOR, PARTITIONS);
         assertThat(frameStart).isEqualTo(3);
     }
 
     @Test
-    public void test_following_end_in_rows_mode() {
+    void test_following_end_in_rows_mode() {
         int frameStart = FOLLOWING.getEnd(ROWS, 1, 5, 1, 2L, null, INT_COMPARATOR, PARTITIONS);
         assertThat(frameStart).isEqualTo(4);
     }

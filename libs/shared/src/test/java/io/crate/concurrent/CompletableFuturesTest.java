@@ -34,18 +34,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
-public class CompletableFuturesTest {
+class CompletableFuturesTest {
 
     @Test
-    public void testAllAsListFailurePropagation() {
+    void testAllAsListFailurePropagation() {
         CompletableFuture<Integer> f1 = new CompletableFuture<>();
         CompletableFuture<Integer> f2 = new CompletableFuture<>();
         CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
 
         f1.completeExceptionally(new IllegalStateException("dummy"));
-        assertThat(all.isDone())
+        assertThat(all)
             .as("future must wait for all subFutures")
-            .isFalse();
+            .isNotDone();
 
         f2.complete(2);
         assertThatThrownBy(() -> all.get(10, TimeUnit.SECONDS))
@@ -54,7 +54,7 @@ public class CompletableFuturesTest {
     }
 
     @Test
-    public void testAllAsListResultContainsListOfResults() throws Exception {
+    void testAllAsListResultContainsListOfResults() throws Exception {
         CompletableFuture<Integer> f1 = new CompletableFuture<>();
         CompletableFuture<Integer> f2 = new CompletableFuture<>();
         CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
@@ -66,7 +66,7 @@ public class CompletableFuturesTest {
     }
 
     @Test
-    public void testSupplyAsyncReturnsFailedFutureOnException() {
+    void testSupplyAsyncReturnsFailedFutureOnException() {
         Executor rejectingExecutor = command -> {
             throw new RejectedExecutionException("rejected");
         };

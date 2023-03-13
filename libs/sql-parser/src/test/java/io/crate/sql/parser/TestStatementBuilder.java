@@ -95,10 +95,10 @@ import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.With;
 
-public class TestStatementBuilder {
+class TestStatementBuilder {
 
     @Test
-    public void testMultipleStatements() {
+    void testMultipleStatements() {
         List<Statement> statements = SqlParser.createStatements("BEGIN; END;");
         assertThat(statements).hasSize(2);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
@@ -119,7 +119,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_declare() {
+    void test_declare() {
         printStatement("DECLARE c1 CURSOR FOR select 1");
         printStatement("DECLARE c1 BINARY CURSOR FOR select 1");
         printStatement("DECLARE c1 INSENSITIVE CURSOR FOR select 1");
@@ -130,7 +130,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_fetch() {
+    void test_fetch() {
         printStatement("FETCH FROM c1");
         printStatement("FETCH IN c1");
         printStatement("FETCH FIRST FROM c1");
@@ -147,13 +147,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_close() {
+    void test_close() {
         printStatement("CLOSE ALL");
         printStatement("CLOSE c1");
     }
 
     @Test
-    public void testBegin() {
+    void testBegin() {
         printStatement("BEGIN");
         printStatement("BEGIN WORK");
         printStatement("BEGIN WORK DEFERRABLE");
@@ -169,7 +169,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStartTransaction() {
+    void testStartTransaction() {
         printStatement("START TRANSACTION");
         printStatement("START TRANSACTION DEFERRABLE");
         printStatement("START TRANSACTION ISOLATION LEVEL SERIALIZABLE, " +
@@ -182,7 +182,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetTransaction() {
+    void testSetTransaction() {
         printStatement("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
         printStatement("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
         printStatement("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
@@ -195,12 +195,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_analyze_statement_can_be_parsed() {
+    void test_analyze_statement_can_be_parsed() {
         printStatement("ANALYZE");
     }
 
     @Test
-    public void test_discard_statement_parsing() {
+    void test_discard_statement_parsing() {
         printStatement("DISCARD ALL");
         printStatement("DISCARD PLANS");
         printStatement("DISCARD SEQUENCES");
@@ -209,31 +209,31 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testEmptyOverClauseAfterFunction() {
+    void testEmptyOverClauseAfterFunction() {
         printStatement("SELECT avg(x) OVER () FROM t");
     }
 
     @Test
-    public void testOverClauseWithOrderBy() {
+    void testOverClauseWithOrderBy() {
         printStatement("SELECT avg(x) OVER (ORDER BY x) FROM t");
         printStatement("SELECT avg(x) OVER (ORDER BY x DESC) FROM t");
         printStatement("SELECT avg(x) OVER (ORDER BY x DESC NULLS FIRST) FROM t");
     }
 
     @Test
-    public void testOverClauseWithPartition() {
+    void testOverClauseWithPartition() {
         printStatement("SELECT avg(x) OVER (PARTITION BY p) FROM t");
         printStatement("SELECT avg(x) OVER (PARTITION BY p1, p2, p3) FROM t");
     }
 
     @Test
-    public void testOverClauseWithPartitionAndOrderBy() {
+    void testOverClauseWithPartitionAndOrderBy() {
         printStatement("SELECT avg(x) OVER (PARTITION BY p ORDER BY x ASC) FROM t");
         printStatement("SELECT avg(x) OVER (PARTITION BY p1, p2, p3 ORDER BY x, y) FROM t");
     }
 
     @Test
-    public void testOverClauseWithFrameClause() {
+    void testOverClauseWithFrameClause() {
         printStatement("SELECT avg(x) OVER (ROWS BETWEEN 5 PRECEDING AND 10 FOLLOWING) FROM t");
         printStatement("SELECT avg(x) OVER (RANGE BETWEEN 5 PRECEDING AND 10 FOLLOWING) FROM t");
         printStatement("SELECT avg(x) OVER (ROWS UNBOUND PRECEDING) FROM t");
@@ -242,43 +242,43 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_over_references_empty_window_def() {
+    void test_over_references_empty_window_def() {
         printStatement("SELECT avg(x) OVER (w) FROM t WINDOW w AS ()");
         printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS ()");
         printStatement("SELECT avg(x) OVER w, sum(x) OVER w FROM t WINDOW w AS ()");
     }
 
     @Test
-    public void test_over_with_order_by_or_frame_references_empty_window_def() {
+    void test_over_with_order_by_or_frame_references_empty_window_def() {
         printStatement("SELECT avg(x) OVER (w ORDER BY x) FROM t WINDOW w AS ()");
         printStatement("SELECT avg(x) OVER (w ROWS UNBOUND PRECEDING) FROM t WINDOW w AS ()");
     }
 
     @Test
-    public void test_over_references_window_with_order_by_or_partition_by() {
+    void test_over_references_window_with_order_by_or_partition_by() {
         printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS (PARTITION BY x)");
         printStatement("SELECT avg(x) OVER (w) FROM t WINDOW w AS (ORDER BY x)");
         printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS (PARTITION BY x ORDER BY x)");
     }
 
     @Test
-    public void test_multiple_window_definitions_referenced_in_over() {
+    void test_multiple_window_definitions_referenced_in_over() {
         printStatement("SELECT avg(x) OVER w1, avg(x) OVER w2 FROM t WINDOW w1 AS (), w2 AS ()");
     }
 
     @Test
-    public void test_ignore_nulls_and_respect_nulls_options() {
+    void test_ignore_nulls_and_respect_nulls_options() {
         printStatement("SELECT avg(x) IGNORE NULLS OVER w1, avg(x) RESPECT NULLS OVER w2 FROM t WINDOW w1 AS (), w2 AS ()");
     }
 
     @Test
-    public void test_over_does_not_reference_window_definitions_from_window_clause() {
+    void test_over_does_not_reference_window_definitions_from_window_clause() {
         printStatement("SELECT x FROM t WINDOW w AS ()");
         printStatement("SELECT avg(x) OVER () FROM t WINDOW w AS () ");
     }
 
     @Test
-    public void test_duplicates_in_window_definitions() {
+    void test_duplicates_in_window_definitions() {
         assertThatThrownBy(
             () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -286,7 +286,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_circular_references_in_window_definitions() {
+    void test_circular_references_in_window_definitions() {
         assertThatThrownBy(
             () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -294,21 +294,21 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCommit() {
+    void testCommit() {
         printStatement("COMMIT");
         printStatement("COMMIT WORK");
         printStatement("COMMIT TRANSACTION");
     }
 
     @Test
-    public void testEnd() {
+    void testEnd() {
         printStatement("END");
         printStatement("END WORK");
         printStatement("END TRANSACTION");
     }
 
     @Test
-    public void testNullNotAllowedAsArgToExtractField() {
+    void testNullNotAllowedAsArgToExtractField() {
         assertThatThrownBy(
             () -> printStatement("select extract(null from x)"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -316,37 +316,37 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowCreateTableStmtBuilder() {
+    void testShowCreateTableStmtBuilder() {
         printStatement("show create table test");
         printStatement("show create table foo.test");
         printStatement("show create table \"select\"");
     }
 
     @Test
-    public void testDropTableStmtBuilder() {
+    void testDropTableStmtBuilder() {
         printStatement("drop table test");
         printStatement("drop table if exists test");
         printStatement("drop table bar.foo");
     }
 
     @Test
-    public void testSwapTable() {
+    void testSwapTable() {
         printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2");
         printStatement("ALTER CLUSTER SWAP TABLE t1 TO t2 WITH (prune_second = true)");
     }
 
     @Test
-    public void testAlterClusterGCDanglingArtifacts() {
+    void testAlterClusterGCDanglingArtifacts() {
         printStatement("ALTER CLUSTER GC DANGLING ARTIFACTS");
     }
 
     @Test
-    public void testAlterClusterDecommissionNode() {
+    void testAlterClusterDecommissionNode() {
         printStatement("ALTER CLUSTER DECOMMISSION 'node1'");
     }
 
     @Test
-    public void test_decommission_node_id_is_missing() {
+    void test_decommission_node_id_is_missing() {
         assertThatThrownBy(
             () -> printStatement("ALTER CLUSTER DECOMMISSION'"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -354,12 +354,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStmtWithSemicolonBuilder() {
+    void testStmtWithSemicolonBuilder() {
         printStatement("select 1;");
     }
 
     @Test
-    public void testShowTablesStmtBuilder() {
+    void testShowTablesStmtBuilder() {
         printStatement("show tables");
         printStatement("show tables like '.*'");
         printStatement("show tables from table_schema");
@@ -375,7 +375,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowColumnsStmtBuilder() {
+    void testShowColumnsStmtBuilder() {
         printStatement("show columns from table_name");
         printStatement("show columns in table_name");
         printStatement("show columns from table_name from table_schema");
@@ -389,7 +389,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDeleteFromStmtBuilder() {
+    void testDeleteFromStmtBuilder() {
         printStatement("delete from foo as alias");
         printStatement("delete from foo");
         printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
@@ -397,7 +397,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowSchemasStmtBuilder() {
+    void testShowSchemasStmtBuilder() {
         printStatement("show schemas");
         printStatement("show schemas like 'doc%'");
         printStatement("show schemas where schema_name='doc'");
@@ -405,13 +405,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowParameterStmtBuilder() {
+    void testShowParameterStmtBuilder() {
         printStatement("show search_path");
         printStatement("show all");
     }
 
     @Test
-    public void testUpdateStmtBuilder() {
+    void testUpdateStmtBuilder() {
         printStatement("update foo set \"column['looks_like_nested']\"=1");
         printStatement("update foo set foo.a='b'");
         printStatement("update bar.foo set bar.foo.t=3");
@@ -422,7 +422,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_update_returning_clause() {
+    void test_update_returning_clause() {
         printStatement("update foo set foo='a' returning id");
         printStatement("update foo set foo='a' where x=false returning id");
         printStatement("update foo set foo='a' returning id AS foo");
@@ -434,13 +434,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testExplainStmtBuilder() {
+    void testExplainStmtBuilder() {
         printStatement("explain drop table foo");
         printStatement("explain analyze drop table foo");
     }
 
     @Test
-    public void testSetStmtBuiler() {
+    void testSetStmtBuiler() {
         printStatement("set session some_setting = 1, ON");
         printStatement("set session some_setting = false");
         printStatement("set session some_setting = DEFAULT");
@@ -476,7 +476,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_set_session_authorization_statement_with_user() {
+    void test_set_session_authorization_statement_with_user() {
         printStatement("set session authorization 'test'");
         printStatement("set session authorization test");
         printStatement("set session session authorization test");
@@ -484,19 +484,19 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_set_session_authorization_statement_with_default_user() {
+    void test_set_session_authorization_statement_with_default_user() {
         printStatement("set session authorization default");
         printStatement("set session session authorization default");
         printStatement("set local session authorization default");
     }
 
     @Test
-    public void test_reset_session_authorization_statement() {
+    void test_reset_session_authorization_statement() {
         printStatement("reset session authorization");
     }
 
     @Test
-    public void testKillStmtBuilder() {
+    void testKillStmtBuilder() {
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
         printStatement("kill ?");
@@ -504,19 +504,19 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testKillJob() {
+    void testKillJob() {
         KillStatement<?> stmt = (KillStatement<?>) SqlParser.createStatement("KILL $1");
         assertThat(stmt.jobId()).isNotNull();
     }
 
     @Test
-    public void testKillAll() {
+    void testKillAll() {
         Statement stmt = SqlParser.createStatement("KILL ALL");
         assertThat(stmt).isEqualTo(new KillStatement<>(null));
     }
 
     @Test
-    public void testDeallocateStmtBuilder() {
+    void testDeallocateStmtBuilder() {
         printStatement("deallocate all");
         printStatement("deallocate prepare all");
         printStatement("deallocate 'myStmt'");
@@ -525,7 +525,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDeallocateWithoutParamThrowsParsingException() {
+    void testDeallocateWithoutParamThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("deallocate"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -533,7 +533,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDeallocate() {
+    void testDeallocate() {
         DeallocateStatement stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE test_prep_stmt");
         assertThat(stmt.preparedStmt()).hasToString("'test_prep_stmt'");
         stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE 'test_prep_stmt'");
@@ -541,13 +541,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDeallocateAll() {
+    void testDeallocateAll() {
         Statement stmt = SqlParser.createStatement("DEALLOCATE ALL");
-        assertThat(stmt.equals(new DeallocateStatement())).isTrue();
+        assertThat(stmt).isEqualTo(new DeallocateStatement());
     }
 
     @Test
-    public void testRefreshStmtBuilder() {
+    void testRefreshStmtBuilder() {
         printStatement("refresh table t");
         printStatement("refresh table t partition (pcol='val'), tableh partition (pcol='val')");
         printStatement("refresh table schemah.tableh");
@@ -557,7 +557,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testOptimize() {
+    void testOptimize() {
         printStatement("optimize table t");
         printStatement("optimize table t1, t2");
         printStatement("optimize table schema.t");
@@ -572,7 +572,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetSessionInvalidSetting() {
+    void testSetSessionInvalidSetting() {
         assertThatThrownBy(
             () -> printStatement("set session 'some_setting' TO 1, ON"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -580,7 +580,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetGlobal() {
+    void testSetGlobal() {
         printStatement("set global sys.cluster['some_settings']['3'] = '1'");
         printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
         printStatement("set global transient sys.cluster['some_settings'] = '1'");
@@ -588,12 +588,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseStmtBuilder() {
+    void testSetLicenseStmtBuilder() {
         printStatement("set license 'LICENSE_KEY'");
     }
 
     @Test
-    public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
+    void testSetLicenseInputWithoutQuotesThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license LICENSE_KEY"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -601,7 +601,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseWithoutParamThrowsParsingException() {
+    void testSetLicenseWithoutParamThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -609,7 +609,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseLikeAnExpressionThrowsParsingException() {
+    void testSetLicenseLikeAnExpressionThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license key='LICENSE_KEY'"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -617,7 +617,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseMultipleInputThrowsParsingException() {
+    void testSetLicenseMultipleInputThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -625,7 +625,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicense() {
+    void testSetLicense() {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("set license 'LICENSE_KEY'");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.LICENSE);
         assertThat(stmt.settingType()).isEqualTo(SetStatement.SettingType.PERSISTENT);
@@ -637,7 +637,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_set_timezone_value() {
+    void test_set_timezone_value() {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE 'Europe/Vienna'");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
@@ -645,7 +645,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_set_timezone_local() {
+    void test_set_timezone_local() {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE LOCAL");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
@@ -653,7 +653,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_set_timezone_default() {
+    void test_set_timezone_default() {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE DEFAULT");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
@@ -661,12 +661,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testResetGlobalStmtBuilder() {
+    void testResetGlobalStmtBuilder() {
         printStatement("reset global some_setting['nested'], other_setting");
     }
 
     @Test
-    public void testAlterTableStmtBuilder() {
+    void testAlterTableStmtBuilder() {
         printStatement("alter table t add foo integer");
         printStatement("alter table t add foo['1']['2'] integer");
 
@@ -690,7 +690,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_alter_table_multiple_columns_stmt_builder() {
+    void test_alter_table_multiple_columns_stmt_builder() {
         // Some without 'COLUMN'
         printStatement(
             "alter table t add int_col integer not null, " +
@@ -705,7 +705,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableStmtBuilder() {
+    void testCreateTableStmtBuilder() {
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id double precision)");
         printStatement("create table t (id character varying)");
@@ -769,7 +769,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
+    void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
         assertThatThrownBy(
             () -> printStatement("create table test (col1)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -778,13 +778,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableDefaultExpression() {
+    void testCreateTableDefaultExpression() {
         printStatement("create table test (col1 int default 1)");
         printStatement("create table test (col1 int default random())");
     }
 
     @Test
-    public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
+    void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
         assertThatThrownBy(
             () -> printStatement("create table test (col1 int default random() as 1+1)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -792,7 +792,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableOptionsMultipleTimesNotAllowed() {
+    void testCreateTableOptionsMultipleTimesNotAllowed() {
         assertThatThrownBy(
             () -> printStatement(
                 "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"))
@@ -801,7 +801,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testBlobTable() {
+    void testBlobTable() {
         printStatement("drop blob table screenshots");
 
         printStatement("create blob table screenshots");
@@ -816,7 +816,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateAnalyzerStmtBuilder() {
+    void testCreateAnalyzerStmtBuilder() {
         printStatement("create analyzer myAnalyzer ( tokenizer german )");
         printStatement("create analyzer my_analyzer (" +
             " token_filters (" +
@@ -844,26 +844,26 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDropAnalyzer() {
+    void testDropAnalyzer() {
         printStatement("drop analyzer my_analyzer");
     }
 
     @Test
-    public void testCreateUserStmtBuilder() {
+    void testCreateUserStmtBuilder() {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
         printStatement("create user foo with (password = 'foo')");
     }
 
     @Test
-    public void testDropUserStmtBuilder() {
+    void testDropUserStmtBuilder() {
         printStatement("drop user \"Günter\"");
         printStatement("drop user root");
         printStatement("drop user if exists root");
     }
 
     @Test
-    public void testGrantPrivilegeStmtBuilder() {
+    void testGrantPrivilegeStmtBuilder() {
         printStatement("grant DML To \"Günter\"");
         printStatement("grant DQL, DDL to root");
         printStatement("grant DQL, DDL to root, wolfie, anna");
@@ -874,7 +874,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testGrantOnSchemaPrivilegeStmtBuilder() {
+    void testGrantOnSchemaPrivilegeStmtBuilder() {
         printStatement("grant DML ON SCHEMA my_schema To \"Günter\"");
         printStatement("grant DQL, DDL ON SCHEMA my_schema to root");
         printStatement("grant DQL, DDL ON SCHEMA my_schema to root, wolfie, anna");
@@ -886,7 +886,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testGrantOnTablePrivilegeStmtBuilder() {
+    void testGrantOnTablePrivilegeStmtBuilder() {
         printStatement("grant DML ON TABLE my_schema.t To \"Günter\"");
         printStatement("grant DQL, DDL ON TABLE my_schema.t to root");
         printStatement("grant DQL, DDL ON TABLE my_schema.t to root, wolfie, anna");
@@ -898,7 +898,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDenyPrivilegeStmtBuilder() {
+    void testDenyPrivilegeStmtBuilder() {
         printStatement("deny DML To \"Günter\"");
         printStatement("deny DQL, DDL to root");
         printStatement("deny DQL, DDL to root, wolfie, anna");
@@ -911,7 +911,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDenyOnSchemaPrivilegeStmtBuilder() {
+    void testDenyOnSchemaPrivilegeStmtBuilder() {
         printStatement("deny DML ON SCHEMA my_schema To \"Günter\"");
         printStatement("deny DQL, DDL ON SCHEMA my_schema to root");
         printStatement("deny DQL, DDL ON SCHEMA my_schema to root, wolfie, anna");
@@ -923,7 +923,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDenyOnTablePrivilegeStmtBuilder() {
+    void testDenyOnTablePrivilegeStmtBuilder() {
         printStatement("deny DML ON TABLE my_schema.t To \"Günter\"");
         printStatement("deny DQL, DDL ON TABLE my_schema.t to root");
         printStatement("deny DQL, DDL ON TABLE my_schema.t to root, wolfie, anna");
@@ -935,7 +935,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRevokePrivilegeStmtBuilder() {
+    void testRevokePrivilegeStmtBuilder() {
         printStatement("revoke DML from \"Günter\"");
         printStatement("revoke DQL, DDL from root");
         printStatement("revoke DQL, DDL from root, wolfie, anna");
@@ -946,7 +946,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRevokeOnSchemaPrivilegeStmtBuilder() {
+    void testRevokeOnSchemaPrivilegeStmtBuilder() {
         printStatement("revoke DML ON SCHEMA my_schema from \"Günter\"");
         printStatement("revoke DQL, DDL ON SCHEMA my_schema from root");
         printStatement("revoke DQL, DDL ON SCHEMA my_schema from root, wolfie, anna");
@@ -958,7 +958,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRevokeOnTablePrivilegeStmtBuilder() {
+    void testRevokeOnTablePrivilegeStmtBuilder() {
         printStatement("revoke DML ON TABLE my_schema.t from \"Günter\"");
         printStatement("revoke DQL, DDL ON TABLE my_schema.t from root");
         printStatement("revoke DQL, DDL ON TABLE my_schema.t from root, wolfie, anna");
@@ -970,7 +970,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateFunctionStmtBuilder() {
+    void testCreateFunctionStmtBuilder() {
         printStatement("create function foo.bar() returns boolean language ? as ?");
         printStatement("create function foo.bar() returns boolean language $1 as $2");
 
@@ -1001,7 +1001,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
+    void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
         assertThatThrownBy(
             () -> printStatement("create function foo.bar.a() " +
                              "returns object " +
@@ -1012,14 +1012,14 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDropFunctionStmtBuilder() {
+    void testDropFunctionStmtBuilder() {
         printStatement("drop function bar(int)");
         printStatement("drop function foo.bar(obj object)");
         printStatement("drop function if exists foo.bar(obj object)");
     }
 
     @Test
-    public void testSelectStmtBuilder() {
+    void testSelectStmtBuilder() {
         printStatement("select ab" +
             " from (select (ii + y) as iiy, concat(a, b) as ab" +
                 " from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -1086,29 +1086,29 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_bitwise_expression() {
+    void test_bitwise_expression() {
         printStatement("select 1 | 2 & 3 # 4");
     }
 
     @Test
-    public void testIntervalLiteral() {
+    void testIntervalLiteral() {
         printStatement("select interval '1' HOUR");
     }
 
     @Test
-    public void testEscapedStringLiteralBuilder() {
+    void testEscapedStringLiteralBuilder() {
         printStatement("select E'aValue'");
         printStatement("select E'\\141Value'");
         printStatement("select e'aa\\\'bb'");
     }
 
     @Test
-    public void testBitString() {
+    void testBitString() {
         printStatement("select B'0010'");
     }
 
     @Test
-    public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
+    void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
         assertThatThrownBy(
             () -> printStatement("select e'aa\\\\\'bb' as col1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -1116,7 +1116,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testTrimFunctionStmtBuilder() {
+    void testTrimFunctionStmtBuilder() {
         printStatement("SELECT trim(LEADING ' ' FROM  x) FROM t");
         printStatement("SELECT trim(' ' FROM  x) FROM t");
         printStatement("SELECT trim(FROM  x) FROM t");
@@ -1124,7 +1124,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_substring_can_be_used_as_concrete_and_generic_function() {
+    void test_substring_can_be_used_as_concrete_and_generic_function() {
         printStatement("SELECT substring('foo' FROM 1)");
         printStatement("SELECT substring('foo' FROM 1 FOR 3)");
         printStatement("SELECT substring('foo', 1)");
@@ -1132,7 +1132,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSystemInformationFunctionsStmtBuilder() {
+    void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");
         printStatement("select pg_catalog.current_schema()");
@@ -1146,7 +1146,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStatementBuilderTpch() throws Exception {
+    void testStatementBuilderTpch() throws IOException {
         printTpchQuery(1, 3);
         printTpchQuery(2, 33, "part type like", "region name");
         printTpchQuery(3, "market segment", "2013-03-05");
@@ -1179,12 +1179,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowTransactionLevel() {
+    void testShowTransactionLevel() {
         printStatement("show transaction isolation level");
     }
 
     @Test
-    public void testArrayConstructorStmtBuilder() {
+    void testArrayConstructorStmtBuilder() {
         printStatement("select []");
         printStatement("select [ARRAY[1]]");
         printStatement("select ARRAY[]");
@@ -1200,12 +1200,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_cast_with_pg_array_type_definition() {
+    void test_cast_with_pg_array_type_definition() {
         printStatement("SELECT '{a,b,c}'::text[]");
     }
 
     @Test
-    public void testArrayConstructorSubSelectBuilder() {
+    void testArrayConstructorSubSelectBuilder() {
         printStatement("select array(select foo from f1) from f2");
         printStatement("select array(select * from f1) as array1 from f2");
         printStatement("select count(*) from f1 where f1.array1 = array(select foo from f2)");
@@ -1213,7 +1213,7 @@ public class TestStatementBuilder {
 
 
     @Test
-    public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
+    void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("select array from f2"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -1221,7 +1221,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
+    void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("select array() as array1 from f2"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -1229,7 +1229,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testTableFunctions() {
+    void testTableFunctions() {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");
         printStatement("select * from open('/tmp/x')");
@@ -1237,13 +1237,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStatementSubscript() {
+    void testStatementSubscript() {
         printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
         printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
     }
 
     @Test
-    public void testCopy() {
+    void testCopy() {
         printStatement("copy foo partition (a='x') from ?");
         printStatement("copy foo partition (a={key='value'}) from ?");
         printStatement("copy foo from '/folder/file.extension'");
@@ -1267,7 +1267,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testInsertStmtBuilder() {
+    void testInsertStmtBuilder() {
         // insert from values
         printStatement("insert into foo (id, name) values ('string', 1.2)");
         printStatement("insert into foo values ('string', NULL)");
@@ -1310,7 +1310,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_insert_returning() {
+    void test_insert_returning() {
         printStatement("insert into foo (id, name) values ('string', 1.2) returning id");
         printStatement("insert into foo (id, name) values ('string', 1.2) returning id as foo");
         printStatement("insert into foo (id, name) values ('string', 1.2) returning *");
@@ -1318,14 +1318,14 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_using_fqn_in_column_list_of_insert_into_results_in_user_friendly_error() {
+    void test_using_fqn_in_column_list_of_insert_into_results_in_user_friendly_error() {
         assertThatThrownBy(() -> printStatement("insert into tbl (t.x) values (1)"))
             .hasMessage("Column references used in INSERT INTO <tbl> (...) must use the column name. They cannot qualify catalog, schema or table. Got `t.x`");
     }
 
 
     @Test
-    public void testParameterExpressionLimitOffset() {
+    void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
         printStatement("select * from foo limit ? offset ? row");
@@ -1333,7 +1333,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testMatchPredicateStmtBuilder() {
+    void testMatchPredicateStmtBuilder() {
         printStatement("select * from foo where match (a['1']['2'], 'abc')");
         printStatement("select * from foo where match (a, 'abc')");
         printStatement("select * from foo where match ((a, b 2.0), 'abc')");
@@ -1345,7 +1345,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRepositoryStmtBuilder() {
+    void testRepositoryStmtBuilder() {
         printStatement("create repository my_repo type s3");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
@@ -1362,7 +1362,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateSnapshotStmtBuilder() {
+    void testCreateSnapshotStmtBuilder() {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
@@ -1379,13 +1379,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDropSnapshotStmtBuilder() {
+    void testDropSnapshotStmtBuilder() {
         Statement statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
         assertThat(statement).hasToString("DropSnapshot{name=my_repo.my_snapshot}");
     }
 
     @Test
-    public void testRestoreSnapshotStmtBuilder() {
+    void testRestoreSnapshotStmtBuilder() {
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
@@ -1411,7 +1411,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testGeoShapeStmtBuilder() {
+    void testGeoShapeStmtBuilder() {
         printStatement("create table test (" +
                        "    col1 geo_shape," +
                        "    col2 geo_shape index using geohash" +
@@ -1430,7 +1430,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCastStmtBuilder() {
+    void testCastStmtBuilder() {
         // double colon cast
         printStatement("select 1+4::integer");
         printStatement("select '2'::integer");
@@ -1454,13 +1454,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_row_type_access() {
+    void test_row_type_access() {
         printStatement("SELECT (obj).col FROM tbl");
         printStatement("SELECT ((obj).x).y FROM tbl");
     }
 
     @Test
-    public void testSubscriptExpression() {
+    void testSubscriptExpression() {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression).isExactlyInstanceOf(SubscriptExpression.class);
         SubscriptExpression subscript = (SubscriptExpression) expression;
@@ -1478,7 +1478,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSafeSubscriptExpression() {
+    void testSafeSubscriptExpression() {
         MatchPredicate matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2'], 'abc')");
         assertThat(matchPredicate.idents().get(0).columnIdent()).hasToString("\"a\"['1']['2']");
 
@@ -1492,7 +1492,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCaseSensitivity() {
+    void testCaseSensitivity() {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
         StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).getRight();
@@ -1509,7 +1509,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparison() {
+    void testArrayComparison() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
         assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1533,7 +1533,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparisonSubSelect() {
+    void testArrayComparisonSubSelect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
         assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1551,7 +1551,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayLikeExpression() {
+    void testArrayLikeExpression() {
         Expression expression = SqlParser.createExpression("'books%' LIKE ANY(race['interests'])");
         assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
@@ -1570,7 +1570,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStringLiteral() {
+    void testStringLiteral() {
         String[] testString = new String[]{
             "foo' or 1='1",
             "foo''bar",
@@ -1587,7 +1587,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testEscapedStringLiteral() {
+    void testEscapedStringLiteral() {
         String input = "this is a triple-a:\\141\\x61\\u0061";
         String expectedValue = "this is a triple-a:aaa";
         Expression expr = SqlParser.createExpression(Literals.quoteEscapedStringLiteral(input));
@@ -1597,7 +1597,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testObjectLiteral() {
+    void testObjectLiteral() {
         Expression emptyObjectLiteral = SqlParser.createExpression("{}");
         assertThat(emptyObjectLiteral)
             .isExactlyInstanceOf(ObjectLiteral.class)
@@ -1626,7 +1626,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayLiteral() {
+    void testArrayLiteral() {
         ArrayLiteral emptyArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[]");
         assertThat(emptyArrayLiteral.values()).isEmpty();
 
@@ -1644,7 +1644,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testParameterNode() {
+    void testParameterNode() {
         printStatement("select foo, $1 from foo where a = $2 or a = $3");
 
         final AtomicInteger counter = new AtomicInteger(0);
@@ -1673,7 +1673,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowCreateTable() {
+    void testShowCreateTable() {
         Statement stmt = SqlParser.createStatement("SHOW CREATE TABLE foo");
         assertThat(stmt)
             .isExactlyInstanceOf(ShowCreateTable.class)
@@ -1687,7 +1687,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableWithGeneratedColumn() {
+    void testCreateTableWithGeneratedColumn() {
         printStatement("create table test (col1 int, col2 AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 AS (date_trunc('day', col1)))");
         printStatement("create table test (col1 int, col2 AS date_trunc('day', col1) INDEX OFF)");
@@ -1707,7 +1707,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableWithCheckConstraints() {
+    void testCreateTableWithCheckConstraints() {
         printStatement("create table t (a int check(a >= 0), b boolean)");
         printStatement("create table t (a int constraint over_zero check(a >= 0), b boolean)");
         printStatement("create table t (a int, b boolean, check(a >= 0))");
@@ -1717,18 +1717,18 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableAddColumnWithCheckConstraint() {
+    void testAlterTableAddColumnWithCheckConstraint() {
         printStatement("alter table t add column a int check(a >= 0)");
         printStatement("alter table t add column a int constraint over_zero check(a >= 0)");
     }
 
     @Test
-    public void testAlterTableDropCheckConstraint() {
+    void testAlterTableDropCheckConstraint() {
         printStatement("alter table t drop constraint check");
     }
 
     @Test
-    public void testAddGeneratedColumn() {
+    void testAddGeneratedColumn() {
         printStatement("alter table t add col2 AS date_trunc('day', col1)");
         printStatement("alter table t add col2 AS date_trunc('day', col1) INDEX USING PLAIN");
         printStatement("alter table t add col2 AS (date_trunc('day', col1))");
@@ -1748,7 +1748,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
+    void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
         assertThatThrownBy(
             () -> printStatement("alter table t add column col2"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -1758,7 +1758,7 @@ public class TestStatementBuilder {
 
 
     @Test
-    public void testAddColumnWithDefaultExpressionIsNotSupported() {
+    void testAddColumnWithDefaultExpressionIsNotSupported() {
         assertThatThrownBy(
             () -> printStatement("mismatched input 'default'"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -1767,7 +1767,7 @@ public class TestStatementBuilder {
 
 
     @Test
-    public void testAlterTableOpenClose() {
+    void testAlterTableOpenClose() {
         printStatement("alter table t close");
         printStatement("alter table t open");
 
@@ -1776,12 +1776,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableRename() {
+    void testAlterTableRename() {
         printStatement("alter table t rename to t2");
     }
 
     @Test
-    public void testAlterTableReroute() {
+    void testAlterTableReroute() {
         printStatement("alter table t reroute move shard 1 from 'node1' to 'node2'");
         printStatement("alter table t partition (parted_col = ?) reroute move shard ? from ? to ?");
         printStatement("alter table t reroute allocate replica shard 1 on 'node1'");
@@ -1792,13 +1792,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterUser() {
+    void testAlterUser() {
         printStatement("alter user crate set (password = 'password')");
         printStatement("alter user crate set (password = null)");
     }
 
     @Test
-    public void testAlterUserWithMissingProperties() {
+    void testAlterUserWithMissingProperties() {
         assertThatThrownBy(
             () -> printStatement("alter user crate"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -1806,7 +1806,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSubSelects() {
+    void testSubSelects() {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");
         printStatement("select * from (select * from foo) f");
@@ -1814,7 +1814,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testJoins() {
+    void testJoins() {
         printStatement("select * from foo inner join bar on foo.id = bar.id");
 
         printStatement("select * from foo left outer join bar on foo.id = bar.id");
@@ -1826,7 +1826,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testConditionals() {
+    void testConditionals() {
         printStatement("SELECT a," +
                        "       CASE WHEN a=1 THEN 'one'" +
                        "            WHEN a=2 THEN 'two'" +
@@ -1843,7 +1843,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testUnions() {
+    void testUnions() {
         printStatement("select * from foo union select * from bar");
         printStatement("select * from foo union all select * from bar");
         printStatement("select * from foo union distinct select * from bar");
@@ -1861,7 +1861,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateViewParsing() {
+    void testCreateViewParsing() {
         printStatement("CREATE VIEW myView AS SELECT * FROM foobar");
         printStatement("CREATE VIEW myView AS ( SELECT * FROM foobar )");
         printStatement("CREATE VIEW myView AS ((( SELECT * FROM foobar )))");
@@ -1869,7 +1869,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testDropViewParsing() {
+    void testDropViewParsing() {
         printStatement("DROP VIEW myView");
         printStatement("DROP VIEW v1, v2, x.v3");
         printStatement("DROP VIEW IF EXISTS myView");
@@ -1877,24 +1877,24 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_values_as_top_relation_parsing() {
+    void test_values_as_top_relation_parsing() {
         printStatement("VALUES (1, 2), (2, 3), (3, 4)");
         printStatement("VALUES (1), (2), (3)");
         printStatement("VALUES (1, 2, 3 + 3, (SELECT 1))");
     }
 
     @Test
-    public void test_wildcard_aggregate_with_filter_clause() {
+    void test_wildcard_aggregate_with_filter_clause() {
         printStatement("SELECT COUNT(*) FILTER (WHERE x > 10) FROM t");
     }
 
     @Test
-    public void test_distinct_aggregate_with_filter_clause() {
+    void test_distinct_aggregate_with_filter_clause() {
         printStatement("SELECT AVG(DISTINCT x) FILTER (WHERE 1 = 1) FROM t");
     }
 
     @Test
-    public void test_multiple_aggregates_with_filter_clauses() {
+    void test_multiple_aggregates_with_filter_clauses() {
         printStatement(
             "SELECT " +
             "   SUM(x) FILTER (WHERE x > 10), " +
@@ -1903,13 +1903,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_create_table_with_parametrized_varchar_data_type() {
+    void test_create_table_with_parametrized_varchar_data_type() {
         printStatement("create table test(col varchar(1))");
         printStatement("create table test(col character varying(2))");
     }
 
     @Test
-    public void test_restore_snapshot() {
+    void test_restore_snapshot() {
         printStatement("RESTORE SNAPSHOT repo1.snap1 ALL");
         printStatement("RESTORE SNAPSHOT repo1.snap1 ALL WITH (wait_for_completion = true)");
         printStatement("RESTORE SNAPSHOT repo1.snap1 TABLE t PARTITION (parted_col = ?)");
@@ -1920,13 +1920,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_scalar_subquery_in_selectlist() {
+    void test_scalar_subquery_in_selectlist() {
         printStatement("SELECT (SELECT 1)");
         printStatement("SELECT (SELECT 1) = ANY([5])");
     }
 
     @Test
-    public void test_create_publication() {
+    void test_create_publication() {
         printStatement("CREATE PUBLICATION pub1 FOR ALL TABLES");
         printStatement("CREATE PUBLICATION \"myPublication\" FOR TABLE t1");
         printStatement("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
@@ -1935,20 +1935,20 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_drop_publication() {
+    void test_drop_publication() {
         printStatement("DROP PUBLICATION pub1");
         printStatement("DROP PUBLICATION IF EXISTS pub1");
     }
 
     @Test
-    public void test_alter_publication() {
+    void test_alter_publication() {
         printStatement("ALTER PUBLICATION pub1 ADD TABLE t1");
         printStatement("ALTER PUBLICATION \"myPublication\" SET TABLE t1");
         printStatement("ALTER PUBLICATION pub1 DROP TABLE s1.t1");
     }
 
     @Test
-    public void test_create_subscription() {
+    void test_create_subscription() {
         printStatement("CREATE SUBSCRIPTION sub1" +
                        " CONNECTION 'postgresql://user@localhost/crate:5432'" +
                        " PUBLICATION pub1");
@@ -1962,19 +1962,19 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_drop_subscription() {
+    void test_drop_subscription() {
         printStatement("DROP SUBSCRIPTION sub1");
         printStatement("DROP SUBSCRIPTION IF EXISTS sub1");
     }
 
     @Test
-    public void test_alter_subscription() {
+    void test_alter_subscription() {
         printStatement("ALTER SUBSCRIPTION sub1 ENABLE");
         printStatement("ALTER SUBSCRIPTION \"mySub\" DISABLE");
     }
 
     @Test
-    public void test_with_statement() {
+    void test_with_statement() {
         printStatement("WITH r AS (SELECT * FROM t1)\n" +
             "SELECT * FROM t2, r");
         printStatement("WITH r AS (SELECT * FROM t1)," +
@@ -2055,9 +2055,9 @@ public class TestStatementBuilder {
             sql = sql.replaceAll(format(":%s", i + 1), String.valueOf(values[i]));
         }
 
-        assertThat(sql.matches("(?s).*:[0-9].*"))
+        assertThat(sql)
             .as("Not all bind parameters were replaced: " + sql)
-            .isFalse();
+            .doesNotMatch("(?s).*:[0-9].*");
 
         sql = fixTpchQuery(sql);
         printStatement(sql);

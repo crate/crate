@@ -37,7 +37,7 @@ class CurrentRowFrameBoundTest {
     private static final List<Integer> PARTITIONS = List.of(1, 1, 2);
 
     @Test
-    public void test_current_row_end_in_range_mode_is_first_non_peer() {
+    void test_current_row_end_in_range_mode_is_first_non_peer() {
         int firstFrameEnd = CURRENT_ROW.getEnd(RANGE, 0, 3, 0, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(firstFrameEnd).isEqualTo(2);
         int secondFrameEnd = CURRENT_ROW.getEnd(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
@@ -45,7 +45,7 @@ class CurrentRowFrameBoundTest {
     }
 
     @Test
-    public void test_current_row_end_in_rows_mode_is_row_index() {
+    void test_current_row_end_in_rows_mode_is_row_index() {
         int firstFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 0, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(firstFrameEnd).isEqualTo(1);
         int secondFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
@@ -53,7 +53,7 @@ class CurrentRowFrameBoundTest {
     }
 
     @Test
-    public void test_current_row_start_in_ordered_range_mode_is_first_peer_index() {
+    void test_current_row_start_in_ordered_range_mode_is_first_peer_index() {
         int firstFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 0, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(firstFrameStart).isEqualTo(0);
         int secondFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
@@ -63,7 +63,7 @@ class CurrentRowFrameBoundTest {
     }
 
     @Test
-    public void test_current_row_start_in_ordered_row_is_row_index() {
+    void test_current_row_start_in_ordered_row_is_row_index() {
         int firstFrameStart = CURRENT_ROW.getStart(ROWS, 0, 3, 0, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(firstFrameStart).isEqualTo(0);
         int secondFrameStart = CURRENT_ROW.getStart(ROWS, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
@@ -73,7 +73,7 @@ class CurrentRowFrameBoundTest {
     }
 
     @Test
-    public void test_current_row_start_in_range_mode_unordered_partition_is_row_index() {
+    void test_current_row_start_in_range_mode_unordered_partition_is_row_index() {
         int firstFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 0, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(firstFrameStart).isEqualTo(0);
         int secondFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
@@ -83,7 +83,7 @@ class CurrentRowFrameBoundTest {
     }
 
     @Test
-    public void test_current_row_start_range_mode_for_peers_crossing_partitions() {
+    void test_current_row_start_range_mode_for_peers_crossing_partitions() {
         var window = List.of(1, 2, 2, 2, 2, 2, 2, 2, 3);
         int frameStartForFourthRow = CURRENT_ROW.getStart(RANGE, 1, 4, 3, null, null, INT_COMPARATOR, window);
         assertThat(frameStartForFourthRow).isEqualTo(1);

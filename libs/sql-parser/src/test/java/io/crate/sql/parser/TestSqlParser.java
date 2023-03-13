@@ -56,10 +56,10 @@ import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 
-public class TestSqlParser {
+class TestSqlParser {
 
     @Test
-    public void testComments() {
+    void testComments() {
         assertThat(
             SqlParser.createStatement("-- this is a line comment\nSelect 1"))
             .isExactlyInstanceOf(Query.class);
@@ -126,12 +126,12 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testPossibleExponentialBacktracking() {
+    void testPossibleExponentialBacktracking() {
         SqlParser.createExpression("(((((((((((((((((((((((((((true)))))))))))))))))))))))))))");
     }
 
     @Test
-    public void testDouble() {
+    void testDouble() {
         assertExpression("123.", new DoubleLiteral("123"));
         assertExpression("123.0", new DoubleLiteral("123"));
         assertExpression(".5", new DoubleLiteral(".5"));
@@ -153,7 +153,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParameter() {
+    void testParameter() {
         assertExpression("?", new ParameterExpression(1));
         for (int i = 0; i < 1000; i++) {
             assertExpression(format(Locale.ENGLISH, "$%d", i), new ParameterExpression(i));
@@ -161,7 +161,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testDoubleInQuery() {
+    void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
             new Query(
                 Optional.empty(),
@@ -182,7 +182,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testEmptyExpression() {
+    void testEmptyExpression() {
         assertThatThrownBy(
             () -> SqlParser.createExpression(""))
             .isExactlyInstanceOf(ParsingException.class)
@@ -190,14 +190,14 @@ public class TestSqlParser {
     }
 
     @Test
-    public void test_idents_starting_with_underscore() {
+    void test_idents_starting_with_underscore() {
         var expected = new QualifiedNameReference(new QualifiedName(List.of("_", "_")));
         assertThat(SqlParser.createExpression("_._")).isEqualTo(expected);
         assertThat(SqlParser.createExpression("\"_\".\"_\"")).isEqualTo(expected);
     }
 
     @Test
-    public void testEmptyStatement() {
+    void testEmptyStatement() {
         assertThatThrownBy(
             () -> SqlParser.createStatement(""))
             .isExactlyInstanceOf(ParsingException.class)
@@ -205,7 +205,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testExpressionWithTrailingJunk() {
+    void testExpressionWithTrailingJunk() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("1 + 1 x"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -213,7 +213,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTokenizeErrorStartOfLine() {
+    void testTokenizeErrorStartOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("@select"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -221,7 +221,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTokenizeErrorMiddleOfLine() {
+    void testTokenizeErrorMiddleOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo where @what"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -229,7 +229,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTokenizeErrorIncompleteToken() {
+    void testTokenizeErrorIncompleteToken() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from 'oops"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -237,7 +237,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorStartOfLine() {
+    void testParseErrorStartOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select *\nfrom x\nfrom"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -245,7 +245,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorMiddleOfLine() {
+    void testParseErrorMiddleOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select *\nfrom x\nwhere from"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -253,7 +253,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorEndOfInput() {
+    void testParseErrorEndOfInput() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -261,7 +261,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorEndOfInputWhitespace() {
+    void testParseErrorEndOfInputWhitespace() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from  "))
             .isExactlyInstanceOf(ParsingException.class)
@@ -269,7 +269,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorBackquotes() {
+    void testParseErrorBackquotes() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from `foo`"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -277,7 +277,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorBackquotesEndOfInput() {
+    void testParseErrorBackquotesEndOfInput() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo `bar`"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -285,7 +285,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorDigitIdentifiers() {
+    void testParseErrorDigitIdentifiers() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select 1x from dual"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -294,7 +294,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testIdentifierWithColon() {
+    void testIdentifierWithColon() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo:bar"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -302,7 +302,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorDualOrderBy() {
+    void testParseErrorDualOrderBy() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual order by fuu order by fuu"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -310,7 +310,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorLimitAndFetch() {
+    void testParseErrorLimitAndFetch() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 fetch first 5 rows only"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -322,7 +322,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorMultipleLimits() {
+    void testParseErrorMultipleLimits() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 1 limit 2 limit 3"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -334,7 +334,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorReverseOrderByLimit() {
+    void testParseErrorReverseOrderByLimit() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 order by fuu"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -346,7 +346,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorReverseOrderByLimitOffset() {
+    void testParseErrorReverseOrderByLimitOffset() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -362,7 +362,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorReverseOrderByOffset() {
+    void testParseErrorReverseOrderByOffset() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual offset 20 order by fuu"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -370,7 +370,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorMultipleOffsets() {
+    void testParseErrorMultipleOffsets() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual offset 1 offset 2 offset 3"))
             .isExactlyInstanceOf(ParsingException.class)
@@ -379,7 +379,7 @@ public class TestSqlParser {
 
 
     @Test
-    public void testParsingExceptionPositionInfo() {
+    void testParsingExceptionPositionInfo() {
         ParsingException pe = catchThrowableOfType(
             () -> SqlParser.createStatement("select *\nfrom x\nwhere from"), ParsingException.class);
         assertThat(pe.getMessage())
@@ -391,25 +391,25 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testCurrentTimestamp() {
+    void testCurrentTimestamp() {
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
     }
 
     @Test
-    public void testCurrentSchemaFunction() {
+    void testCurrentSchemaFunction() {
         assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
         assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
     }
 
     @Test
-    public void testUserFunctions() {
+    void testUserFunctions() {
         assertInstanceOf("CURRENT_USER", FunctionCall.class);
         assertInstanceOf("SESSION_USER", FunctionCall.class);
         assertInstanceOf("USER", FunctionCall.class);
     }
 
     @Test
-    public void testTrimFunctionExpression() {
+    void testTrimFunctionExpression() {
         assertExpression("TRIM(BOTH 'A' FROM chars)",
             new FunctionCall(new QualifiedName("trim"), List.of(
                 new QualifiedNameReference(new QualifiedName("chars")),
@@ -420,7 +420,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTrimFunctionExpressionSingleArgument() {
+    void testTrimFunctionExpressionSingleArgument() {
         assertExpression("TRIM(chars)",
             new FunctionCall(new QualifiedName("trim"), List.of(
                 new QualifiedNameReference(new QualifiedName("chars"))
@@ -429,19 +429,19 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTrimFunctionAllArgs() {
+    void testTrimFunctionAllArgs() {
         assertInstanceOf("TRIM(LEADING 'A' FROM chars)", FunctionCall.class);
         assertInstanceOf("TRIM(TRAILING 'A' FROM chars)", FunctionCall.class);
         assertInstanceOf("TRIM(BOTH 'A' FROM chars)", FunctionCall.class);
     }
 
     @Test
-    public void testTrimFunctionDefaultTrimModeOnly() {
+    void testTrimFunctionDefaultTrimModeOnly() {
         assertInstanceOf("TRIM('A' FROM chars)", FunctionCall.class);
     }
 
     @Test
-    public void testTrimFunctionDefaultCharsToTrimOnly() {
+    void testTrimFunctionDefaultCharsToTrimOnly() {
         assertInstanceOf("TRIM(LEADING FROM chars)", FunctionCall.class);
         assertInstanceOf("TRIM(TRAILING FROM chars)", FunctionCall.class);
         assertInstanceOf("TRIM(BOTH FROM chars)", FunctionCall.class);
@@ -449,12 +449,12 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testTrimFunctionDefaultTrimModeAndCharsToTrim() {
+    void testTrimFunctionDefaultTrimModeAndCharsToTrim() {
         assertInstanceOf("TRIM(chars)", FunctionCall.class);
     }
 
     @Test
-    public void testTrimFunctionMissingFromWhenCharsToTrimIsPresentThrowsException() {
+    void testTrimFunctionMissingFromWhenCharsToTrimIsPresentThrowsException() {
         assertThatThrownBy(
             () -> assertInstanceOf("TRIM(' ' chars)", FunctionCall.class))
             .isExactlyInstanceOf(ParsingException.class)
@@ -466,7 +466,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testStackOverflowExpression() {
+    void testStackOverflowExpression() {
         assertThatThrownBy(
             () -> SqlParser.createExpression(Lists2.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
             .isExactlyInstanceOf(ParsingException.class)
@@ -474,7 +474,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testStackOverflowStatement() {
+    void testStackOverflowStatement() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("SELECT " + Lists2.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
             .isExactlyInstanceOf(ParsingException.class)
@@ -482,20 +482,20 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testDataTypesWithWhitespaceCharacters() {
+    void testDataTypesWithWhitespaceCharacters() {
         Cast cast = (Cast) SqlParser.createExpression("1::double precision");
         assertThat(cast.getType()).isExactlyInstanceOf(ColumnType.class);
         assertThat(cast.getType().name()).isEqualTo("double precision");
     }
 
     @Test
-    public void testFromStringLiteralCast() {
+    void testFromStringLiteralCast() {
         assertInstanceOf("TIMESTAMP '2016-12-31 01:02:03.123'", Cast.class);
         assertInstanceOf("int2 '2016'", Cast.class);
     }
 
     @Test
-    public void testFromStringLiteralCastDoesNotSupportArrayType() {
+    void testFromStringLiteralCastDoesNotSupportArrayType() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("array(boolean) '[1,2,0]'"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -504,7 +504,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testFromStringLiteralCastDoesNotSupportObjectType() {
+    void testFromStringLiteralCastDoesNotSupportObjectType() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("object '{\"x\": 10}'"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -513,14 +513,14 @@ public class TestSqlParser {
     }
 
     @Test
-    public void test_special_char_data_type() {
+    void test_special_char_data_type() {
         Cast cast = (Cast) SqlParser.createExpression("1::\"char\"");
         assertThat(cast.getType().getClass()).isEqualTo(ColumnType.class);
         assertThat(cast.getType().name()).isEqualTo("\"char\"");
     }
 
     @Test
-    public void test_dollar_quoted_strings_with_valid_tags() {
+    void test_dollar_quoted_strings_with_valid_tags() {
         assertThat(((StringLiteral) SqlParser.createExpression("$$$$")).getValue()).isEmpty();
         assertThat(((StringLiteral) SqlParser.createExpression("$a$ a$a $a$")).getValue()).isEqualTo(" a$a ");
         assertThat(((StringLiteral) SqlParser.createExpression("$a$$a$")).getValue()).isEmpty();
@@ -529,7 +529,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void test_comma_separated_dollar_quoted_strings() {
+    void test_comma_separated_dollar_quoted_strings() {
         // tests that '$$a$$, $$b$$' is not interpreted as 'a$$, $$b'
         var arrayLiteral = (ArrayLiteral) SqlParser.createExpression("[$$a$$, $$b,$$, $a$abc$a$]");
         var actual = arrayLiteral.values().stream().map(expr -> (StringLiteral) expr).map(StringLiteral::getValue).toList();
@@ -537,13 +537,13 @@ public class TestSqlParser {
     }
 
     @Test
-    public void test_dollar_quoted_positional_parameters() {
+    void test_dollar_quoted_positional_parameters() {
         assertThat(((StringLiteral) SqlParser.createExpression("$$$1$$")).getValue()).isEqualTo("$1");
         assertThat(((StringLiteral) SqlParser.createExpression("$$$1$2$3$$")).getValue()).isEqualTo("$1$2$3");
     }
 
     @Test
-    public void test_dollar_quoted_strings_with_invalid_tags() {
+    void test_dollar_quoted_strings_with_invalid_tags() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("$a$a$a$a$")) // tokenize as $a$ | a | $a$ then the next 'a' is mismatched
             .isInstanceOf(ParsingException.class)
@@ -563,7 +563,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void test_create_function_with_dollar_quoted_strings() {
+    void test_create_function_with_dollar_quoted_strings() {
         var createFunction = SqlParser.createStatement(
             """
                 CREATE FUNCTION isbn_to_title(text) RETURNS text LANGUAGE sql

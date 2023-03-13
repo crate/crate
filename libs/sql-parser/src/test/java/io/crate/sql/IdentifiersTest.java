@@ -26,10 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-public class IdentifiersTest {
+class IdentifiersTest {
 
     @Test
-    public void test_number_of_keywords() {
+    void test_number_of_keywords() {
         // If this test is failing you are introducing a new reserved keyword which is a breaking change.
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
@@ -38,7 +38,7 @@ public class IdentifiersTest {
     }
 
     @Test
-    public void testEscape() {
+    void testEscape() {
         assertThat(Identifiers.escape("")).isEqualTo("");
         assertThat(Identifiers.escape("\"")).isEqualTo("\"\"");
         assertThat(Identifiers.escape("ABC\"")).isEqualTo("ABC\"\"");
@@ -48,7 +48,7 @@ public class IdentifiersTest {
     }
 
     @Test
-    public void testQuote() {
+    void testQuote() {
         assertThat(Identifiers.quote("")).isEqualTo("\"\"");
         assertThat(Identifiers.quote("\"")).isEqualTo("\"\"\"\"");
         assertThat(Identifiers.quote("ABC")).isEqualTo("\"ABC\"");
@@ -56,7 +56,7 @@ public class IdentifiersTest {
     }
 
     @Test
-    public void testQuoteIfNeeded() {
+    void testQuoteIfNeeded() {
         assertThat(Identifiers.quoteIfNeeded("\"")).isEqualTo("\"\"\"\"");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");

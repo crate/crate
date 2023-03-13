@@ -37,7 +37,7 @@ import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 
-public class AsyncFlatMapBatchIteratorTest {
+class AsyncFlatMapBatchIteratorTest {
 
     @SafeVarargs
     private static <T> CloseableIterator<T> mkIter(T... rows) {
@@ -45,7 +45,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_async_flat_map_on_fully_loaded_source() throws Exception {
+    void test_async_flat_map_on_fully_loaded_source() throws Exception {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         AsyncFlatMapBatchIterator<Integer, Integer[]> twiceAsArray = new AsyncFlatMapBatchIterator<>(
             source,
@@ -61,19 +61,22 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void test_async_flatMap_does_not_fail_if_consumer_calls_moveNext_after_negative_moveNext_result() {
+    void test_async_flatMap_does_not_fail_if_consumer_calls_moveNext_after_negative_moveNext_result() {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         var asyncFlatMap = new AsyncFlatMapBatchIterator<>(
             source,
             (x, isLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
         );
-        assertThat(asyncFlatMap.moveNext()).as(
-            "first moveNext must return false, because the async-mapper must run next").isFalse();
-        assertThat(asyncFlatMap.moveNext()).as("Calling moveNext again must not fail").isFalse();
+        assertThat(asyncFlatMap.moveNext())
+            .as("first moveNext must return false, because the async-mapper must run next")
+            .isFalse();
+        assertThat(asyncFlatMap.moveNext())
+            .as("Calling moveNext again must not fail")
+            .isFalse();
     }
 
     @Test
-    public void test_async_flatMap_on_source_that_has_batches() throws Exception {
+    void test_async_flatMap_on_source_that_has_batches() throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         var source = new BatchSimulatingIterator<>(
             new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false),
@@ -101,7 +104,7 @@ public class AsyncFlatMapBatchIteratorTest {
     }
 
     @Test
-    public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
+    void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         AsyncFlatMapper<Row, Row> duplicateRow = (row, isLast) ->
             CompletableFuture.completedFuture(mkIter(
                                                   new RowN(row.materialize()),

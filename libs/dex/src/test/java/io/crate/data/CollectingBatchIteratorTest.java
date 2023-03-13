@@ -38,24 +38,24 @@ import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 
-public class CollectingBatchIteratorTest {
+class CollectingBatchIteratorTest {
 
-    private static final List<Object[]> EXPECTED_RESULT = Collections.singletonList(new Object[] {45L});
+    private static final List<Object[]> EXPECTED_RESULT = Collections.singletonList(new Object[]{45L});
     private ExecutorService executor;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         executor = Executors.newFixedThreadPool(2);
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     @Test
-    public void testCollectingBatchIterator() throws Exception {
+    void testCollectingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
         );
@@ -63,7 +63,7 @@ public class CollectingBatchIteratorTest {
     }
 
     @Test
-    public void testCollectingBatchIteratorWithPagedSource() throws Exception {
+    void testCollectingBatchIteratorWithPagedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> CollectingBatchIterator.summingLong(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0L, 10L), 2, 5, executor)
@@ -73,7 +73,7 @@ public class CollectingBatchIteratorTest {
     }
 
     @Test
-    public void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() throws Exception {
+    void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() throws Exception {
         CompletableFuture<Iterable<Row>> loadItemsFuture = new CompletableFuture<>();
         BatchIterator<Row> collectingBatchIterator = CollectingBatchIterator.newInstance(
             () -> {},

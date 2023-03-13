@@ -38,7 +38,7 @@ class UnboundedFollowingFrameBoundTest {
     private static final List<Integer> PARTITIONS = List.of(1, 2, 2);
 
     @Test
-    public void testEndForFirstFrame() {
+    void testEndForFirstFrame() {
         var partition = List.of(1, 2, 2);
         int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 0, null, null, INT_COMPARATOR, partition);
         assertThat(end)
@@ -47,7 +47,7 @@ class UnboundedFollowingFrameBoundTest {
     }
 
     @Test
-    public void testEndForSecondFrame() {
+    void testEndForSecondFrame() {
         int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(end)
             .as("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames")
@@ -55,7 +55,7 @@ class UnboundedFollowingFrameBoundTest {
     }
 
     @Test
-    public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
+    void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
         assertThatThrownBy(
             () -> UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS))
             .isExactlyInstanceOf(IllegalStateException.class)

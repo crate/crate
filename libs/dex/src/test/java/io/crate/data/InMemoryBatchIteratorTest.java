@@ -37,7 +37,7 @@ import io.crate.testing.RowGenerator;
 class InMemoryBatchIteratorTest {
 
     @Test
-    public void testCollectRows() throws Exception {
+    void testCollectRows() throws Exception {
         List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -46,7 +46,7 @@ class InMemoryBatchIteratorTest {
     }
 
     @Test
-    public void testCollectRowsWithSimulatedBatches() throws Exception {
+    void testCollectRowsWithSimulatedBatches() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 50);
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new BatchSimulatingIterator<>(
             InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false),

@@ -35,10 +35,10 @@ import org.junit.jupiter.api.Test;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingBatchIterators;
 
-public class FlatMapBatchIteratorTest {
+class FlatMapBatchIteratorTest {
 
     @Test
-    public void testFlatMap() throws Exception {
+    void testFlatMap() throws Exception {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         FlatMapBatchIterator<Integer, Integer[]> twiceAsArray =
             new FlatMapBatchIterator<>(source,
@@ -54,7 +54,7 @@ public class FlatMapBatchIteratorTest {
     }
 
     @Test
-    public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
+    void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         Function<Row, Iterator<Row>> duplicateRow =
             row -> Arrays.<Row>asList(new RowN(row.materialize()), new RowN(row.materialize())).iterator();
         BatchIteratorTester tester = new BatchIteratorTester(() -> {

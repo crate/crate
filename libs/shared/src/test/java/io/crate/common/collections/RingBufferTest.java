@@ -25,10 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-public class RingBufferTest {
+class RingBufferTest {
 
     @Test
-    public void test_ring_buffer_keeps_last_n_entries() {
+    void test_ring_buffer_keeps_last_n_entries() {
         var buf = new RingBuffer<Integer>(3);
         buf.add(1);
         assertThat(buf).containsExactly(1);

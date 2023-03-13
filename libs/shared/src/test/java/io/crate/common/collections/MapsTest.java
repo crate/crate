@@ -30,10 +30,10 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-public class MapsTest {
+class MapsTest {
 
     @Test
-    public void testAccessByPath() {
+    void testAccessByPath() {
         Map<String, Object> map = new HashMap<>();
         assertThat(Maps.getByPath(map, "")).isNull();
         assertThat(Maps.getByPath(map, "a.b.c")).isNull();
@@ -53,7 +53,7 @@ public class MapsTest {
     }
 
     @Test
-    public void testMergeIntoSourceWithNullEntry() {
+    void testMergeIntoSourceWithNullEntry() {
         HashMap<String, Object> m = new HashMap<>();
         m.put("o", null);
 
@@ -62,7 +62,7 @@ public class MapsTest {
     }
 
     @Test
-    public void testMergeNestedIntoWithNullEntry() {
+    void testMergeNestedIntoWithNullEntry() {
         HashMap<String, Object> m = new HashMap<>();
         m.put("o", null);
 

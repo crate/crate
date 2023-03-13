@@ -22,17 +22,18 @@
 package io.crate.sql;
 
 
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.IntervalLiteral;
-import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class IntervalLiteralTest {
+import org.junit.jupiter.api.Test;
+
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.IntervalLiteral;
+
+class IntervalLiteralTest {
 
     @Test
-    public void testYear() {
+    void testYear() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' YEAR");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -41,7 +42,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testMonth() {
+    void testMonth() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MONTH");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -50,7 +51,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testDay() {
+    void testDay() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' DAY");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -59,7 +60,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testHour() {
+    void testHour() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' HOUR");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -68,7 +69,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testMinute() {
+    void testMinute() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MINUTE");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -77,7 +78,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testSecond() {
+    void testSecond() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' SECOND");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -86,7 +87,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testNegative() {
+    void testNegative() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL -'1' HOUR");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.MINUS);
@@ -95,7 +96,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testTo() {
+    void testTo() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL '1' HOUR TO SECOND");
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
@@ -104,7 +105,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testSecondToHour() {
+    void testSecondToHour() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -112,7 +113,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testSecondToYear() {
+    void testSecondToYear() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -120,7 +121,7 @@ public class IntervalLiteralTest {
     }
 
     @Test
-    public void testDayToYear() {
+    void testDayToYear() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' DAY TO YEAR"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

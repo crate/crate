@@ -32,6 +32,8 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
+class WindowTest {
+
     private final Window emptyWindow = new Window(null, List.of(), List.of(), Optional.empty());
 
     private final List<SortItem> orderBy = List.of(new SortItem(
@@ -45,7 +47,7 @@ import org.junit.jupiter.api.Test;
         RANGE, new FrameBound(CURRENT_ROW), Optional.empty());
 
     @Test
-    public void test_merge_empty_current_and_provided_with_partition_by() {
+    void test_merge_empty_current_and_provided_with_partition_by() {
         var provided = new Window("w", partitionBy, List.of(), Optional.empty());
 
         var newWindowDef = emptyWindow.merge(provided);
@@ -53,7 +55,7 @@ import org.junit.jupiter.api.Test;
     }
 
     @Test
-    public void test_merge_current_with_frame_and_provided_with_order_by() {
+    void test_merge_current_with_frame_and_provided_with_order_by() {
         var current = new Window("w", List.of(), List.of(), Optional.of(frame));
         var provided = new Window(null, List.of(), orderBy, Optional.empty());
 
@@ -63,14 +65,14 @@ import org.junit.jupiter.api.Test;
     }
 
     @Test
-    public void test_merge_empty_current_and_provided_returns_provided_definition() {
+    void test_merge_empty_current_and_provided_returns_provided_definition() {
         var provided = new Window("w", partitionBy, orderBy, Optional.empty());
         var newWindowDef = emptyWindow.merge(provided);
         assertThat(newWindowDef).isEqualTo(provided);
     }
 
     @Test
-    public void test_merge_provided_window_cannot_specify_frame() {
+    void test_merge_provided_window_cannot_specify_frame() {
         var current = new Window("w", List.of(), orderBy, Optional.empty());
         var provided = new Window(null, List.of(), List.of(), Optional.of(frame));
 
@@ -81,7 +83,7 @@ import org.junit.jupiter.api.Test;
     }
 
     @Test
-    public void test_merge_current_window_order_by_cannot_be_overwritten() {
+    void test_merge_current_window_order_by_cannot_be_overwritten() {
         Window current = new Window("w", List.of(), orderBy, Optional.empty());
         Window provided = new Window(null, List.of(), orderBy, Optional.empty());
 
@@ -92,7 +94,7 @@ import org.junit.jupiter.api.Test;
     }
 
     @Test
-    public void test_merge_current_window_cannot_specify_partition_by() {
+    void test_merge_current_window_cannot_specify_partition_by() {
         var current = new Window("w", partitionBy, List.of(), Optional.empty());
 
         assertThatThrownBy(

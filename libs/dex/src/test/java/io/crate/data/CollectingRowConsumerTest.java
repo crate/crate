@@ -34,10 +34,10 @@ import org.junit.jupiter.api.Test;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 
-public class CollectingRowConsumerTest {
+class CollectingRowConsumerTest {
 
     @Test
-    public void testBatchedIteratorConsumption() throws Exception {
+    void testBatchedIteratorConsumption() throws Exception {
         List<Object[]> expectedResult = IntStream.range(0, 10)
             .mapToObj(i -> new Object[]{i})
             .collect(Collectors.toList());
@@ -56,7 +56,8 @@ public class CollectingRowConsumerTest {
         CompletableFuture<List<Object[]>> result = batchConsumer.completionFuture();
         List<Object[]> consumedRows = result.get(10, TimeUnit.SECONDS);
 
-        assertThat(consumedRows).hasSize(10);
-        assertThat(consumedRows).containsExactlyElementsOf(expectedResult);
+        assertThat(consumedRows)
+            .hasSize(10)
+            .containsExactlyElementsOf(expectedResult);
     }
 }

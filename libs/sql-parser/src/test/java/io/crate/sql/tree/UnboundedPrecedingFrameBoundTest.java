@@ -21,7 +21,6 @@
 
 package io.crate.sql.tree;
 
-
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,7 +37,7 @@ class UnboundedPrecedingFrameBoundTest {
     private static final List<Integer> PARTITIONS = List.of(1, 2, 2);
 
     @Test
-    public void testStartForFirstFrame() {
+    void testStartForFirstFrame() {
         int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(end)
             .as("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames")
@@ -46,7 +45,7 @@ class UnboundedPrecedingFrameBoundTest {
     }
 
     @Test
-    public void testStartForSecondFrame() {
+    void testStartForSecondFrame() {
         int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 2, null, null, INT_COMPARATOR, PARTITIONS);
         assertThat(end)
             .as("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames")
@@ -54,7 +53,7 @@ class UnboundedPrecedingFrameBoundTest {
     }
 
     @Test
-    public void testUnboundedPrecedingCannotBeTheEndOfTheFrame() {
+    void testUnboundedPrecedingCannotBeTheEndOfTheFrame() {
         assertThatThrownBy(
             () -> UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, INT_COMPARATOR, PARTITIONS))
             .isExactlyInstanceOf(IllegalStateException.class)
