@@ -21,8 +21,8 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -77,23 +77,21 @@ public class ClientCertAuthTest extends ESTestCase {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
         User user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
-        assertThat(user, is(exampleUser));
+        assertThat(user).isEqualTo(exampleUser);
     }
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(User.of("arthur")));
-
-        expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
-        clientCertAuth.authenticate("arthur", null, sslConnWithCert);
+        assertThatThrownBy(() -> clientCertAuth.authenticate("arthur", null, sslConnWithCert))
+            .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
     }
 
     @Test
     public void testLookupUserWithMatchingCertThatDoesNotExist() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of());
-
-        expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
-        clientCertAuth.authenticate("example.com", null, sslConnWithCert);
+        assertThatThrownBy(() -> clientCertAuth.authenticate("example.com", null, sslConnWithCert))
+            .hasMessage("Client certificate authentication failed for user \"example.com\"");
     }
 
     @Test
@@ -104,8 +102,8 @@ public class ClientCertAuthTest extends ESTestCase {
             InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, sslSession);
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
-        expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
-        clientCertAuth.authenticate("example.com", null, connectionProperties);
+        assertThatThrownBy(() -> clientCertAuth.authenticate("example.com", null, connectionProperties))
+            .hasMessage("Client certificate authentication failed for user \"example.com\"");
     }
 
     @Test
@@ -113,7 +111,7 @@ public class ClientCertAuthTest extends ESTestCase {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
         ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
 
-        expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
-        clientCertAuth.authenticate("arthur_is_wrong", null, conn);
+        assertThatThrownBy(() -> clientCertAuth.authenticate("arthur_is_wrong", null, conn))
+            .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
     }
 }

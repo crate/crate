@@ -21,9 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,31 +44,31 @@ public class DeallocateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzeDeallocateAll() {
         AnalyzedDeallocate stmt = e.analyze("deallocate all");
-        assertThat(stmt.preparedStmtName(), nullValue());
+        assertThat(stmt.preparedStmtName()).isNull();
     }
 
     @Test
     public void testAnalyzeDeallocateWithLiteral() {
         AnalyzedDeallocate stmt = e.analyze("deallocate 'test_prep_stmt'");
-        assertThat(stmt.preparedStmtName(), is("test_prep_stmt"));
+        assertThat(stmt.preparedStmtName()).isEqualTo("test_prep_stmt");
     }
 
     @Test
     public void testAnalyzeDeallocateWithUnquotedLiteral() {
         AnalyzedDeallocate stmt = e.analyze("deallocate test_prep_stmt");
-        assertThat(stmt.preparedStmtName(), is("test_prep_stmt"));
+        assertThat(stmt.preparedStmtName()).isEqualTo("test_prep_stmt");
     }
 
     @Test
     public void testAnalyzeDeallocateWithLiteralLikeQualifiedName() {
         AnalyzedDeallocate stmt = e.analyze("deallocate test.prep.stmt");
-        assertThat(stmt.preparedStmtName(), is("test.prep.stmt"));
+        assertThat(stmt.preparedStmtName()).isEqualTo("test.prep.stmt");
     }
 
     @Test
     public void testAnalyzeDeallocateWithWrongExpression() {
-        expectedException.expect(AssertionError.class);
-        expectedException.expectMessage("Expression $1 not supported as preparedStmt expression for DEALLOCATE");
-        DeallocateAnalyzer.analyze(new DeallocateStatement(new ParameterExpression(1)));
+        assertThatThrownBy(() -> DeallocateAnalyzer.analyze(new DeallocateStatement(new ParameterExpression(1))))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessage("Expression $1 not supported as preparedStmt expression for DEALLOCATE");
     }
 }

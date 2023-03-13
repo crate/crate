@@ -21,15 +21,14 @@
 
 package io.crate.action;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -42,16 +41,16 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
         BackoffPolicy policy = new LimitedExponentialBackoff(0, 1, Integer.MAX_VALUE);
         Iterator<TimeValue> it = policy.iterator();
         it.next();
-        expectedException.expect(NoSuchElementException.class);
-        expectedException.expectMessage("Reached maximum amount of backoff iterations. Only 1 iterations allowed.");
-        it.next();
+        assertThatThrownBy(() -> it.next())
+            .isExactlyInstanceOf(NoSuchElementException.class)
+            .hasMessage("Reached maximum amount of backoff iterations. Only 1 iterations allowed.");
     }
 
     @Test
     public void testStartValue() throws Exception {
         LimitedExponentialBackoff policy = new LimitedExponentialBackoff(100, 1, Integer.MAX_VALUE);
         Iterator<TimeValue> it = policy.iterator();
-        assertEquals(TimeValue.timeValueMillis(100), it.next());
+        assertThat(it.next()).isEqualTo(TimeValue.timeValueMillis(100));
     }
 
     @Test
@@ -59,7 +58,7 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
         int maxDelay = 1000;
         LimitedExponentialBackoff policy = new LimitedExponentialBackoff(0, 1000, maxDelay);
         for (TimeValue val : policy) {
-            assertThat(val.millis(), Matchers.lessThanOrEqualTo((long) maxDelay));
+            assertThat(val.millis()).isLessThanOrEqualTo(maxDelay);
         }
     }
 }

@@ -21,20 +21,22 @@
 
 package io.crate.testing;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.Test;
+
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.junit.Test;
 
 public class SQLExecutorTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAddDuplicateTableThrowsException() throws Exception {
-        expectedException.expect(RelationAlreadyExists.class);
-
-        SQLExecutor.builder(clusterService)
+        assertThatThrownBy(() -> SQLExecutor.builder(clusterService)
             .addTable("create table foo (id int)")
             .addTable("create table foo (id text)")
-            .build();
+            .build()
+        ).isExactlyInstanceOf(RelationAlreadyExists.class);
     }
 
     @Test
@@ -43,9 +45,10 @@ public class SQLExecutorTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table foo (id text)")
             .build();
 
-        expectedException.expect(RelationAlreadyExists.class);
-        SQLExecutor.builder(clusterService)
-            .addTable("create table foo (id int)")
-            .build();
+        assertThatThrownBy(() ->
+            SQLExecutor.builder(clusterService)
+                .addTable("create table foo (id int)")
+                .build()
+        ).isExactlyInstanceOf(RelationAlreadyExists.class);
     }
 }
