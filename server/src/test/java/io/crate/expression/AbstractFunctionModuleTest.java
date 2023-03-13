@@ -21,6 +21,8 @@
 
 package io.crate.expression;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -66,9 +68,9 @@ public class AbstractFunctionModuleTest extends ESTestCase {
 
         module.register(signature, (s, args) -> new DummyFunction(s));
 
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("A function already exists for signature");
-        module.register(signature, (s, args) -> new DummyFunction(s));
+        assertThatThrownBy(() -> module.register(signature, (s, args) -> new DummyFunction(s)))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("A function already exists for signature");
     }
 
 
@@ -87,8 +89,8 @@ public class AbstractFunctionModuleTest extends ESTestCase {
             DataTypes.INTEGER.getTypeSignature()
         ).withVariableArity();
 
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("A function already exists for signature");
-        module.register(signature2, (s, args) -> new DummyFunction(s));
+        assertThatThrownBy(() -> module.register(signature2, (s, args) -> new DummyFunction(s)))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("A function already exists for signature");
     }
 }

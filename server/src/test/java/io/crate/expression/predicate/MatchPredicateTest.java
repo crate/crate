@@ -21,8 +21,8 @@
 
 package io.crate.expression.predicate;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -33,51 +33,51 @@ public class MatchPredicateTest extends ESTestCase {
 
     @Test
     public void testGetStringDefaultMatchType() throws Exception {
-        assertThat(MatchPredicate.getMatchType(null, DataTypes.STRING), is("best_fields"));
+        assertThat(MatchPredicate.getMatchType(null, DataTypes.STRING)).isEqualTo("best_fields");
     }
 
     @Test
     public void testGetValidStringMatchType() throws Exception {
-        assertThat(MatchPredicate.getMatchType("most_fields", DataTypes.STRING), is("most_fields"));
+        assertThat(MatchPredicate.getMatchType("most_fields", DataTypes.STRING)).isEqualTo("most_fields");
     }
 
     @Test
     public void testGetValidGeoMatchType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid MATCH type 'contains' for type 'geo_shape'");
-        MatchPredicate.getMatchType("contains", DataTypes.GEO_SHAPE);
+        assertThatThrownBy(() -> MatchPredicate.getMatchType("contains", DataTypes.GEO_SHAPE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("invalid MATCH type 'contains' for type 'geo_shape'");
     }
 
     @Test
     public void testGetGeoShapeDefaultMatchType() throws Exception {
-        assertThat(MatchPredicate.getMatchType(null, DataTypes.GEO_SHAPE), is("intersects"));
+        assertThat(MatchPredicate.getMatchType(null, DataTypes.GEO_SHAPE)).isEqualTo("intersects");
     }
 
     @Test
     public void testGetDefaultMatchTypeForInvalidType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No default matchType found for dataType: integer");
-        MatchPredicate.getMatchType(null, DataTypes.INTEGER);
+        assertThatThrownBy(() -> MatchPredicate.getMatchType(null, DataTypes.INTEGER))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("No default matchType found for dataType: integer");
     }
 
     @Test
     public void testGetMatchTypeForInvalidType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No match type for dataType: integer");
-        MatchPredicate.getMatchType("foo", DataTypes.INTEGER);
+        assertThatThrownBy(() -> MatchPredicate.getMatchType("foo", DataTypes.INTEGER))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("No match type for dataType: integer");
     }
 
     @Test
     public void testInvalidStringMatchType() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid MATCH type 'foo' for type 'text'");
-        MatchPredicate.getMatchType("foo", DataTypes.STRING);
+        assertThatThrownBy(() -> MatchPredicate.getMatchType("foo", DataTypes.STRING))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid MATCH type 'foo' for type 'text'");
     }
 
     @Test
     public void testInvalidGeoShapeMatchType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid MATCH type 'foo' for type 'geo_shape'");
-        MatchPredicate.getMatchType("foo", DataTypes.GEO_SHAPE);
+        assertThatThrownBy(() -> MatchPredicate.getMatchType("foo", DataTypes.GEO_SHAPE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("invalid MATCH type 'foo' for type 'geo_shape'");
     }
 }

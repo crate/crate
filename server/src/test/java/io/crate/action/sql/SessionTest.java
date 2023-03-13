@@ -22,12 +22,8 @@
 package io.crate.action.sql;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -42,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Answers;
@@ -75,10 +70,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterTypeExtractorNotApplicable() {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
-        assertThat(typeExtractor.getParameterTypes(s -> {}).length, is(0));
+        assertThat(typeExtractor.getParameterTypes(s -> {}).length).isEqualTo(0);
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testParameterTypeExtractor() {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         List<Symbol> symbolsToVisit = new ArrayList<>();
@@ -99,28 +95,28 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             }
         };
         DataType[] parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
-        assertThat(parameterTypes, equalTo(new DataType[] {
+        assertThat(parameterTypes).containsExactly(
             DataTypes.INTEGER,
             DataTypes.LONG,
             DataTypes.DOUBLE,
-            DataTypes.STRING,
-        }));
+            DataTypes.STRING
+        );
 
         symbolsToVisit.add(new ParameterSymbol(4, DataTypes.BOOLEAN));
         parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
-        assertThat(parameterTypes, equalTo(new DataType[] {
+        assertThat(parameterTypes).containsExactly(
             DataTypes.INTEGER,
             DataTypes.LONG,
             DataTypes.DOUBLE,
             DataTypes.STRING,
             DataTypes.BOOLEAN
-        }));
+        );
 
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("The assembled list of ParameterSymbols is invalid.");
         // remove the double parameter => make the input invalid
         symbolsToVisit.remove(6);
-        typeExtractor.getParameterTypes(symbolVisitor);
+        assertThatThrownBy(() -> typeExtractor.getParameterTypes(symbolVisitor))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("The assembled list of ParameterSymbols is invalid. Missing parameters.");
     }
 
     @Test
@@ -142,14 +138,14 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         try (Session session = sqlExecutor.createSession()) {
 
             session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-            assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
-            assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
+            assertThat(session.getParamType("S_1", 0)).isEqualTo(DataTypes.INTEGER);
+            assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
 
             DescribeResult describe = session.describe('S', "S_1");
-            assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER }));
+            assertThat(describe.getParameters()).isEqualTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER });
 
-            assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
-            assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
+            assertThat(session.getParamType("S_1", 0)).isEqualTo(DataTypes.INTEGER);
+            assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
         }
     }
 
@@ -168,17 +164,17 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.describe('S', "S_1");
         session.execute("Portal", 1, new BaseResultReceiver());
 
-        assertThat(session.portals.size(), is(1));
-        assertThat(session.preparedStatements.size(), is(1));
-        assertThat(session.deferredExecutionsByStmt.size(), is(0));
-        assertThat(session.activeExecution, is(activeExecutionFuture));
+        assertThat(session.portals.size()).isEqualTo(1);
+        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.activeExecution).isEqualTo(activeExecutionFuture);
 
         session.close();
 
-        assertThat(session.portals.size(), is(0));
-        assertThat(session.preparedStatements.size(), is(0));
-        assertThat(session.deferredExecutionsByStmt.size(), is(0));
-        assertThat(session.activeExecution, is(nullValue()));
+        assertThat(session.portals.size()).isEqualTo(0);
+        assertThat(session.preparedStatements.size()).isEqualTo(0);
+        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.activeExecution).isNull();
     }
 
 
@@ -194,16 +190,17 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
-        assertThat(session.deferredExecutionsByStmt.size(), is(1));
+        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(1);
         session.flush();
         var activeExecution = session.activeExecution;
-        assertThat(activeExecution, Matchers.notNullValue());
+        assertThat(activeExecution).isNotNull();
 
         CompletableFuture<?> sync = session.sync();
-        assertThat(sync, Matchers.sameInstance(activeExecution));
+        assertThat(sync).isSameAs(activeExecution);
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testExtractTypesFromDelete() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
@@ -214,10 +211,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING }));
+        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.STRING });
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testExtractTypesFromUpdate() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
@@ -228,10 +226,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING, DataTypes.LONG }));
+        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.STRING, DataTypes.LONG });
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testExtractTypesFromInsertValues() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
@@ -243,10 +242,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[] { DataTypes.LONG, DataTypes.STRING }));
+        assertThat(parameterTypes).isEqualTo(new DataType[] { DataTypes.LONG, DataTypes.STRING });
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testExtractTypesFromInsertFromQuery() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
@@ -262,10 +262,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING}));
+        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.STRING});
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
@@ -280,7 +281,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING}));
+        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING});
 
         analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
@@ -291,10 +292,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         typeExtractor = new ParameterTypeExtractor();
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
+        assertThat(parameterTypes).isEqualTo(new DataType[]{DataTypes.STRING, DataTypes.STRING});
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
 
@@ -306,10 +308,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
+        assertThat(parameterTypes).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testTypesCanBeResolvedIfParametersAreInSubRelationOfInsertStatement() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table t (x int)")
@@ -323,10 +326,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
+        assertThat(parameterTypes).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testTypesCanBeResolvedIfParametersAreInSubQueryInDeleteStatement() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table t (x int)")
@@ -340,14 +344,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
-        assertThat(parameterTypes, arrayContaining(is(DataTypes.LONG)));
+        assertThat(parameterTypes).containsExactly(DataTypes.LONG);
     }
 
     @Test
     public void testProperCleanupOnSessionClose() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
@@ -358,16 +361,16 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("", "S_2", Collections.emptyList(), null);
         session.describe('S', "S_2");
 
-        assertThat(session.portals.size(), is(2));
-        assertThat(session.preparedStatements.size(), is(2));
-        assertThat(session.deferredExecutionsByStmt.size(), is(0));
+        assertThat(session.portals.size()).isEqualTo(2);
+        assertThat(session.preparedStatements.size()).isEqualTo(2);
+        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
 
         session.close();
 
-        assertThat(session.portals.size(), is(0));
-        assertThat(session.preparedStatements.size(), is(0));
-        assertThat(session.deferredExecutionsByStmt.size(), is(0));
-        assertThat(session.activeExecution, is(nullValue()));
+        assertThat(session.portals.size()).isEqualTo(0);
+        assertThat(session.preparedStatements.size()).isEqualTo(0);
+        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.activeExecution).isNull();
     }
 
     @Test
@@ -386,8 +389,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("", "S_2", Collections.emptyList(), null);
         session.execute("", 0, new BaseResultReceiver());
 
-        assertThat(session.portals.size(), greaterThan(0));
-        assertThat(session.preparedStatements.size(), is(0));
+        assertThat(session.portals).hasSizeGreaterThan(0);
+        assertThat(session.preparedStatements).isEmpty();
     }
 
     @Test
@@ -406,46 +409,44 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("", "stmt", Collections.emptyList(), null);
         session.execute("", 0, new BaseResultReceiver());
 
-        assertThat(session.portals.size(), greaterThan(0));
-        assertThat(session.preparedStatements.size(), is(1));
-        assertThat(session.preparedStatements.get("stmt").rawStatement(), is("DEALLOCATE test_prep_stmt;"));
+        assertThat(session.portals).hasSizeGreaterThan(0);
+        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.preparedStatements.get("stmt").rawStatement()).isEqualTo("DEALLOCATE test_prep_stmt;");
     }
 
     @Test
     public void test_closing_a_statement_closes_related_portals() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size(), is(1));
-        assertThat(session.preparedStatements.size(), is(1));
+        assertThat(session.portals.size()).isEqualTo(1);
+        assertThat(session.preparedStatements.size()).isEqualTo(1);
 
         session.close((byte) 'S', "S_1");
-        assertThat(session.portals.entrySet(), Matchers.empty());
-        assertThat(session.preparedStatements.entrySet(), Matchers.empty());
+        assertThat(session.portals).isEmpty();
+        assertThat(session.preparedStatements).isEmpty();
     }
 
     @Test
     public void test_discard_all_discards_all_portals_and_prepared_statements() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size(), is(1));
-        assertThat(session.preparedStatements.size(), is(1));
+        assertThat(session.portals.size()).isEqualTo(1);
+        assertThat(session.preparedStatements.size()).isEqualTo(1);
 
         session.parse("stmt", "DISCARD ALL", Collections.emptyList());
         session.bind("", "stmt", Collections.emptyList(), null);
         session.execute("", 0, new BaseResultReceiver());
 
-        assertThat(session.portals.entrySet(), Matchers.empty());
-        assertThat(session.preparedStatements.entrySet(), Matchers.empty());
+        assertThat(session.portals).isEmpty();
+        assertThat(session.preparedStatements).isEmpty();
     }
 
     @Test
@@ -491,11 +492,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("P_1", 0, new BaseResultReceiver());
 
         session.sync().get(5, TimeUnit.SECONDS);
-        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount(), is(1L));
+        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(1L);
     }
 
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void test_can_extract_parameters_from_match_predicate() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table users (name text, keywords text)")
@@ -504,11 +506,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             "select * from users where match(keywords, ?) using best_fields with (fuzziness= ?) and name = ?");
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(statement::visitSymbols);
-        assertThat(parameterTypes, arrayContaining(DataTypes.STRING, DataTypes.UNDEFINED, DataTypes.STRING));
+        assertThat(parameterTypes).containsExactly(DataTypes.STRING, DataTypes.UNDEFINED, DataTypes.STRING);
     }
 
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void test_can_extract_parameters_from_join_condition() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table subscriptions (id text primary key, name text not null)")
@@ -525,6 +528,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                 """);
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
-        assertThat(parameterTypes, arrayContaining(DataTypes.STRING));
+        assertThat(parameterTypes).containsExactly(DataTypes.STRING);
     }
 }

@@ -21,14 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidColumnNameException;
@@ -47,10 +46,11 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
     public void testCreateTableAsWithoutData() {
         execute("create table tbl ( col integer )");
         execute("create table cpy as select * from tbl");
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testCreateTableAsWithData() {
         String createTableStmt =
             "create table tbl (" +
@@ -68,13 +68,14 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         refresh();
         execute("select * from cpy");
 
-        assertEquals(1, response.rowCount());
-        assertThat(((Map) response.rows()[0][0]).get("col_nested_integer"), is(Matchers.nullValue()));
-        assertThat(((Map) ((Map) response.rows()[0][0]).get("col_nested_object")).get("col_text"),
-                   is(Matchers.nullValue()));
+        assertThat(response).hasRowCount(1);
+        assertThat(((Map) response.rows()[0][0]).get("col_nested_integer")).isNull();
+        assertThat(((Map) ((Map) response.rows()[0][0]).get("col_nested_object")).get("col_text"))
+            .isNull();
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void testCreateTableAsParenthesesSyntax() throws Exception {
         String createTableStmt =
             "create table tbl (" +
@@ -92,39 +93,38 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         refresh();
         execute("select * from cpy");
 
-        assertEquals(1, response.rowCount());
-        assertThat((int) ((Map) response.rows()[0][0]).get("col_nested_integer"), is(1));
-        assertThat((String) ((Map) ((Map) response.rows()[0][0]).get("col_nested_object")).get("col_text"), is("test"));
+        assertThat(response).hasRowCount(1);
+        assertThat((int) ((Map) response.rows()[0][0]).get("col_nested_integer"))
+            .isEqualTo(1);
+        assertThat((String) ((Map) ((Map) response.rows()[0][0]).get("col_nested_object")).get("col_text"))
+            .isEqualTo("test");
     }
 
     @UseJdbc(0)
     @Test
     public void testCreateTableAsColumnNamesInSubscriptNotation() {
-        expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("\"col['nested_col']\" conflicts with subscript pattern");
-
         execute("create table tbl (col object(strict) as (nested_col text))");
-        execute("create table cpy as select col['nested_col'] from tbl");
+        assertThatThrownBy(() -> execute("create table cpy as select col['nested_col'] from tbl"))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage("\"col['nested_col']\" conflicts with subscript pattern");
     }
 
     @UseJdbc(0)
     @Test
     public void testCreateTableAsDuplicateColumnNames() {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("column \"col\" specified more than once");
-
         execute("create table tbl (col_text text, col_int integer)");
-        execute("create table cpy as select col_text as col, col_int as col from tbl");
+        assertThatThrownBy(() -> execute("create table cpy as select col_text as col, col_int as col from tbl"))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("column \"col\" specified more than once");
     }
 
     @UseJdbc(0)
     @Test
     public void testCreateTableAsExistingTableName() {
-        expectedException.expect(RelationAlreadyExists.class);
-        expectedException.expectMessage("Relation 'doc.cpy' already exists.");
-
         execute("create table doc.tbl (col_text text, col_int integer)");
         execute("create table doc.cpy as select * from doc.tbl");
-        execute("create table doc.cpy as select * from doc.tbl");
+        assertThatThrownBy(() -> execute("create table doc.cpy as select * from doc.tbl"))
+            .isExactlyInstanceOf(RelationAlreadyExists.class)
+            .hasMessage("Relation 'doc.cpy' already exists.");
     }
 }

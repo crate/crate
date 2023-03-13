@@ -82,43 +82,61 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testUnknownSchema() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'invalid.table' unknown");
         FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
-        resolver.resolveField(newQN("invalid.table.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("invalid.table.name"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY)
+        ).isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'invalid.table' unknown");
     }
 
     @Test
     public void testUnknownTable() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'dummy.invalid' unknown");
         FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
-        resolver.resolveField(newQN("dummy.invalid.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("dummy.invalid.name"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY)
+        ).isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'dummy.invalid' unknown");
     }
 
     @Test
     public void testSysColumnWithoutSourceRelation() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'sys.nodes' unknown");
         FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
-
-        resolver.resolveField(newQN("sys.nodes.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("sys.nodes.name"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY)
+        ).isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'sys.nodes' unknown");
     }
 
     @Test
     public void testRegularColumnUnknown() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
         FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
-        resolver.resolveField(newQN("age"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("age"),
+            null,
+            Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test
     public void testResolveDynamicReference() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column age unknown");
         AnalyzedRelation barT = new DummyRelation("name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("bar.t"), barT));
-        resolver.resolveField(newQN("t.age"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("t.age"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column age unknown");
     }
 
     @Test
@@ -174,31 +192,42 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testTooManyParts() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
         FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
-        resolver.resolveField(new QualifiedName(Arrays.asList("a", "b", "c", "d")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            new QualifiedName(Arrays.asList("a", "b", "c", "d")),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testTooManyPartsNameFieldResolver() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column reference \"a.b\" has too many parts. A column must not have a schema or a table here.");
         FieldProvider<Symbol> resolver = new NameFieldProvider(DUMMY_RELATION);
-        resolver.resolveField(new QualifiedName(Arrays.asList("a", "b")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            new QualifiedName(Arrays.asList("a", "b")),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column reference \"a.b\" has too many parts. A column must not have a schema or a table here.");
     }
 
     @Test
     public void testRelationFromTwoTablesWithSameNameDifferentSchemaIsAmbiguous() throws Exception {
         // select t.name from custom.t.name, doc.t.name
-        expectedException.expect(AmbiguousColumnException.class);
-        expectedException.expectMessage("Column \"name\" is ambiguous");
-
         FieldProvider<Symbol> resolver = newFQFieldProvider(
             Map.of(
                 new QualifiedName(Arrays.asList("custom", "t")), new DummyRelation("name"),
                 new QualifiedName(Arrays.asList("doc", "t")), new DummyRelation("name"))
         );
-        resolver.resolveField(new QualifiedName(Arrays.asList("t", "name")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            new QualifiedName(Arrays.asList("t", "name")),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(AmbiguousColumnException.class)
+            .hasMessage("Column \"name\" is ambiguous");
     }
 
     @Test
@@ -223,11 +252,15 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testSimpleResolverUnknownColumn() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column unknown unknown");
         AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("doc.t"), relation));
-        resolver.resolveField(new QualifiedName(List.of("unknown")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            new QualifiedName(List.of("unknown")),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column unknown unknown");
     }
 
     @Test
@@ -241,11 +274,15 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testColumnSchemaResolverFail() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column name unknown");
         AnalyzedRelation barT = new DummyRelation("\"Name\"");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("bar"), barT));
-        resolver.resolveField(newQN("bar.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("bar.name"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column name unknown");
     }
 
     @Test
@@ -259,10 +296,14 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testAliasRelationNameResolverFail() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'doc.\"Bar\"' unknown");
         AnalyzedRelation barT = new DummyRelation("name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("bar"), barT));
-        resolver.resolveField(newQN("\"Bar\".name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("\"Bar\".name"),
+            null,
+            Operation.READ,
+            DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        )).isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'doc.\"Bar\"' unknown");
     }
 }

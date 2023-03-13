@@ -21,9 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -62,28 +61,27 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnalyzeKillAll() {
-        assertThat(analyze("KILL ALL"), is(nullValue()));
+        assertThat(analyze("KILL ALL")).isNull();
     }
 
     @Test
     public void testAnalyzeKillJobWithParameter() {
         UUID jobId = UUID.randomUUID();
-        assertThat(analyze("KILL $2", 2, jobId.toString()), is(jobId));
-        assertThat(analyze("KILL $1", jobId.toString()), is(jobId));
-        assertThat(analyze("KILL ?", jobId.toString()), is(jobId));
+        assertThat(analyze("KILL $2", 2, jobId.toString())).isEqualTo(jobId);
+        assertThat(analyze("KILL $1", jobId.toString())).isEqualTo(jobId);
+        assertThat(analyze("KILL ?", jobId.toString())).isEqualTo(jobId);
     }
 
     @Test
     public void testAnalyzeKillJobWithLiteral() {
         UUID jobId = UUID.randomUUID();
-        assertThat(
-            analyze(String.format(Locale.ENGLISH, "KILL '%s'", jobId.toString())),
-            is(jobId));
+        assertThat(analyze(String.format(Locale.ENGLISH, "KILL '%s'", jobId.toString())))
+            .isEqualTo(jobId);
     }
 
     @Test
     public void testAnalyzeKillJobsNotParsable() {
-        expectedException.expect(IllegalArgumentException.class);
-        analyze("KILL '6a3d6401-4333-933d-b38c9322fca7'");
+        assertThatThrownBy(() -> analyze("KILL '6a3d6401-4333-933d-b38c9322fca7'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 }

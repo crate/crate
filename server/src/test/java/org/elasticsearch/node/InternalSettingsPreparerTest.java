@@ -21,26 +21,20 @@
 
 package org.elasticsearch.node;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.util.HashMap;
 
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
-import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class InternalSettingsPreparerTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testThatCommandLineArgumentsOverrideSettingsFromConfigFile() throws Exception {
@@ -54,16 +48,16 @@ public class InternalSettingsPreparerTest {
         Settings finalSettings = InternalSettingsPreparer
             .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         // Overriding value from crate.yml
-        assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(false));
+        assertThat(finalSettings.getAsBoolean("stats.enabled", null)).isEqualTo(false);
         // Value kept from crate.yml
-        assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
+        assertThat(finalSettings.getAsBoolean("psql.enabled", null)).isEqualTo(false);
         // Overriding value from crate.yml
-        assertThat(finalSettings.get("cluster.name"), is("clusterNameOverridden"));
+        assertThat(finalSettings.get("cluster.name")).isEqualTo("clusterNameOverridden");
         // Value kept from crate.yml
-        assertThat(finalSettings.get("path.logs"), Matchers.anyOf(
-            is("/some/other/path"),
-            endsWith(":\\some\\other\\path")
-        ));
+        assertThat(finalSettings.get("path.logs")).satisfiesAnyOf(
+            v -> assertThat(v).isEqualTo("/some/other/path"),
+            v -> assertThat(v).endsWith(":\\some\\other\\path")
+        );
     }
 
     @Test
@@ -76,13 +70,13 @@ public class InternalSettingsPreparerTest {
         Settings finalSettings = InternalSettingsPreparer
             .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         // Values from crate.yml
-        assertThat(finalSettings.get("cluster.name"), is("custom"));
+        assertThat(finalSettings.get("cluster.name")).isEqualTo("custom");
         // path.logs is not set in config_custom/crate.yml
         // so it needs to use default value and not the value set in config/crate.yml
-        assertThat(finalSettings.get("path.logs"), Matchers.anyOf(
-            endsWith("org/elasticsearch/node/logs"),
-            endsWith("org\\elasticsearch\\node\\logs")
-        ));
+        assertThat(finalSettings.get("path.logs")).satisfiesAnyOf(
+            v -> assertThat(v).endsWith("org/elasticsearch/node/logs"),
+            v -> assertThat(v).endsWith("org\\elasticsearch\\node\\logs")
+        );
     }
 
     @Test
@@ -93,7 +87,7 @@ public class InternalSettingsPreparerTest {
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         Settings finalSettings = InternalSettingsPreparer
             .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
-        assertThat(finalSettings.get("cluster.name"), is("clusterName"));
+        assertThat(finalSettings.get("cluster.name")).isEqualTo("clusterName");
     }
 
     @Test
@@ -102,9 +96,11 @@ public class InternalSettingsPreparerTest {
         settings.put("path.home", ".");
         Path config = PathUtils.get(getClass().getResource("config_invalid").toURI());
         settings.put("path.conf", config.toString());
-        expectedException.expect(SettingsException.class);
-        expectedException.expectMessage("Failed to load settings from");
-        expectedException.expectCause(Matchers.hasProperty("message", containsString("Duplicate field 'stats.enabled'")));
-        InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1");
+        assertThatThrownBy(
+            () -> InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1")
+        ).isExactlyInstanceOf(SettingsException.class)
+            .hasMessage("Failed to load settings from [crate.yml]")
+            .extracting(t -> t.getCause(), Assertions.as(InstanceOfAssertFactories.THROWABLE))
+            .hasMessageStartingWith("Duplicate field 'stats.enabled'");
     }
 }

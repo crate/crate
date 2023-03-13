@@ -21,6 +21,8 @@
 
 package io.crate.breaker;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Collections;
 import java.util.stream.IntStream;
 
@@ -49,8 +51,8 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
                     LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
             ));
 
-        expectedException.expect(CircuitBreakingException.class);
-        RowGenerator.range(0, 3).forEach(rowAccounting::accountForAndMaybeBreak);
+        assertThatThrownBy(() -> RowGenerator.range(0, 3).forEach(rowAccounting::accountForAndMaybeBreak))
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     @Test
@@ -63,8 +65,9 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
                     new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
             ), 0);
 
-        expectedException.expect(CircuitBreakingException.class);
-        IntStream.range(0, 3).forEach(i -> rowAccounting.accountForAndMaybeBreak(new Object[]{i}));
+        assertThatThrownBy(
+            () -> IntStream.range(0, 3).forEach(i -> rowAccounting.accountForAndMaybeBreak(new Object[]{i}))
+        ).isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     @Test
@@ -78,7 +81,8 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ),
             2);
 
-        expectedException.expect(CircuitBreakingException.class);
-        RowGenerator.range(0, 2).forEach(rowAccounting::accountForAndMaybeBreak);
+        assertThatThrownBy(
+            () -> RowGenerator.range(0, 2).forEach(rowAccounting::accountForAndMaybeBreak)
+        ).isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.analyze.expressions;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.joda.time.Period;
 import org.junit.Before;
@@ -101,9 +102,9 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIntervalInvalidStartEnd() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield must be less significant than Endfield");
-        e.asSymbol("INTERVAL '1' MONTH TO YEAR");
+        assertThatThrownBy(() -> e.asSymbol("INTERVAL '1' MONTH TO YEAR"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Startfield must be less significant than Endfield");
     }
 
     @Test
@@ -114,8 +115,8 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_more_odds() throws Exception {
-        expectedException.expect(ConversionException.class);
-        e.asSymbol("INTERVAL '1-2 3 4-5-6'");
+        assertThatThrownBy(() -> e.asSymbol("INTERVAL '1-2 3 4-5-6'"))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
 }

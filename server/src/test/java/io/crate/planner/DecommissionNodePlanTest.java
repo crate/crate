@@ -21,8 +21,8 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -32,29 +32,26 @@ public class DecommissionNodePlanTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveIdUsingNodeId() throws Exception {
-        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_ID),
-                   is(NODE_ID)
-        );
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_ID))
+            .isEqualTo(NODE_ID);
     }
 
     @Test
     public void testResolveIdUsingNodeName() throws Exception {
-        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME),
-                   is(NODE_ID)
-        );
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME))
+            .isEqualTo(NODE_ID);
     }
 
     @Test
     public void testResolveIdUsingNodeNameDiffCase() throws Exception {
-        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME.toUpperCase()),
-                   is(NODE_ID)
-        );
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME.toUpperCase()))
+            .isEqualTo(NODE_ID);
     }
 
     @Test
     public void testFailIfNodeIsNotPartOfTheCluster() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("could not be found");
-        NodeSelection.resolveNodeId(clusterService.state().nodes(), "aNonExistentNode");
+        assertThatThrownBy(() -> NodeSelection.resolveNodeId(clusterService.state().nodes(), "aNonExistentNode"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Node: 'aNonExistentNode' could not be found");
     }
 }
