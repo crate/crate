@@ -21,8 +21,8 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -34,60 +34,60 @@ public class BooleanTypeTest extends ESTestCase {
 
     @Test
     public void test_cast_text_to_boolean() {
-        assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("T"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("false"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("fAlSe"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("FALSE"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("f"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("F"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("no"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("nO"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("NO"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("n"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("N"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("off"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("Off"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("OFF"), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("0"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("t")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("T")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("false")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("fAlSe")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("FALSE")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("f")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("F")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("no")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("nO")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("NO")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("n")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("N")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("off")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("Off")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("OFF")).isFalse();
+        assertThat(BooleanType.INSTANCE.implicitCast("0")).isFalse();
 
-        assertThat(BooleanType.INSTANCE.implicitCast("true"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("trUe"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("TRUE"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("T"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("yes"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("yEs"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("YES"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("y"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("Y"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("on"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("On"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("ON"), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("1"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("true")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("trUe")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("TRUE")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("t")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("T")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("yes")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("yEs")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("YES")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("y")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("Y")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("on")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("On")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("ON")).isTrue();
+        assertThat(BooleanType.INSTANCE.implicitCast("1")).isTrue();
     }
 
     @Test
     public void test_sanitize_boolean_value() {
-        assertThat(BooleanType.INSTANCE.sanitizeValue(Boolean.FALSE), is(false));
+        assertThat(BooleanType.INSTANCE.sanitizeValue(Boolean.FALSE)).isFalse();
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(BooleanType.INSTANCE.sanitizeValue(1), is(true));
+        assertThat(BooleanType.INSTANCE.sanitizeValue(1)).isTrue();
     }
 
     @Test
     public void test_cast_unsupported_text_to_boolean_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Can't convert \"hello\" to boolean");
-        BooleanType.INSTANCE.implicitCast("hello");
+        assertThatThrownBy(() -> BooleanType.INSTANCE.implicitCast("hello"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Can't convert \"hello\" to boolean");
     }
 
     @Test
     public void test_cast_map_to_boolean_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to boolean");
-        BooleanType.INSTANCE.implicitCast(Map.of());
+        assertThatThrownBy(() -> BooleanType.INSTANCE.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to boolean");
     }
 }

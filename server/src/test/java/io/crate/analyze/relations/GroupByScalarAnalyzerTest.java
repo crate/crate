@@ -21,8 +21,9 @@
 
 package io.crate.analyze.relations;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
@@ -48,26 +49,27 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testScalarFunctionArgumentsNotAllInGroupByThrowsException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'(id * other_id)' must appear in the GROUP BY");
-        executor.analyze("select id * other_id from users group by id");
+        assertThatThrownBy(() -> executor.analyze("select id * other_id from users group by id"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'(id * other_id)' must appear in the GROUP BY");
+
     }
 
     @Test
     public void testValidGroupByWithScalarAndMultipleColumns() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * other_id from users group by id, other_id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("(id * other_id)"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * other_id)");
     }
 
     @Test
     public void testValidGroupByWithScalar() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * 2 from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("(id * 2::bigint)"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * 2::bigint)");
     }
 
     @Test
     public void testValidGroupByWithMultipleScalarFunctions() throws Exception {
         AnalyzedRelation relation = executor.analyze("select abs(id * 2) from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("abs((id * 2::bigint))"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("abs((id * 2::bigint))");
     }
 }

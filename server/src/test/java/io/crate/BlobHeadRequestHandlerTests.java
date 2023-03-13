@@ -21,6 +21,7 @@
 
 package io.crate;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -129,7 +130,6 @@ public class BlobHeadRequestHandlerTests extends ESTestCase {
     @Test
     public void testPutHeadChunkRunnableFileDoesntGrow() throws Exception {
         // this test is rather slow, tune wait time in PutHeadChunkRunnable?
-        expectedException.expect(HeadChunkFileTooSmallException.class);
 
         File file = File.createTempFile("test", "");
         File notExisting = new File("./does/not/exist");
@@ -148,7 +148,8 @@ public class BlobHeadRequestHandlerTests extends ESTestCase {
             digestBlob, 5, transportService, transferTarget, node1, transferId
         );
 
-        runnable.run();
+        assertThatThrownBy(() -> runnable.run())
+            .isExactlyInstanceOf(HeadChunkFileTooSmallException.class);
         verify(digestBlob).getContainerFile();
     }
 }

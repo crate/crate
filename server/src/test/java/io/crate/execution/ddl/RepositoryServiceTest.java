@@ -21,8 +21,8 @@
 
 package io.crate.execution.ddl;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
@@ -74,22 +74,19 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testConvertException() throws Throwable {
-        expectedException.expect(RepositoryException.class);
-        expectedException.expectMessage("[foo] failed: [foo] missing location");
-
-        throw RepositoryService.convertRepositoryException(
+        Throwable result = RepositoryService.convertRepositoryException(
             new RepositoryException("foo", "failed", new CreationException(
                 List.of(new Message(
                     Collections.singletonList(10),
                     "creation error",
                     new RepositoryException("foo", "missing location"))
                 ))));
+        assertThat(result).isExactlyInstanceOf(RepositoryException.class)
+            .hasMessage("[] [foo] failed: [foo] missing location");
     }
 
     @Test
     public void testRepositoryIsDroppedOnFailure() throws Throwable {
-        expectedException.expect(RepositoryException.class);
-
         // add repo to cluster service so that it exists..
         RepositoriesMetadata repos = new RepositoriesMetadata(Collections.singletonList(new RepositoryMetadata("repo1", "fs", Settings.EMPTY)));
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metadata(
@@ -127,13 +124,11 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             deleteRepositoryAction,
             putRepo);
-        try {
-            PutRepositoryRequest request = new PutRepositoryRequest("repo1");
-            request.type("fs");
-            repositoryService.execute(request).get(10, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            assertThat(deleteRepoCalled.get(), is(true));
-            throw e.getCause();
-        }
+        PutRepositoryRequest request = new PutRepositoryRequest("repo1");
+        request.type("fs");
+        assertThatThrownBy(() -> repositoryService.execute(request).get(10, TimeUnit.SECONDS))
+            .isExactlyInstanceOf(ExecutionException.class)
+            .hasCauseExactlyInstanceOf(RepositoryException.class);
+        assertThat(deleteRepoCalled.get()).isTrue();
     }
 }

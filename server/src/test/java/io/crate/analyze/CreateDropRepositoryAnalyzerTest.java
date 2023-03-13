@@ -21,10 +21,8 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.Map;
@@ -104,34 +102,31 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             "CREATE REPOSITORY \"new_repository\" TYPE \"fs\" WITH (" +
             "   location='/mount/backups/my_backup'," +
             "   compress=True)");
-        assertThat(request.name(), is("new_repository"));
-        assertThat(request.type(), is("fs"));
-        assertThat(
-            request.settings().getAsStructuredMap(),
-            allOf(
-                hasEntry("compress", "true"),
-                hasEntry("location", "/mount/backups/my_backup"))
+        assertThat(request.name()).isEqualTo("new_repository");
+        assertThat(request.type()).isEqualTo("fs");
+        assertThat(request.settings().getAsStructuredMap()).satisfies(
+            v -> assertThat(v).containsEntry("compress", "true"),
+            v -> assertThat(v).containsEntry("location", "/mount/backups/my_backup")
         );
     }
 
     @Test
     public void testCreateExistingRepository() {
-        expectedException.expect(RepositoryAlreadyExistsException.class);
-        expectedException.expectMessage("Repository 'my_repo' already exists");
-        analyze(e, "CREATE REPOSITORY my_repo TYPE fs");
+        assertThatThrownBy(() -> analyze(e, "CREATE REPOSITORY my_repo TYPE fs"))
+            .isExactlyInstanceOf(RepositoryAlreadyExistsException.class)
+            .hasMessage("Repository 'my_repo' already exists");
     }
 
     @Test
     public void testDropUnknownRepository() {
-        expectedException.expect(RepositoryUnknownException.class);
-        expectedException.expectMessage("Repository 'unknown_repo' unknown");
-        analyze(e, "DROP REPOSITORY \"unknown_repo\"");
+        assertThatThrownBy(() -> analyze(e, "DROP REPOSITORY \"unknown_repo\""))
+            .isExactlyInstanceOf(RepositoryUnknownException.class)
+            .hasMessage("Repository 'unknown_repo' unknown");
     }
 
     @Test
     public void testDropExistingRepo() {
         AnalyzedDropRepository statement = analyze(e, "DROP REPOSITORY my_repo");
-        assertThat(statement.name(), is("my_repo"));
+        assertThat(statement.name()).isEqualTo("my_repo");
     }
-
 }
