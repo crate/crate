@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -53,6 +54,7 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -164,6 +166,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             insertColumns,
             request.returnValues()
         );
+        if (indexer.hasUndeterministicSynthetics()) {
+            request.insertColumns(indexer.insertColumns(insertColumns));
+        }
         InsertSourceGen insertSourceGen = null;
         ReturnValueGen returnValueGen = null;
         if (insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
@@ -231,6 +236,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.id(),
                         getExceptionMessage(e),
                         (e instanceof VersionConflictEngineException)));
+            } catch (AssertionError e) {
+                // Shouldn't happen in production but helps during development
+                // where bugs may trigger assertions
+                // Otherwise tests could get stuck
+                shardResponse.failure(Exceptions.toException(e));
+                break;
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
@@ -247,33 +258,93 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Translog.Location location = null;
+        Reference[] insertColumns = request.insertColumns();
+        String indexName = request.index();
+        boolean traceEnabled = logger.isTraceEnabled();
+        if (insertColumns == null || insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW)) {
+            for (ShardUpsertRequest.Item item : request.items()) {
+                if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+                    if (traceEnabled) {
+                        logger.trace(
+                            "[{} (R)] Document with id={}, marked as skip_on_replica",
+                            indexShard.shardId(),
+                            item.id()
+                        );
+                    }
+                    continue;
+                }
+                SourceToParse sourceToParse = new SourceToParse(
+                    indexName,
+                    item.id(),
+                    item.source(),
+                    XContentType.JSON
+                );
+                IndexResult result = indexShard.applyIndexOperationOnReplica(
+                    item.seqNo(),
+                    item.primaryTerm(),
+                    item.version(),
+                    Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                    false,
+                    sourceToParse
+                );
+                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                    // Even though the primary waits on all nodes to ack the mapping changes to the master
+                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
+                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
+                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
+                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
+                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
+                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
+                    // applied the new mapping, so there is no other option than to wait.
+                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                        "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                }
+                location = result.getTranslogLocation();
+            }
+            return new WriteReplicaResult<>(request, location, null, indexShard, logger);
+        }
+
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.INSERT);
+        var mapperService = indexShard.mapperService();
+        Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
+        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
+
+        // Refresh insertColumns References from cluster state because ObjectType
+        // may have new children due to dynamic cluster state updates
+        // Not doing this would result in indefinite `Mappings are not available on the replica yet` errors below
+        List<Reference> targetColumns = Stream.of(insertColumns)
+            .map(ref -> {
+                Reference updatedRef = tableInfo.getReference(ref.column());
+                return updatedRef == null ? ref : updatedRef;
+            })
+            .toList();
+        Indexer indexer = new Indexer(
+            indexName,
+            tableInfo,
+            txnCtx,
+            nodeCtx,
+            getFieldType,
+            targetColumns,
+            null
+        );
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA || item.source() == null) {
-                if (logger.isTraceEnabled()) {
+            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+                if (traceEnabled) {
                     logger.trace(
-                        "[{} (R)] Document with id {}, has no source, primary operation must have failed",
+                        "[{} (R)] Document with id={}, marked as skip_on_replica",
                         indexShard.shardId(),
                         item.id()
                     );
                 }
                 continue;
             }
-            SourceToParse sourceToParse = new SourceToParse(
-                indexShard.shardId().getIndexName(),
-                item.id(),
-                item.source(),
-                XContentType.JSON
-            );
+            long startTime = System.nanoTime();
+            ParsedDocument parsedDoc = indexer.index(item);
+            if (!parsedDoc.newColumns().isEmpty()) {
+                // this forces clearing the cache
+                schemas.tableExists(relationName);
 
-            Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
-                item.seqNo(),
-                item.primaryTerm(),
-                item.version(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                false,
-                sourceToParse
-            );
-            if (indexResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 // Even though the primary waits on all nodes to ack the mapping changes to the master
                 // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
                 // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
@@ -282,10 +353,30 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
+                logger.trace("Mappings are not available on the replica columns={}", parsedDoc.newColumns());
                 throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
+                    "Mappings are not available on the replica yet, triggered update: " + parsedDoc.newColumns());
             }
-            location = indexResult.getTranslogLocation();
+            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            boolean isRetry = false;
+            Engine.Index index = new Engine.Index(
+                uid,
+                parsedDoc,
+                item.seqNo(),
+                item.primaryTerm(),
+                item.version(),
+                null, // versionType
+                Origin.REPLICA,
+                startTime,
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                isRetry,
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+            );
+            IndexResult result = indexShard.index(index);
+            assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED
+                : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
+            location = result.getTranslogLocation();
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
@@ -320,9 +411,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
-                    request.insertColumns(updateToInsert.columns());
-                    assert request.insertColumns().length == indexItem.insertValues().length
-                        : "insertColumns length must match insertValues length";
+                    request.insertColumns(indexer.insertColumns(updateToInsert.columns()));
                 }
                 return insert(
                     indexer,
@@ -390,11 +479,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             return legacyInsert(request, item, indexShard, isRetry, returnGen, insertSourceGen);
         }
 
-        long startTime = System.nanoTime();
+        final long startTime = System.nanoTime();
         ParsedDocument parsedDoc = indexer.index(item);
 
-        // Remove this once replica uses indexer as well
-        item.source(parsedDoc.source());
+        // Replica must use the same values for undeterministic defaults/generated columns
+        if (indexer.hasUndeterministicSynthetics()) {
+            item.insertValues(indexer.addGeneratedValues(item));
+        }
 
         if (!parsedDoc.newColumns().isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
@@ -407,6 +498,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+        assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,
             parsedDoc,

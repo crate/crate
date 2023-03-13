@@ -2137,4 +2137,24 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select * from tbl where xo is null");
         assertThat(response).hasRowCount(0L);
     }
+
+    @Test
+    public void test_generated_non_deterministic_value_is_consistent_on_primary_and_replica() throws Exception {
+        execute("""
+            create table tbl (x int, created generated always as now())
+            clustered into 1 shards
+            with (number_of_replicas = 1)
+            """
+        );
+        ensureGreen();
+        execute("insert into tbl (x) values (1)");
+        execute("refresh table tbl");
+        execute("select created from tbl");
+        long created = (long) response.rows()[0][0];
+
+        // some iterations to ensure it hits both primary and replica
+        for (int i = 0; i < 30; i++) {
+            assertThat(execute("select created from tbl").rows()[0][0]).isEqualTo(created);
+        }
+    }
 }
