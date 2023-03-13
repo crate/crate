@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -568,5 +567,34 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                         └ Collect[doc.t2 | [y] | true]
             """
         );
+    }
+
+
+    // tracks a bug: https://github.com/crate/crate/issues/13779
+    @Test
+    public void test_prune_outputs_on_group_hash_aggregate() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='1' GROUP BY 1,3
+            UNION
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='2' GROUP BY 1,3
+            UNION
+            SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
+            """);
+        assertThat(plan).isEqualTo(
+            """
+            GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
+              └ Union[ai, "avg(x)", "cast(i AS bigint)"]
+                ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
+                │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
+                │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
+                │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
+                └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
+                  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
+                    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]
+            """);
     }
 }
