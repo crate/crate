@@ -106,8 +106,8 @@ import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.tests.mockfile.FilterFileChannel;
 import org.apache.lucene.tests.mockfile.FilterFileSystemProvider;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.apache.lucene.tests.util.LineFileDocs;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -152,7 +152,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
-@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS")
+@LuceneTestCase.SuppressFileSystems("ExtrasFS")
 public class TranslogTests extends ESTestCase {
 
     protected final ShardId shardId = new ShardId("index", "_na_", 1);

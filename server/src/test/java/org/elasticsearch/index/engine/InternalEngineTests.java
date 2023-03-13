@@ -143,6 +143,7 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
@@ -2433,7 +2434,7 @@ public class InternalEngineTests extends EngineTestCase {
     // sent to lucene.iw with log level TRACE:
     @Test
     public void testIndexWriterInfoStream() throws IllegalAccessException, IOException {
-        assumeFalse("who tests the tester?", VERBOSE);
+        LuceneTestCase.assumeFalse("who tests the tester?", LuceneTestCase.VERBOSE);
         MockAppender mockAppender = new MockAppender("testIndexWriterInfoStream");
         mockAppender.start();
 
@@ -2749,7 +2750,7 @@ public class InternalEngineTests extends EngineTestCase {
     // #8603: make sure we can separately log IFD's messages
     @Test
     public void testIndexWriterIFDInfoStream() throws IllegalAccessException, IOException {
-        assumeFalse("who tests the tester?", VERBOSE);
+        LuceneTestCase.assumeFalse("who tests the tester?", LuceneTestCase.VERBOSE);
         MockAppender mockAppender = new MockAppender("testIndexWriterIFDInfoStream");
         mockAppender.start();
 
