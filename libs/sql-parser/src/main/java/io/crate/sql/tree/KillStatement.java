@@ -21,8 +21,9 @@
 
 package io.crate.sql.tree;
 
-import javax.annotation.Nullable;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 public class KillStatement<T> extends Statement {
 
@@ -46,7 +47,7 @@ public class KillStatement<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        KillStatement that = (KillStatement) o;
+        KillStatement<?> that = (KillStatement<?>) o;
         return Objects.equals(jobId, that.jobId);
     }
 

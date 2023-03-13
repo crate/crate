@@ -21,6 +21,13 @@
 
 package io.crate.execution.engine.join;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
 import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
@@ -33,12 +40,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
 
 public class HashJoinOperation implements CompletionListenable {
 

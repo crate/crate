@@ -19,19 +19,7 @@
 
 package org.elasticsearch.index.analysis;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.TextFieldMapper;
-import org.elasticsearch.indices.analysis.AnalysisModule;
-import org.elasticsearch.indices.analysis.AnalysisModule.AnalysisProvider;
-import org.elasticsearch.indices.analysis.PreBuiltAnalyzers;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -42,7 +30,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.unmodifiableMap;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.TextFieldMapper;
+import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.indices.analysis.AnalysisModule.AnalysisProvider;
+import org.elasticsearch.indices.analysis.PreBuiltAnalyzers;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * An internal registry for tokenizer, token filter, char filter and analyzer.
@@ -336,12 +337,12 @@ public final class AnalysisRegistry implements Closeable {
                 T factory = null;
                 if (typeName == null) {
                     if (currentSettings.get("tokenizer") != null) {
-                        factory = (T) new CustomAnalyzerProvider(settings, name, currentSettings, environment);
+                        factory = (T) new CustomAnalyzerProvider(settings, name, currentSettings);
                     } else {
                         throw new IllegalArgumentException(component + " [" + name + "] must specify either an analyzer type, or a tokenizer");
                     }
                 } else if (typeName.equals("custom")) {
-                    factory = (T) new CustomAnalyzerProvider(settings, name, currentSettings, environment);
+                    factory = (T) new CustomAnalyzerProvider(settings, name, currentSettings);
                 }
                 if (factory != null) {
                     factories.put(name, factory);

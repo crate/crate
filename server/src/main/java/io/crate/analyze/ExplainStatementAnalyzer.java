@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.profile.ProfilingContext;
@@ -32,8 +34,6 @@ import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Statement;
-
-import java.util.List;
 
 public class ExplainStatementAnalyzer {
 
@@ -70,7 +70,7 @@ public class ExplainStatementAnalyzer {
         }
 
         @Override
-        public Void visitCopyFrom(CopyFrom node, Void context) {
+        public Void visitCopyFrom(CopyFrom<?> node, Void context) {
             return null;
         }
 

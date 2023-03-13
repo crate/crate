@@ -19,34 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.node;
+package io.crate.expression.scalar.systeminformation;
 
-import java.util.Collection;
-import java.util.List;
+import org.junit.Test;
 
-import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
+import io.crate.expression.scalar.ScalarTestCase;
 
-import io.crate.plugin.SrvPlugin;
-import io.crate.udc.plugin.UDCPlugin;
+public class ColDescriptionFunctionTest extends ScalarTestCase {
 
-public class CrateNode extends Node {
-
-    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = List.of(
-        SrvPlugin.class,
-        UDCPlugin.class,
-        URLRepositoryPlugin.class,
-        S3RepositoryPlugin.class,
-        Ec2DiscoveryPlugin.class,
-        Netty4Plugin.class);
-
-    protected CrateNode(Environment environment) {
-        super(environment, CLASSPATH_PLUGINS, true);
+    @Test
+    public void test_col_description_always_returns_null() {
+        assertEvaluateNull("pg_catalog.col_description(1, 0)");
+        assertEvaluateNull("col_description(1, 0)");
+        assertEvaluateNull("col_description(null, 0)");
+        assertEvaluateNull("col_description(1, null)");
     }
 }
-

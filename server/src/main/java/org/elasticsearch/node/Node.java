@@ -51,7 +51,7 @@ import javax.net.ssl.SNIHostName;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Assertions;
@@ -446,7 +446,7 @@ public class Node implements Closeable {
             IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
             modules.add(indicesModule);
 
-            BooleanQuery.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
+            IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
             CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);
@@ -819,7 +819,7 @@ public class Node implements Closeable {
 
     private void logVersion(Logger logger, JvmInfo jvmInfo) {
         logger.info(
-            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
+            "version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}]",
             Version.displayVersion(Version.CURRENT, Version.CURRENT.isSnapshot()),
             jvmInfo.pid(),
             Build.CURRENT.hashShort(),
@@ -829,8 +829,7 @@ public class Node implements Closeable {
             Constants.OS_ARCH,
             Constants.JVM_VENDOR,
             Constants.JVM_NAME,
-            Constants.JAVA_VERSION,
-            Constants.JVM_VERSION);
+            Runtime.version());
         warnIfPreRelease(Version.CURRENT, Version.CURRENT.isSnapshot(), logger);
     }
 

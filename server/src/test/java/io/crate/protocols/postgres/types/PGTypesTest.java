@@ -213,11 +213,12 @@ public class PGTypesTest extends ESTestCase {
     }
 
     @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void test_can_retrieve_pg_type_for_record_array() throws Exception {
         var pgType = PGTypes.get(new ArrayType<>(new RowType(List.of(DataTypes.STRING))));
         assertThat(pgType.oid(), is(PGArray.EMPTY_RECORD_ARRAY.oid()));
 
-        byte[] bytes = pgType.encodeAsUTF8Text(List.of(new Row1("foobar")));
+        byte[] bytes = ((PGType) pgType).encodeAsUTF8Text(List.of(new Row1("foobar")));
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("{\"(foobar)\"}"));
     }
 

@@ -49,8 +49,8 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
@@ -271,7 +271,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
         for (int i = 0; i < bulkArgs.size(); i++) {
             session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
-            ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
+            var resultReceiver = new RestBulkRowCountReceiver(results, i);
             session.execute(UNNAMED, 0, resultReceiver);
         }
         if (results.length > 0) {

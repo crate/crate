@@ -19,14 +19,14 @@
 
 package org.elasticsearch.cli;
 
-import joptsimple.NonOptionArgumentSpec;
-import joptsimple.OptionSet;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import joptsimple.NonOptionArgumentSpec;
+import joptsimple.OptionSet;
 
 /**
  * A cli tool which is made up of multiple subcommands.
@@ -56,7 +56,8 @@ public class MultiCommand extends Command {
         terminal.println("Commands");
         terminal.println("--------");
         for (Map.Entry<String, Command> subcommand : subcommands.entrySet()) {
-            terminal.println(subcommand.getKey() + " - " + subcommand.getValue().description);
+            Command value = subcommand.getValue();
+            terminal.println(subcommand.getKey() + " - " + value.description);
         }
         terminal.println("");
     }

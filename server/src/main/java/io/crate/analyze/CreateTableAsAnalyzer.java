@@ -56,7 +56,7 @@ public final class CreateTableAsAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedCreateTableAs analyze(CreateTableAs createTableAs,
+    public AnalyzedCreateTableAs analyze(CreateTableAs<Expression> createTableAs,
                                          ParamTypeHints paramTypeHints,
                                          CoordinatorTxnCtx txnCtx) {
 

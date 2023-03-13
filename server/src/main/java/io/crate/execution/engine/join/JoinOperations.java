@@ -21,7 +21,20 @@
 
 package io.crate.execution.engine.join;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.relations.JoinPair;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -35,17 +48,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.JoinType;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 public final class JoinOperations {
 
     private JoinOperations() {
@@ -56,7 +58,7 @@ public final class JoinOperations {
                                              boolean isDistributed) {
         return isDistributed ||
                resultDescription.hasRemainingLimitOrOffset() ||
-               !resultDescription.nodeIds().equals(executionNodes);
+               !Lists2.equals(resultDescription.nodeIds(), executionNodes);
     }
 
     public static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
