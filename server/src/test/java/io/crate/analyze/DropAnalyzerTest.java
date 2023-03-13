@@ -25,9 +25,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -105,8 +103,8 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private void assertIsMarkedToBeRemove(Settings settings, String settingName) {
-        assertThat(settings.keySet(), hasItem(settingName));
-        assertThat(settings.get(settingName), nullValue());
+        assertThat(settings.keySet()).contains(settingName);
+        assertThat(settings.get(settingName)).isNull();
     }
 
     @Test

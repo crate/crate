@@ -21,9 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -39,67 +38,67 @@ public class RelationNameTest extends ESTestCase {
     @Test
     public void testIndexName() throws Exception {
         RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
-        assertThat(ti.indexNameOrAlias(), is("t"));
+        assertThat(ti.indexNameOrAlias()).isEqualTo("t");
         ti = new RelationName("s", "t");
-        assertThat(ti.indexNameOrAlias(), is("s.t"));
+        assertThat(ti.indexNameOrAlias()).isEqualTo("s.t");
     }
 
     @Test
     public void testFromIndexName() throws Exception {
-        assertThat(RelationName.fromIndexName("t"), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
-        assertThat(RelationName.fromIndexName("s.t"), is(new RelationName("s", "t")));
+        assertThat(RelationName.fromIndexName("t")).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "t"));
+        assertThat(RelationName.fromIndexName("s.t")).isEqualTo(new RelationName("s", "t"));
 
         PartitionName pn = new PartitionName(new RelationName("s", "t"), List.of("v1"));
-        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName("s", "t")));
+        assertThat(RelationName.fromIndexName(pn.asIndexName())).isEqualTo(new RelationName("s", "t"));
 
         pn = new PartitionName(new RelationName("doc", "t"), List.of("v1"));
-        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
+        assertThat(RelationName.fromIndexName(pn.asIndexName())).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "t"));
     }
 
     @Test
     public void testFromIndexNameCreatesCorrectBlobRelationName() {
         RelationName relationName = new RelationName("blob", "foobar");
         String indexName = relationName.indexNameOrAlias();
-        assertThat(BlobIndex.isBlobIndex(indexName), is(true));
-        assertThat(RelationName.fromIndexName(indexName), is(relationName));
+        assertThat(BlobIndex.isBlobIndex(indexName)).isEqualTo(true);
+        assertThat(RelationName.fromIndexName(indexName)).isEqualTo(relationName);
     }
 
     @Test
     public void testDefaultSchema() throws Exception {
         RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
-        assertThat(ti.schema(), is("doc"));
-        assertThat(ti, is(new RelationName("doc", "t")));
+        assertThat(ti.schema()).isEqualTo("doc");
+        assertThat(ti).isEqualTo(new RelationName("doc", "t"));
     }
 
     @Test
     public void testFQN() throws Exception {
         RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
-        assertThat(ti.fqn(), is("doc.t"));
+        assertThat(ti.fqn()).isEqualTo("doc.t");
 
         ti = new RelationName("s", "t");
-        assertThat(ti.fqn(), is("s.t"));
+        assertThat(ti.fqn()).isEqualTo("s.t");
     }
 
     @Test
     public void testFqnFromIndexName() throws Exception {
-        assertThat(RelationName.fqnFromIndexName("t1"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
-        assertThat(RelationName.fqnFromIndexName("my_schema.t1"), is("my_schema.t1"));
-        assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
-        assertThat(RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc"), is("my_schema.t1"));
+        assertThat(RelationName.fqnFromIndexName("t1")).isEqualTo(Schemas.DOC_SCHEMA_NAME + ".t1");
+        assertThat(RelationName.fqnFromIndexName("my_schema.t1")).isEqualTo("my_schema.t1");
+        assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc")).isEqualTo(Schemas.DOC_SCHEMA_NAME + ".t1");
+        assertThat(RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc")).isEqualTo("my_schema.t1");
     }
 
     @Test
     public void testFqnFromIndexNameUnsupported3Parts() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name: my_schema.t1.foo");
-        RelationName.fqnFromIndexName("my_schema.t1.foo");
+        assertThatThrownBy(() -> RelationName.fqnFromIndexName("my_schema.t1.foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid index name: my_schema.t1.foo");
     }
 
     @Test
     public void testFqnFromIndexNameUnsupportedMoreThan5Parts() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid index name: my_schema..partitioned.t1.abc.foo");
-        RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc.foo");
+        assertThatThrownBy(() -> RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc.foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid index name: my_schema..partitioned.t1.abc.foo");
     }
 
     @Test
