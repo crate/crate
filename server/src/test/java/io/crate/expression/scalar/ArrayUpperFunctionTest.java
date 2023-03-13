@@ -23,6 +23,8 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
+
 public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
@@ -87,7 +89,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_upper()." +
                                         " Possible candidates: array_upper(array(E), integer):integer");
         assertEvaluateNull("array_upper()");
@@ -95,7 +97,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
         assertEvaluateNull("array_upper([1])");
@@ -103,7 +105,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testThreeArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1), 2, _array(3))," +
                                         " no overload found for matching argument types: (integer_array, integer, integer_array).");
         assertEvaluateNull("array_upper([1], 2, [3])");
@@ -111,7 +113,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSecondArgumentNotANumber() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1), _array(2))," +
                                         " no overload found for matching argument types: (integer_array, integer_array).");
         assertEvaluateNull("array_upper([1], [2])");

@@ -3999,6 +3999,31 @@ Example:
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-col_description:
+
+``col_description(integer, integer)``
+-------------------------------------
+
+This function exists mainly for compatibility with PostgreSQL. In PostgreSQL,
+the function returns the comment for a table column. CrateDB doesn't support
+user defined comments for table columns, so it always returns ``null``.
+
+
+Returns: ``text``
+
+Example:
+
+::
+
+    cr> SELECT pg_catalog.col_description(1, 1) AS comment;
+    +---------+
+    | comment |
+    +---------+
+    |    NULL |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-obj_description:
 
 ``obj_description(integer, text)``

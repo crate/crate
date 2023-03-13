@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -138,7 +139,7 @@ public class WithinFunctionTest extends ScalarTestCase {
 
     @Test
     public void testFirstArgumentWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
                                         " no overload found for matching argument types: (bigint, geo_point).");
         getFunction(FNAME, List.of(DataTypes.LONG, DataTypes.GEO_POINT));
@@ -146,7 +147,7 @@ public class WithinFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point, bigint).");
         getFunction(FNAME, List.of(DataTypes.GEO_POINT, DataTypes.LONG));

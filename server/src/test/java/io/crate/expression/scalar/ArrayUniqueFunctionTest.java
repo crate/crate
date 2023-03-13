@@ -33,6 +33,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -80,7 +81,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_unique().");
         assertEvaluateNull("array_unique()");
     }
@@ -111,7 +112,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
 
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_unique(_array(doc.users.geopoint), _array(true))," +
                                         " no overload found for matching argument types: (geo_point_array, boolean_array).");
         assertEvaluateNull("array_unique([geopoint], [true])");

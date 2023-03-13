@@ -38,9 +38,8 @@ public class PgTypeTable {
 
     private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
 
-    @SuppressWarnings("rawtypes")
-    public static SystemTable<PGType> create() {
-        return SystemTable.<PGType>builder(IDENT)
+    public static SystemTable<PGType<?>> create() {
+        return SystemTable.<PGType<?>>builder(IDENT)
             .add("oid", INTEGER, PGType::oid)
             .add("typname", STRING, PGType::typName)
             .add("typdelim", STRING, PGType::typDelim)

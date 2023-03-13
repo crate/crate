@@ -65,7 +65,8 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
     }
 
     @Override
-    public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Void> ... args) {
         return Constants.DB_NAME;
     }
 }

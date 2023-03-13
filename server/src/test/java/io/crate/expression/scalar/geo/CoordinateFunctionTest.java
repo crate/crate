@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isNull;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
@@ -72,7 +73,7 @@ public class CoordinateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: latitude('POINT (10 20)', 'foo')," +
                                         " no overload found for matching argument types: (text, text).");
         assertNormalize("latitude('POINT (10 20)', 'foo')", isNull());
@@ -80,7 +81,7 @@ public class CoordinateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage(
             "Unknown function: longitude(1), no overload found for matching argument types: (integer)");
         assertEvaluateNull("longitude(1)");

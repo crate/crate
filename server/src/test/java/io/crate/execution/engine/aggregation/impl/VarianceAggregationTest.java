@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -125,7 +126,7 @@ public class VarianceAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: variance(INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point).");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});

@@ -94,6 +94,7 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -214,7 +215,15 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, RelationContext context) {
-            // Any user can execute table functions; Queries like `select 1` might be used to do simple connection checks
+            String schema = tableFunctionRelation.relationName().schema();
+
+            // ex) select * from custom_schema.udf(); -- the user must have privilege for custom_schema
+            if (schema != null) {
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.DQL, Privilege.Clazz.SCHEMA, schema, context.user, defaultSchema);
+            }
+            // On the other hand, all users should be able to access built-in functions without any privileges.
+            // ex) select * from abs(1);
             return null;
         }
 
@@ -922,6 +931,14 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitSchemaScopeException(SchemaScopeException e, User context) {
             Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, e.getSchemaName(), context);
+            return null;
+        }
+
+        @Override
+        protected Void visitUnsupportedFunctionException(UnsupportedFunctionException e, User user) {
+            if (e.getSchemaName() != null) {
+                visitSchemaScopeException(e, user);
+            }
             return null;
         }
 

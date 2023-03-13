@@ -107,6 +107,7 @@ public final class Insert<T> extends Statement {
         private static final DuplicateKeyContext<?> NONE =
             new DuplicateKeyContext<>(Type.NONE, Collections.emptyList(), Collections.emptyList());
 
+        @SuppressWarnings("unchecked")
         public static <T> DuplicateKeyContext<T> none() {
             return (DuplicateKeyContext<T>) NONE;
         }

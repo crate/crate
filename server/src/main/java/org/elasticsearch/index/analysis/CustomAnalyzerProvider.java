@@ -19,14 +19,13 @@
 
 package org.elasticsearch.index.analysis;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.TextFieldMapper;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.TextFieldMapper;
 
 /**
  * A custom analyzer that is built out of a single {@link org.apache.lucene.analysis.Tokenizer} and a list
@@ -35,15 +34,12 @@ import java.util.Map;
 public class CustomAnalyzerProvider extends AbstractIndexAnalyzerProvider<CustomAnalyzer> {
 
     private final Settings analyzerSettings;
-    private final Environment environment;
 
     private CustomAnalyzer customAnalyzer;
 
-    public CustomAnalyzerProvider(IndexSettings indexSettings,
-                                  String name, Settings settings, Environment environment) {
+    public CustomAnalyzerProvider(IndexSettings indexSettings, String name, Settings settings) {
         super(indexSettings, name, settings);
         this.analyzerSettings = settings;
-        this.environment = environment;
     }
 
     public void build(final Map<String, TokenizerFactory> tokenizers, final Map<String, CharFilterFactory> charFilters,

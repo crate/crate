@@ -44,6 +44,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
@@ -621,7 +622,6 @@ public abstract class StreamInput extends InputStream {
         return (Map<String, Object>) readGenericValue();
     }
 
-    @SuppressWarnings({"unchecked"})
     /**
      * Read {@link ImmutableOpenMap} using given key and value readers.
      *
@@ -714,8 +714,7 @@ public abstract class StreamInput extends InputStream {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private List readArrayList() throws IOException {
+    private List<Object> readArrayList() throws IOException {
         int size = readArraySize();
         if (size == 0) {
             return Collections.emptyList();
@@ -773,7 +772,7 @@ public abstract class StreamInput extends InputStream {
         return list8;
     }
 
-    private Map readLinkedHashMap() throws IOException {
+    private Map<String, Object> readLinkedHashMap() throws IOException {
         int size9 = readArraySize();
         if (size9 == 0) {
             return Collections.emptyMap();
@@ -785,7 +784,7 @@ public abstract class StreamInput extends InputStream {
         return map9;
     }
 
-    private Map readHashMap() throws IOException {
+    private Map<String, Object> readHashMap() throws IOException {
         int size10 = readArraySize();
         if (size10 == 0) {
             return Collections.emptyMap();

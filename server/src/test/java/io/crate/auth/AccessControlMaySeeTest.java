@@ -41,6 +41,7 @@ import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -145,5 +146,19 @@ public class AccessControlMaySeeTest extends ESTestCase {
             new ColumnUnknownException(
                 new ColumnIdent("x"), new RelationName("doc", "empty_row")));
         assertAskedAnyForTable("doc.empty_row");
+    }
+
+    @Test
+    public void test_UnsupportedFunctionException_with_null_schema() {
+        // select * from unknown_function();
+        accessControl.ensureMaySee(new UnsupportedFunctionException("Unknown Function: unknown_function()", null));
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    @Test
+    public void test_UnsupportedFunctionException_with_non_null_schema() {
+        // select * from doc.unknown_function();
+        accessControl.ensureMaySee(new UnsupportedFunctionException("Unknown Function: doc.unknown_function()", "doc"));
+        assertAskedAnyForSchema("doc");
     }
 }

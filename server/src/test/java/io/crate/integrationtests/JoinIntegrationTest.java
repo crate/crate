@@ -1336,4 +1336,64 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(stmt);
         assertThat(response).hasRows("2| bazinga");
     }
+
+    /**
+     * Test that a NestedLoop join as the left side of a lower join works even when both join operations
+     * are running on the same node and thus the NestedLoop join will be repeated.
+     * Tests for a bug where the "requires scroll" property wasn't inherited correctly.
+     * See {@url https://github.com/crate/crate/issues/13689} and {@url https://github.com/crate/crate/issues/13361}.
+     */
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_nested_loop_join_works_as_the_left_side_of_another_join() {
+        execute("CREATE TABLE t1 (x int) CLUSTERED INTO 3 SHARDS");
+        execute("CREATE TABLE t2 (y int) CLUSTERED INTO 3 SHARDS");
+
+        execute("INSERT INTO t1 VALUES (1), (2)");
+        execute("INSERT INTO t2 VALUES (1)");
+        refresh();
+
+        var stmt =
+            """
+            WITH combined as (
+                SELECT t1.x
+                FROM t1
+                LEFT JOIN t2 ON t1.x = t2.y
+            ),
+            generated AS (
+                SELECT *
+                FROM UNNEST([1, 2, 3]) z
+            )
+            SELECT *
+            FROM generated d
+            LEFT JOIN combined c ON d.z = c.x
+            ORDER BY 1, 2;
+            """;
+
+        // Ensure that the query is using the execution plan we want to test
+        // This should prevent the test case from becoming invalid
+        execute("EXPLAIN " + stmt);
+        assertThat(response.rows()[0][0]).isEqualTo(
+                """
+                   OrderBy[z ASC x ASC]
+                     └ NestedLoopJoin[LEFT | (z = x)]
+                       ├ Rename[z] AS d
+                       │  └ Rename[z] AS generated
+                       │    └ Rename[z] AS z
+                       │      └ TableFunction[unnest | [unnest] | true]
+                       └ Rename[x] AS c
+                         └ Rename[x] AS combined
+                           └ Eval[x]
+                             └ NestedLoopJoin[LEFT | (x = y)]
+                               ├ Collect[doc.t1 | [x] | true]
+                               └ Collect[doc.t2 | [y] | true]"""
+        );
+
+        execute(stmt);
+        assertThat(response).hasRows(
+                "1| 1",
+                "2| 2",
+                "3| NULL"
+        );
+    }
 }

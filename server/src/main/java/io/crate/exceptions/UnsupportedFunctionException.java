@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,34 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.node;
+package io.crate.exceptions;
 
-import java.util.Collection;
-import java.util.List;
+import javax.annotation.Nullable;
 
-import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
+public class UnsupportedFunctionException extends RuntimeException implements ResourceUnknownException, SchemaScopeException {
 
-import io.crate.plugin.SrvPlugin;
-import io.crate.udc.plugin.UDCPlugin;
+    @Nullable
+    private final String schema;
 
-public class CrateNode extends Node {
+    public UnsupportedFunctionException(String message, @Nullable String schema) {
+        super(message);
+        this.schema = schema;
+    }
 
-    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = List.of(
-        SrvPlugin.class,
-        UDCPlugin.class,
-        URLRepositoryPlugin.class,
-        S3RepositoryPlugin.class,
-        Ec2DiscoveryPlugin.class,
-        Netty4Plugin.class);
+    @Nullable
+    @Override
+    public String getSchemaName() {
+        return schema;
+    }
 
-    protected CrateNode(Environment environment) {
-        super(environment, CLASSPATH_PLUGINS, true);
+    @Override
+    public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
+        return exceptionVisitor.visitUnsupportedFunctionException(this, context);
     }
 }
-

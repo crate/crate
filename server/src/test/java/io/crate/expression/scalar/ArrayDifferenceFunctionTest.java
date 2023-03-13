@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -90,7 +91,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_difference()." +
                                         " Possible candidates: array_difference(array(E), array(E)):array(E)");
         assertNormalize("array_difference()", isNull());
@@ -98,7 +99,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: array_difference(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
         assertNormalize("array_difference([1])", isNull());

@@ -118,10 +118,11 @@ public final class CrateSettings {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static void flattenSettings(Settings.Builder settingsBuilder,
                                        String key,
                                        Object value) {
-        if (value instanceof Map) {
+        if (value instanceof Map<?, ?> m) {
             for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
                 flattenSettings(
                     settingsBuilder,

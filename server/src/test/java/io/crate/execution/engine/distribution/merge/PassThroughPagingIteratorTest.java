@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,7 +40,7 @@ public class PassThroughPagingIteratorTest extends ESTestCase {
     @Test
     public void testHasNextCallWithoutMerge() throws Exception {
         PassThroughPagingIterator<Integer, Object> iterator = iter();
-        assertThat(iterator.hasNext(), is(false));
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     @Test
@@ -54,7 +53,7 @@ public class PassThroughPagingIteratorTest extends ESTestCase {
         iterator.finish();
         ArrayList<String> objects = new ArrayList<>();
         iterator.forEachRemaining(objects::add);
-        assertThat(objects, contains("a", "b", "c", "d", "e"));
+        assertThat(objects).containsExactly("a", "b", "c", "d", "e");
     }
 
     @Test
@@ -68,6 +67,14 @@ public class PassThroughPagingIteratorTest extends ESTestCase {
         iterator.finish();
         ArrayList<String> objects = new ArrayList<>();
         iterator.forEachRemaining(objects::add);
-        assertThat(objects, contains("a", "b", "c", "d", "e", "f", "g"));
+        assertThat(objects).containsExactly("a", "b", "c", "d", "e", "f", "g");
+    }
+
+    @Test
+    public void test_non_repeatable_instance_doesnt_support_repeat_calls() {
+        var iter = PassThroughPagingIterator.oneShot();
+        assertThatThrownBy(iter::repeat)
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Can't repeat a non-repeatable iterator");
     }
 }

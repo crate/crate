@@ -59,7 +59,7 @@ public class DropCheckConstraint<T> extends Statement {
         if (false == obj instanceof DropCheckConstraint) {
             return false;
         }
-        DropCheckConstraint<T> that = (DropCheckConstraint<T>) obj;
+        DropCheckConstraint<?> that = (DropCheckConstraint<?>) obj;
         return Objects.equals(name, that.name) &&
                Objects.equals(table, that.table);
 

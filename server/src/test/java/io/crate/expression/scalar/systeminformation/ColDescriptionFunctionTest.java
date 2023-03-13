@@ -19,22 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.common.collections;
+package io.crate.expression.scalar.systeminformation;
 
-import java.util.concurrent.ArrayBlockingQueue;
+import org.junit.Test;
 
-public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> {
+import io.crate.expression.scalar.ScalarTestCase;
 
-    public BlockingEvictingQueue(int capacity) {
-        super(capacity);
-        assert capacity > 0 : "capacity should be > 0";
-    }
+public class ColDescriptionFunctionTest extends ScalarTestCase {
 
-    @Override
-    public boolean offer(E e) {
-        while (!super.offer(e)) {
-            poll();
-        }
-        return true;
+    @Test
+    public void test_col_description_always_returns_null() {
+        assertEvaluateNull("pg_catalog.col_description(1, 0)");
+        assertEvaluateNull("col_description(1, 0)");
+        assertEvaluateNull("col_description(null, 0)");
+        assertEvaluateNull("col_description(1, null)");
     }
 }

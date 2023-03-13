@@ -37,6 +37,7 @@ import java.util.Map;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -89,7 +90,7 @@ public class FunctionsTest extends ESTestCase {
     public void test_function_name_doesnt_exists() {
         var functions = createFunctions();
 
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: does_not_exists()");
         functions.get(null, "does_not_exists", Collections.emptyList(), SearchPath.pathWithPGCatalogAndDoc());
     }

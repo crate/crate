@@ -19,52 +19,49 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.List;
+package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-public class CollectionCountFunction extends Scalar<Long, List<Object>> {
+public final class ColDescriptionFunction extends Scalar<String, Object> {
 
-    public static final String NAME = "collection_count";
+    private static final String NAME = "col_description";
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
-                NAME,
-                parseTypeSignature("array(E)"),
-                DataTypes.LONG.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
-            CollectionCountFunction::new
+                FQN,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            ColDescriptionFunction::new
         );
     }
 
     private final Signature signature;
     private final BoundSignature boundSignature;
 
-    private CollectionCountFunction(Signature signature, BoundSignature boundSignature) {
+    public ColDescriptionFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
 
-    @Override
     @SafeVarargs
-    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
-        List<Object> argArray = args[0].value();
-        if (argArray == null) {
-            return null;
-        }
-        return (long) argArray.size();
+    @Override
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+        // CrateDB doesn't support comments for table columns, so always return null
+        return null;
     }
 
     @Override

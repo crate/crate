@@ -32,6 +32,7 @@ import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
@@ -137,7 +138,7 @@ public class AverageAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: avg(INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point).");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
