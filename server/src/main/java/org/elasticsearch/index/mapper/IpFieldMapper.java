@@ -63,6 +63,7 @@ public class IpFieldMapper extends FieldMapper {
             var mapper = new IpFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
@@ -104,11 +105,12 @@ public class IpFieldMapper extends FieldMapper {
     private IpFieldMapper(
             String simpleName,
             int position,
+            long columnOID,
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override

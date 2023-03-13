@@ -30,8 +30,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.metadata.Reference.OID_UNASSIGNED;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeLongValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
 public class TypeParsers {
@@ -184,6 +186,9 @@ public class TypeParsers {
                 iterator.remove();
             } else if (propName.equals("default_expr")) {
                 builder.defaultExpression(nodeStringValue(propNode, null));
+                iterator.remove();
+            } else if (propName.equals("oid")) {
+                builder.columnOID(nodeLongValue(propNode, OID_UNASSIGNED));
                 iterator.remove();
             }
         }
