@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -60,7 +60,7 @@ import org.elasticsearch.test.IndexSettingsModule;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 
-@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS") // TODO: fix test to allow extras
+@LuceneTestCase.SuppressFileSystems("ExtrasFS") // TODO: fix test to allow extras
 public class NodeEnvironmentTests extends ESTestCase {
     private final IndexSettings idxSettings = IndexSettingsModule.newIndexSettings("foo", Settings.EMPTY);
 

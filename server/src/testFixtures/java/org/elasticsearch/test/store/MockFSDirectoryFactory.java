@@ -32,7 +32,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -47,8 +47,8 @@ import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Assert;
 
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
@@ -126,7 +126,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
         // TODO: make this test robust to virus scanner
         w.setAssertNoDeleteOpenFile(false);
         w.setUseSlowOpenClosers(false);
-        CrateLuceneTestCase.closeAfterSuite(new CloseableDirectory(w));
+        LuceneTestCase.closeAfterSuite(new CloseableDirectory(w));
         return w;
     }
 

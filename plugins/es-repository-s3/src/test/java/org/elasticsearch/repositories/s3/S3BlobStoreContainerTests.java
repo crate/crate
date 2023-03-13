@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.common.blobstore.BlobPath;
@@ -76,7 +77,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
     @Override
     public void testVerifyOverwriteFails() {
-        assumeFalse("not implemented because of S3's weak consistency model", true);
+        LuceneTestCase.assumeFalse("not implemented because of S3's weak consistency model", true);
     }
 
     @Test

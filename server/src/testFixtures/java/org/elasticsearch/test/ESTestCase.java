@@ -60,7 +60,8 @@ import org.apache.logging.log4j.status.StatusConsoleListener;
 import org.apache.logging.log4j.status.StatusData;
 import org.apache.logging.log4j.status.StatusLogger;
 import org.apache.lucene.tests.util.CrateLuceneTestCase;
-import org.apache.lucene.tests.util.CrateLuceneTestCase.SuppressCodecs;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase.SuppressCodecs;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
 import org.apache.lucene.tests.util.TimeUnits;
 import org.elasticsearch.Version;
@@ -144,7 +145,7 @@ import io.crate.testing.Asserts;
 @ThreadLeakScope(Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @TimeoutSuite(millis = 20 * TimeUnits.MINUTE)
-@CrateLuceneTestCase.SuppressSysoutChecks(bugUrl = "we log a lot on purpose")
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = "we log a lot on purpose")
 // we suppress pretty much all the lucene codecs for now, except asserting
 // assertingcodec is the winner for a codec here: it finds bugs and gives clear exceptions.
 @SuppressCodecs({
@@ -152,7 +153,7 @@ import io.crate.testing.Asserts;
         "TestBloomFilteredLucenePostings", "MockRandom", "BlockTreeOrds", "LuceneFixedGap",
         "LuceneVarGapFixedInterval", "LuceneVarGapDocFreqInterval", "Lucene50"
 })
-@CrateLuceneTestCase.SuppressReproduceLine
+@LuceneTestCase.SuppressReproduceLine
 public abstract class ESTestCase extends CrateLuceneTestCase {
 
     protected static final List<String> JODA_TIMEZONE_IDS;
@@ -741,7 +742,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      * return URL encoded paths if the parent path contains spaces or other
      * non-standard characters.
      */
-    @Override
     public Path getDataPath(String relativePath) {
         // we override LTC behavior here: wrap even resources with mockfilesystems,
         // because some code is buggy when it comes to multiple nio.2 filesystems
@@ -957,7 +957,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      * Returns the suite failure marker: internal use only!
      */
     public static TestRuleMarkFailure getSuiteFailureMarker() {
-        return suiteFailureMarker;
+        return CrateLuceneTestCase.LocalLuceneTestCase.getSuiteFailureMarker();
     }
 
     /**

@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cli.MockTerminal;
@@ -109,7 +109,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         return detachCluster(environment, false);
     }
 
-    private void expectThrows(CrateLuceneTestCase.ThrowingRunnable runnable, String message) {
+    private void expectThrows(LuceneTestCase.ThrowingRunnable runnable, String message) {
         ElasticsearchException ex = expectThrows(ElasticsearchException.class, runnable);
         assertThat(ex.getMessage(), containsString(message));
     }

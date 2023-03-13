@@ -66,7 +66,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
@@ -193,7 +193,7 @@ public final class TestCluster implements Closeable {
     public static final int DEFAULT_HIGH_NUM_MASTER_NODES = 3;
 
     static final int DEFAULT_MIN_NUM_DATA_NODES = 1;
-    static final int DEFAULT_MAX_NUM_DATA_NODES = CrateLuceneTestCase.TEST_NIGHTLY ? 6 : 3;
+    static final int DEFAULT_MAX_NUM_DATA_NODES = LuceneTestCase.TEST_NIGHTLY ? 6 : 3;
 
     static final int DEFAULT_NUM_CLIENT_NODES = -1;
     static final int DEFAULT_MIN_NUM_CLIENT_NODES = 0;
@@ -369,7 +369,7 @@ public final class TestCluster implements Closeable {
         builder.put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), "1b");
         builder.put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), "1b");
         builder.put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING.getKey(), "1b");
-        if (CrateLuceneTestCase.TEST_NIGHTLY) {
+        if (LuceneTestCase.TEST_NIGHTLY) {
             builder.put(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING.getKey(),
                     RandomNumbers.randomIntBetween(random, 5, 10));
             builder.put(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING.getKey(),

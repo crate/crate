@@ -45,7 +45,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
@@ -70,7 +70,7 @@ import io.crate.common.io.IOUtils;
  * Basic test that ensure that the internal cluster reproduces the same
  * configuration given the same seed / input.
  */
-@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
+@LuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
 public class InternalTestClusterTests extends ESTestCase {
 
     private static Collection<Class<? extends Plugin>> mockPlugins() {
