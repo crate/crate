@@ -515,7 +515,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
                     .build()
             )
             .mapping("{\n" +
-                "    \"default\": {\n" +
                 "      \"properties\": {\n" +
                 "        \"field1\": {\n" +
                 "          \"type\": \"text\",\n" +
@@ -523,7 +522,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 "          \"analyzer\": \"test\"\n" +
                 "        }\n" +
                 "      }\n" +
-                "    }\n" +
                 "  }}", XContentType.JSON)
         ).get();
         logger.info("--> indexing a simple document");

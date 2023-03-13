@@ -24,11 +24,13 @@ package io.crate.execution.ddl.tables;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -48,8 +50,12 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_child_column() throws Exception {
+
+        // ensure the test is operating on a fresh, empty cluster state (no tables)
+        resetClusterService();
+
         var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object)")
+            .addTable("create table tbl (x int, o object)", Settings.EMPTY, true)
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         try (IndexEnv indexEnv = new IndexEnv(
@@ -61,7 +67,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         )) {
             var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
             ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
-            SimpleReference newColumn = new SimpleReference(
+            Reference newColumn = new SimpleReference(
                 refIdent,
                 RowGranularity.DOC,
                 DataTypes.INTEGER,
@@ -79,6 +85,13 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
 
             Reference addedColumn = newTable.getReference(newColumn.column());
+            assertThat(addedColumn).isNotEqualTo(newColumn); // request column doesn't have OID and thus not equals to the created ref
+
+            // We align refs by imitating code execution.
+            // First 2 OIDS are taken by addTable(create table) and oid is incremented accordingly
+            // newColumn gets next from the cluster state, which is 2+1.
+            // Only OID is different, after aligning columns must be equal.
+            newColumn = newColumn.assignOid(3L);
             assertThat(addedColumn).isEqualTo(newColumn);
         }
     }
@@ -123,7 +136,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
          * if there are concurrent alter table (or more likely: Dynamic mapping updates due to concurrent inserts)
          **/
         var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
+            .addTable("create table tbl (x int)", Settings.EMPTY, true)
             .build();
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
@@ -187,7 +200,9 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 4,
                 null
             );
-            List<Reference> columns = List.of(newColumn1, newColumn2);
+            List<Reference> columns = new ArrayList<>();
+            columns.add(newColumn1);
+            columns.add(newColumn2);
             var request = new AddColumnRequest(
                 tbl.ident(),
                 columns,

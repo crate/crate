@@ -57,7 +57,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-@IntegTestCase.ClusterScope()
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
 @UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends IntegTestCase {
 
@@ -70,8 +70,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"primary_keys\":[\"col1\"]}," +
                                  "\"properties\":{" +
                                  // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":2}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":1}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -81,7 +81,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                   "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
                                   "}}}";
 
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
         // test index usage
@@ -143,12 +143,10 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]," +
-                                 "\"routing\":\"col1\"}," +
+                                 "\"_meta\":{\"routing\":\"col1\",\"primary_keys\":[\"col1\"]}," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":2}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":1}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -158,7 +156,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                   "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
                                   "}}}";
 
-        JSONAssert.assertEquals(expectedMapping, getIndexMapping("test"), JSONCompareMode.LENIENT);
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), JSONCompareMode.LENIENT);
     }
 
@@ -171,8 +169,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"dynamic\":\"strict\",\"_meta\":{" +
                                  "\"primary_keys\":[\"col1\"]}," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":2}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":1}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -183,7 +181,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                   "}}}";
 
 
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
     }
 
@@ -194,17 +192,18 @@ public class DDLIntegrationTest extends IntegTestCase {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"oid\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (col1 text default 'foo')");
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"keyword\",\"position\":1,\"default_expr\":\"'foo'\"}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        String expectedMapping = "{\"default\":" + "{" +
+            "\"dynamic\":\"strict\"," +
+            "\"_meta\":{}," +
+            "\"properties\":{\"col1\":{\"type\":\"keyword\",\"position\":1,\"default_expr\":\"'foo'\",\"oid\":1}}}}";
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
 
     }
 
@@ -214,8 +213,8 @@ public class DDLIntegrationTest extends IntegTestCase {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1,\"oid\":1}}}}";
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
 
     }
 
@@ -866,8 +865,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -888,9 +887,9 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"day\":\"date_trunc('day', ts)\"," +
                                  "\"added\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"added\":{\"type\":\"date\",\"position\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

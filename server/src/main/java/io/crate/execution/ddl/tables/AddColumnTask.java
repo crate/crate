@@ -79,7 +79,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
     @Override
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
 

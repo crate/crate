@@ -22,7 +22,6 @@
 package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -42,6 +41,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
@@ -845,7 +845,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_fields_order_in_source_is_determinisitc() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object, y int)")
+            .addTable("create table tbl (x int, o object, y int)", Settings.EMPTY, true)
             .build();
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x", "o", "y");
         BytesReference source = null;

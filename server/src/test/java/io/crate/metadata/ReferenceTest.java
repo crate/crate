@@ -31,6 +31,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.common.collections.Maps;
@@ -125,7 +126,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_mapping_generation_for_varchar_with_length() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs varchar(40))")
+            .addTable("create table tbl (xs varchar(40))", Settings.EMPTY, true)
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
@@ -133,28 +134,45 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mapping)
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
             .containsEntry("type", "keyword")
-            .hasSize(3);
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
     }
 
     @Test
     public void test_mapping_generation_for_string_without_doc_values() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs string storage with (columnstore = false))")
+            .addTable("create table tbl (xs string storage with (columnstore = false))", Settings.EMPTY, true)
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
         Map<String, Object> mapping = reference.toMapping();
         assertThat(mapping)
             .containsEntry("position", 1)
+            .containsEntry("oid", 1L)
             .containsEntry("type", "keyword")
             .containsEntry("doc_values", "false")
-            .hasSize(3);
+            .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
+    }
+
+
+    /**
+     * Jackson optimizes writes of small long values as stores them as ints:
+     * if (v > MIN_INT_AS_LONG) {
+     *     return outputInt((int) v, b, off);
+     * }
+     * It makes sourceAsMap return int OIDS for small values.
+     * We check OIDS by explicitly turning mapping oid to LONG.
+     * This is done similar to how OID is handled in DocIndexMetadata.internalExtractColumnDefinitions
+     */
+    @SuppressWarnings("unchecked")
+    private static void compareMappings(Map<String, Object> sourceAsMap, String columnName, Map<String, Object> expected) {
+        Map<String, Object> actual = (Map<String, Object>) Maps.getByPath(sourceAsMap, "properties." + columnName);
+        assertThat(Long.valueOf(actual.remove("oid").toString())).isEqualTo(expected.remove("oid"));
+        assertThat(actual).isEqualTo(expected);
     }
 }

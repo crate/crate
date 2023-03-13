@@ -22,6 +22,8 @@
 package io.crate.testing;
 
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.execution.ddl.tables.TransportCreateTableAction.assignOidsToColumns;
+import static io.crate.metadata.Reference.OID_UNASSIGNED;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyList;
@@ -444,6 +446,11 @@ public class SQLExecutor {
         }
 
         public Builder addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
+            return addPartitionedTable(createTableStmt, customSettings, false, partitions);
+        }
+
+        @SuppressWarnings("unchecked")
+        public Builder addPartitionedTable(String createTableStmt, Settings customSettings, boolean assignOID, String... partitions) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
@@ -468,6 +475,14 @@ public class SQLExecutor {
                 .put(customSettings)
                 .build();
 
+            long updatedOID = OID_UNASSIGNED;
+            if (assignOID) {
+                // Some code paths need verify that every column must have OID assigned after creation/addition.
+                // We do it atomically in a cluster state but in unit tests we just enrich mapping with OIDS.
+                // Cluster state gets cleaned up via resetClusterService() if necessary, so we always start OID from 1.
+                updatedOID = assignOidsToColumns((Map<String, Map<String, Object>>) analyzedStmt.mapping().get("properties"), OID_UNASSIGNED);
+            }
+
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             AliasMetadata.Builder alias = AliasMetadata.builder(analyzedStmt.tableIdent().indexNameOrAlias());
@@ -478,7 +493,7 @@ public class SQLExecutor {
                 .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);
 
-            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
+            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata()).columnOID(updatedOID)
                 .put(template);
 
             RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
@@ -510,6 +525,21 @@ public class SQLExecutor {
          * Add a table to the clusterState
          */
         public Builder addTable(String createTableStmt, Settings settings) throws IOException {
+            return addTable(createTableStmt, settings, false);
+        }
+
+        /**
+         * @param assignOID enables/disables OID assignment.
+         *
+         * Some code paths verify that every column must have OID assigned after creation/addition.
+         * We do it atomically in a cluster state but in unit tests we just enrich mapping with OIDS.
+         * Cluster state gets cleaned up via resetClusterService() if necessary, so we always start OID from 1.
+         *
+         * In most cases we use addTable without flag which fall to assignOID = false in order not to break equals check.
+         * We create reference in many tests and they end up with UNASSIGNED_OID and this can break equality if we assignOID on CREATE TABLE.
+         */
+        @SuppressWarnings("unchecked")
+        public Builder addTable(String createTableStmt, Settings settings, boolean assignOID) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
@@ -524,6 +554,11 @@ public class SQLExecutor {
                 schemas,
                 fulltextAnalyzerResolver
             );
+
+            long updatedOID = OID_UNASSIGNED;
+            if (assignOID) {
+                updatedOID = assignOidsToColumns((Map<String, Map<String, Object>>) analyzedStmt.mapping().get("properties"), OID_UNASSIGNED);
+            }
 
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
@@ -544,7 +579,7 @@ public class SQLExecutor {
             ).build();
 
             ClusterState state = ClusterState.builder(prevState)
-                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true).columnOID(updatedOID))
                 .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
                 .build();
 
