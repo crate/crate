@@ -21,10 +21,6 @@
 
 package io.crate.testing;
 
-import io.crate.data.BatchIterator;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.PrimitiveIterator;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +28,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import io.crate.data.BatchIterator;
 
 /**
  * An BatchIterator implementation which delegates to another one, but adds "fake" batches.

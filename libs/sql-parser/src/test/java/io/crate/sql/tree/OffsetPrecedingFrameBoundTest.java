@@ -21,37 +21,31 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Comparator;
-import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class OffsetPrecedingFrameBoundTest {
+import java.util.Comparator;
+import java.util.List;
 
-    private Comparator<Integer> intComparator;
-    private List<Integer> partition;
+import org.junit.jupiter.api.Test;
 
-    @Before
-    public void setupPartitionAndComparator() {
-        intComparator = Comparator.comparing(x -> x);
-        partition = List.of(1, 2, 3, 6, 7);
-    }
+class OffsetPrecedingFrameBoundTest {
+
+    private static final Comparator<Integer> INT_COMPARATOR = Comparator.comparing(x -> x);
+    private static final List<Integer> PARTITIONS = List.of(1, 2, 3, 6, 7);
 
     @Test
-    public void test_preceding_start_in_range_mode() {
-        int frameStart = PRECEDING.getStart(RANGE, 0, 4, 4, 2L, 4, intComparator, partition);
+    void test_preceding_start_in_range_mode() {
+        int frameStart = PRECEDING.getStart(RANGE, 0, 4, 4, 2L, 4, INT_COMPARATOR, PARTITIONS);
         assertThat(frameStart).isEqualTo(3);
     }
 
     @Test
-    public void test_preceding_start_in_rows_mode() {
-        int frameStart = PRECEDING.getStart(ROWS, 0, 4, 3, 2L, null, intComparator, partition);
+    void test_preceding_start_in_rows_mode() {
+        int frameStart = PRECEDING.getStart(ROWS, 0, 4, 3, 2L, null, INT_COMPARATOR, PARTITIONS);
         assertThat(frameStart).isEqualTo(1);
     }
 }

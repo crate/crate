@@ -21,17 +21,16 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Optional;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class WindowTest {
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
 
     private final Window emptyWindow = new Window(null, List.of(), List.of(), Optional.empty());
 

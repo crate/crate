@@ -21,16 +21,8 @@
 
 package io.crate.data.join;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
-
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.data.SentinelRow.SENTINEL;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,8 +30,16 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import static io.crate.data.SentinelRow.SENTINEL;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 
 public class NestedLoopBatchIteratorsTest {
 
@@ -54,7 +54,7 @@ public class NestedLoopBatchIteratorsTest {
         return row -> Objects.equals(row.get(0), row.get(1));
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         threeXThreeRows = new ArrayList<>();
         for (int i = 0; i < 3; i++) {

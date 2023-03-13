@@ -21,16 +21,17 @@
 
 package io.crate.testing;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowN;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import static io.crate.data.SentinelRow.SENTINEL;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 public class TestingBatchIterators {
 

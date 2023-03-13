@@ -127,6 +127,13 @@ checkstyle {
 }
 
 tasks.withType(Test) {
+    // Junit5 parallel tests
+    systemProperties["junit.jupiter.execution.parallel.enabled"] = true
+    useJUnitPlatform()
+    systemProperties["junit.jupiter.execution.parallel.mode.default"] = "concurrent"
+    systemProperties["junit.jupiter.execution.parallel.mode.classes.default"] = "concurrent"
+    maxParallelForks = Runtime.getRuntime().availableProcessors().intdiv(2) ?: 1
+
     if (System.getProperty('useSystemJdk') == null) {
         test.dependsOn jdks.runtime
         test.executable = jdks.runtime.getBinJavaPath()

@@ -62,3 +62,4 @@ out/
 sandbox/crate/data/
 sandbox/crate/repo/
 **/antlr/
+.jqwik-database

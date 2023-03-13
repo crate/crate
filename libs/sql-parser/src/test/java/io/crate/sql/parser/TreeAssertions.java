@@ -21,18 +21,18 @@
 
 package io.crate.sql.parser;
 
-import io.crate.common.collections.Lists2;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.Statement;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.parser.SqlParser.createStatement;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import io.crate.common.collections.Lists2;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.Statement;
 
 final class TreeAssertions {
     private TreeAssertions() {}

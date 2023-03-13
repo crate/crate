@@ -41,10 +41,6 @@ dependencies {
 
     testImplementation "org.assertj:assertj-core:${versions.assertj}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
-    testImplementation "junit:junit:${versions.junit}"
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
     testImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
 }
 

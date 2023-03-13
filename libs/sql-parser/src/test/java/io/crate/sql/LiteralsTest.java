@@ -22,14 +22,13 @@
 package io.crate.sql;
 
 
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.IntegerLiteral;
-import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class LiteralsTest {
+import org.junit.jupiter.api.Test;
+
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.IntegerLiteral;
 
     @Test
     public void testEscape() {

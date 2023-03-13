@@ -19,14 +19,9 @@ dependencies {
     implementation project(':libs:shared')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
-    testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
-    testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"
     testImplementation "org.assertj:assertj-core:${versions.assertj}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
-    testImplementation "junit:junit:${versions.junit}"
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
+    testImplementation "net.jqwik:jqwik:${versions.jqwik}"
 }
 
 task antlrOutputDir {

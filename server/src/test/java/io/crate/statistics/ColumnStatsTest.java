@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,15 +37,14 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import com.pholser.junit.quickcheck.Property;
-import com.pholser.junit.quickcheck.generator.InRange;
-import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 
 import io.crate.types.DataTypes;
+import net.jqwik.api.Arbitraries;
+import net.jqwik.api.Arbitrary;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+import net.jqwik.api.Provide;
 
-@RunWith(JUnitQuickcheck.class)
 public class ColumnStatsTest {
 
     @Test
@@ -60,14 +58,28 @@ public class ColumnStatsTest {
         assertThat(mostCommonValues.values().length, is(0));
     }
 
-    @Property
-    public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
-                                                                @InRange(minInt = 0) int nullCount,
-                                                                long totalRowCount) {
-        assumeThat(totalRowCount, greaterThanOrEqualTo((long) nullCount));
-        assumeThat((long) numbers.size() + nullCount, lessThanOrEqualTo(totalRowCount));
+    record Params(List<Integer> numbers, int nullCount, long totalRowCount){}
 
-        ColumnStats<Integer> stats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, nullCount, totalRowCount);
+    @Provide
+    Arbitrary<Params> arbitraryParams() {
+        Params[] params = new Params[10];
+        for (int i = 0; i < 10; i++) {
+            int nullCount = Arbitraries.integers().greaterOrEqual(0).sample();
+            int totalRowCount = Arbitraries.integers().greaterOrEqual(nullCount).sample();
+            int numbersSize = Arbitraries.integers().between(0, totalRowCount - nullCount).sample();
+            List<Integer> numbers = new ArrayList<>(numbersSize);
+            for (int j = 0; j < numbersSize; j++) {
+                numbers.add(Arbitraries.integers().greaterOrEqual(0).sample());
+            }
+            params[i] = new Params(numbers, nullCount, totalRowCount);
+        }
+        return Arbitraries.of(params);
+    }
+
+    @Property(tries = 10)
+    public void test_null_fraction_is_between_incl_0_and_incl_1(@ForAll("arbitraryParams") Params params) {
+        ColumnStats<Integer> stats =
+            ColumnStats.fromSortedValues(params.numbers, DataTypes.INTEGER, params.nullCount, params.totalRowCount);
         assertThat(stats.nullFraction(), greaterThanOrEqualTo(0.0));
         assertThat(stats.nullFraction(), lessThanOrEqualTo(1.0));
     }

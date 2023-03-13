@@ -119,8 +119,7 @@ dependencies {
     testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 
     testRuntimeOnly "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
-    testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"
+    testImplementation "net.jqwik:jqwik:${versions.jqwik}"
     testImplementation "org.skyscreamer:jsonassert:${versions.jsonassert}"
     testImplementation "org.assertj:assertj-core:${versions.assertj}"
     testFixturesImplementation "org.assertj:assertj-core:${versions.assertj}"

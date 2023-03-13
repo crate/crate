@@ -23,15 +23,15 @@ package io.crate.sql.tree;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class JoinUsingTests {
+import org.junit.jupiter.api.Test;
+
+class JoinUsingTests {
 
     @Test
-    public void testToExpression() {
+    void testToExpression() {
         for (int n :List.of(1, 2, 3, 4, 5, 6, 7)) {
 
             List<String> cols = new ArrayList<>(n);

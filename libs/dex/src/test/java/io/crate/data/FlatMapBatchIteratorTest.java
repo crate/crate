@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingBatchIterators;
