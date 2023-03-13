@@ -24,14 +24,12 @@ package io.crate.expression.reference;
 import static io.crate.user.User.CRATE_USER;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.StreamSupport;
 
 import org.junit.Test;
 
@@ -61,10 +59,10 @@ public class StaticTableDefinitionTest {
             (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
-        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(3L));
+        assertThat(expected).hasSize(3);
 
         expected = tableDef.retrieveRecords(dummyTxnCtx, dummyUser).get();
-        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(1L));
+        assertThat(expected).hasSize(1);
     }
 
     @Test
@@ -76,6 +74,6 @@ public class StaticTableDefinitionTest {
             (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
-        assertThat(StreamSupport.stream(expected.spliterator(), false).count(), is(0L));
+        assertThat(expected).isEmpty();
     }
 }

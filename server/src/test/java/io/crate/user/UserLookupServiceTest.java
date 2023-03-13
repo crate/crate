@@ -22,9 +22,7 @@
 package io.crate.user;
 
 import static io.crate.user.User.CRATE_USER;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
@@ -41,15 +39,15 @@ public class UserLookupServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testNullAndEmptyMetadata() {
         // the users list will always contain a crate user
         Set<User> users = UserLookupService.getUsers(null, null);
-        assertThat(users, contains(CRATE_USER));
+        assertThat(users).containsExactly(CRATE_USER);
 
         users = UserLookupService.getUsers(new UsersMetadata(), new UsersPrivilegesMetadata());
-        assertThat(users, contains(CRATE_USER));
+        assertThat(users).containsExactly(CRATE_USER);
     }
 
     @Test
     public void testNewUser() {
         Set<User> users = UserLookupService.getUsers(new UsersMetadata(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetadata());
-        assertThat(users, containsInAnyOrder(User.of("Arthur"), CRATE_USER));
+        assertThat(users).containsExactlyInAnyOrder(User.of("Arthur"), CRATE_USER);
     }
 }
