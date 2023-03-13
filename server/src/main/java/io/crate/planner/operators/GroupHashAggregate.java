@@ -252,7 +252,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new HashSet<>();
+        // Keep the same order and avoid introducing an Eval
+        HashSet<Symbol> toKeep = new LinkedHashSet<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
         for (Symbol groupKey : groupKeys) {
             SymbolVisitors.intersection(groupKey, source.outputs(), toKeep::add);

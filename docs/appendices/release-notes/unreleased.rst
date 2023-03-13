@@ -81,6 +81,15 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could cause errors for queries with aggregations and
+  ``UNION``, e.g. ::
+
+    SELECT a, avg(c), b FROM t1 GROUP BY 1, 3
+    UNION
+    SELECT x, avg(z), y FROM t2 GROUP BY 1, 3
+    UNION
+    SELECT i, avg(k), j FROM t3 GROUP BY 1, 3
+
 - Fixed an issue that could cause ``DELETE FROM`` statements which match a large
   amount of records to cause a node to crash with an out of memory error.
 
@@ -109,9 +118,9 @@ Fixes
     IllegalStateException[Symbol 'io.crate.expression.symbol.Symbol' not supported]
     // r is an alias of a and is ambiguous from the perspective of the outer query
 
- - Fixed an issue that translated ``UnsupportedOperationException`` to a
-   misleading ``MissingPrivilegeException`` when executing functions with
-   invalid names or signatures.
+- Fixed an issue that translated ``UnsupportedOperationException`` to a
+  misleading ``MissingPrivilegeException`` when executing functions with
+  invalid names or signatures.
 
 - Fixed an issue causing nested join statements using the ``NESTED LOOP`` plan
   to return incorrect results in some scenarios when issued on a multi-node
