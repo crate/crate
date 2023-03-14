@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.BOOTSTRAP_PLACEHOLDER_PREFIX;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING;
@@ -66,6 +67,7 @@ import org.elasticsearch.test.transport.MockTransport;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
+import org.junit.Test;
 
 public class ClusterBootstrapServiceTests extends ESTestCase {
 
@@ -168,17 +170,17 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         deterministicTaskQueue.runAllTasks();
     }
 
+    @Test
     public void testThrowsExceptionOnDuplicates() {
-        final IllegalArgumentException illegalArgumentException = expectThrows(IllegalArgumentException.class, () -> {
+        assertThatThrownBy(() -> {
             new ClusterBootstrapService(builder().putList(
                 INITIAL_MASTER_NODES_SETTING.getKey(), "duplicate-requirement", "duplicate-requirement").build(),
                 transportService, Collections::emptyList, () -> false, vc -> {
                 throw new AssertionError("should not be called");
             });
-        });
-
-        assertThat(illegalArgumentException.getMessage(), containsString(INITIAL_MASTER_NODES_SETTING.getKey()));
-        assertThat(illegalArgumentException.getMessage(), containsString("duplicate-requirement"));
+        }).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(INITIAL_MASTER_NODES_SETTING.getKey())
+            .hasMessageContaining("duplicate-requirement");
     }
 
     public void testBootstrapsOnDiscoveryOfAllRequiredNodes() {
@@ -527,26 +529,31 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         assertFalse(bootstrapped.get()); // should only bootstrap once
     }
 
+    @Test
     public void testFailBootstrapWithBothSingleNodeDiscoveryAndInitialMasterNodes() {
         final Settings.Builder settings = Settings.builder()
             .put(DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey(), DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE)
             .put(NODE_NAME_SETTING.getKey(), localNode.getName())
             .put(INITIAL_MASTER_NODES_SETTING.getKey(), "test");
 
-        assertThat(expectThrows(IllegalArgumentException.class, () -> new ClusterBootstrapService(settings.build(),
-            transportService, () -> emptyList(), () -> false, vc -> fail())).getMessage(),
-            containsString("setting [" + INITIAL_MASTER_NODES_SETTING.getKey() + "] is not allowed when [discovery.type] is set " +
-                "to [single-node]"));
+        assertThatThrownBy(() -> new ClusterBootstrapService(settings.build(),
+                                transportService, () -> emptyList(), () -> false, vc -> fail()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining(
+                "setting [" + INITIAL_MASTER_NODES_SETTING.getKey() + "] is not allowed when [discovery.type] is set " +
+                "to [single-node]");
     }
 
+    @Test
     public void testFailBootstrapNonMasterEligibleNodeWithSingleNodeDiscovery() {
         final Settings.Builder settings = Settings.builder()
             .put(DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey(), DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE)
             .put(NODE_NAME_SETTING.getKey(), localNode.getName())
             .put(Node.NODE_MASTER_SETTING.getKey(), false);
 
-        assertThat(expectThrows(IllegalArgumentException.class, () -> new ClusterBootstrapService(settings.build(),
-                transportService, () -> emptyList(), () -> false, vc -> fail())).getMessage(),
-            containsString("node with [discovery.type] set to [single-node] must be master-eligible"));
+        assertThatThrownBy(() -> new ClusterBootstrapService(settings.build(),
+                                    transportService, () -> emptyList(), () -> false, vc -> fail()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("node with [discovery.type] set to [single-node] must be master-eligible");
     }
 }

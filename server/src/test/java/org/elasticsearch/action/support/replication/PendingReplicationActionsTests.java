@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.support.replication;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -70,7 +71,7 @@ public class PendingReplicationActionsTests extends ESTestCase {
         PlainActionFuture<Void> future = PlainActionFuture.newFuture();
         TestAction action = new TestAction(future);
         pendingReplication.addPendingAction(allocationId, action);
-        expectThrows(IndexShardClosedException.class, future::actionGet);
+        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
     }
 
     public void testAllocationIdActionWillBeCancelledIfTrackedAllocationChanges() {
@@ -81,7 +82,7 @@ public class PendingReplicationActionsTests extends ESTestCase {
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         pendingReplication.acceptNewTrackedAllocationIds(Collections.emptySet());
-        expectThrows(IndexShardClosedException.class, future::actionGet);
+        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
     }
 
     public void testAllocationIdActionWillBeCancelledOnClose() {
@@ -92,7 +93,7 @@ public class PendingReplicationActionsTests extends ESTestCase {
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         pendingReplication.close();
-        expectThrows(IndexShardClosedException.class, future::actionGet);
+        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
     }
 
     private class TestAction extends RetryableAction<Void> {

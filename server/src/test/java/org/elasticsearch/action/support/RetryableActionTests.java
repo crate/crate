@@ -19,12 +19,9 @@
 
 package org.elasticsearch.action.support;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,6 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 
@@ -69,8 +67,8 @@ public class RetryableActionTests extends ESTestCase {
         retryableAction.run();
         taskQueue.runAllRunnableTasks();
 
-        assertEquals(1, executedCount.get());
-        assertTrue(future.actionGet());
+        assertThat(executedCount.get()).isEqualTo(1);
+        assertThat(future.actionGet()).isTrue();
     }
 
     public void testRetryableActionWillRetry() {
@@ -104,19 +102,20 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue.runAllRunnableTasks();
         long previousDeferredTime = 0;
         for (int i = 0; i < expectedRetryCount; ++i) {
-            assertTrue(taskQueue.hasDeferredTasks());
+            assertThat(taskQueue.hasDeferredTasks()).isTrue();
             final long deferredExecutionTime = taskQueue.getLatestDeferredExecutionTime();
             final long millisBound = 10 << i;
-            assertThat(deferredExecutionTime, lessThanOrEqualTo(millisBound + previousDeferredTime));
+            assertThat(deferredExecutionTime).isLessThanOrEqualTo(millisBound + previousDeferredTime);
             previousDeferredTime = deferredExecutionTime;
             taskQueue.advanceTime();
             taskQueue.runAllRunnableTasks();
         }
 
-        assertEquals(expectedRetryCount, retryCount.get());
-        assertTrue(future.actionGet());
+        assertThat(retryCount.get()).isEqualTo(expectedRetryCount);
+        assertThat(future.actionGet()).isTrue();
     }
 
+    @Test
     public void testRetryableActionTimeout() {
         final AtomicInteger retryCount = new AtomicInteger();
         final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
@@ -142,16 +141,17 @@ public class RetryableActionTests extends ESTestCase {
         taskQueue.runAllRunnableTasks();
         long previousDeferredTime = 0;
         while (previousDeferredTime < 1000) {
-            assertTrue(taskQueue.hasDeferredTasks());
+            assertThat(taskQueue.hasDeferredTasks()).isTrue();
             previousDeferredTime = taskQueue.getLatestDeferredExecutionTime();
             taskQueue.advanceTime();
             taskQueue.runAllRunnableTasks();
         }
 
-        assertFalse(taskQueue.hasDeferredTasks());
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
 
-        expectThrows(EsRejectedExecutionException.class, future::actionGet);
+        assertThatThrownBy(future::actionGet)
+            .isExactlyInstanceOf(EsRejectedExecutionException.class);
     }
 
     public void testTimeoutOfZeroMeansNoRetry() {
@@ -174,8 +174,9 @@ public class RetryableActionTests extends ESTestCase {
         retryableAction.run();
         taskQueue.runAllRunnableTasks();
 
-        assertEquals(1, executedCount.get());
-        expectThrows(EsRejectedExecutionException.class, future::actionGet);
+        assertThat(executedCount.get()).isEqualTo(1);
+        assertThatThrownBy(future::actionGet)
+            .isExactlyInstanceOf(EsRejectedExecutionException.class);
     }
 
     public void testFailedBecauseNotRetryable() {
@@ -198,8 +199,8 @@ public class RetryableActionTests extends ESTestCase {
         retryableAction.run();
         taskQueue.runAllRunnableTasks();
 
-        assertEquals(1, executedCount.get());
-        expectThrows(IllegalStateException.class, future::actionGet);
+        assertThat(executedCount.get()).isEqualTo(1);
+        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IllegalStateException.class);
     }
 
     public void testRetryableActionCancelled() {
@@ -224,14 +225,14 @@ public class RetryableActionTests extends ESTestCase {
         };
         retryableAction.run();
         taskQueue.runAllRunnableTasks();
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
         taskQueue.advanceTime();
 
         retryableAction.cancel(new ElasticsearchException("Cancelled"));
         taskQueue.runAllRunnableTasks();
 
         // A second run will not occur because it is cancelled
-        assertEquals(1, executedCount.get());
-        expectThrows(ElasticsearchException.class, future::actionGet);
+        assertThat(executedCount.get()).isEqualTo(1);
+        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(ElasticsearchException.class);
     }
 }
