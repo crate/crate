@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -39,6 +40,8 @@ import org.apache.lucene.document.FloatField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
@@ -47,8 +50,12 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
+import io.crate.execution.ddl.tables.AddColumnRequest;
+import io.crate.execution.ddl.tables.AddColumnTask;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -59,6 +66,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
@@ -67,6 +75,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -831,5 +840,86 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
+    }
+
+    @Test
+    public void test_fields_order_in_source_is_determinisitc() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, o object, y int)")
+            .build();
+        Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x", "o", "y");
+        BytesReference source = null;
+        List<String> keys = new ArrayList<>();
+        for (int i = 0; i < randomIntBetween(4, 7); i++) {
+            keys.add(randomAlphaOfLength(randomIntBetween(4, 20)));
+        }
+        List<Reference> newColumns = null;
+        for (int i = 0; i < 10; i++) {
+            Map<String, Integer> o = new LinkedHashMap<>();
+            for (int c = 0; c < keys.size(); c++) {
+                String key = keys.get(c);
+                o.put(key, c);
+            }
+            IndexItem item = item(10, o, 50);
+            ParsedDocument doc = indexer.index(item);
+            if (source == null) {
+                source = doc.source();
+                newColumns = doc.newColumns();
+                logger.info("Dynamic column order: {}", newColumns);
+                logger.info("New keys order: {}", keys);
+            } else {
+                assertThat(doc.source())
+                    .as("fields in " + doc.source().utf8ToString() + " must have same order in " + source.utf8ToString())
+                    .isEqualTo(source);
+
+            }
+        }
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            table,
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            AddColumnRequest request = new AddColumnRequest(
+                table.ident(),
+                newColumns,
+                Map.of(),
+                new IntArrayList(0)
+            );
+            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState);
+            Reference oRef = newTable.getReference(new ColumnIdent("o"));
+            assertThat(((ObjectType) oRef.valueType()).innerTypes().keySet()).containsExactlyElementsOf(keys);
+            indexer = new Indexer(
+                newTable.ident().indexNameOrAlias(),
+                newTable,
+                new CoordinatorTxnCtx(e.getSessionSettings()),
+                e.nodeCtx,
+                column -> NumberFieldMapper.FIELD_TYPE,
+                List.of("x", "o", "y").stream()
+                    .map(x -> newTable.getReference(new ColumnIdent(x)))
+                    .toList(),
+                null
+            );
+            Map<String, Integer> o = new LinkedHashMap<>();
+            for (int c = 0; c < keys.size(); c++) {
+                String key = keys.get(c);
+                o.put(key, c);
+            }
+            IndexItem item = item(10, o, 50);
+            ParsedDocument doc = indexer.index(item);
+            assertThat(doc.newColumns()).isEmpty();
+            assertThat(doc.source())
+                .as(
+                    "Fields in new source expected to match old source\n" +
+                    "old=" + doc.source().utf8ToString() + "\n" +
+                    "new=" + source.utf8ToString() + "\n" +
+                    "keys=" + keys)
+                .isEqualTo(source);
+        }
     }
 }

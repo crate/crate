@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -103,7 +104,7 @@ public interface Reference extends Symbol {
      * NULL node is a root which is an entry point for any traversing method utilizing the tree.
      */
     static HashMap<ColumnIdent, List<Reference>> buildTree(List<Reference> references) {
-        HashMap<ColumnIdent, List<Reference>> tree = new HashMap<>();
+        HashMap<ColumnIdent, List<Reference>> tree = new LinkedHashMap<>();
         for (Reference treeNode: references) {
             // To build an "adjacency list" we add each edge only once, thus we add only direct neighbor node (parent).
             // I.e if a leaf node C has path A-B we add only (B,C) edge when handling node C.

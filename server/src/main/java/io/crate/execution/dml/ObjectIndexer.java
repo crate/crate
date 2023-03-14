@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -73,7 +74,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.column = ref.column();
         this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         this.innerIndexers = new HashMap<>();
-        this.innerTypes = new HashMap<>(objectType.innerTypes());
+        this.innerTypes = new LinkedHashMap<>(objectType.innerTypes());
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
