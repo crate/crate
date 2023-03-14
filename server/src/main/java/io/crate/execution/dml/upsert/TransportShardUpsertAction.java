@@ -255,55 +255,73 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return message != null ? message : e.getClass().getName();
     }
 
+    private WriteReplicaResult<ShardUpsertRequest> legacyReplicaOp(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
+        boolean traceEnabled = logger.isTraceEnabled();
+        Translog.Location location = null;
+        for (ShardUpsertRequest.Item item : request.items()) {
+            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+                if (traceEnabled) {
+                    logger.trace(
+                        "[{} (R)] Document with id={}, marked as skip_on_replica",
+                        indexShard.shardId(),
+                        item.id()
+                    );
+                }
+                continue;
+            }
+            SourceToParse sourceToParse = new SourceToParse(
+                request.index(),
+                item.id(),
+                item.source(),
+                XContentType.JSON
+            );
+            IndexResult result = indexShard.applyIndexOperationOnReplica(
+                item.seqNo(),
+                item.primaryTerm(),
+                item.version(),
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                false,
+                sourceToParse
+            );
+            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                // Even though the primary waits on all nodes to ack the mapping changes to the master
+                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
+                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
+                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
+                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
+                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
+                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
+                // applied the new mapping, so there is no other option than to wait.
+                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                    "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+            }
+            location = result.getTranslogLocation();
+        }
+        return new WriteReplicaResult<>(request, location, null, indexShard, logger);
+    }
+
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
-        Translog.Location location = null;
         Reference[] insertColumns = request.insertColumns();
-        String indexName = request.index();
-        boolean traceEnabled = logger.isTraceEnabled();
-        if (insertColumns == null || insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW)) {
-            for (ShardUpsertRequest.Item item : request.items()) {
-                if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
-                    if (traceEnabled) {
-                        logger.trace(
-                            "[{} (R)] Document with id={}, marked as skip_on_replica",
-                            indexShard.shardId(),
-                            item.id()
-                        );
-                    }
-                    continue;
-                }
-                SourceToParse sourceToParse = new SourceToParse(
-                    indexName,
-                    item.id(),
-                    item.source(),
-                    XContentType.JSON
-                );
-                IndexResult result = indexShard.applyIndexOperationOnReplica(
-                    item.seqNo(),
-                    item.primaryTerm(),
-                    item.version(),
-                    Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                    false,
-                    sourceToParse
-                );
-                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                    // Even though the primary waits on all nodes to ack the mapping changes to the master
-                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                    // applied the new mapping, so there is no other option than to wait.
-                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                        "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
-                }
-                location = result.getTranslogLocation();
+        if (insertColumns == null
+                || insertColumns.length == 1
+                && insertColumns[0].column().equals(DocSysColumns.RAW)) {
+            return legacyReplicaOp(indexShard, request);
+        }
+        // If an item has a source, parse it instead of using Indexer
+        // The request may come from an older node in a mixed cluster.
+        // In that case the insertColumns/values won't always include undeterministic generated columns
+        // and we'd risk generating new diverging values on the replica
+        for (var item : request.items()) {
+            if (item.source() != null) {
+                return legacyReplicaOp(indexShard, request);
             }
-            return new WriteReplicaResult<>(request, location, null, indexShard, logger);
         }
 
+
+        Translog.Location location = null;
+        String indexName = request.index();
+        boolean traceEnabled = logger.isTraceEnabled();
         RelationName relationName = RelationName.fromIndexName(indexName);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.INSERT);
         var mapperService = indexShard.mapperService();
