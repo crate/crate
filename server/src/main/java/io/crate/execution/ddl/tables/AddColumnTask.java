@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -65,7 +66,7 @@ import io.crate.metadata.table.ColumnPolicies;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 
-final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
+public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
 
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
@@ -76,7 +77,7 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
     }
 
     @Override
-    protected ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
+    public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
@@ -182,7 +183,7 @@ final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> 
         if (children == null) {
             return null;
         }
-        HashMap<String, Map<String, Object>> allColumnsMap = new HashMap<>();
+        HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
             allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
         }
