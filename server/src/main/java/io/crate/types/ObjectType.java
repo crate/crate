@@ -82,7 +82,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public static class Builder {
 
-        Map<String, DataType<?>> innerTypesBuilder = new HashMap<>();
+        Map<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);

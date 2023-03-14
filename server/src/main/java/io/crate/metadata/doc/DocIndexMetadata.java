@@ -306,12 +306,15 @@ public class DocIndexMetadata {
         );
     }
 
+    record InnerObjectType(String name, int position, DataType<?> type) {}
+
     /**
      * extract dataType from given columnProperties
      *
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
+    @SuppressWarnings("unchecked")
     public static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
         DataType<?> type;
         String typeName = (String) columnProperties.get("type");
@@ -319,9 +322,16 @@ public class DocIndexMetadata {
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
             Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
             if (innerProperties != null) {
-                ObjectType.Builder builder = ObjectType.builder();
+                List<InnerObjectType> children = new ArrayList<>();
                 for (Map.Entry<String, Object> entry : innerProperties.entrySet()) {
-                    builder.setInnerType(entry.getKey(), getColumnDataType((Map<String, Object>) entry.getValue()));
+                    Map<String, Object> value = (Map<String, Object>) entry.getValue();
+                    int position = (int) value.getOrDefault("position", -1);
+                    children.add(new InnerObjectType(entry.getKey(), position, getColumnDataType(value)));
+                }
+                children.sort(Comparator.comparingInt(x -> x.position()));
+                ObjectType.Builder builder = ObjectType.builder();
+                for (var child : children) {
+                    builder.setInnerType(child.name, child.type);
                 }
                 type = builder.build();
             } else {
