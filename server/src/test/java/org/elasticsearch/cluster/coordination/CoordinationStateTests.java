@@ -20,13 +20,10 @@ package org.elasticsearch.cluster.coordination;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -97,32 +94,33 @@ public class CoordinationStateTests extends ESTestCase {
     public void testSetInitialState() {
         VotingConfiguration initialConfig = VotingConfiguration.of(node1);
         ClusterState state1 = clusterState(0L, 0L, node1, initialConfig, initialConfig, 42L);
-        assertTrue(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
-        assertTrue(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
+        assertThat(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
+        assertThat(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
         cs1.setInitialState(state1);
-        assertThat(cs1.getLastAcceptedState(), equalTo(state1));
+        assertThat(cs1.getLastAcceptedState()).isEqualTo(state1);
     }
 
     public void testSetInitialStateWhenAlreadySet() {
         VotingConfiguration initialConfig = VotingConfiguration.of(node1);
         ClusterState state1 = clusterState(0L, 0L, node1, initialConfig, initialConfig, 42L);
-        assertTrue(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
-        assertTrue(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
+        assertThat(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
+        assertThat(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
         cs1.setInitialState(state1);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.setInitialState(state1)).getMessage(),
-            containsString("initial state already set"));
+        assertThatThrownBy(() -> cs1.setInitialState(state1))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("initial state already set");
     }
 
     public void testStartJoinBeforeBootstrap() {
-        assertThat(cs1.getCurrentTerm(), equalTo(0L));
+        assertThat(cs1.getCurrentTerm()).isEqualTo(0L);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(randomFrom(node1, node2), randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertThat(v1.getTargetNode(), equalTo(startJoinRequest1.getSourceNode()));
-        assertThat(v1.getSourceNode(), equalTo(node1));
-        assertThat(v1.getTerm(), equalTo(startJoinRequest1.getTerm()));
-        assertThat(v1.getLastAcceptedTerm(), equalTo(initialStateNode1.term()));
-        assertThat(v1.getLastAcceptedVersion(), equalTo(initialStateNode1.version()));
-        assertThat(cs1.getCurrentTerm(), equalTo(startJoinRequest1.getTerm()));
+        assertThat(v1.getTargetNode()).isEqualTo(startJoinRequest1.getSourceNode());
+        assertThat(v1.getSourceNode()).isEqualTo(node1);
+        assertThat(v1.getTerm()).isEqualTo(startJoinRequest1.getTerm());
+        assertThat(v1.getLastAcceptedTerm()).isEqualTo(initialStateNode1.term());
+        assertThat(v1.getLastAcceptedVersion()).isEqualTo(initialStateNode1.version());
+        assertThat(cs1.getCurrentTerm()).isEqualTo(startJoinRequest1.getTerm());
 
         StartJoinRequest startJoinRequest2 = new StartJoinRequest(randomFrom(node1, node2),
             randomLongBetween(0, startJoinRequest1.getTerm()));
@@ -132,50 +130,55 @@ public class CoordinationStateTests extends ESTestCase {
     public void testStartJoinAfterBootstrap() {
         VotingConfiguration initialConfig = VotingConfiguration.of(node1);
         ClusterState state1 = clusterState(0L, 0L, node1, initialConfig, initialConfig, 42L);
-        assertTrue(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
-        assertTrue(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId())));
+        assertThat(state1.getLastAcceptedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
+        assertThat(state1.getLastCommittedConfiguration().hasQuorum(Collections.singleton(node1.getId()))).isTrue();
         cs1.setInitialState(state1);
 
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(randomFrom(node1, node2), randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertThat(v1.getTargetNode(), equalTo(startJoinRequest1.getSourceNode()));
-        assertThat(v1.getSourceNode(), equalTo(node1));
-        assertThat(v1.getTerm(), equalTo(startJoinRequest1.getTerm()));
-        assertThat(v1.getLastAcceptedTerm(), equalTo(state1.term()));
-        assertThat(v1.getLastAcceptedVersion(), equalTo(state1.version()));
-        assertThat(cs1.getCurrentTerm(), equalTo(startJoinRequest1.getTerm()));
+        assertThat(v1.getTargetNode()).isEqualTo(startJoinRequest1.getSourceNode());
+        assertThat(v1.getSourceNode()).isEqualTo(node1);
+        assertThat(v1.getTerm()).isEqualTo(startJoinRequest1.getTerm());
+        assertThat(v1.getLastAcceptedTerm()).isEqualTo(state1.term());
+        assertThat(v1.getLastAcceptedVersion()).isEqualTo(state1.version());
+        assertThat(cs1.getCurrentTerm()).isEqualTo(startJoinRequest1.getTerm());
 
         StartJoinRequest startJoinRequest2 = new StartJoinRequest(randomFrom(node1, node2),
             randomLongBetween(0, startJoinRequest1.getTerm()));
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleStartJoin(startJoinRequest2)).getMessage(),
-            containsString("not greater than current term"));
+        assertThatThrownBy(() -> cs1.handleStartJoin(startJoinRequest2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("not greater than current term");
         StartJoinRequest startJoinRequest3 = new StartJoinRequest(randomFrom(node1, node2),
             startJoinRequest1.getTerm());
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleStartJoin(startJoinRequest3)).getMessage(),
-            containsString("not greater than current term"));
+        assertThatThrownBy(() -> cs1.handleStartJoin(startJoinRequest3))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("not greater than current term");
     }
 
     public void testJoinBeforeBootstrap() {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleJoin(v1)).getMessage(),
-            containsString("this node has not received its initial configuration yet"));
+        assertThatThrownBy(() -> cs1.handleJoin(v1))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("this node has not received its initial configuration yet");
     }
 
     public void testJoinWithNoStartJoinAfterReboot() {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         cs1 = createCoordinationState(ps1, node1);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleJoin(v1)).getMessage(),
-            containsString("ignored join as term has not been incremented yet after reboot"));
+        assertThatThrownBy(() -> cs1.handleJoin(v1))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("ignored join as term has not been incremented yet after reboot");
     }
 
     public void testJoinWithWrongTarget() {
         assumeTrue("test only works with assertions enabled", Assertions.ENABLED);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node2, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertThat(expectThrows(AssertionError.class, () -> cs1.handleJoin(v1)).getMessage(),
-            containsString("wrong node"));
+        assertThatThrownBy(() -> cs1.handleJoin(v1))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("wrong node");
     }
 
     public void testJoinWithBadCurrentTerm() {
@@ -187,8 +190,9 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.handleStartJoin(startJoinRequest1);
         Join badJoin = new Join(randomFrom(node1, node2), node1, randomLongBetween(0, startJoinRequest1.getTerm() - 1),
             randomNonNegativeLong(), randomNonNegativeLong());
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleJoin(badJoin)).getMessage(),
-            containsString("does not match current term"));
+        assertThatThrownBy(() -> cs1.handleJoin(badJoin))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current term");
     }
 
     public void testJoinWithHigherAcceptedTerm() {
@@ -205,8 +209,9 @@ public class CoordinationStateTests extends ESTestCase {
 
         Join badJoin = new Join(randomFrom(node1, node2), node1, v1.getTerm(), randomLongBetween(state2.term() + 1, 30),
             randomNonNegativeLong());
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleJoin(badJoin)).getMessage(),
-            containsString("higher than current last accepted term"));
+        assertThatThrownBy(() -> cs1.handleJoin(badJoin))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("higher than current last accepted term");
     }
 
     public void testJoinWithSameAcceptedTermButHigherVersion() {
@@ -223,8 +228,9 @@ public class CoordinationStateTests extends ESTestCase {
 
         Join badJoin = new Join(randomFrom(node1, node2), node1, v1.getTerm(), state2.term(),
             randomLongBetween(state2.version() + 1, 30));
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleJoin(badJoin)).getMessage(),
-            containsString("higher than current last accepted version"));
+        assertThatThrownBy(() -> cs1.handleJoin(badJoin))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("higher than current last accepted version");
     }
 
     public void testJoinWithLowerLastAcceptedTermWinsElection() {
@@ -240,13 +246,13 @@ public class CoordinationStateTests extends ESTestCase {
         Join v1 = cs1.handleStartJoin(startJoinRequest2);
 
         Join join = new Join(node1, node1, v1.getTerm(), randomLongBetween(0, state2.term() - 1), randomLongBetween(0, 20));
-        assertTrue(cs1.handleJoin(join));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.containsJoinVoteFor(node1));
-        assertTrue(cs1.containsJoin(join));
-        assertFalse(cs1.containsJoinVoteFor(node2));
+        assertThat(cs1.handleJoin(join)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.containsJoinVoteFor(node1)).isTrue();
+        assertThat(cs1.containsJoin(join)).isTrue();
+        assertThat(cs1.containsJoinVoteFor(node2)).isFalse();
         assertEquals(cs1.getLastPublishedVersion(), cs1.getLastAcceptedVersion());
-        assertFalse(cs1.handleJoin(join));
+        assertThat(cs1.handleJoin(join)).isFalse();
     }
 
     public void testJoinWithSameLastAcceptedTermButLowerOrSameVersionWinsElection() {
@@ -262,12 +268,12 @@ public class CoordinationStateTests extends ESTestCase {
         Join v1 = cs1.handleStartJoin(startJoinRequest2);
 
         Join join = new Join(node1, node1, v1.getTerm(), state2.term(), randomLongBetween(0, state2.version()));
-        assertTrue(cs1.handleJoin(join));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.containsJoinVoteFor(node1));
-        assertFalse(cs1.containsJoinVoteFor(node2));
+        assertThat(cs1.handleJoin(join)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.containsJoinVoteFor(node1)).isTrue();
+        assertThat(cs1.containsJoinVoteFor(node2)).isFalse();
         assertEquals(cs1.getLastPublishedVersion(), cs1.getLastAcceptedVersion());
-        assertFalse(cs1.handleJoin(join));
+        assertThat(cs1.handleJoin(join)).isFalse();
     }
 
     public void testJoinDoesNotWinElection() {
@@ -283,10 +289,10 @@ public class CoordinationStateTests extends ESTestCase {
         Join v1 = cs1.handleStartJoin(startJoinRequest2);
 
         Join join = new Join(node2, node1, v1.getTerm(), randomLongBetween(0, state2.term()), randomLongBetween(0, state2.version()));
-        assertTrue(cs1.handleJoin(join));
-        assertFalse(cs1.electionWon());
+        assertThat(cs1.handleJoin(join)).isTrue();
+        assertThat(cs1.electionWon()).isFalse();
         assertEquals(cs1.getLastPublishedVersion(), 0L);
-        assertFalse(cs1.handleJoin(join));
+        assertThat(cs1.handleJoin(join)).isFalse();
     }
 
     public void testJoinDoesNotWinElectionWhenOnlyCommittedConfigQuorum() {
@@ -297,10 +303,10 @@ public class CoordinationStateTests extends ESTestCase {
 
         StartJoinRequest startJoinRequest = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join join = cs1.handleStartJoin(startJoinRequest);
-        assertTrue(cs1.handleJoin(join));
-        assertFalse(cs1.electionWon());
+        assertThat(cs1.handleJoin(join)).isTrue();
+        assertThat(cs1.electionWon()).isFalse();
         assertEquals(cs1.getLastPublishedVersion(), 0L);
-        assertFalse(cs1.handleJoin(join));
+        assertThat(cs1.handleJoin(join)).isFalse();
     }
 
     public void testJoinDoesNotWinElectionWhenOnlyLastAcceptedConfigQuorum() {
@@ -311,10 +317,10 @@ public class CoordinationStateTests extends ESTestCase {
 
         StartJoinRequest startJoinRequest = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join join = cs1.handleStartJoin(startJoinRequest);
-        assertTrue(cs1.handleJoin(join));
-        assertFalse(cs1.electionWon());
+        assertThat(cs1.handleJoin(join)).isTrue();
+        assertThat(cs1.electionWon()).isFalse();
         assertEquals(cs1.getLastPublishedVersion(), 0L);
-        assertFalse(cs1.handleJoin(join));
+        assertThat(cs1.handleJoin(join)).isFalse();
     }
 
     public void testHandleClientValue() {
@@ -324,23 +330,23 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.containsJoin(v1));
-        assertFalse(cs1.containsJoin(v2));
-        assertTrue(cs1.handleJoin(v2));
-        assertTrue(cs1.containsJoin(v2));
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.containsJoin(v1)).isTrue();
+        assertThat(cs1.containsJoin(v2)).isFalse();
+        assertThat(cs1.handleJoin(v2)).isTrue();
+        assertThat(cs1.containsJoin(v2)).isTrue();
 
         VotingConfiguration newConfig = VotingConfiguration.of(node2);
 
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, newConfig, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
-        assertThat(publishRequest.getAcceptedState(), equalTo(state2));
-        assertThat(cs1.getLastPublishedVersion(), equalTo(state2.version()));
+        assertThat(publishRequest.getAcceptedState()).isEqualTo(state2);
+        assertThat(cs1.getLastPublishedVersion()).isEqualTo(state2.version());
         // check that another join does not mess with lastPublishedVersion
         Join v3 = cs3.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v3));
-        assertThat(cs1.getLastPublishedVersion(), equalTo(state2.version()));
+        assertThat(cs1.handleJoin(v3)).isTrue();
+        assertThat(cs1.getLastPublishedVersion()).isEqualTo(state2.version());
     }
 
     public void testHandleClientValueWhenElectionNotWon() {
@@ -349,8 +355,9 @@ public class CoordinationStateTests extends ESTestCase {
         if (randomBoolean()) {
             cs1.setInitialState(state1);
         }
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state1)).getMessage(),
-            containsString("election not won"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state1))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("election not won");
     }
 
     public void testHandleClientValueDuringOngoingPublication() {
@@ -359,15 +366,16 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
 
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 42L);
         cs1.handleClientValue(state2);
 
         ClusterState state3 = clusterState(startJoinRequest1.getTerm(), 3L, node1, initialConfig, initialConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state3)).getMessage(),
-            containsString("cannot start publishing next value before accepting previous one"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state3))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("cannot start publishing next value before accepting previous one");
     }
 
     public void testHandleClientValueWithBadTerm() {
@@ -376,15 +384,16 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(3, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
 
         long term = randomBoolean() ?
             randomLongBetween(startJoinRequest1.getTerm() + 1, 10) :
             randomLongBetween(0, startJoinRequest1.getTerm() - 1);
         ClusterState state2 = clusterState(term, 2L, node1, initialConfig, initialConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state2)).getMessage(),
-            containsString("does not match current term"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current term");
     }
 
     public void testHandleClientValueWithOldVersion() {
@@ -393,12 +402,13 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
 
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 0L, node1, initialConfig, initialConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state2)).getMessage(),
-            containsString("lower or equal to last published version"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("lower or equal to last published version");
     }
 
     public void testHandleClientValueWithDifferentReconfigurationWhileAlreadyReconfiguring() {
@@ -408,9 +418,9 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.handleJoin(v2)).isTrue();
 
         VotingConfiguration newConfig1 = VotingConfiguration.of(node2);
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, newConfig1, 42L);
@@ -418,8 +428,9 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.handlePublishRequest(publishRequest);
         VotingConfiguration newConfig2 = VotingConfiguration.of(node3);
         ClusterState state3 = clusterState(startJoinRequest1.getTerm(), 3L, node1, initialConfig, newConfig2, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state3)).getMessage(),
-            containsString("only allow reconfiguration while not already reconfiguring"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state3))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("only allow reconfiguration while not already reconfiguring");
     }
 
     public void testHandleClientValueWithSameReconfigurationWhileAlreadyReconfiguring() {
@@ -429,9 +440,9 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.handleJoin(v2)).isTrue();
 
         VotingConfiguration newConfig1 = VotingConfiguration.of(node2);
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, newConfig1, 42L);
@@ -449,14 +460,15 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThat(cs1.handleJoin(v2)).isTrue();
 
         VotingConfiguration newConfig = VotingConfiguration.of(node2);
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, newConfig, newConfig, 42L);
-        assertThat(expectThrows(AssertionError.class, () -> cs1.handleClientValue(state2)).getMessage(),
-            containsString("last committed configuration should not change"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state2))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("last committed configuration should not change");
     }
 
     public void testHandleClientValueWithConfigurationChangeButNoJoinQuorum() {
@@ -465,13 +477,14 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
 
         VotingConfiguration newConfig = VotingConfiguration.of(node2);
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, newConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleClientValue(state2)).getMessage(),
-            containsString("only allow reconfiguration if joinVotes have quorum for new config"));
+        assertThatThrownBy(() -> cs1.handleClientValue(state2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("only allow reconfiguration if joinVotes have quorum for new config");
     }
 
     public void testHandlePublishRequest() {
@@ -481,15 +494,15 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         if (randomBoolean()) {
-            assertTrue(cs1.handleJoin(v1));
-            assertTrue(cs1.electionWon());
+            assertThat(cs1.handleJoin(v1)).isTrue();
+            assertThat(cs1.electionWon()).isTrue();
         }
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(1, 10), node1, initialConfig, initialConfig, 13L);
         PublishResponse publishResponse = cs1.handlePublishRequest(new PublishRequest(state2));
-        assertThat(publishResponse.getTerm(), equalTo(state2.term()));
-        assertThat(publishResponse.getVersion(), equalTo(state2.version()));
-        assertThat(cs1.getLastAcceptedState(), equalTo(state2));
-        assertThat(value(cs1.getLastAcceptedState()), equalTo(13L));
+        assertThat(publishResponse.getTerm()).isEqualTo(state2.term());
+        assertThat(publishResponse.getVersion()).isEqualTo(state2.version());
+        assertThat(cs1.getLastAcceptedState()).isEqualTo(state2);
+        assertThat(value(cs1.getLastAcceptedState())).isEqualTo(13L);
         ClusterState state3 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(state2.version() + 1, 20), node1,
             initialConfig, initialConfig, 13L);
         cs1.handlePublishRequest(new PublishRequest(state3));
@@ -502,16 +515,16 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         if (randomBoolean()) {
-            assertTrue(cs1.handleJoin(v1));
-            assertTrue(cs1.electionWon());
+            assertThat(cs1.handleJoin(v1)).isTrue();
+            assertThat(cs1.electionWon()).isTrue();
         }
         long term = randomBoolean() ?
             randomLongBetween(startJoinRequest1.getTerm() + 1, 10) :
             randomLongBetween(0, startJoinRequest1.getTerm() - 1);
         ClusterState state2 = clusterState(term, 2L, node1, initialConfig, initialConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handlePublishRequest(new PublishRequest(state2))).getMessage(),
-            containsString("does not match current term"));
+        assertThatThrownBy(() -> cs1.handlePublishRequest(new PublishRequest(state2)))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current term");
     }
 
     // scenario when handling a publish request from a master that we already received a newer state from
@@ -522,16 +535,16 @@ public class CoordinationStateTests extends ESTestCase {
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
         if (randomBoolean()) {
-            assertTrue(cs1.handleJoin(v1));
-            assertTrue(cs1.electionWon());
+            assertThat(cs1.handleJoin(v1)).isTrue();
+            assertThat(cs1.electionWon()).isTrue();
         }
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(2, 10), node1, initialConfig, initialConfig, 42L);
         cs1.handlePublishRequest(new PublishRequest(state2));
         ClusterState state3 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(0, state2.version()), node1, initialConfig,
             initialConfig, 42L);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handlePublishRequest(new PublishRequest(state3))).getMessage(),
-            containsString("lower or equal to current version"));
+        assertThatThrownBy(() -> cs1.handlePublishRequest(new PublishRequest(state3)))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("lower or equal to current version");
     }
 
     // scenario when handling a publish request from a fresh master
@@ -554,16 +567,16 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
         Optional<ApplyCommitRequest> applyCommit = cs1.handlePublishResponse(node1, publishResponse);
-        assertTrue(applyCommit.isPresent());
-        assertThat(applyCommit.get().getSourceNode(), equalTo(node1));
-        assertThat(applyCommit.get().getTerm(), equalTo(state2.term()));
-        assertThat(applyCommit.get().getVersion(), equalTo(state2.version()));
+        assertThat(applyCommit.isPresent()).isTrue();
+        assertThat(applyCommit.get().getSourceNode()).isEqualTo(node1);
+        assertThat(applyCommit.get().getTerm()).isEqualTo(state2.term());
+        assertThat(applyCommit.get().getVersion()).isEqualTo(state2.version());
     }
 
     public void testHandlePublishResponseWhenSteppedDownAsLeader() {
@@ -572,16 +585,16 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
         StartJoinRequest startJoinRequest2 = new StartJoinRequest(node1, randomLongBetween(startJoinRequest1.getTerm() + 1, 10));
         cs1.handleStartJoin(startJoinRequest2);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handlePublishResponse(randomFrom(node1, node2, node3), publishResponse)).getMessage(),
-            containsString("election not won"));
+        assertThatThrownBy(() -> cs1.handlePublishResponse(randomFrom(node1, node2, node3), publishResponse))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("election not won");
     }
 
     public void testHandlePublishResponseWithoutPublishConfigQuorum() {
@@ -591,15 +604,15 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v2)).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, configNode1, configNode2, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
         Optional<ApplyCommitRequest> applyCommit = cs1.handlePublishResponse(node1, publishResponse);
-        assertFalse(applyCommit.isPresent());
+        assertThat(applyCommit.isPresent()).isFalse();
     }
 
     public void testHandlePublishResponseWithoutCommitedConfigQuorum() {
@@ -609,15 +622,15 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v2)).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, configNode1, configNode2, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs2.handlePublishRequest(publishRequest);
         Optional<ApplyCommitRequest> applyCommit = cs1.handlePublishResponse(node2, publishResponse);
-        assertFalse(applyCommit.isPresent());
+        assertThat(applyCommit.isPresent()).isFalse();
     }
 
     public void testHandlePublishResponseWithoutCommit() {
@@ -626,13 +639,13 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 42L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
         Optional<ApplyCommitRequest> applyCommit = cs1.handlePublishResponse(node2, publishResponse);
-        assertFalse(applyCommit.isPresent());
+        assertThat(applyCommit.isPresent()).isFalse();
     }
 
     public void testHandlePublishResponseWithBadTerm() {
@@ -641,17 +654,17 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(2, 10), node1, initialConfig, initialConfig, 42L);
         PublishResponse publishResponse = cs1.handlePublishRequest(new PublishRequest(state2));
         long term = randomBoolean() ?
             randomLongBetween(startJoinRequest1.getTerm() + 1, 10) :
             randomLongBetween(0, startJoinRequest1.getTerm() - 1);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handlePublishResponse(randomFrom(node1, node2, node3),
-                new PublishResponse(term, publishResponse.getVersion()))).getMessage(),
-            containsString("does not match current term"));
+        assertThatThrownBy(() -> cs1.handlePublishResponse(randomFrom(node1, node2, node3),
+                                    new PublishResponse(term, publishResponse.getVersion())))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current term");
     }
 
     public void testHandlePublishResponseWithVersionMismatch() {
@@ -660,13 +673,13 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), randomLongBetween(2, 10), node1, initialConfig, initialConfig, 42L);
         PublishResponse publishResponse = cs1.handlePublishRequest(new PublishRequest(state2));
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handlePublishResponse(randomFrom(node1, node2, node3), publishResponse)).getMessage(),
-            containsString("does not match current version"));
+        assertThatThrownBy(() -> cs1.handlePublishResponse(randomFrom(node1, node2, node3), publishResponse))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current version");
     }
 
     public void testHandleCommit() {
@@ -675,20 +688,20 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v2));
+        assertThat(cs1.handleJoin(v2)).isTrue();
         VotingConfiguration newConfig = VotingConfiguration.of(node2);
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, newConfig, 7L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
         cs1.handlePublishResponse(node1, publishResponse);
         Optional<ApplyCommitRequest> applyCommit = cs1.handlePublishResponse(node2, publishResponse);
-        assertTrue(applyCommit.isPresent());
-        assertThat(cs1.getLastCommittedConfiguration(), equalTo(initialConfig));
+        assertThat(applyCommit.isPresent()).isTrue();
+        assertThat(cs1.getLastCommittedConfiguration()).isEqualTo(initialConfig);
         cs1.handleCommit(applyCommit.get());
-        assertThat(cs1.getLastCommittedConfiguration(), equalTo(newConfig));
+        assertThat(cs1.getLastCommittedConfiguration()).isEqualTo(newConfig);
     }
 
     public void testHandleCommitWithBadCurrentTerm() {
@@ -697,8 +710,8 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 7L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         PublishResponse publishResponse = cs1.handlePublishRequest(publishRequest);
@@ -706,9 +719,9 @@ public class CoordinationStateTests extends ESTestCase {
         long term = randomBoolean() ?
             randomLongBetween(startJoinRequest1.getTerm() + 1, 10) :
             randomLongBetween(0, startJoinRequest1.getTerm() - 1);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handleCommit(new ApplyCommitRequest(node1, term, 2L))).getMessage(),
-            containsString("does not match current term"));
+        assertThatThrownBy(() -> cs1.handleCommit(new ApplyCommitRequest(node1, term, 2L)))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current term");
     }
 
     public void testHandleCommitWithBadLastAcceptedTerm() {
@@ -717,11 +730,11 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handleCommit(new ApplyCommitRequest(node1, startJoinRequest1.getTerm(), 2L))).getMessage(),
-            containsString("does not match last accepted term"));
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
+        assertThatThrownBy(() -> cs1.handleCommit(new ApplyCommitRequest(node1, startJoinRequest1.getTerm(), 2L)))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match last accepted term");
     }
 
     public void testHandleCommitWithBadVersion() {
@@ -730,36 +743,36 @@ public class CoordinationStateTests extends ESTestCase {
         cs1.setInitialState(state1);
         StartJoinRequest startJoinRequest1 = new StartJoinRequest(node1, randomLongBetween(1, 5));
         Join v1 = cs1.handleStartJoin(startJoinRequest1);
-        assertTrue(cs1.handleJoin(v1));
-        assertTrue(cs1.electionWon());
+        assertThat(cs1.handleJoin(v1)).isTrue();
+        assertThat(cs1.electionWon()).isTrue();
         ClusterState state2 = clusterState(startJoinRequest1.getTerm(), 2L, node1, initialConfig, initialConfig, 7L);
         PublishRequest publishRequest = cs1.handleClientValue(state2);
         cs1.handlePublishRequest(publishRequest);
-        assertThat(expectThrows(CoordinationStateRejectedException.class,
-            () -> cs1.handleCommit(new ApplyCommitRequest(node1, startJoinRequest1.getTerm(), randomLongBetween(3, 10)))).getMessage(),
-            containsString("does not match current version"));
+        assertThatThrownBy(() -> cs1.handleCommit(new ApplyCommitRequest(node1, startJoinRequest1.getTerm(), randomLongBetween(3, 10))))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class)
+            .hasMessageContaining("does not match current version");
     }
 
     public void testVoteCollection() {
         final CoordinationState.VoteCollection voteCollection = new CoordinationState.VoteCollection();
-        assertTrue(voteCollection.isEmpty());
+        assertThat(voteCollection.isEmpty()).isTrue();
 
         assertFalse(voteCollection.addVote(
             new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT)));
-        assertTrue(voteCollection.isEmpty());
+        assertThat(voteCollection.isEmpty()).isTrue();
 
         voteCollection.addVote(node1);
-        assertFalse(voteCollection.isEmpty());
-        assertTrue(voteCollection.containsVoteFor(node1));
-        assertFalse(voteCollection.containsVoteFor(node2));
-        assertFalse(voteCollection.containsVoteFor(node3));
+        assertThat(voteCollection.isEmpty()).isFalse();
+        assertThat(voteCollection.containsVoteFor(node1)).isTrue();
+        assertThat(voteCollection.containsVoteFor(node2)).isFalse();
+        assertThat(voteCollection.containsVoteFor(node3)).isFalse();
         voteCollection.addVote(node2);
-        assertTrue(voteCollection.containsVoteFor(node1));
-        assertTrue(voteCollection.containsVoteFor(node2));
-        assertFalse(voteCollection.containsVoteFor(node3));
-        assertTrue(voteCollection.isQuorum(VotingConfiguration.of(node1, node2)));
-        assertTrue(voteCollection.isQuorum(VotingConfiguration.of(node1)));
-        assertFalse(voteCollection.isQuorum(VotingConfiguration.of(node3)));
+        assertThat(voteCollection.containsVoteFor(node1)).isTrue();
+        assertThat(voteCollection.containsVoteFor(node2)).isTrue();
+        assertThat(voteCollection.containsVoteFor(node3)).isFalse();
+        assertThat(voteCollection.isQuorum(VotingConfiguration.of(node1, node2))).isTrue();
+        assertThat(voteCollection.isQuorum(VotingConfiguration.of(node1))).isTrue();
+        assertThat(voteCollection.isQuorum(VotingConfiguration.of(node3))).isFalse();
 
         EqualsHashCodeTestUtils.CopyFunction<CoordinationState.VoteCollection> copyFunction =
             vc -> {
@@ -974,7 +987,9 @@ public class CoordinationStateTests extends ESTestCase {
                 .collect(Collectors.groupingBy(m -> ((PublishRequest) m.payload).getAcceptedState().term()))
                 .forEach((term, publishMessages) -> {
                     Set<DiscoveryNode> mastersForTerm = publishMessages.stream().collect(Collectors.groupingBy(m -> m.sourceNode)).keySet();
-                    assertThat("Multiple masters " + mastersForTerm + " for term " + term, mastersForTerm, hasSize(1));
+                    assertThat(mastersForTerm)
+                        .as("Multiple masters " + mastersForTerm + " for term " + term)
+                        .hasSize(1);
                 });
 
             // unique cluster state per (term, version) pair
@@ -987,15 +1002,17 @@ public class CoordinationStateTests extends ESTestCase {
                         Set<String> clusterStateUUIDsForTermAndVersion = clusterStates1.stream().collect(Collectors.groupingBy(
                             ClusterState::stateUUID
                         )).keySet();
-                        assertThat("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version,
-                            clusterStateUUIDsForTermAndVersion, hasSize(1));
+                        assertThat(clusterStateUUIDsForTermAndVersion)
+                            .as("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version)
+                            .hasSize(1);
 
                         Set<Long> clusterStateValuesForTermAndVersion = clusterStates1.stream().collect(Collectors.groupingBy(
                             CoordinationStateTests::value
                         )).keySet();
 
-                        assertThat("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version,
-                            clusterStateValuesForTermAndVersion, hasSize(1));
+                        assertThat(clusterStateValuesForTermAndVersion)
+                            .as("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version)
+                            .hasSize(1);
                     });
                 });
         }
