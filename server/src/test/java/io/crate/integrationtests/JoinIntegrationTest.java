@@ -1439,4 +1439,42 @@ public class JoinIntegrationTest extends IntegTestCase {
                                      "3| 3| 3");
 
     }
+
+    @Test
+    @UseHashJoins(1)
+    public void test_join_using_on_nested_join() throws Exception {
+        execute("CREATE TABLE doc.j1 (x INT)");
+        execute("CREATE TABLE doc.j2 (x INT)");
+        execute("CREATE TABLE doc.j3 (z INT)");
+
+        execute("insert into doc.j1(x) values (1),(2),(3)");
+        execute("insert into doc.j2(x) values (1),(2),(3)");
+        execute("insert into doc.j3(z) values (1),(2),(3)");
+
+        execute("refresh table doc.j1, doc.j2, doc.j3");
+
+        var stmt = """
+            SELECT *
+                FROM (doc.j2 JOIN doc.j3 ON doc.j2.x = doc.j3.z)
+                JOIN doc.J1
+                USING(x)
+                ORDER BY doc.j1.x
+            """;
+
+        execute("explain " + stmt);
+        assertThat(response.rows()[0][0]).isEqualTo(
+            """
+                OrderBy[x ASC]
+                  └ HashJoin[(x = x)]
+                    ├ HashJoin[(x = z)]
+                    │  ├ Collect[doc.j2 | [x] | true]
+                    │  └ Collect[doc.j3 | [z] | true]
+                    └ Collect[doc.j1 | [x] | true]""");
+
+        execute(stmt);
+        assertThat(response).hasRows(
+            "1| 1| 1",
+            "2| 2| 2",
+            "3| 3| 3");
+    }
 }

@@ -897,4 +897,80 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessageContaining("Joins do not support this operation");
     }
+
+    @Test
+    public void test_join_using_non_matching_column_types_raises_error() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("create table a (value int)")
+            .addTable("create table b (value string)")
+            .build();
+
+        assertThatThrownBy(() -> executor.analyze("SELECT * FROM a INNER JOIN b USING (value)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("JOIN/USING types integer and text varying cannot be matched");
+    }
+
+    @Test
+    public void test_nested_joins_with_using_duplicate_columns_raises_error() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("CREATE TABLE j1 (x INT)")
+            .addTable("CREATE TABLE j2 (x INT)")
+            .addTable("CREATE TABLE j3 (x INT)")
+            .build();
+
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT *
+                FROM (j2 JOIN j3 ON j2.x = j3.x)
+                JOIN J1
+                USING(x);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("common column name x appears more than once in left table");
+
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT *
+                FROM j1
+                JOIN (j2 JOIN j3 ON j2.x = j3.x)
+                USING(x);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("common column name x appears more than once in right table");
+
+    }
+
+    @Test
+    public void test_nested_joins_with_non_existing_columns_raises_error() throws Exception {
+        var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
+            .addTable("CREATE TABLE j1 (x INT)")
+            .addTable("CREATE TABLE j2 (z INT)")
+            .addTable("CREATE TABLE j3 (z INT)")
+            .build();
+
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT *
+                FROM (j2 JOIN j3 ON j2.z = j3.z)
+                JOIN J1
+                USING(x);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column x specified in USING clause does not exist in left table");
+
+        assertThatThrownBy(() -> executor.analyze(
+            """
+            SELECT *
+                FROM j1
+                JOIN (j2 JOIN j3 ON j2.z = j3.z)
+                USING(x);
+            """
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("column x specified in USING clause does not exist in right table");
+
+    }
 }
