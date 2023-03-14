@@ -45,6 +45,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.IdFieldMapper;
@@ -107,6 +108,7 @@ public class Indexer {
     private final List<IndexColumn> indexColumns;
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
+    private final BytesStreamOutput stream;
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -350,6 +352,7 @@ public class Indexer {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
+        this.stream = new BytesStreamOutput();
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -523,7 +526,8 @@ public class Indexer {
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
+        stream.reset();
+        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder(stream);
         xContentBuilder.startObject();
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
