@@ -25,6 +25,8 @@ import static io.crate.common.collections.Iterables.getOnlyElement;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -286,10 +288,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (joinCriteria instanceof JoinOn joinOn) {
                 expression = joinOn.getExpression();
             } else if (joinCriteria instanceof JoinUsing joinUsing) {
-                expression = JoinUsing.toExpression(
-                    leftRel.relationName().toQualifiedName(),
-                    rightRel.relationName().toQualifiedName(),
-                    joinUsing.getColumns());
+                expression = validateAndExtractFromUsing(leftRel.outputs(), rightRel.outputs(), joinUsing);
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
@@ -340,6 +339,71 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var left = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 2);
         var right = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 1);
         return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
+    }
+
+    private static Expression validateAndExtractFromUsing(List<Symbol> leftOutputs,
+                                                          List<Symbol> rightOutputs,
+                                                          JoinUsing joinUsing) {
+        var lhsOutputs = new HashMap<String, Symbol>();
+        var rhsOutputs = new HashMap<String, Symbol>();
+
+        for (var joinColumn : joinUsing.getColumns()) {
+
+            for (var leftOutput : leftOutputs) {
+                var columnIdent = Symbols.pathFromSymbol(leftOutput);
+                if (columnIdent.name().equals(joinColumn)) {
+                    if (lhsOutputs.put(joinColumn, leftOutput) != null) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                         "common column name %s appears more than once in left table", joinColumn));
+                    }
+                }
+            }
+
+            if (lhsOutputs.isEmpty()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                 "column %s specified in USING clause does not exist in left table", joinColumn));
+            }
+
+            for (Symbol rightOutput : rightOutputs) {
+                var columnIdent = Symbols.pathFromSymbol(rightOutput);
+                if (columnIdent.name().equals(joinColumn)) {
+                    if (rhsOutputs.put(joinColumn, rightOutput) != null) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                         "common column name %s appears more than once in right table", joinColumn));
+                    } else {
+                        var lhsType = lhsOutputs.get(joinColumn).valueType();
+                        var rhsType = rightOutput.valueType();
+                        if (lhsType.equals(rhsType) == false) {
+                            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                             "JOIN/USING types %s and %s varying cannot be matched", lhsType.getName(), rhsType.getName())
+                            );
+                        }
+                    }
+                }
+            }
+
+            if (rhsOutputs.isEmpty()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                 "column %s specified in USING clause does not exist in right table", joinColumn));
+            }
+        }
+
+        var lhsRelationNames = new HashSet<RelationName>();
+        var rhsRelationNames = new HashSet<RelationName>();
+
+        for (Symbol symbol : lhsOutputs.values()) {
+            lhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+        }
+
+        for (Symbol symbol : rhsOutputs.values()) {
+            rhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+        }
+
+        return JoinUsing.toExpression(
+            getOnlyElement(lhsRelationNames).toQualifiedName(),
+            getOnlyElement(rhsRelationNames).toQualifiedName(),
+            joinUsing.getColumns()
+        );
     }
 
     @Override
