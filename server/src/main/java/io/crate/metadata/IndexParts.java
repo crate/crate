@@ -21,13 +21,14 @@
 
 package io.crate.metadata;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import io.crate.blob.v2.BlobIndex;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * 1) Class which unpacks and holds the different entities of a CrateDB index name.
@@ -58,8 +59,8 @@ public class IndexParts {
             partitionIdent = null;
         } else {
             // Index names are only allowed to contain '.' as separators
-            List<String> parts = List.of(indexName.split("\\.", 6));
-            switch (parts.size()) {
+            String[] parts = indexName.split("\\.", 6);
+            switch (parts.length) {
                 case 1:
                     // "table_name"
                     schema = defaultSchema;
@@ -68,25 +69,25 @@ public class IndexParts {
                     break;
                 case 2:
                     // "schema"."table_name"
-                    schema = parts.get(0);
-                    table = parts.get(1);
+                    schema = parts[0];
+                    table = parts[1];
                     partitionIdent = null;
                     break;
                 case 4:
                     // ""."partitioned"."table_name". ["ident"]
-                    assertEmpty(parts.get(0));
+                    assertEmpty(parts[0]);
                     schema = defaultSchema;
-                    assertPartitionPrefix(parts.get(1));
-                    table = parts.get(2);
-                    partitionIdent = parts.get(3);
+                    assertPartitionPrefix(parts[1]);
+                    table = parts[2];
+                    partitionIdent = parts[3];
                     break;
                 case 5:
                     // "schema".""."partitioned"."table_name". ["ident"]
-                    schema = parts.get(0);
-                    assertEmpty(parts.get(1));
-                    assertPartitionPrefix(parts.get(2));
-                    table = parts.get(3);
-                    partitionIdent = parts.get(4);
+                    schema = parts[0];
+                    assertEmpty(parts[1]);
+                    assertPartitionPrefix(parts[2]);
+                    table = parts[3];
+                    partitionIdent = parts[4];
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid index name: " + indexName);
