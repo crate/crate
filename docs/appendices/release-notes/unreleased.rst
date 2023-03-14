@@ -81,9 +81,18 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that caused nested joins such as
-  ``SELECT * FROM t1 JOIN (t2 JOIN t3 ON t2.x = t3.x) ON t1.x = t2.x``
-  fail with an internal error.
+- Fixed an issue that caused ``JOIN`` queries to fail with an internal error,
+  when ``USING`` is used to define the join condition in combination with a
+  nested join e.g.::
+
+    SELECT * FROM t1 JOIN (t2 JOIN t3 ON t2.y = t3.y) USING(x)
+
+  Furthermore, validation of ``USING`` was added, so that a meaningful error
+  message is thrown in case it's misused.
+
+- Fixed an issue that caused nested joins to fail with an internal error e.g.::
+
+    SELECT * FROM t1 JOIN (t2 JOIN t3 ON t2.x = t3.x) ON t1.x = t2.x
 
 - Fixed an issue that could cause errors for queries with aggregations and
   ``UNION``, e.g. ::
