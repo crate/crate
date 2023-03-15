@@ -68,7 +68,7 @@ public class DocTableInfoFactory {
         String[] concreteIndices;
         String[] concreteOpenIndices;
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
-        if (metadata.getTemplates().containsKey(templateName)) {
+        if (metadata.templates().containsKey(templateName)) {
             docIndexMetadata = buildDocIndexMetadataFromTemplate(
                 metadata,
                 publicationsMetadata,
@@ -163,7 +163,7 @@ public class DocTableInfoFactory {
                                                                PublicationsMetadata publicationsMetadata,
                                                                RelationName relation,
                                                                String templateName) {
-        IndexTemplateMetadata indexTemplateMetadata = metadata.getTemplates().get(templateName);
+        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         DocIndexMetadata docIndexMetadata;
         try {
             IndexMetadata.Builder builder = new IndexMetadata.Builder(relation.indexNameOrAlias());
