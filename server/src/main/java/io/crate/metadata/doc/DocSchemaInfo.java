@@ -21,9 +21,33 @@
 
 package io.crate.metadata.doc;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.index.Index;
+
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
 import io.crate.blob.v2.BlobIndex;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ResourceUnknownException;
@@ -40,29 +64,6 @@ import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
-
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.index.Index;
-
-import javax.annotation.Nullable;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * SchemaInfo for all user tables.
@@ -167,7 +168,7 @@ public class DocSchemaInfo implements SchemaInfo {
             schemaName, tables);
 
         // Search for partitioned table templates
-        Iterator<String> templates = clusterService.state().metadata().getTemplates().keysIt();
+        Iterator<String> templates = clusterService.state().metadata().templates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
             if (!IndexParts.isPartitioned(templateName)) {

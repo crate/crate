@@ -35,8 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -71,6 +69,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.exceptions.Exceptions;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -218,7 +218,7 @@ public class GatewayMetaState implements Closeable {
 
         // upgrade current templates
         if (applyPluginUpgraders(
-            metadata.getTemplates(),
+            metadata.templates(),
             metadataUpgrader.indexTemplateMetadataUpgraders,
             upgradedMetadata::removeTemplate,
             (s, indexTemplateMetadata) -> {
@@ -242,7 +242,7 @@ public class GatewayMetaState implements Closeable {
         }
 
         // upgrade global custom meta data
-        if (applyPluginUpgraders(metadata.getCustoms(), metadataUpgrader.customMetadataUpgraders,
+        if (applyPluginUpgraders(metadata.customs(), metadataUpgrader.customMetadataUpgraders,
                 upgradedMetadata::removeCustom, upgradedMetadata::putCustom)) {
             changed = true;
         }
