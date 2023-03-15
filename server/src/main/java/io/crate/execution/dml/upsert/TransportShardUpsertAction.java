@@ -157,20 +157,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         } else {
             insertColumns = List.of(request.insertColumns());
         }
-        Indexer indexer = null;
-        try {
-            indexer = new Indexer(
-                indexName,
-                tableInfo,
-                txnCtx,
-                nodeCtx,
-                getFieldType,
-                insertColumns,
-                request.returnValues()
-            );
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        Indexer indexer = new Indexer(
+            indexName,
+            tableInfo,
+            txnCtx,
+            nodeCtx,
+            getFieldType,
+            insertColumns,
+            request.returnValues()
+        );
         if (indexer.hasUndeterministicSynthetics()) {
             request.insertColumns(indexer.insertColumns(insertColumns));
         }

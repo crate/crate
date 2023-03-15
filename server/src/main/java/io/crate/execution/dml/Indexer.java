@@ -23,6 +23,7 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -349,12 +350,16 @@ public class Indexer {
                    NodeContext nodeCtx,
                    Function<ColumnIdent, FieldType> getFieldType,
                    List<Reference> targetColumns,
-                   Symbol[] returnValues) throws IOException {
+                   Symbol[] returnValues) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
-        this.xContentBuilder = XContentFactory.jsonBuilder(stream);
+        try {
+            this.xContentBuilder = XContentFactory.jsonBuilder(stream);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
 
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
