@@ -260,7 +260,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             nl.topMostLeftRelation(),
             nl.orderByWasPushedDown(),
             true,
-            false
+            false,
+            nl.isRewriteNestedLoopJoinToHashJoinDone()
         );
         assert newJoin.outputs().equals(nl.outputs()) : "Outputs after rewrite must be the same as before";
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));

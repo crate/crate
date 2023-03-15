@@ -44,6 +44,11 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
     private Properties properties;
 
+    @Override
+    protected boolean isHashJoinEnabled() {
+        return false;
+    }
+
     @Before
     public void setup() {
         properties = new Properties();
