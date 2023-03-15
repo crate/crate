@@ -21,6 +21,31 @@
 
 package io.crate.expression.udf;
 
+import static io.crate.metadata.doc.DocSchemaInfo.NO_BLOB_NOR_DANGLING;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+import javax.script.ScriptException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -46,29 +71,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import javax.annotation.Nullable;
-import javax.script.ScriptException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static io.crate.metadata.doc.DocSchemaInfo.NO_BLOB_NOR_DANGLING;
 
 
 @Singleton
@@ -293,7 +295,7 @@ public class UserDefinedFunctionService {
             .map(IndexParts::new)
             .filter(indexParts -> !indexParts.isPartitioned())
             .collect(Collectors.toList());
-        var templates = metadata.getTemplates().keysIt();
+        var templates = metadata.templates().keysIt();
         while (templates.hasNext()) {
             var indexParts = new IndexParts(templates.next());
             if (indexParts.isPartitioned()) {

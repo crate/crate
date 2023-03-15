@@ -25,7 +25,6 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,12 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
@@ -52,12 +48,10 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.VersionedNamedWriteable;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -65,21 +59,14 @@ import org.elasticsearch.common.xcontent.NamedObjectNotFoundException;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.rest.RestStatus;
 
-import com.carrotsearch.hppc.ObjectHashSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.Constants;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
@@ -175,7 +162,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
 
     private final SortedMap<String, AliasOrIndex> aliasAndIndexLookup;
 
-    @SuppressWarnings("unchecked")
     Metadata(String clusterUUID,
              boolean clusterUUIDCommitted,
              long version,
@@ -274,216 +260,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
     }
 
-    public boolean equalsAliases(Metadata other) {
-        for (ObjectCursor<IndexMetadata> cursor : other.indices().values()) {
-            IndexMetadata otherIndex = cursor.value;
-            IndexMetadata thisIndex = index(otherIndex.getIndex());
-            if (thisIndex == null) {
-                return false;
-            }
-            if (otherIndex.getAliases().equals(thisIndex.getAliases()) == false) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     public SortedMap<String, AliasOrIndex> getAliasAndIndexLookup() {
         return aliasAndIndexLookup;
-    }
-
-    /**
-     * Finds the specific index aliases that match with the specified aliases directly or partially via wildcards and
-     * that point to the specified concrete indices or match partially with the indices via wildcards.
-     *
-     * @param aliases         The names of the index aliases to find
-     * @param concreteIndices The concrete indexes the index aliases must point to order to be returned.
-     * @return a map of index to a list of alias metadata, the list corresponding to a concrete index will be empty if no aliases are
-     * present for that index
-     */
-    public ImmutableOpenMap<String, List<AliasMetadata>> findAliases(final String[] aliases, String[] concreteIndices) {
-        assert aliases != null;
-        assert concreteIndices != null;
-        if (concreteIndices.length == 0) {
-            return ImmutableOpenMap.of();
-        }
-
-        boolean matchAllAliases = matchAllAliases(aliases);
-        ImmutableOpenMap.Builder<String, List<AliasMetadata>> mapBuilder = ImmutableOpenMap.builder();
-        for (String index : concreteIndices) {
-            IndexMetadata indexMetadata = indices.get(index);
-            List<AliasMetadata> filteredValues = new ArrayList<>();
-            for (ObjectCursor<AliasMetadata> cursor : indexMetadata.getAliases().values()) {
-                AliasMetadata value = cursor.value;
-                if (matchAllAliases || Regex.simpleMatch(aliases, value.alias())) {
-                    filteredValues.add(value);
-                }
-            }
-
-            if (filteredValues.isEmpty() == false) {
-                // Make the list order deterministic
-                CollectionUtil.timSort(filteredValues, Comparator.comparing(AliasMetadata::alias));
-                mapBuilder.put(index, Collections.unmodifiableList(filteredValues));
-            }
-        }
-        return mapBuilder.build();
-    }
-
-    private static boolean matchAllAliases(final String[] aliases) {
-        for (String alias : aliases) {
-            if (alias.equals(ALL)) {
-                return true;
-            }
-        }
-        return aliases.length == 0;
-    }
-
-    /**
-     * Checks if at least one of the specified aliases exists in the specified concrete indices. Wildcards are supported in the
-     * alias names for partial matches.
-     *
-     * @param aliases         The names of the index aliases to find
-     * @param concreteIndices The concrete indexes the index aliases must point to order to be returned.
-     * @return whether at least one of the specified aliases exists in one of the specified concrete indices.
-     */
-    public boolean hasAliases(final String[] aliases, String[] concreteIndices) {
-        assert aliases != null;
-        assert concreteIndices != null;
-        if (concreteIndices.length == 0) {
-            return false;
-        }
-
-        Iterable<String> intersection = HppcMaps.intersection(ObjectHashSet.from(concreteIndices), indices.keys());
-        for (String index : intersection) {
-            IndexMetadata indexMetadata = indices.get(index);
-            List<AliasMetadata> filteredValues = new ArrayList<>();
-            for (ObjectCursor<AliasMetadata> cursor : indexMetadata.getAliases().values()) {
-                AliasMetadata value = cursor.value;
-                if (Regex.simpleMatch(aliases, value.alias())) {
-                    filteredValues.add(value);
-                }
-            }
-            if (!filteredValues.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Finds all mappings for types and concrete indices. Types are expanded to include all types that match the glob
-     * patterns in the types array. Empty types array, null or {"_all"} will be expanded to all types available for
-     * the given indices. Only fields that match the provided field filter will be returned (default is a predicate
-     * that always returns true, which can be overridden via plugins)
-     *
-     * @see MapperPlugin#getFieldFilter()
-     *
-     */
-    public ImmutableOpenMap<String, MappingMetadata> findMappings(String[] concreteIndices,
-                                                                  Function<String, Predicate<String>> fieldFilter) throws IOException {
-        assert concreteIndices != null;
-        if (concreteIndices.length == 0) {
-            return ImmutableOpenMap.of();
-        }
-
-        Iterable<String> intersection = HppcMaps.intersection(ObjectHashSet.from(concreteIndices), indices.keys());
-        ImmutableOpenMap.Builder<String, MappingMetadata> indexMapBuilder = ImmutableOpenMap.builder();
-        for (String index : intersection) {
-            IndexMetadata indexMetadata = indices.get(index);
-            Predicate<String> fieldPredicate = fieldFilter.apply(index);
-            indexMapBuilder.put(index, filterFields(indexMetadata.mapping(), fieldPredicate));
-        }
-        return indexMapBuilder.build();
-    }
-
-    private static ImmutableOpenMap<String, MappingMetadata> filterFields(ImmutableOpenMap<String, MappingMetadata> mappings,
-                                                                          Predicate<String> fieldPredicate) throws IOException {
-        if (fieldPredicate == MapperPlugin.NOOP_FIELD_PREDICATE) {
-            return mappings;
-        }
-        ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder(mappings.size());
-        for (ObjectObjectCursor<String, MappingMetadata> cursor : mappings) {
-            builder.put(cursor.key, filterFields(cursor.value, fieldPredicate));
-        }
-        return builder.build(); // No types specified means return them all
-    }
-
-    @SuppressWarnings("unchecked")
-    private static MappingMetadata filterFields(MappingMetadata mappingMetadata, Predicate<String> fieldPredicate) throws IOException {
-        if (fieldPredicate == MapperPlugin.NOOP_FIELD_PREDICATE) {
-            return mappingMetadata;
-        }
-        Map<String, Object> sourceAsMap = XContentHelper.convertToMap(mappingMetadata.source().compressedReference(), true).map();
-        Map<String, Object> mapping;
-        if (sourceAsMap.size() == 1 && sourceAsMap.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
-            mapping = (Map<String, Object>) sourceAsMap.get(Constants.DEFAULT_MAPPING_TYPE);
-        } else {
-            mapping = sourceAsMap;
-        }
-
-        Map<String, Object> properties = (Map<String, Object>)mapping.get("properties");
-        if (properties == null || properties.isEmpty()) {
-            return mappingMetadata;
-        }
-
-        filterFields("", properties, fieldPredicate);
-
-        return new MappingMetadata(sourceAsMap);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static boolean filterFields(String currentPath, Map<String, Object> fields, Predicate<String> fieldPredicate) {
-        assert fieldPredicate != MapperPlugin.NOOP_FIELD_PREDICATE;
-        Iterator<Map.Entry<String, Object>> entryIterator = fields.entrySet().iterator();
-        while (entryIterator.hasNext()) {
-            Map.Entry<String, Object> entry = entryIterator.next();
-            String newPath = mergePaths(currentPath, entry.getKey());
-            Object value = entry.getValue();
-            boolean mayRemove = true;
-            boolean isMultiField = false;
-            if (value instanceof Map) {
-                Map<String, Object> map = (Map<String, Object>) value;
-                Map<String, Object> properties = (Map<String, Object>)map.get("properties");
-                if (properties != null) {
-                    mayRemove = filterFields(newPath, properties, fieldPredicate);
-                } else {
-                    Map<String, Object> subFields = (Map<String, Object>)map.get("fields");
-                    if (subFields != null) {
-                        isMultiField = true;
-                        if (mayRemove = filterFields(newPath, subFields, fieldPredicate)) {
-                            map.remove("fields");
-                        }
-                    }
-                }
-            } else {
-                throw new IllegalStateException("cannot filter mappings, found unknown element of type [" + value.getClass() + "]");
-            }
-
-            //only remove a field if it has no sub-fields left and it has to be excluded
-            if (fieldPredicate.test(newPath) == false) {
-                if (mayRemove) {
-                    entryIterator.remove();
-                } else if (isMultiField) {
-                    //multi fields that should be excluded but hold subfields that don't have to be excluded are converted to objects
-                    Map<String, Object> map = (Map<String, Object>) value;
-                    Map<String, Object> subFields = (Map<String, Object>)map.get("fields");
-                    assert subFields.size() > 0;
-                    map.put("properties", subFields);
-                    map.remove("fields");
-                    map.remove("type");
-                }
-            }
-        }
-        //return true if the ancestor may be removed, as it has no sub-fields left
-        return fields.size() == 0;
-    }
-
-    private static String mergePaths(String path, String field) {
-        if (path.length() == 0) {
-            return field;
-        }
-        return path + "." + field;
     }
 
     /**
@@ -542,23 +320,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return this.indices;
     }
 
-    public ImmutableOpenMap<String, IndexMetadata> getIndices() {
-        return indices();
-    }
-
     public ImmutableOpenMap<String, IndexTemplateMetadata> templates() {
         return this.templates;
     }
 
-    public ImmutableOpenMap<String, IndexTemplateMetadata> getTemplates() {
-        return this.templates;
-    }
-
     public ImmutableOpenMap<String, Custom> customs() {
-        return this.customs;
-    }
-
-    public ImmutableOpenMap<String, Custom> getCustoms() {
         return this.customs;
     }
 
@@ -600,28 +366,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
      */
     public int getNumberOfShards() {
         return this.numberOfShards;
-    }
-
-    /**
-     * Identifies whether the array containing type names given as argument refers to all types
-     * The empty or null array identifies all types
-     *
-     * @param types the array containing types
-     * @return true if the provided array maps to all types, false otherwise
-     */
-    public static boolean isAllTypes(String[] types) {
-        return types == null || types.length == 0 || isExplicitAllType(types);
-    }
-
-    /**
-     * Identifies whether the array containing type names given as argument explicitly refers to all types
-     * The empty or null array doesn't explicitly map to all types
-     *
-     * @param types the array containing index names
-     * @return true if the provided array explicitly maps to all types, false otherwise
-     */
-    public static boolean isExplicitAllType(String[] types) {
-        return types != null && types.length == 1 && ALL.equals(types[0]);
     }
 
     @Override
@@ -952,23 +696,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
 
         public IndexGraveyard indexGraveyard() {
-            @SuppressWarnings("unchecked") IndexGraveyard graveyard = (IndexGraveyard) getCustom(IndexGraveyard.TYPE);
+            IndexGraveyard graveyard = (IndexGraveyard) getCustom(IndexGraveyard.TYPE);
             return graveyard;
-        }
-
-        public Builder updateSettings(Settings settings, String... indices) {
-            if (indices == null || indices.length == 0) {
-                indices = this.indices.keys().toArray(String.class);
-            }
-            for (String index : indices) {
-                IndexMetadata indexMetadata = this.indices.get(index);
-                if (indexMetadata == null) {
-                    throw new IndexNotFoundException(index);
-                }
-                put(IndexMetadata.builder(indexMetadata)
-                        .settings(Settings.builder().put(indexMetadata.getSettings()).put(settings)));
-            }
-            return this;
         }
 
         /**
@@ -1112,14 +841,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             aliasAndIndexLookup.values().stream().filter(AliasOrIndex::isAlias)
                 .forEach(alias -> ((AliasOrIndex.Alias) alias).computeAndValidateWriteIndex());
             return aliasAndIndexLookup;
-        }
-
-        public static String toXContent(Metadata metadata) throws IOException {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-            builder.startObject();
-            toXContent(metadata, builder, ToXContent.EMPTY_PARAMS);
-            builder.endObject();
-            return Strings.toString(builder);
         }
 
         public static void toXContent(Metadata metadata, XContentBuilder builder, ToXContent.Params params) throws IOException {

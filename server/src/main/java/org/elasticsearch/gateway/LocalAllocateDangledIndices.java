@@ -150,7 +150,7 @@ public class LocalAllocateDangledIndices {
                             upgradedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                                 indexMetadata,
                                 IndexParts.isPartitioned(indexName) ?
-                                    currentState.metadata().getTemplates().get(PartitionName.templateName(indexName)) :
+                                    currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                     null,
                                 minIndexCompatibilityVersion);
                             upgradedIndexMetadata = IndexMetadata.builder(upgradedIndexMetadata).settings(

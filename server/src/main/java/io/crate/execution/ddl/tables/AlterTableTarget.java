@@ -49,7 +49,7 @@ public final class AlterTableTarget {
         if (partition == null) {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.getTemplates().get(templateName);
+            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
             return new AlterTableTarget(table, partition, indices, indexTemplateMetadata);
         } else {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), partition);

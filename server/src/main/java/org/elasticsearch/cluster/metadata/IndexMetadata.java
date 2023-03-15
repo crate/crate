@@ -26,9 +26,6 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -1330,28 +1327,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             }
             return builder.build();
         }
-    }
-
-    /**
-     * Adds human readable version and creation date settings.
-     * This method is used to display the settings in a human readable format in REST API
-     */
-    public static Settings addHumanReadableSettings(Settings settings) {
-        Settings.Builder builder = Settings.builder().put(settings);
-        Version version = SETTING_INDEX_VERSION_CREATED.get(settings);
-        if (version != Version.V_EMPTY) {
-            builder.put(SETTING_VERSION_CREATED_STRING, version.toString());
-        }
-        Version versionUpgraded = settings.getAsVersion(SETTING_VERSION_UPGRADED, null);
-        if (versionUpgraded != null) {
-            builder.put(SETTING_VERSION_UPGRADED_STRING, versionUpgraded.toString());
-        }
-        Long creationDate = settings.getAsLong(SETTING_CREATION_DATE, null);
-        if (creationDate != null) {
-            ZonedDateTime creationDateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(creationDate), ZoneOffset.UTC);
-            builder.put(SETTING_CREATION_DATE_STRING, creationDateTime.toString());
-        }
-        return builder.build();
     }
 
     private static final ToXContent.Params FORMAT_PARAMS = new MapParams(Collections.singletonMap("binary", "true"));
