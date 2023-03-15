@@ -19,7 +19,13 @@
 
 package org.elasticsearch.common.joda;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.math.BigDecimal;
+import java.util.Locale;
+
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.time.IsoLocale;
 import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeField;
@@ -37,24 +43,14 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.DateTimeParser;
 import org.joda.time.format.DateTimeParserBucket;
 import org.joda.time.format.DateTimePrinter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.format.StrictISODateTimeFormat;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.math.BigDecimal;
-import java.util.Locale;
-
 public class Joda {
-
-    public static FormatDateTimeFormatter forPattern(String input) {
-        return forPattern(input, Locale.ROOT);
-    }
 
     /**
      * Parses a joda based pattern, including some named ones (similar to the built in Joda ISO ones).
      */
-    public static FormatDateTimeFormatter forPattern(String input, Locale locale) {
+    public static FormatDateTimeFormatter forPattern(String input) {
         if (Strings.hasLength(input)) {
             input = input.trim();
         }
@@ -63,181 +59,26 @@ public class Joda {
         }
 
         DateTimeFormatter formatter;
-        if ("basicDate".equals(input) || "basic_date".equals(input)) {
-            formatter = ISODateTimeFormat.basicDate();
-        } else if ("basicDateTime".equals(input) || "basic_date_time".equals(input)) {
-            formatter = ISODateTimeFormat.basicDateTime();
-        } else if ("basicDateTimeNoMillis".equals(input) || "basic_date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.basicDateTimeNoMillis();
-        } else if ("basicOrdinalDate".equals(input) || "basic_ordinal_date".equals(input)) {
-            formatter = ISODateTimeFormat.basicOrdinalDate();
-        } else if ("basicOrdinalDateTime".equals(input) || "basic_ordinal_date_time".equals(input)) {
-            formatter = ISODateTimeFormat.basicOrdinalDateTime();
-        } else if ("basicOrdinalDateTimeNoMillis".equals(input) || "basic_ordinal_date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.basicOrdinalDateTimeNoMillis();
-        } else if ("basicTime".equals(input) || "basic_time".equals(input)) {
-            formatter = ISODateTimeFormat.basicTime();
-        } else if ("basicTimeNoMillis".equals(input) || "basic_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.basicTimeNoMillis();
-        } else if ("basicTTime".equals(input) || "basic_t_time".equals(input)) {
-            formatter = ISODateTimeFormat.basicTTime();
-        } else if ("basicTTimeNoMillis".equals(input) || "basic_t_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.basicTTimeNoMillis();
-        } else if ("basicWeekDate".equals(input) || "basic_week_date".equals(input)) {
-            formatter = ISODateTimeFormat.basicWeekDate();
-        } else if ("basicWeekDateTime".equals(input) || "basic_week_date_time".equals(input)) {
-            formatter = ISODateTimeFormat.basicWeekDateTime();
-        } else if ("basicWeekDateTimeNoMillis".equals(input) || "basic_week_date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.basicWeekDateTimeNoMillis();
-        } else if ("date".equals(input)) {
-            formatter = ISODateTimeFormat.date();
-        } else if ("dateHour".equals(input) || "date_hour".equals(input)) {
-            formatter = ISODateTimeFormat.dateHour();
-        } else if ("dateHourMinute".equals(input) || "date_hour_minute".equals(input)) {
-            formatter = ISODateTimeFormat.dateHourMinute();
-        } else if ("dateHourMinuteSecond".equals(input) || "date_hour_minute_second".equals(input)) {
-            formatter = ISODateTimeFormat.dateHourMinuteSecond();
-        } else if ("dateHourMinuteSecondFraction".equals(input) || "date_hour_minute_second_fraction".equals(input)) {
-            formatter = ISODateTimeFormat.dateHourMinuteSecondFraction();
-        } else if ("dateHourMinuteSecondMillis".equals(input) || "date_hour_minute_second_millis".equals(input)) {
-            formatter = ISODateTimeFormat.dateHourMinuteSecondMillis();
-        } else if ("dateOptionalTime".equals(input) || "date_optional_time".equals(input)) {
-            // in this case, we have a separate parser and printer since the dataOptionalTimeParser can't print
-            // this sucks we should use the root local by default and not be dependent on the node
-            return new FormatDateTimeFormatter(input,
-                    ISODateTimeFormat.dateOptionalTimeParser().withZone(DateTimeZone.UTC),
-                    ISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC), locale);
-        } else if ("dateTime".equals(input) || "date_time".equals(input)) {
-            formatter = ISODateTimeFormat.dateTime();
-        } else if ("dateTimeNoMillis".equals(input) || "date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.dateTimeNoMillis();
-        } else if ("hour".equals(input)) {
-            formatter = ISODateTimeFormat.hour();
-        } else if ("hourMinute".equals(input) || "hour_minute".equals(input)) {
-            formatter = ISODateTimeFormat.hourMinute();
-        } else if ("hourMinuteSecond".equals(input) || "hour_minute_second".equals(input)) {
-            formatter = ISODateTimeFormat.hourMinuteSecond();
-        } else if ("hourMinuteSecondFraction".equals(input) || "hour_minute_second_fraction".equals(input)) {
-            formatter = ISODateTimeFormat.hourMinuteSecondFraction();
-        } else if ("hourMinuteSecondMillis".equals(input) || "hour_minute_second_millis".equals(input)) {
-            formatter = ISODateTimeFormat.hourMinuteSecondMillis();
-        } else if ("ordinalDate".equals(input) || "ordinal_date".equals(input)) {
-            formatter = ISODateTimeFormat.ordinalDate();
-        } else if ("ordinalDateTime".equals(input) || "ordinal_date_time".equals(input)) {
-            formatter = ISODateTimeFormat.ordinalDateTime();
-        } else if ("ordinalDateTimeNoMillis".equals(input) || "ordinal_date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.ordinalDateTimeNoMillis();
-        } else if ("time".equals(input)) {
-            formatter = ISODateTimeFormat.time();
-        } else if ("timeNoMillis".equals(input) || "time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.timeNoMillis();
-        } else if ("tTime".equals(input) || "t_time".equals(input)) {
-            formatter = ISODateTimeFormat.tTime();
-        } else if ("tTimeNoMillis".equals(input) || "t_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.tTimeNoMillis();
-        } else if ("weekDate".equals(input) || "week_date".equals(input)) {
-            formatter = ISODateTimeFormat.weekDate();
-        } else if ("weekDateTime".equals(input) || "week_date_time".equals(input)) {
-            formatter = ISODateTimeFormat.weekDateTime();
-        } else if ("weekDateTimeNoMillis".equals(input) || "week_date_time_no_millis".equals(input)) {
-            formatter = ISODateTimeFormat.weekDateTimeNoMillis();
-        } else if ("weekyear".equals(input) || "week_year".equals(input)) {
-            formatter = ISODateTimeFormat.weekyear();
-        } else if ("weekyearWeek".equals(input) || "weekyear_week".equals(input)) {
-            formatter = ISODateTimeFormat.weekyearWeek();
-        } else if ("weekyearWeekDay".equals(input) || "weekyear_week_day".equals(input)) {
-            formatter = ISODateTimeFormat.weekyearWeekDay();
-        } else if ("year".equals(input)) {
-            formatter = ISODateTimeFormat.year();
-        } else if ("yearMonth".equals(input) || "year_month".equals(input)) {
-            formatter = ISODateTimeFormat.yearMonth();
-        } else if ("yearMonthDay".equals(input) || "year_month_day".equals(input)) {
-            formatter = ISODateTimeFormat.yearMonthDay();
-        } else if ("epoch_second".equals(input)) {
-            formatter = new DateTimeFormatterBuilder().append(new EpochTimePrinter(false), new EpochTimeParser(false)).toFormatter();
-        } else if ("epoch_millis".equals(input)) {
-            formatter = new DateTimeFormatterBuilder().append(new EpochTimePrinter(true), new EpochTimeParser(true)).toFormatter();
-        // strict date formats here, must be at least 4 digits for year and two for months and two for day
-        } else if ("strictBasicWeekDate".equals(input) || "strict_basic_week_date".equals(input)) {
-            formatter = StrictISODateTimeFormat.basicWeekDate();
-        } else if ("strictBasicWeekDateTime".equals(input) || "strict_basic_week_date_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.basicWeekDateTime();
-        } else if ("strictBasicWeekDateTimeNoMillis".equals(input) || "strict_basic_week_date_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.basicWeekDateTimeNoMillis();
-        } else if ("strictDate".equals(input) || "strict_date".equals(input)) {
-            formatter = StrictISODateTimeFormat.date();
-        } else if ("strictDateHour".equals(input) || "strict_date_hour".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateHour();
-        } else if ("strictDateHourMinute".equals(input) || "strict_date_hour_minute".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateHourMinute();
-        } else if ("strictDateHourMinuteSecond".equals(input) || "strict_date_hour_minute_second".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateHourMinuteSecond();
-        } else if ("strictDateHourMinuteSecondFraction".equals(input) || "strict_date_hour_minute_second_fraction".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateHourMinuteSecondFraction();
-        } else if ("strictDateHourMinuteSecondMillis".equals(input) || "strict_date_hour_minute_second_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateHourMinuteSecondMillis();
-        } else if ("strictDateOptionalTime".equals(input) || "strict_date_optional_time".equals(input)) {
+        if ("epoch_millis".equals(input)) {
+            formatter = new DateTimeFormatterBuilder()
+                .append(new EpochTimePrinter(true), new EpochTimeParser(true))
+                .toFormatter();
+        } else if ("strict_date_optional_time".equals(input)) {
             // in this case, we have a separate parser and printer since the dataOptionalTimeParser can't print
             // this sucks we should use the root local by default and not be dependent on the node
             return new FormatDateTimeFormatter(input,
                     StrictISODateTimeFormat.dateOptionalTimeParser().withZone(DateTimeZone.UTC),
-                    StrictISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC), locale);
-        } else if ("strictDateTime".equals(input) || "strict_date_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateTime();
-        } else if ("strictDateTimeNoMillis".equals(input) || "strict_date_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.dateTimeNoMillis();
-        } else if ("strictHour".equals(input) || "strict_hour".equals(input)) {
-            formatter = StrictISODateTimeFormat.hour();
-        } else if ("strictHourMinute".equals(input) || "strict_hour_minute".equals(input)) {
-            formatter = StrictISODateTimeFormat.hourMinute();
-        } else if ("strictHourMinuteSecond".equals(input) || "strict_hour_minute_second".equals(input)) {
-            formatter = StrictISODateTimeFormat.hourMinuteSecond();
-        } else if ("strictHourMinuteSecondFraction".equals(input) || "strict_hour_minute_second_fraction".equals(input)) {
-            formatter = StrictISODateTimeFormat.hourMinuteSecondFraction();
-        } else if ("strictHourMinuteSecondMillis".equals(input) || "strict_hour_minute_second_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.hourMinuteSecondMillis();
-        } else if ("strictOrdinalDate".equals(input) || "strict_ordinal_date".equals(input)) {
-            formatter = StrictISODateTimeFormat.ordinalDate();
-        } else if ("strictOrdinalDateTime".equals(input) || "strict_ordinal_date_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.ordinalDateTime();
-        } else if ("strictOrdinalDateTimeNoMillis".equals(input) || "strict_ordinal_date_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.ordinalDateTimeNoMillis();
-        } else if ("strictTime".equals(input) || "strict_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.time();
-        } else if ("strictTimeNoMillis".equals(input) || "strict_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.timeNoMillis();
-        } else if ("strictTTime".equals(input) || "strict_t_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.tTime();
-        } else if ("strictTTimeNoMillis".equals(input) || "strict_t_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.tTimeNoMillis();
-        } else if ("strictWeekDate".equals(input) || "strict_week_date".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekDate();
-        } else if ("strictWeekDateTime".equals(input) || "strict_week_date_time".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekDateTime();
-        } else if ("strictWeekDateTimeNoMillis".equals(input) || "strict_week_date_time_no_millis".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekDateTimeNoMillis();
-        } else if ("strictWeekyear".equals(input) || "strict_weekyear".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekyear();
-        } else if ("strictWeekyearWeek".equals(input) || "strict_weekyear_week".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekyearWeek();
-        } else if ("strictWeekyearWeekDay".equals(input) || "strict_weekyear_week_day".equals(input)) {
-            formatter = StrictISODateTimeFormat.weekyearWeekDay();
-        } else if ("strictYear".equals(input) || "strict_year".equals(input)) {
-            formatter = StrictISODateTimeFormat.year();
-        } else if ("strictYearMonth".equals(input) || "strict_year_month".equals(input)) {
-            formatter = StrictISODateTimeFormat.yearMonth();
-        } else if ("strictYearMonthDay".equals(input) || "strict_year_month_day".equals(input)) {
-            formatter = StrictISODateTimeFormat.yearMonthDay();
+                    StrictISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC), IsoLocale.ROOT);
         } else if (Strings.hasLength(input) && input.contains("||")) {
             String[] formats = Strings.delimitedListToStringArray(input, "||");
             DateTimeParser[] parsers = new DateTimeParser[formats.length];
 
             if (formats.length == 1) {
-                formatter = forPattern(input, locale).parser();
+                formatter = forPattern(input).parser();
             } else {
                 DateTimeFormatter dateTimeFormatter = null;
                 for (int i = 0; i < formats.length; i++) {
-                    FormatDateTimeFormatter currentFormatter = forPattern(formats[i], locale);
+                    FormatDateTimeFormatter currentFormatter = forPattern(formats[i]);
                     DateTimeFormatter currentParser = currentFormatter.parser();
                     if (dateTimeFormatter == null) {
                         dateTimeFormatter = currentFormatter.printer();
@@ -256,8 +97,7 @@ public class Joda {
                 throw new IllegalArgumentException("Invalid format: [" + input + "]: " + e.getMessage(), e);
             }
         }
-
-        return new FormatDateTimeFormatter(input, formatter.withZone(DateTimeZone.UTC), locale);
+        return new FormatDateTimeFormatter(input, formatter.withZone(DateTimeZone.UTC), IsoLocale.ROOT);
     }
 
     public static FormatDateTimeFormatter getStrictStandardDateFormatter() {
