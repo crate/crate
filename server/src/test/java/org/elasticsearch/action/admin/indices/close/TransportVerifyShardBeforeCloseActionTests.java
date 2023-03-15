@@ -21,17 +21,13 @@
 package org.elasticsearch.action.admin.indices.close;
 
 import static io.crate.execution.ddl.tables.TransportCloseTable.INDEX_CLOSED_BLOCK_ID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -216,7 +212,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
 
         executeOnPrimaryOrReplica();
         verify(indexShard, times(1)).flush(any(FlushRequest.class));
-        assertThat(flushRequest.getValue().force(), is(true));
+        assertThat(flushRequest.getValue().force()).isTrue();
     }
 
     @Test
@@ -229,9 +225,9 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
     public void testOperationFailsWhenNotBlocked() {
         when(indexShard.getActiveOperationsCount()).thenReturn(randomIntBetween(0, 10));
 
-        IllegalStateException exception = expectThrows(IllegalStateException.class, this::executeOnPrimaryOrReplica);
-        assertThat(exception.getMessage(),
-                   equalTo("Index shard " + indexShard.shardId() + " is not blocking all operations during closing"));
+        assertThatThrownBy(this::executeOnPrimaryOrReplica)
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Index shard " + indexShard.shardId() + " is not blocking all operations during closing");
         verify(indexShard, times(0)).flush(any(FlushRequest.class));
     }
 
@@ -239,10 +235,9 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
     public void testOperationFailsWithNoBlock() {
         setState(clusterService, new ClusterState.Builder(new ClusterName("test")).build());
 
-        IllegalStateException exception = expectThrows(IllegalStateException.class, this::executeOnPrimaryOrReplica);
-        assertThat(exception.getMessage(),
-                   equalTo("Index shard " + indexShard.shardId() + " must be blocked by " + clusterBlock +
-                           " before closing"));
+        assertThatThrownBy(this::executeOnPrimaryOrReplica)
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Index shard " + indexShard.shardId() + " must be blocked by " + clusterBlock + " before closing");
         verify(indexShard, times(0)).flush(any(FlushRequest.class));
     }
 
@@ -256,7 +251,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
     @Test
     public void testVerifyShardBeforeIndexClosingFailed() {
         doThrow(new IllegalStateException("test")).when(indexShard).verifyShardBeforeIndexClosing();
-        expectThrows(IllegalStateException.class, this::executeOnPrimaryOrReplica);
+        assertThatThrownBy(this::executeOnPrimaryOrReplica)
+            .isExactlyInstanceOf(IllegalStateException.class);
         verify(indexShard, times(1)).verifyShardBeforeIndexClosing();
         verify(indexShard, times(0)).flush(any(FlushRequest.class));
     }
@@ -292,7 +288,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             inSyncAllocationIds,
             trackedShards,
             0);
-        assertThat(replicationGroup.getUnavailableInSyncShards().size(), greaterThan(0));
+        assertThat(replicationGroup.getUnavailableInSyncShards()).hasSizeGreaterThan(0);
 
         PlainActionFuture<PrimaryResult> listener = new PlainActionFuture<>();
         TransportVerifyShardBeforeCloseAction.ShardRequest request =
@@ -314,20 +310,20 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         operation.execute();
 
         CapturingTransport.CapturedRequest[] capturedRequests = transport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests.length, equalTo(nbReplicas));
+        assertThat(capturedRequests).hasSize(nbReplicas);
 
         for (CapturingTransport.CapturedRequest capturedRequest : capturedRequests) {
             String actionName = capturedRequest.action;
             if (actionName.startsWith(ShardStateAction.SHARD_FAILED_ACTION_NAME)) {
-                assertThat(capturedRequest.request, instanceOf(ShardStateAction.FailedShardEntry.class));
+                assertThat(capturedRequest.request).isExactlyInstanceOf(ShardStateAction.FailedShardEntry.class);
                 String allocationId = ((ShardStateAction.FailedShardEntry) capturedRequest.request).getAllocationId();
                 assertTrue(unavailableShards.stream()
                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
                 transport.handleResponse(capturedRequest.requestId, TransportResponse.Empty.INSTANCE);
 
             } else if (actionName.startsWith(TransportVerifyShardBeforeCloseAction.NAME)) {
-                assertThat(capturedRequest.request, instanceOf(ConcreteShardRequest.class));
-                String allocationId = ((ConcreteShardRequest) capturedRequest.request).getTargetAllocationID();
+                assertThat(capturedRequest.request).isInstanceOf(ConcreteShardRequest.class);
+                String allocationId = ((ConcreteShardRequest<?>) capturedRequest.request).getTargetAllocationID();
                 assertFalse(unavailableShards.stream()
                                 .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
                 assertTrue(inSyncAllocationIds.stream()
@@ -342,9 +338,9 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         }
 
         ReplicationResponse.ShardInfo shardInfo = listener.get().getShardInfo();
-        assertThat(shardInfo.getFailed(), equalTo(0));
-        assertThat(shardInfo.getFailures(), arrayWithSize(0));
-        assertThat(shardInfo.getSuccessful(), equalTo(1 + nbReplicas - unavailableShards.size()));
+        assertThat(shardInfo.getFailed()).isEqualTo(0);
+        assertThat(shardInfo.getFailures()).isEmpty();
+        assertThat(shardInfo.getSuccessful()).isEqualTo(1 + nbReplicas - unavailableShards.size());
     }
 
     private static ReplicationOperation.Primary<

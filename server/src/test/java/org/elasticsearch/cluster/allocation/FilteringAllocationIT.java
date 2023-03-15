@@ -19,9 +19,9 @@
 
 package org.elasticsearch.cluster.allocation;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -229,14 +229,12 @@ public class FilteringAllocationIT extends IntegTestCase {
         String ipKey = randomFrom("_ip", "_host_ip", "_publish_ip");
         Setting<String> filterSetting = randomFrom(FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING,
                                                    FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING, FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING);
-        IllegalArgumentException e = expectThrows(
-            IllegalArgumentException.class,
-            () -> FutureUtils.get(
+        assertThatThrownBy(() -> FutureUtils.get(
                 client().admin().cluster().execute(ClusterUpdateSettingsAction.INSTANCE, new ClusterUpdateSettingsRequest()
                     .transientSettings(Settings.builder().put(filterSetting.getKey() + ipKey, "192.168.1.1."))
-                ))
-        );
-        assertEquals("invalid IP address [192.168.1.1.] for [" + filterSetting.getKey() + ipKey + "]", e.getMessage());
+                )))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid IP address [192.168.1.1.] for [" + filterSetting.getKey() + ipKey + "]");
     }
 
     public void testTransientSettingsStillApplied() throws Exception {
