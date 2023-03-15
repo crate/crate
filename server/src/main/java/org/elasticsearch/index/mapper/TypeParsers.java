@@ -19,20 +19,18 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.index.IndexOptions;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.joda.FormatDateTimeFormatter;
-import org.elasticsearch.common.joda.Joda;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
+import org.apache.lucene.index.IndexOptions;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 public class TypeParsers {
 
@@ -202,13 +200,6 @@ public class TypeParsers {
         } else {
             throw new ElasticsearchParseException("failed to parse index option [{}]", value);
         }
-    }
-
-    public static FormatDateTimeFormatter parseDateTimeFormatter(Object node) {
-        if (node instanceof String) {
-            return Joda.forPattern((String) node);
-        }
-        throw new IllegalArgumentException("Invalid format: [" + node.toString() + "]: expected string value");
     }
 
     public static void parseTermVector(String fieldName, String termVector, TextFieldMapper.Builder builder) throws MapperParsingException {
