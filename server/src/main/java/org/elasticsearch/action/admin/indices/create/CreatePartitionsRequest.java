@@ -21,6 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -29,32 +30,30 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartitionsRequest> {
 
     private final Collection<String> indices;
-    private final UUID jobId;
 
     /**
      * Constructs a new request to create indices with the specified names.
      */
-    public CreatePartitionsRequest(Collection<String> indices, UUID jobId) {
+    public CreatePartitionsRequest(Collection<String> indices) {
         this.indices = indices;
-        this.jobId = jobId;
     }
 
     public Collection<String> indices() {
         return indices;
     }
 
-    public UUID jobId() {
-        return jobId;
-    }
-
     public CreatePartitionsRequest(StreamInput in) throws IOException {
         super(in);
-        jobId = new UUID(in.readLong(), in.readLong());
+        if (in.getVersion().before(Version.V_5_3_0)) {
+            // The only usage of jobId was removed in https://github.com/crate/crate/commit/31e0f7f447eaa006e756c20bd32346b2680ebee6
+            // Nodes < 5.3.0 still send UUID which is written as 2 longs, we consume them but don't create an UUID out of them.
+            in.readLong();
+            in.readLong();
+        }
         int numIndices = in.readVInt();
         List<String> indicesList = new ArrayList<>(numIndices);
         for (int i = 0; i < numIndices; i++) {
@@ -66,8 +65,14 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeLong(jobId.getMostSignificantBits());
-        out.writeLong(jobId.getLeastSignificantBits());
+        if (out.getVersion().before(Version.V_5_3_0)) {
+            // Nodes < 5.3.0 still expect 2 longs.
+            // They are used to construct an UUID but last time they were actually used in CrateDB 0.55.0.
+            // Hence, sending dummy values.
+            out.writeLong(0L);
+            out.writeLong(0L);
+        }
+
         out.writeVInt(indices.size());
         for (String index : indices) {
             out.writeString(index);
