@@ -23,10 +23,8 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
@@ -36,23 +34,19 @@ public class CreatePartitionsRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        CreatePartitionsRequest request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
+        CreatePartitionsRequest request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"));
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
-        assertThat(requestDeserialized.jobId(), is(jobId));
 
-        jobId = UUID.randomUUID();
-        request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
+        request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"));
         out = new BytesStreamOutput();
         request.writeTo(out);
         requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
-        assertThat(requestDeserialized.jobId(), is(jobId));
     }
 
 }

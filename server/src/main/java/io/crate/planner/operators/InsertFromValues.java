@@ -33,7 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -279,8 +278,7 @@ public class InsertFromValues implements LogicalPlan {
         createIndices(
             dependencies.client(),
             shardedRequests.itemsByMissingIndex().keySet(),
-            dependencies.clusterService(),
-            plannerContext.jobId()
+            dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
@@ -430,7 +428,7 @@ public class InsertFromValues implements LogicalPlan {
         createIndices(
             dependencies.client(),
             shardedRequests.itemsByMissingIndex().keySet(),
-            dependencies.clusterService(), plannerContext.jobId()
+            dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
@@ -752,8 +750,7 @@ public class InsertFromValues implements LogicalPlan {
 
     private static CompletableFuture<AcknowledgedResponse> createIndices(ElasticsearchClient elasticsearchClient,
                                                                          Set<String> indices,
-                                                                         ClusterService clusterService,
-                                                                         UUID jobId) {
+                                                                         ClusterService clusterService) {
         Metadata metadata = clusterService.state().metadata();
         List<String> indicesToCreate = new ArrayList<>();
         for (var index : indices) {
@@ -765,7 +762,7 @@ public class InsertFromValues implements LogicalPlan {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = new FutureActionListener<>(r -> r);
-        elasticsearchClient.execute(CreatePartitionsAction.INSTANCE, new CreatePartitionsRequest(indicesToCreate, jobId))
+        elasticsearchClient.execute(CreatePartitionsAction.INSTANCE, new CreatePartitionsRequest(indicesToCreate))
             .whenComplete(listener);
         return listener;
     }

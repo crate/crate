@@ -28,7 +28,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -73,7 +72,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         cluster().client().execute(PutIndexTemplateAction.INSTANCE, request).get();
 
         AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(indices, UUID.randomUUID())
+            new CreatePartitionsRequest(indices)
         ).get();
         assertThat(response.isAcknowledged(), is(true));
 
@@ -101,8 +100,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         ensureYellow("index_0");
 
         CreatePartitionsRequest request = new CreatePartitionsRequest(
-            Arrays.asList("index_0", "index_1"),
-            UUID.randomUUID());
+            Arrays.asList("index_0", "index_1"));
 
         CompletableFuture<ClusterStateUpdateResponse> response = new CompletableFuture<>();
 
@@ -138,7 +136,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         cluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
         AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(indices, UUID.randomUUID())
+            new CreatePartitionsRequest(indices)
         ).get();
         assertThat(response.isAcknowledged(), is(true));
         Metadata indexMetadata = cluster().clusterService().state().metadata();
@@ -146,7 +144,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
             assertThat(indexMetadata.hasIndex(index), is(true));
         }
         AcknowledgedResponse response2 = action.execute(
-            new CreatePartitionsRequest(indices, UUID.randomUUID())
+            new CreatePartitionsRequest(indices)
         ).get();
         assertThat(response2.isAcknowledged(), is(true));
     }
@@ -154,13 +152,13 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
     @Test
     public void testEmpty() throws Exception {
         AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(List.of(), UUID.randomUUID())).get();
+            new CreatePartitionsRequest(List.of())).get();
         assertThat(response.isAcknowledged(), is(true));
     }
 
     @Test
     public void testCreateInvalidName() throws Exception {
-        CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
+        CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"));
         Assertions.assertThrows(
             InvalidIndexNameException.class,
             () -> {
