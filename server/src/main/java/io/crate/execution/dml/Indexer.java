@@ -109,6 +109,7 @@ public class Indexer {
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
+    private final XContentBuilder xContentBuilder;
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -348,11 +349,13 @@ public class Indexer {
                    NodeContext nodeCtx,
                    Function<ColumnIdent, FieldType> getFieldType,
                    List<Reference> targetColumns,
-                   Symbol[] returnValues) {
+                   Symbol[] returnValues) throws IOException {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
+        this.xContentBuilder = XContentFactory.jsonBuilder(stream);
+
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -527,7 +530,6 @@ public class Indexer {
             expression.setNextRow(item);
         }
         stream.reset();
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder(stream);
         xContentBuilder.startObject();
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
@@ -575,7 +577,7 @@ public class Indexer {
                 columnConstraints
             );
         }
-        xContentBuilder.endObject();
+        xContentBuilder.endObject().flush();
 
         for (var indexColumn : indexColumns) {
             String fqn = indexColumn.name.fqn();
@@ -606,7 +608,7 @@ public class Indexer {
         NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
         doc.add(version);
 
-        BytesReference source = BytesReference.bytes(xContentBuilder);
+        BytesReference source = stream.bytes();
         BytesRef sourceRef = source.toBytesRef();
         doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
 

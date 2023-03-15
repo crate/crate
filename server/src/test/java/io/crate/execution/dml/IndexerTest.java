@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -83,7 +84,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         return new IndexItem.StaticItem("dummy-id-1", List.of(), values, 0L, 0L);
     }
 
-    static Indexer getIndexer(SQLExecutor e, String tableName, FieldType fieldType, String ... columns) {
+    static Indexer getIndexer(SQLExecutor e, String tableName, FieldType fieldType, String ... columns) throws IOException {
         DocTableInfo table = e.resolveTableInfo(tableName);
         return new Indexer(
             table.ident().indexNameOrAlias(),
