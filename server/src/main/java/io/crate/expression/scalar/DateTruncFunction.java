@@ -21,6 +21,16 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.rounding.DateTimeUnit;
+import org.elasticsearch.common.rounding.Rounding;
+import org.joda.time.DateTimeZone;
+
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
@@ -34,14 +44,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-import org.elasticsearch.common.rounding.DateTimeUnit;
-import org.elasticsearch.common.rounding.Rounding;
-import org.joda.time.DateTimeZone;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 

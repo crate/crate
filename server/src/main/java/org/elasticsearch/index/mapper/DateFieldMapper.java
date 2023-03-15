@@ -47,8 +47,7 @@ public class DateFieldMapper extends FieldMapper {
 
     private static final String DEFAULT_FORMAT_PATTERN = "strict_date_optional_time||epoch_millis";
     public static final String CONTENT_TYPE = "date";
-    public static final FormatDateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = Joda.forPattern(
-        DEFAULT_FORMAT_PATTERN, IsoLocale.ROOT);
+    public static final FormatDateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = Joda.forPattern(DEFAULT_FORMAT_PATTERN);
 
     public static class Defaults {
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
@@ -85,7 +84,7 @@ public class DateFieldMapper extends FieldMapper {
 
         protected DateFieldType setupFieldType(BuilderContext context) {
             String pattern = this.format.value();
-            var formatter = Joda.forPattern(pattern, IsoLocale.ROOT);
+            var formatter = Joda.forPattern(pattern);
             return new DateFieldType(buildFullName(context), indexed, hasDocValues, formatter);
         }
 
