@@ -99,14 +99,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
-        return JoinPlanBuilder.buildJoinTree(
+        var plan = JoinPlanBuilder.buildJoinTree(
             mss.from(),
             mss.where(),
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
-            txnCtx.sessionSettings().hashJoinsEnabled()
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true)
         );
+        return logicalPlanner.optimizer.optimize(plan, tableStats, txnCtx);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -260,8 +260,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.where(),
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false),
-            false
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false)
         );
         Join nl = (Join) operator.build(
             mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
@@ -596,7 +595,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_filter_on_aliased_symbol_is_moved_below_nl_if_left_join_can_be_rewritten_to_inner_join() throws Exception {
+    public void test_filter_on_aliased_symbol_is_moved_below_join_if_left_join_can_be_rewritten_to_inner_join() throws Exception {
         var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
             .addTable("""
                 CREATE TABLE doc."metric_mini" (
@@ -623,7 +622,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[start] AS doc.v1
               └ Eval[ts_production AS start]
-                └ NestedLoopJoin[INNER | (ts_production = max_ts)]
+                └ HashJoin[(ts_production = max_ts)]
                   ├ Rename[max_ts] AS last_record
                   │  └ Eval[max(ts) AS max_ts]
                   │    └ HashAggregate[max(ts)]
@@ -639,7 +638,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[start] AS doc.v1
               └ Eval[ts_production AS start]
-                └ NestedLoopJoin[INNER | (ts_production = max_ts)]
+                └ HashJoin[(ts_production = max_ts)]
                   ├ Rename[max_ts] AS last_record
                   │  └ Eval[max(ts) AS max_ts]
                   │    └ HashAggregate[max(ts)]
@@ -725,7 +724,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).isEqualTo(
             """
             MultiPhase
-              └ NestedLoopJoin[INNER | (i = i)]
+              └ HashJoin[(i = i)]
                 ├ Collect[doc.t1 | [a, x, i] | true]
                 └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]
               └ OrderBy[z ASC]

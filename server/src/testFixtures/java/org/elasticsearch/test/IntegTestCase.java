@@ -2040,7 +2040,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * <p>
      * Method annotations have higher priority than class annotations.
      */
-    private boolean isHashJoinEnabled() {
+    protected boolean isHashJoinEnabled() {
         UseHashJoins useHashJoins = getTestAnnotation(UseHashJoins.class);
         if (useHashJoins == null) {
             return false;

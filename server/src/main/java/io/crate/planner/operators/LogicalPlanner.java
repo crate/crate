@@ -48,6 +48,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -101,6 +102,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
@@ -112,8 +114,8 @@ import io.crate.types.DataTypes;
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
  */
 public class LogicalPlanner {
-
-    private final IterativeOptimizer optimizer;
+    @VisibleForTesting
+    final IterativeOptimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
@@ -148,7 +150,8 @@ public class LogicalPlanner {
                 new DeduplicateOrder(),
                 new OptimizeCollectWhereClauseAccess(),
                 new RewriteGroupByKeysLimitToLimitDistinct(),
-                new MoveConstantJoinConditionsBeneathNestedLoop()
+                new MoveConstantJoinConditionsBeneathNestedLoop(),
+                new RewriteNestedLoopJoinToHashJoin()
             )
         );
         this.fetchOptimizer = new Optimizer(
@@ -398,8 +401,7 @@ public class LogicalPlanner {
                         }
                         return rel.accept(this, List.copyOf(toCollect));
                     }
-                },
-                txnCtx.sessionSettings().hashJoinsEnabled()
+                }
             );
             Symbol having = relation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
