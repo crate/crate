@@ -59,27 +59,17 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
 
         public static final String NULL_VALUE = null;
-        public static final int IGNORE_ABOVE = Integer.MAX_VALUE;
     }
 
     public static class Builder extends FieldMapper.Builder<Builder> {
 
         protected String nullValue = Defaults.NULL_VALUE;
-        protected int ignoreAbove = Defaults.IGNORE_ABOVE;
         private Integer lengthLimit;
         private boolean blankPadding = false;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
             builder = this;
-        }
-
-        public Builder ignoreAbove(int ignoreAbove) {
-            if (ignoreAbove < 0) {
-                throw new IllegalArgumentException("[ignore_above] must be positive, got " + ignoreAbove);
-            }
-            this.ignoreAbove = ignoreAbove;
-            return this;
         }
 
         public Builder lengthLimit(int lengthLimit) {
@@ -126,7 +116,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 buildFieldType(context),
-                ignoreAbove,
                 nullValue,
                 lengthLimit,
                 blankPadding,
@@ -146,10 +135,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                 Map.Entry<String, Object> entry = iterator.next();
                 String propName = entry.getKey();
                 Object propNode = entry.getValue();
-                if (propName.equals("ignore_above")) {
-                    builder.ignoreAbove(XContentMapValues.nodeIntegerValue(propNode, -1));
-                    iterator.remove();
-                } else if (propName.equals("length_limit")) {
+                if (propName.equals("length_limit")) {
                     builder.lengthLimit(XContentMapValues.nodeIntegerValue(propNode, -1));
                     iterator.remove();
                 } else if (propName.equals("blank_padding")) {
@@ -190,7 +176,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         }
     }
 
-    private int ignoreAbove;
     private final Integer lengthLimit;
     private final String nullValue;
     private final boolean blankPadding;
@@ -201,14 +186,12 @@ public final class KeywordFieldMapper extends FieldMapper {
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
-                               int ignoreAbove,
                                String nullValue,
                                Integer lengthLimit,
                                boolean blankPadding,
                                CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
-        this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;
         this.blankPadding = blankPadding;
         this.nullValue = nullValue;
@@ -234,7 +217,7 @@ public final class KeywordFieldMapper extends FieldMapper {
             value = parser.textOrNull();
         }
 
-        if (value == null || value.length() > ignoreAbove) {
+        if (value == null) {
             return;
         }
 
@@ -272,18 +255,12 @@ public final class KeywordFieldMapper extends FieldMapper {
                 "mapper [" + name() + "] has different blank_padding settings, current ["
                 + this.blankPadding + "], merged [" + k.blankPadding + "]");
         }
-        this.ignoreAbove = k.ignoreAbove;
         this.fieldType().setSearchAnalyzer(k.fieldType().searchAnalyzer());
     }
 
     @Override
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
-
-
-        if (includeDefaults || ignoreAbove != Defaults.IGNORE_ABOVE) {
-            builder.field("ignore_above", ignoreAbove);
-        }
 
         if (includeDefaults || lengthLimit != null) {
             builder.field("length_limit", lengthLimit);
