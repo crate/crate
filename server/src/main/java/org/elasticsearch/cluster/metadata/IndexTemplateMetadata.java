@@ -54,8 +54,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     private final String name;
 
-    private final int order;
-
     /**
      * The version is an arbitrary number managed by the user so that they can easily and quickly verify the existence of a given template.
      * Expected usage:
@@ -84,7 +82,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     private final ImmutableOpenMap<String, AliasMetadata> aliases;
 
-    public IndexTemplateMetadata(String name, int order, Integer version,
+    public IndexTemplateMetadata(String name, Integer version,
                                  List<String> patterns, Settings settings,
                                  CompressedXContent mapping,
                                  ImmutableOpenMap<String, AliasMetadata> aliases) {
@@ -95,7 +93,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             throw new IllegalArgumentException("Template must have a mapping");
         }
         this.name = name;
-        this.order = order;
         this.version = version;
         this.patterns = patterns;
         this.settings = settings;
@@ -105,14 +102,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     public String name() {
         return this.name;
-    }
-
-    public int order() {
-        return this.order;
-    }
-
-    public int getOrder() {
-        return order();
     }
 
     @Nullable
@@ -168,7 +157,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         IndexTemplateMetadata that = (IndexTemplateMetadata) o;
 
-        if (order != that.order) return false;
         if (!mapping.equals(that.mapping)) return false;
         if (!name.equals(that.name)) return false;
         if (!settings.equals(that.settings)) return false;
@@ -180,7 +168,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + order;
         result = 31 * result + Objects.hashCode(version);
         result = 31 * result + patterns.hashCode();
         result = 31 * result + settings.hashCode();
@@ -190,7 +177,9 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     public static IndexTemplateMetadata readFrom(StreamInput in) throws IOException {
         Builder builder = new Builder(in.readString());
-        builder.order(in.readInt());
+        if (in.getVersion().before(Version.V_5_4_0)) {
+            in.readInt(); // order
+        }
         builder.patterns(in.readList(StreamInput::readString));
         builder.settings(Settings.readSettingsFromStream(in));
         if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
@@ -219,7 +208,12 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
-        out.writeInt(order);
+        if (out.getVersion().before(Version.V_5_4_0)) {
+            // Send some dummy value.
+            // Order is supposed to be a tie breaker for multiple templates matching a single pattern.
+            // We always have only 1 matching template per pattern, ordering is not needed.
+            out.writeInt(1);
+        }
         out.writeStringCollection(patterns);
         Settings.writeSettingsToStream(settings, out);
         if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
@@ -239,11 +233,9 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     public static class Builder {
 
         private static final Set<String> VALID_FIELDS = Set.of(
-            "template", "order", "mappings", "settings", "index_patterns", "aliases", "version");
+            "template", "mappings", "settings", "index_patterns", "aliases", "version");
 
         private String name;
-
-        private int order;
 
         private Integer version;
 
@@ -262,18 +254,12 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         public Builder(IndexTemplateMetadata indexTemplateMetadata) {
             this.name = indexTemplateMetadata.name();
-            order(indexTemplateMetadata.order());
             version(indexTemplateMetadata.version());
             patterns(indexTemplateMetadata.patterns());
             settings(indexTemplateMetadata.settings());
 
             mapping = indexTemplateMetadata.mapping();
             aliases = ImmutableOpenMap.builder(indexTemplateMetadata.aliases());
-        }
-
-        public Builder order(int order) {
-            this.order = order;
-            return this;
         }
 
         public Builder version(Integer version) {
@@ -320,7 +306,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         }
 
         public IndexTemplateMetadata build() {
-            return new IndexTemplateMetadata(name, order, version, indexPatterns, settings, mapping, aliases.build());
+            return new IndexTemplateMetadata(name, version, indexPatterns, settings, mapping, aliases.build());
         }
 
         @SuppressWarnings("unchecked")
@@ -336,7 +322,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         public static void toInnerXContent(IndexTemplateMetadata indexTemplateMetadata, XContentBuilder builder, ToXContent.Params params)
             throws IOException {
 
-            builder.field("order", indexTemplateMetadata.order());
             if (indexTemplateMetadata.version() != null) {
                 builder.field("version", indexTemplateMetadata.version());
             }
@@ -423,9 +408,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                         builder.patterns(index_patterns);
                     }
                 } else if (token.isValue()) {
-                    if ("order".equals(currentFieldName)) {
-                        builder.order(parser.intValue());
-                    } else if ("version".equals(currentFieldName)) {
+                    if ("version".equals(currentFieldName)) {
                         builder.version(parser.intValue());
                     }
                 }

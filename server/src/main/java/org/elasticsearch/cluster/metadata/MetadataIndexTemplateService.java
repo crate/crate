@@ -220,7 +220,6 @@ public class MetadataIndexTemplateService {
             IndexService dummyIndexService = indicesService.createIndex(tmpIndexMetadata, Collections.emptyList(), false);
             createdIndex = dummyIndexService.index();
 
-            templateBuilder.order(request.order);
             templateBuilder.version(request.version);
             templateBuilder.patterns(request.indexPatterns);
 
@@ -308,7 +307,6 @@ public class MetadataIndexTemplateService {
         final String name;
         final String cause;
         boolean create;
-        int order;
         Integer version;
         List<String> indexPatterns;
         Settings settings = Settings.Builder.EMPTY_SETTINGS;
@@ -320,11 +318,6 @@ public class MetadataIndexTemplateService {
         public PutRequest(String cause, String name) {
             this.cause = cause;
             this.name = name;
-        }
-
-        public PutRequest order(int order) {
-            this.order = order;
-            return this;
         }
 
         public PutRequest patterns(List<String> indexPatterns) {

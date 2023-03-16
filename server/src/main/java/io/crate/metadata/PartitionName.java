@@ -226,7 +226,9 @@ public class PartitionName {
 
         IndexParts indexParts = new IndexParts(indexOrTemplate);
         if (!indexParts.isPartitioned()) {
-            throw new IllegalArgumentException("Invalid index name: " + indexOrTemplate);
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Trying to create partition name from the name of a non-partitioned table %s", indexOrTemplate)
+            );
         }
         return new PartitionName(new RelationName(indexParts.getSchema(), indexParts.getTable()), indexParts.getPartitionIdent());
     }

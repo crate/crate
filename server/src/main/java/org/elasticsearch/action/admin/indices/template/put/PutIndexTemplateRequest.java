@@ -50,7 +50,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import io.crate.Constants;
 
@@ -62,8 +61,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     private final String name;
 
     private List<String> indexPatterns;
-
-    private int order;
 
     private boolean create;
 
@@ -96,15 +93,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
 
     public List<String> patterns() {
         return this.indexPatterns;
-    }
-
-    public PutIndexTemplateRequest order(int order) {
-        this.order = order;
-        return this;
-    }
-
-    public int order() {
-        return this.order;
     }
 
     public PutIndexTemplateRequest version(Integer version) {
@@ -174,7 +162,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     /**
      * Adds mapping that will be added when the index gets created.
      *
-     * @param type   The mapping type
      * @param source The mapping source
      */
     public PutIndexTemplateRequest mapping(Map<String, Object> source) {
@@ -212,8 +199,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
                 } else {
                     throw new IllegalArgumentException("Malformed [template] value, should be a string or a list of strings");
                 }
-            } else if (name.equals("order")) {
-                order(XContentMapValues.nodeIntegerValue(entry.getValue(), order()));
             } else if ("version".equals(name)) {
                 if ((entry.getValue() instanceof Integer) == false) {
                     throw new IllegalArgumentException("Malformed [version] value, should be an integer");
@@ -307,7 +292,9 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         name = in.readString();
 
         indexPatterns = in.readList(StreamInput::readString);
-        order = in.readInt();
+        if (in.getVersion().before(Version.V_5_4_0)) {
+            in.readInt(); // order
+        }
         create = in.readBoolean();
         settings = readSettingsFromStream(in);
         if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
@@ -336,7 +323,12 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         }
         out.writeString(name);
         out.writeStringCollection(indexPatterns);
-        out.writeInt(order);
+        if (out.getVersion().before(Version.V_5_4_0)) {
+            // Send some dummy value.
+            // Order is supposed to be a tie breaker for multiple templates matching a single pattern.
+            // We always have only 1 matching template per pattern, ordering is not needed.
+            out.writeInt(1);
+        }
         out.writeBoolean(create);
         writeSettingsToStream(settings, out);
         if (out.getVersion().onOrAfter(Version.V_5_2_0)) {

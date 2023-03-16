@@ -31,9 +31,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
@@ -62,7 +62,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -82,12 +81,13 @@ import org.elasticsearch.transport.TransportService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
+
+import javax.annotation.Nullable;
 
 
 /**
@@ -201,18 +201,27 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             Map<String, AliasMetadata> templatesAliases = new HashMap<>();
             List<String> templateNames = new ArrayList<>();
 
-            List<IndexTemplateMetadata> templates = findTemplates(request, currentState);
-            applyTemplates(mapping, templatesAliases, templateNames, templates);
+
+            // We always have only 1 matching template per pattern/table.
+            // All indices in the request are related to a concrete partitioned table and
+            // they all match the same template. Thus, we can use any of them to find matching template.
+            String firstIndex = indicesToCreate.get(0);
+
+            IndexTemplateMetadata template = currentState.metadata().templates().get(PartitionName.templateName(firstIndex));
+            if (template != null) {
+                applyTemplate(mapping, templatesAliases, templateNames, template);
+            } else {
+                // Normally should be impossible, as it would mean that we are inserting into a partitioned table without template,
+                // i.e inserting after CREATE TABLE failed
+                throw new IllegalStateException(String.format(Locale.ENGLISH, "Cannot find a template for partitioned table's index %s", firstIndex));
+            }
 
             // Use only first index to validate that index can be created.
             // All indices share same template/settings so no need to repeat validation for each index.
-            String testIndexName = indicesToCreate.get(0);
-            Settings commonIndexSettings = createCommonIndexSettings(currentState, templates);
+            Settings commonIndexSettings = createCommonIndexSettings(currentState, template);
             shardLimitValidator.validateShardLimit(commonIndexSettings, currentState);
             int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(commonIndexSettings);
-
-
-            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(testIndexName)
+            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
                 .setRoutingNumShards(routingNumShards);
 
             // Set up everything, now locally create the index to see that things are ok, and apply
@@ -332,11 +341,11 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         }
     }
 
-    private Settings createCommonIndexSettings(ClusterState currentState, List<IndexTemplateMetadata> templates) {
+    private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {
         Settings.Builder indexSettingsBuilder = Settings.builder();
-        // apply templates, here, in reverse order, since first ones are better matching
-        for (int i = templates.size() - 1; i >= 0; i--) {
-            indexSettingsBuilder.put(templates.get(i).settings());
+        // apply template
+        if (template != null) {
+            indexSettingsBuilder.put(template.settings());
         }
 
         setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
@@ -348,40 +357,16 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         return indexSettingsBuilder.build();
     }
 
-    private void applyTemplates(Map<String, Object> mapping,
-                                Map<String, AliasMetadata> templatesAliases,
-                                List<String> templateNames,
-                                List<IndexTemplateMetadata> templates) throws Exception {
-
-        for (IndexTemplateMetadata template : templates) {
-            templateNames.add(template.getName());
-            XContentHelper.mergeDefaults(mapping, parseMapping(template.mapping().string()));
-            //handle aliases
-            for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
-                AliasMetadata aliasMetadata = cursor.value;
-                templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
-            }
+    private void applyTemplate(Map<String, Object> mapping,
+                               Map<String, AliasMetadata> templatesAliases,
+                               List<String> templateNames,
+                               IndexTemplateMetadata template) throws Exception {
+        templateNames.add(template.getName());
+        XContentHelper.mergeDefaults(mapping, parseMapping(template.mapping().string()));
+        for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
+            AliasMetadata aliasMetadata = cursor.value;
+            templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
         }
-    }
-
-    private List<IndexTemplateMetadata> findTemplates(CreatePartitionsRequest request, ClusterState state) {
-        List<IndexTemplateMetadata> templates = new ArrayList<>();
-        String firstIndex = request.indices().iterator().next();
-
-
-        // note: only use the first index name to see if template matches.
-        // this means
-        for (ObjectCursor<IndexTemplateMetadata> cursor : state.metadata().templates().values()) {
-            IndexTemplateMetadata template = cursor.value;
-            for (String pattern : template.getPatterns()) {
-                if (Regex.simpleMatch(pattern, firstIndex)) {
-                    templates.add(template);
-                    break;
-                }
-            }
-        }
-        CollectionUtil.timSort(templates, (o1, o2) -> o2.order() - o1.order());
-        return templates;
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
