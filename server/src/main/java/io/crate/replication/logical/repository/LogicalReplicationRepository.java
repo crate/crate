@@ -236,7 +236,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
                 var shardGenerations = ShardGenerations.builder();
-                var it = remoteMetadata.getIndices().valuesIt();
+                var it = remoteMetadata.indices().valuesIt();
                 while (it.hasNext()) {
                     var indexMetadata = it.next();
                     var indexId = new IndexId(indexMetadata.getIndex().getName(), indexMetadata.getIndexUUID());

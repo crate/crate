@@ -368,7 +368,7 @@ public class RestoreService implements ClusterStateApplier {
                         snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                             snapshotIndexMetadata,
                             IndexParts.isPartitioned(indexName) ?
-                                currentState.metadata().getTemplates().get(PartitionName.templateName(indexName)) :
+                                currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                 null,
                             minIndexCompatibilityVersion);
                     } catch (Exception ex) {

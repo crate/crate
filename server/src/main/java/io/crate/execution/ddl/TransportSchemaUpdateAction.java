@@ -117,7 +117,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         // but the index mapping-update logic is difficult to re-use
         if (IndexParts.isPartitioned(request.index().getName())) {
             updateTemplate(
-                state.metadata().getTemplates(),
+                state.metadata().templates(),
                 request.index().getName(),
                 request.mappingSource(),
                 request.masterNodeTimeout()

@@ -113,7 +113,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
             return;
         }
 
-        ImmutableOpenMap<String, IndexTemplateMetadata> templates = state.metadata().getTemplates();
+        ImmutableOpenMap<String, IndexTemplateMetadata> templates = state.metadata().templates();
 
         if (templates == lastTemplateMetadata) {
             // we already checked these sets of templates - no reason to check it again
@@ -193,7 +193,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                 // report that changes are required, this might indicate a bug or that something
                 // else tinkering with the templates during the upgrade.
                 final ImmutableOpenMap<String, IndexTemplateMetadata> upgradedTemplates =
-                        clusterService.state().metadata().getTemplates();
+                        clusterService.state().metadata().templates();
                 final boolean changesRequired = calculateTemplateChanges(upgradedTemplates).isPresent();
                 if (changesRequired) {
                     LOGGER.warn("Templates are still reported as out of date after the upgrade. The template upgrade will be retried.");

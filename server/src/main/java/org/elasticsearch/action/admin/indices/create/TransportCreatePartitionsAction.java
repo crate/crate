@@ -165,7 +165,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
                             String partitionTemplateName = PartitionName.templateName(request.indices().iterator().next());
-                            IndexTemplateMetadata templateMetadata = state.metadata().getTemplates().get(partitionTemplateName);
+                            IndexTemplateMetadata templateMetadata = state.metadata().templates().get(partitionTemplateName);
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
