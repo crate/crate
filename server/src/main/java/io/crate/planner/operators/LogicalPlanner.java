@@ -79,6 +79,7 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
@@ -121,51 +122,58 @@ public class LogicalPlanner {
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
 
+    public static final List<Rule<?>> ITERATIVE_OPTIMIZER_RULES = List.of(
+        new RemoveRedundantFetchOrEval(),
+        new MergeAggregateAndCollectToCount(),
+        new MergeAggregateRenameAndCollectToCount(),
+        new MergeFilters(),
+        new MoveFilterBeneathRename(),
+        new MoveFilterBeneathFetchOrEval(),
+        new MoveFilterBeneathOrder(),
+        new MoveFilterBeneathProjectSet(),
+        new MoveFilterBeneathJoin(),
+        new MoveFilterBeneathCorrelatedJoin(),
+        new MoveFilterBeneathUnion(),
+        new MoveFilterBeneathGroupBy(),
+        new MoveFilterBeneathWindowAgg(),
+        new MoveLimitBeneathRename(),
+        new MoveLimitBeneathEval(),
+        new MergeFilterAndCollect(),
+        new RewriteFilterOnOuterJoinToInnerJoin(),
+        new MoveOrderBeneathUnion(),
+        new MoveOrderBeneathNestedLoop(),
+        new MoveOrderBeneathFetchOrEval(),
+        new MoveOrderBeneathRename(),
+        new DeduplicateOrder(),
+        new OptimizeCollectWhereClauseAccess(),
+        new RewriteGroupByKeysLimitToLimitDistinct(),
+        new MoveConstantJoinConditionsBeneathNestedLoop(),
+        new RewriteNestedLoopJoinToHashJoin()
+    );
+
+    public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
+        new RemoveRedundantFetchOrEval(),
+        new RewriteToQueryThenFetch()
+    );
+
+    public static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
+        List.of(new RewriteInsertFromSubQueryToInsertFromValues());
+
     public LogicalPlanner(NodeContext nodeCtx, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            List.of(
-                new RemoveRedundantFetchOrEval(),
-                new MergeAggregateAndCollectToCount(),
-                new MergeAggregateRenameAndCollectToCount(),
-                new MergeFilters(),
-                new MoveFilterBeneathRename(),
-                new MoveFilterBeneathFetchOrEval(),
-                new MoveFilterBeneathOrder(),
-                new MoveFilterBeneathProjectSet(),
-                new MoveFilterBeneathJoin(),
-                new MoveFilterBeneathCorrelatedJoin(),
-                new MoveFilterBeneathUnion(),
-                new MoveFilterBeneathGroupBy(),
-                new MoveFilterBeneathWindowAgg(),
-                new MoveLimitBeneathRename(),
-                new MoveLimitBeneathEval(),
-                new MergeFilterAndCollect(),
-                new RewriteFilterOnOuterJoinToInnerJoin(),
-                new MoveOrderBeneathUnion(),
-                new MoveOrderBeneathNestedLoop(),
-                new MoveOrderBeneathFetchOrEval(),
-                new MoveOrderBeneathRename(),
-                new DeduplicateOrder(),
-                new OptimizeCollectWhereClauseAccess(),
-                new RewriteGroupByKeysLimitToLimitDistinct(),
-                new MoveConstantJoinConditionsBeneathNestedLoop(),
-                new RewriteNestedLoopJoinToHashJoin()
-            )
+            ITERATIVE_OPTIMIZER_RULES
         );
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            List.of(
-                new RemoveRedundantFetchOrEval(),
-                new RewriteToQueryThenFetch()
-            )
+            FETCH_OPTIMIZER_RULES
         );
         this.writeOptimizer = new Optimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            List.of(new RewriteInsertFromSubQueryToInsertFromValues())
+            WRITE_OPTIMIZER_RULES
         );
         this.tableStats = tableStats;
     }
