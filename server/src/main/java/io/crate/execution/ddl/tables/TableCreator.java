@@ -67,7 +67,6 @@ public class TableCreator {
                     .create(true)
                     .settings(createTable.tableParameter().settings())
                     .patterns(Collections.singletonList(createTable.templatePrefix()))
-                    .order(100)
                     .alias(new Alias(relationName.indexNameOrAlias()))
         );
         return transportCreateTableAction.execute(createTableRequest, resp -> {

@@ -473,7 +473,6 @@ public class SQLExecutor {
             AliasMetadata alias = new AliasMetadata(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
-                .order(100)
                 .putMapping(mapping)
                 .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);

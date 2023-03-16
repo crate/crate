@@ -147,7 +147,6 @@ public class MetadataTrackerTest extends ESTestCase {
             var newTemplateMetadata = IndexTemplateMetadata
                 .builder(templateName)
                 .patterns(Collections.singletonList(PartitionName.templatePrefix(relation.schema(), relation.name())))
-                .order(100)
                 .putAlias(new AliasMetadata(relation.indexNameOrAlias()))
                 .putMapping("{\"default\": {}}")
                 .build();
