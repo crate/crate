@@ -972,4 +972,51 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .hasMessageContaining("column x specified in USING clause does not exist in right table");
 
     }
+
+    /**
+     * Verifies a bug fix (and regression that was introduced with 5.2.4)
+     * See https://github.com/crate/crate/issues/13808
+     */
+    @Test
+    public void test_nested_joins_with_explicit_and_implicit_join_condition() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+                .addTable("CREATE TABLE j1 (x INT)")
+                .addTable("CREATE TABLE j2 (y INT)")
+                .addTable("CREATE TABLE j3 (z INT)")
+                .build();
+        LogicalPlan logicalPlan = executor.logicalPlan(
+                "SELECT *" +
+                " FROM j1 " +
+                "   JOIN j2 ON j1.x = j2.y " +
+                "   JOIN j3 ON j1.x = j3.z" +
+                " WHERE j2.y = j3.z"
+        );
+        assertThat(logicalPlan).isEqualTo(
+                """
+              HashJoin[((x = z) AND (y = z))]
+                ├ HashJoin[(x = y)]
+                │  ├ Collect[doc.j1 | [x] | true]
+                │  └ Collect[doc.j2 | [y] | true]
+                └ Collect[doc.j3 | [z] | true]
+                """
+        );
+        // Variant with explicit and implicit join conditions swapped.
+        // Due to internal ordering this behaved differently before.
+        logicalPlan = executor.logicalPlan(
+                "SELECT *" +
+                " FROM j1 " +
+                "   JOIN j2 ON j1.x = j2.y " +
+                "   JOIN j3 ON j2.y = j3.z" +
+                " WHERE j1.x = j3.z"
+        );
+        assertThat(logicalPlan).isEqualTo(
+                """
+              HashJoin[((x = z) AND (y = z))]
+                ├ HashJoin[(x = y)]
+                │  ├ Collect[doc.j1 | [x] | true]
+                │  └ Collect[doc.j2 | [y] | true]
+                └ Collect[doc.j3 | [z] | true]
+                """
+        );
+    }
 }
