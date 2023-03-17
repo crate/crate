@@ -220,13 +220,29 @@ public class JoinPlanBuilder {
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
         final JoinType type;
-        final Symbol condition;
+        ArrayList<Symbol> conditions = new ArrayList<>();
         if (joinPair == null) {
             type = JoinType.CROSS;
-            condition = null;
         } else {
             type = maybeInvertPair(nextName, joinPair);
-            condition = joinPair.condition();
+            if (joinPair.condition() != null) {
+                conditions.add(joinPair.condition());
+            }
+            // There could be additional joinPairs that are not directly connected to the current joinPair,
+            // when there are WHERE clauses referencing to multiple relations of a previous join which was converted
+            // into a joinPair by JoinOperations.convertImplicitJoinConditionsToJoinPairs(...)
+            // Example:
+            //  t1. JOIN t2 ON t1.x = t2.y JOIN t3 ON t1.x = t3.z WHERE t2.y = t3.z
+            //  -> JoinPair(t1, t2)     <- 1st JOIN
+            //  -> JoinPair(t1, t3)     <- 2nd JOIN
+            //  -> JoinPair(t2, t3)     <- additional joinPair condition, must be added to the 2nd JOIN
+            JoinPair additionalJoinPair;
+            while ((additionalJoinPair = removeMatch(joinPairs, joinNames, nextName)) != null) {
+                var additionalCondition = additionalJoinPair.condition();
+                if (additionalCondition != null) {
+                    conditions.add(additionalCondition);
+                }
+            }
         }
 
         LogicalPlan nextPlan = plan.apply(nextRel);
@@ -241,7 +257,7 @@ public class JoinPlanBuilder {
                 source,
                 nextPlan,
                 type,
-                condition,
+                AndOperator.join(conditions, null),
                 leftRelation,
                 query,
                 hashJoinEnabled),
