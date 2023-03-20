@@ -322,7 +322,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         } else {
             cachingPolicy = new UsageTrackingQueryCachingPolicy();
         }
-        indexShardOperationPermits = new IndexShardOperationPermits(shardId, logger, threadPool);
+        indexShardOperationPermits = new IndexShardOperationPermits(shardId, threadPool);
         refreshListeners = buildRefreshListeners();
         lastSearcherAccess.set(threadPool.relativeTimeInMillis());
         persistMetadata(path, indexSettings, shardRouting, null, logger);

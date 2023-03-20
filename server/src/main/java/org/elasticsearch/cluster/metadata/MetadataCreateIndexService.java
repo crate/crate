@@ -140,7 +140,7 @@ public class MetadataCreateIndexService {
         this.aliasValidator = aliasValidator;
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
-        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;

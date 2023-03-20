@@ -81,7 +81,6 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger LOGGER = LogManager.getLogger(SqlHttpHandler.class);
-    private static final String REQUEST_HEADER_USER = "User";
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     private final Settings settings;

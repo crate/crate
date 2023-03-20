@@ -24,15 +24,13 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 public class TransportStats {
 
     private final long serverOpen;
-    private final long totalOutboundConnections;
     private final long rxCount;
     private final long rxSize;
     private final long txCount;
     private final long txSize;
 
-    public TransportStats(long serverOpen, long totalOutboundConnections, long rxCount, long rxSize, long txCount, long txSize) {
+    public TransportStats(long serverOpen, long rxCount, long rxSize, long txCount, long txSize) {
         this.serverOpen = serverOpen;
-        this.totalOutboundConnections = totalOutboundConnections;
         this.rxCount = rxCount;
         this.rxSize = rxSize;
         this.txCount = txCount;

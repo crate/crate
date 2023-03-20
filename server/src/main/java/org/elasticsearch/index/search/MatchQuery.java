@@ -71,34 +71,25 @@ public class MatchQuery {
         /**
          * The text is analyzed and terms are added to a boolean query.
          */
-        BOOLEAN(0),
+        BOOLEAN,
         /**
          * The text is analyzed and used as a phrase query.
          */
-        PHRASE(1),
+        PHRASE,
         /**
          * The text is analyzed and used in a phrase query, with the last term acting as a prefix.
          */
-        PHRASE_PREFIX(2);
-
-        private final int ordinal;
-
-        Type(int ordinal) {
-            this.ordinal = ordinal;
-        }
+        PHRASE_PREFIX;
     }
 
     public enum ZeroTermsQuery {
-        NONE(0),
-        ALL(1),
+        NONE(),
+        ALL(),
         // this is used internally to make sure that query_string and simple_query_string
         // ignores query part that removes all tokens.
-        NULL(2);
+        NULL();
 
-        private final int ordinal;
-
-        ZeroTermsQuery(int ordinal) {
-            this.ordinal = ordinal;
+        ZeroTermsQuery() {
         }
     }
 

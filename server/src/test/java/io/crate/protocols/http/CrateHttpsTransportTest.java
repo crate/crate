@@ -44,7 +44,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.netty.NettyBootstrap;
 import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -96,7 +95,6 @@ public class CrateHttpsTransportTest extends ESTestCase {
             mock(ThreadPool.class),
             NamedXContentRegistry.EMPTY,
             pipelineRegistry,
-            new NettyBootstrap(Settings.EMPTY),
             mock(NodeClient.class));
 
         EmbeddedChannel channel = new EmbeddedChannel();

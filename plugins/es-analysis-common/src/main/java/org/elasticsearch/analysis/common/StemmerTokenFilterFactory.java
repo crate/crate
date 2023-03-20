@@ -19,6 +19,8 @@
 
 package org.elasticsearch.analysis.common;
 
+import java.io.IOException;
+
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ar.ArabicStemFilter;
 import org.apache.lucene.analysis.bg.BulgarianStemFilter;
@@ -54,7 +56,6 @@ import org.apache.lucene.analysis.pt.PortugueseStemFilter;
 import org.apache.lucene.analysis.ru.RussianLightStemFilter;
 import org.apache.lucene.analysis.snowball.SnowballFilter;
 import org.apache.lucene.analysis.sv.SwedishLightStemFilter;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -84,8 +85,6 @@ import org.tartarus.snowball.ext.SpanishStemmer;
 import org.tartarus.snowball.ext.SwedishStemmer;
 import org.tartarus.snowball.ext.TurkishStemmer;
 
-import java.io.IOException;
-
 public class StemmerTokenFilterFactory extends AbstractTokenFilterFactory {
 
     private static final TokenStream EMPTY_TOKEN_STREAM = new EmptyTokenStream();
@@ -101,8 +100,6 @@ public class StemmerTokenFilterFactory extends AbstractTokenFilterFactory {
 
     @Override
     public TokenStream create(TokenStream tokenStream) {
-        final Version indexVersion = indexSettings.getIndexVersionCreated();
-
         if ("arabic".equalsIgnoreCase(language)) {
             return new ArabicStemFilter(tokenStream);
         } else if ("armenian".equalsIgnoreCase(language)) {
