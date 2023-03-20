@@ -102,10 +102,10 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
-import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
+import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
@@ -278,7 +278,6 @@ public class LogicalPlanner {
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
 
         private final SubqueryPlanner subqueryPlanner;
-        private final CoordinatorTxnCtx txnCtx;
         private final TableStats tableStats;
         private final Row params;
 
@@ -287,7 +286,6 @@ public class LogicalPlanner {
                             TableStats tableStats,
                             Row params) {
             this.subqueryPlanner = subqueryPlanner;
-            this.txnCtx = txnCtx;
             this.tableStats = tableStats;
             this.params = params;
         }

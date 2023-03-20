@@ -23,6 +23,22 @@ package io.crate.execution.engine;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.profile.query.QueryProfiler;
+
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
@@ -50,23 +66,6 @@ import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 import io.crate.metadata.TransactionContext;
 import io.crate.profile.ProfilingContext;
-
-import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.profile.query.QueryProfiler;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 
 /**
@@ -150,6 +149,8 @@ public class JobLauncher {
         }
     }
 
+    public record HandlerPhase(ExecutionPhase phase, RowConsumer consumer) {}
+
     public void execute(RowConsumer consumer,
                         TransactionContext txnCtx,
                         boolean waitForCompletion) {
@@ -213,7 +214,7 @@ public class JobLauncher {
         // + 1 for localTask which is always created
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size() + 1);
 
-        List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
+        List<HandlerPhase> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
         RootTask.Builder builder = tasksService.newBuilder(
@@ -305,20 +306,20 @@ public class JobLauncher {
 
     private void accountFailureForRemoteOperations(Map<String, Collection<NodeOperation>> operationByServer,
                                                    InitializationTracker initializationTracker,
-                                                   List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver,
+                                                   List<HandlerPhase> handlerPhaseAndReceiver,
                                                    Throwable t) {
-        for (Tuple<ExecutionPhase, RowConsumer> executionPhaseRowReceiverTuple : handlerPhaseAndReceiver) {
-            executionPhaseRowReceiverTuple.v2().accept(null, t);
+        for (HandlerPhase handlerPhase : handlerPhaseAndReceiver) {
+            handlerPhase.consumer().accept(null, t);
         }
         for (int i = 0; i < operationByServer.size() + 1; i++) {
             initializationTracker.jobInitializationFailed(t);
         }
     }
 
-    private List<Tuple<ExecutionPhase, RowConsumer>> createHandlerPhaseAndReceivers(List<ExecutionPhase> handlerPhases,
-                                                                                         List<RowConsumer> handlerReceivers,
-                                                                                         InitializationTracker initializationTracker) {
-        List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = new ArrayList<>();
+    private List<HandlerPhase> createHandlerPhaseAndReceivers(List<ExecutionPhase> handlerPhases,
+                                                              List<RowConsumer> handlerReceivers,
+                                                              InitializationTracker initializationTracker) {
+        List<HandlerPhase> handlerPhaseAndReceiver = new ArrayList<>(handlerPhases.size());
         ListIterator<RowConsumer> consumerIt = handlerReceivers.listIterator();
 
         for (ExecutionPhase handlerPhase : handlerPhases) {
@@ -329,7 +330,7 @@ public class JobLauncher {
                 executor,
                 killNodeAction
             );
-            handlerPhaseAndReceiver.add(new Tuple<>(handlerPhase, interceptingBatchConsumer));
+            handlerPhaseAndReceiver.add(new HandlerPhase(handlerPhase, interceptingBatchConsumer));
         }
         return handlerPhaseAndReceiver;
     }
@@ -338,7 +339,7 @@ public class JobLauncher {
                                  String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
                                  List<PageBucketReceiver> pageBucketReceivers,
-                                 List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
+                                 List<HandlerPhase> handlerPhases,
                                  int bucketIdx,
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
@@ -368,10 +369,10 @@ public class JobLauncher {
     }
 
     private List<PageBucketReceiver> getHandlerBucketReceivers(RootTask rootTask,
-                                                               List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases) {
+                                                               List<HandlerPhase> handlerPhases) {
         final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
-        for (Tuple<ExecutionPhase, ?> handlerPhase : handlerPhases) {
-            Task ctx = rootTask.getTaskOrNull(handlerPhase.v1().phaseId());
+        for (var handlerPhase : handlerPhases) {
+            Task ctx = rootTask.getTaskOrNull(handlerPhase.phase().phaseId());
             if (ctx instanceof DownstreamRXTask) {
                 PageBucketReceiver pageBucketReceiver = ((DownstreamRXTask) ctx).getBucketReceiver((byte) 0);
                 pageBucketReceivers.add(pageBucketReceiver);

@@ -19,14 +19,22 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.CoordinationState.VoteCollection;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.monitor.NodeHealthService;
@@ -35,15 +43,6 @@ import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.LongConsumer;
-
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
-
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 
 public class PreVoteCollector {
 
@@ -57,11 +56,19 @@ public class PreVoteCollector {
     private final ElectionStrategy electionStrategy;
     private NodeHealthService nodeHealthService;
 
-    // Tuple for simple atomic updates. null until the first call to `update()`.
-    private volatile Tuple<DiscoveryNode, PreVoteResponse> state; // DiscoveryNode component is null if there is currently no known leader.
+    /**
+     * @param leader null if there is currently no known leader
+     */
+    private record State(@Nullable DiscoveryNode leader, PreVoteResponse preVoteResponse) {}
 
-    PreVoteCollector(final TransportService transportService, final Runnable startElection, final LongConsumer updateMaxTermSeen,
-                     final ElectionStrategy electionStrategy, NodeHealthService nodeHealthService) {
+    // Tuple for simple atomic updates. null until the first call to `update()`.
+    private volatile State state; // DiscoveryNode component is null if there is currently no known leader.
+
+    PreVoteCollector(final TransportService transportService,
+                     final Runnable startElection,
+                     final LongConsumer updateMaxTermSeen,
+                     final ElectionStrategy electionStrategy,
+                     NodeHealthService nodeHealthService) {
         this.transportService = transportService;
         this.startElection = startElection;
         this.updateMaxTermSeen = updateMaxTermSeen;
@@ -81,35 +88,35 @@ public class PreVoteCollector {
      * @return the pre-voting round, which can be closed to end the round early.
      */
     public Releasable start(final ClusterState clusterState, final Iterable<DiscoveryNode> broadcastNodes) {
-        PreVotingRound preVotingRound = new PreVotingRound(clusterState, state.v2().getCurrentTerm());
+        PreVotingRound preVotingRound = new PreVotingRound(clusterState, state.preVoteResponse().getCurrentTerm());
         preVotingRound.start(broadcastNodes);
         return preVotingRound;
     }
 
     // only for testing
     PreVoteResponse getPreVoteResponse() {
-        return state.v2();
+        return state.preVoteResponse();
     }
 
     // only for testing
     @Nullable
     DiscoveryNode getLeader() {
-        return state.v1();
+        return state.leader();
     }
 
     public void update(final PreVoteResponse preVoteResponse, @Nullable final DiscoveryNode leader) {
         LOGGER.trace("updating with preVoteResponse={}, leader={}", preVoteResponse, leader);
-        state = new Tuple<>(leader, preVoteResponse);
+        state = new State(leader, preVoteResponse);
     }
 
     private PreVoteResponse handlePreVoteRequest(final PreVoteRequest request) {
         updateMaxTermSeen.accept(request.getCurrentTerm());
 
-        Tuple<DiscoveryNode, PreVoteResponse> state = this.state;
+        State state = this.state;
         assert state != null : "received pre-vote request before fully initialised";
 
-        final DiscoveryNode leader = state.v1();
-        final PreVoteResponse response = state.v2();
+        final DiscoveryNode leader = state.leader();
+        final PreVoteResponse response = state.preVoteResponse();
 
         final StatusInfo statusInfo = nodeHealthService.getHealth();
         if (statusInfo.getStatus() == UNHEALTHY) {
