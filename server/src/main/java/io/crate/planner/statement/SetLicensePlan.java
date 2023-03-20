@@ -21,7 +21,6 @@
 
 package io.crate.planner.statement;
 
-import io.crate.analyze.AnalyzedSetLicenseStatement;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,10 +33,7 @@ import io.crate.planner.operators.SubQueryResults;
 
 public class SetLicensePlan implements Plan {
 
-    private final AnalyzedSetLicenseStatement stmt;
-
-    public SetLicensePlan(final AnalyzedSetLicenseStatement stmt) {
-        this.stmt = stmt;
+    public SetLicensePlan() {
     }
 
     @Override

@@ -19,9 +19,9 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.common.metrics.MeanMetric;
-
 import java.util.concurrent.atomic.LongAdder;
+
+import org.elasticsearch.common.metrics.MeanMetric;
 
 public class StatsTracker {
 
@@ -47,11 +47,6 @@ public class StatsTracker {
 
     public long getMessagesReceived() {
         return messagesReceived.sum();
-    }
-
-
-    public MeanMetric getWriteBytes() {
-        return writeBytesMetric;
     }
 
     public long getBytesWritten() {

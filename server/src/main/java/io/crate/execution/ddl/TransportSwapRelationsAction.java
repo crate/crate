@@ -21,9 +21,12 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.execution.support.ActionListeners;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateService;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -44,11 +47,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.execution.support.ActionListeners;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportSwapRelationsAction extends TransportMasterNodeAction<SwapRelationsRequest, AcknowledgedResponse> {
 
@@ -69,7 +70,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             threadPool,
             SwapRelationsRequest::new
         );
-        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.swapRelationsOperation = new SwapRelationsOperation(
             allocationService, ddlClusterStateService);
     }

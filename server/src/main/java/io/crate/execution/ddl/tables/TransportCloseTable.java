@@ -116,7 +116,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
         this.verifyShardBeforeClose = verifyShardBeforeClose;
-        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService);
     }
 
     @Override

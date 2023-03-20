@@ -201,28 +201,28 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         var argumentTypes = Symbols.typeView(aggregationReferences);
         return switch (argumentTypes.get(0).id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
-                new AvgLong(returnType, reference.column().fqn());
+                new AvgLong(reference.column().fqn());
             case FloatType.ID -> new AvgFloat(returnType, reference.column().fqn());
             case DoubleType.ID -> new AvgDouble(returnType, reference.column().fqn());
             default -> null;
         };
     }
 
-    static class AvgLong implements DocValueAggregator<NumericAverageState> {
+    static class AvgLong implements DocValueAggregator<NumericAverageState<OverflowAwareMutableLong>> {
 
-        private final DataType<BigDecimal> returnType;
         private final String columnName;
         private SortedNumericDocValues values;
 
-        AvgLong(DataType<BigDecimal> returnType, String columnName) {
-            this.returnType = returnType;
+        AvgLong(String columnName) {
             this.columnName = columnName;
         }
 
         @Override
-        public NumericAverageState initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        public NumericAverageState<OverflowAwareMutableLong> initialState(RamAccounting ramAccounting,
+                                                                          MemoryManager memoryManager,
+                                                                          Version minNodeVersion) {
             ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState(new OverflowAwareMutableLong(0L), 0L);
+            return new NumericAverageState<>(new OverflowAwareMutableLong(0L), 0L);
         }
 
         @Override
@@ -233,17 +233,17 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         @Override
         public void apply(RamAccounting ramAccounting,
                           int doc,
-                          NumericAverageState state) throws IOException {
+                          NumericAverageState<OverflowAwareMutableLong> state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (state != null) {
-                    ((OverflowAwareMutableLong) state.sum).add(values.nextValue());
+                    state.sum.add(values.nextValue());
                     state.count++;
                 }
             }
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<OverflowAwareMutableLong> state) {
             return state;
         }
     }

@@ -31,12 +31,12 @@ public class PreparedStmt {
     private final AnalyzedStatement analyzedStatement;
     private final Statement parsedStatement;
     private final String rawStatement;
-    private final DataType[] describedParameterTypes;
+    private final DataType<?>[] describedParameterTypes;
 
     PreparedStmt(Statement parsedStatement,
                  AnalyzedStatement analyzedStatement,
                  String query,
-                 DataType[] parameterTypes) {
+                 DataType<?>[] parameterTypes) {
         this.parsedStatement = parsedStatement;
         this.analyzedStatement = analyzedStatement;
         this.rawStatement = query;
@@ -52,7 +52,7 @@ public class PreparedStmt {
         return parsedStatement;
     }
 
-    DataType[] parameterTypes() {
+    DataType<?>[] parameterTypes() {
         return describedParameterTypes;
     }
 

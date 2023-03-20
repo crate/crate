@@ -118,7 +118,6 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                 threadPool,
                 xContentRegistry,
                 pipelineRegistry,
-                nettyBootstrap,
                 nodeClient
             )
         );

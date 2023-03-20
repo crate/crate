@@ -21,9 +21,9 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.support.ActionListeners;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -44,8 +44,9 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.execution.support.ActionListeners;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
 
 @Singleton
 public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
@@ -68,7 +69,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
               threadPool,
               RenameTableRequest::new
         );
-        activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        activeShardsObserver = new ActiveShardsObserver(clusterService);
         executor = new RenameTableClusterStateExecutor(
             allocationService,
             ddlClusterStateService

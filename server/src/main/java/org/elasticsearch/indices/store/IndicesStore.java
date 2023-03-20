@@ -84,7 +84,6 @@ public class IndicesStore implements ClusterStateListener, Closeable {
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final TransportService transportService;
-    private final ThreadPool threadPool;
 
     // Cache successful shard deletion checks to prevent unnecessary file system lookups
     private final Set<ShardId> folderNotFoundCache = new HashSet<>();
@@ -93,13 +92,14 @@ public class IndicesStore implements ClusterStateListener, Closeable {
     private final TimeValue deleteShardTimeout;
 
     @Inject
-    public IndicesStore(Settings settings, IndicesService indicesService,
-                        ClusterService clusterService, TransportService transportService, ThreadPool threadPool) {
+    public IndicesStore(Settings settings,
+                        IndicesService indicesService,
+                        ClusterService clusterService,
+                        TransportService transportService) {
         this.settings = settings;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.threadPool = threadPool;
         transportService.registerRequestHandler(
             ACTION_SHARD_EXISTS,
             ThreadPool.Names.SAME,
