@@ -22,13 +22,10 @@
 package io.crate.execution.engine.collect;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -43,11 +40,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
-import io.crate.data.Buckets;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.CollectingRowConsumer;
+import io.crate.data.CapturingRowConsumer;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
@@ -127,41 +121,34 @@ public class RemoteCollectorFactory {
                 return CompletableFuture.failedFuture(t);
             }
         } else {
-            return CompletableFuture.completedFuture(
-                remoteBatchIterator(primaryRouting, collectPhase, collectTask, collectorFactory));
+            return remoteBatchIterator(primaryRouting, collectPhase, collectTask, collectorFactory, requiresScroll);
         }
     }
 
-    private BatchIterator<Row> remoteBatchIterator(ShardRouting primaryRouting,
-                                                   RoutedCollectPhase collectPhase,
-                                                   CollectTask collectTask,
-                                                   ShardCollectorProviderFactory collectorFactory) {
-        Collector<Row, ?, List<Object[]>> listCollector = Collectors.mapping(Row::materialize, Collectors.toList());
-        CollectingRowConsumer<?, List<Object[]>> consumer = new CollectingRowConsumer<>(listCollector);
-        String nodeId = primaryRouting.currentNodeId();
+    private CompletableFuture<BatchIterator<Row>> remoteBatchIterator(ShardRouting primaryRouting,
+                                                                      RoutedCollectPhase collectPhase,
+                                                                      CollectTask collectTask,
+                                                                      ShardCollectorProviderFactory collectorFactory,
+                                                                      boolean requiresScroll) {
+        CapturingRowConsumer consumer = new CapturingRowConsumer(requiresScroll, new CompletableFuture<>());
+        String remoteNodeId = primaryRouting.currentNodeId();
         String localNodeId = clusterService.localNode().getId();
         UUID childJobId = UUIDs.dirtyUUID();
         RemoteCollector remoteCollector = new RemoteCollector(
             childJobId,
             collectTask.txnCtx().sessionSettings(),
             localNodeId,
-            nodeId,
+            remoteNodeId,
             req -> elasticsearchClient.execute(JobAction.INSTANCE, req),
             req -> elasticsearchClient.execute(KillJobsNodeAction.INSTANCE, req),
             searchTp,
             tasksService,
             collectTask.getRamAccounting(),
             consumer,
-            createRemoteCollectPhase(childJobId, collectPhase, primaryRouting.shardId(), nodeId)
+            createRemoteCollectPhase(childJobId, collectPhase, primaryRouting.shardId(), remoteNodeId)
         );
         remoteCollector.doCollect();
-        Runnable onClose = () -> {};
-        return CollectingBatchIterator.newInstance(
-            onClose,
-            killReason -> remoteCollector.kill(killReason),
-            () -> consumer.completionFuture().thenApply(rows -> Lists2.mapLazy(rows, Buckets.arrayToSharedRow())),
-            true
-        );
+        return consumer.capturedBatchIterator();
     }
 
     private static RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,
