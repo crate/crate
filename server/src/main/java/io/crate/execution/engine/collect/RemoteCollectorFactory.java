@@ -42,6 +42,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
 import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.RemoteCollector;
@@ -115,9 +116,10 @@ public class RemoteCollectorFactory {
                 .getShard(primaryRouting.shardId().id());
             var collectorProvider = collectorFactory.create(indexShard);
             try {
-                return collectorProvider.getFutureIterator(collectPhase, requiresScroll, collectTask);
-            } catch (Throwable t) {
-                return CompletableFuture.failedFuture(t);
+                return collectorProvider.awaitShardSearchActive().thenApply(
+                    biFactory -> biFactory.getIterator(collectPhase, requiresScroll, collectTask));
+            } catch (Exception e) {
+                return Exceptions.rethrowRuntimeException(e);
             }
         } else {
             return remoteBatchIterator(primaryRouting, collectPhase, collectTask, collectorFactory, requiresScroll);
