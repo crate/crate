@@ -1,0 +1,51 @@
+.. _version_5.2.5:
+
+=============
+Version 5.2.5
+=============
+
+Released on 2023-03-20.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.2.5.
+
+    We recommend that you upgrade to the latest 5.1 release before moving to
+    5.2.5.
+
+    A rolling upgrade from 5.1.x to 5.2.5 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.2.0` release notes for a full list of changes in the
+5.2 series.
+
+Fixes
+=====
+
+- Fixed an issue that caused nested join queries to return incorrect
+  results because a ``WHERE`` clause filter referencing a parent join was
+  discarded by the planner. Example::
+
+    SELECT * FROM t1 JOIN t2 ON t1.a = t2.b JOIN t3 ON t2.c = t3.d WHERE t1.x = t3.d
+
+  In this case, the ``WHERE`` clause filter ``t1.x = t3.d`` was discarded.
+

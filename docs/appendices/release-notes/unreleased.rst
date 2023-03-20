@@ -81,10 +81,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that caused nested join queries to return incorrect
-  results because a ``WHERE`` clause filter referencing a parent join was
-  discarded by the planner. Example::
-
-    SELECT * FROM t1 JOIN t2 ON t1.a = t2.b JOIN t3 ON t2.c = t3.d WHERE t1.x = t3.d
-
-  In this case, the ``WHERE`` clause filter ``t1.x = t3.d`` was discarded.
+None
