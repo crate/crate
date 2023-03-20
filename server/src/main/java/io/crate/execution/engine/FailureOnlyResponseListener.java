@@ -25,18 +25,16 @@ import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
 
-import io.crate.common.collections.Tuple;
-import io.crate.data.RowConsumer;
-import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.engine.JobLauncher.HandlerPhase;
 import io.crate.execution.jobs.transport.JobResponse;
 
 class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 
-    private final List<Tuple<ExecutionPhase, RowConsumer>> consumers;
+    private final List<HandlerPhase> handlerPhases;
     private final InitializationTracker initializationTracker;
 
-    FailureOnlyResponseListener(List<Tuple<ExecutionPhase, RowConsumer>> consumers, InitializationTracker initializationTracker) {
-        this.consumers = consumers;
+    FailureOnlyResponseListener(List<HandlerPhase> handlerPhases, InitializationTracker initializationTracker) {
+        this.handlerPhases = handlerPhases;
         this.initializationTracker = initializationTracker;
     }
 
@@ -44,8 +42,8 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
     public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized();
         if (jobResponse.hasDirectResponses()) {
-            for (Tuple<ExecutionPhase, RowConsumer> consumer : consumers) {
-                consumer.v2().accept(null, new IllegalStateException("Got a directResponse but didn't expect one"));
+            for (var handlerPhase : handlerPhases) {
+                handlerPhase.consumer().accept(null, new IllegalStateException("Got a directResponse but didn't expect one"));
             }
         }
     }
@@ -55,8 +53,8 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
         initializationTracker.jobInitializationFailed(e);
         // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
         // so fail rowReceivers directly
-        for (Tuple<ExecutionPhase, RowConsumer> consumer : consumers) {
-            consumer.v2().accept(null, e);
+        for (var handlerPhase : handlerPhases) {
+            handlerPhase.consumer().accept(null, e);
         }
     }
 }

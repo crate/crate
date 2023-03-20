@@ -38,7 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Tuple;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -70,12 +69,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final boolean closed;
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
-
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
-    private static final List<Tuple<String, DataType>> STATIC_COLUMNS = List.of(
-        new Tuple<>("digest", DataTypes.STRING),
-        new Tuple<>("last_modified", DataTypes.TIMESTAMPZ)
-    );
 
     public BlobTableInfo(RelationName ident,
                          String index,
@@ -98,7 +92,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
 
-        registerStaticColumns();
+        addColumn("digest", DataTypes.STRING, 0);
+        addColumn("last_modified", DataTypes.TIMESTAMPZ, 1);
     }
 
     @Nullable
@@ -157,17 +152,16 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columns.iterator();
     }
 
-    private void registerStaticColumns() {
-        int pos = 0;
-        for (Tuple<String, DataType> column : STATIC_COLUMNS) {
-            SimpleReference ref = new SimpleReference(
-                new ReferenceIdent(ident(), column.v1(), null), RowGranularity.DOC, column.v2(), pos, null
-            );
-            assert ref.column().isTopLevel() : "only top-level columns should be added to columns list";
-            pos++;
-            columns.add(ref);
-            infos.put(ref.column(), ref);
-        }
+    private void addColumn(String name, DataType<?> type, int position) {
+        SimpleReference ref = new SimpleReference(
+            new ReferenceIdent(ident(), name, null),
+            RowGranularity.DOC,
+            type,
+            position,
+            null
+        );
+        columns.add(ref);
+        infos.put(ref.column(), ref);
     }
 
     public String blobsPath() {
