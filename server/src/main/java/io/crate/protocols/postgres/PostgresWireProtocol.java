@@ -51,8 +51,8 @@ import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
@@ -505,10 +505,10 @@ public class PostgresWireProtocol {
         String statementName = readCString(buffer);
         final String query = readCString(buffer);
         short numParams = buffer.readShort();
-        List<DataType> paramTypes = new ArrayList<>(numParams);
+        List<DataType<?>> paramTypes = new ArrayList<>(numParams);
         for (int i = 0; i < numParams; i++) {
             int oid = buffer.readInt();
-            DataType dataType = PGTypes.fromOID(oid);
+            DataType<?> dataType = PGTypes.fromOID(oid);
             if (dataType == null) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Can't map PGType with oid=%d to Crate type", oid));

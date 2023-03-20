@@ -284,7 +284,7 @@ public class Session implements AutoCloseable {
         return sessionSettings;
     }
 
-    public void parse(String statementName, String query, List<DataType> paramTypes) {
+    public void parse(String statementName, String query, List<DataType<?>> paramTypes) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
         }
@@ -305,10 +305,10 @@ public class Session implements AutoCloseable {
 
     public void analyze(String statementName,
                         Statement statement,
-                        List<DataType> paramTypes,
+                        List<DataType<?>> paramTypes,
                         @Nullable String query) {
         AnalyzedStatement analyzedStatement;
-        DataType[] parameterTypes;
+        DataType<?>[] parameterTypes;
         try {
             analyzedStatement = analyzer.analyze(
                 statement,
@@ -630,7 +630,7 @@ public class Session implements AutoCloseable {
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
                                                        List<CompletableFuture<Long>> completedRowCounts) {
-        Long[] cells = new Long[1];
+        Object[] cells = new Object[1];
         RowN row = new RowN(cells);
         for (int i = 0; i < completedRowCounts.size(); i++) {
             CompletableFuture<Long> completedRowCount = completedRowCounts.get(i);
@@ -718,7 +718,7 @@ public class Session implements AutoCloseable {
     }
 
     @Nullable
-    public List<? extends DataType> getOutputTypes(String portalName) {
+    public List<? extends DataType<?>> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
         var analyzedStatement = portal.analyzedStatement();
         List<Symbol> fields = analyzedStatement.outputs();
