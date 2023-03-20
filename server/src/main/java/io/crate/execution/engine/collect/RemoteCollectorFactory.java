@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -168,7 +167,7 @@ public class RemoteCollectorFactory {
             routing,
             collectPhase.maxRowGranularity(),
             collectPhase.toCollect(),
-            new ArrayList<>(Projections.shardProjections(collectPhase.projections())),
+            Projections.shardProjections(collectPhase.projections()),
             collectPhase.where(),
             DistributionInfo.DEFAULT_BROADCAST
         );

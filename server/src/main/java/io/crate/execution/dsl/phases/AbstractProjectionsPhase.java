@@ -21,30 +21,37 @@
 
 package io.crate.execution.dsl.phases;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 public abstract class AbstractProjectionsPhase implements ExecutionPhase {
 
 
-    private UUID jobId;
-    private int executionPhaseId;
-    private String name;
+    private final UUID jobId;
+    private final int executionPhaseId;
+    private final String name;
     protected final List<Projection> projections;
     protected List<DataType<?>> outputTypes = List.of();
 
-    protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
+    protected AbstractProjectionsPhase(UUID jobId,
+                                       int executionPhaseId,
+                                       String name,
+                                       @Nullable Collection<? extends Projection> projections) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.name = name;

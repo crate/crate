@@ -21,6 +21,20 @@
 
 package io.crate.execution.dsl.phases;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
@@ -35,17 +49,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
 
 /**
  * A plan node which collects data.
@@ -71,7 +74,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               Routing routing,
                               RowGranularity maxRowGranularity,
                               List<Symbol> toCollect,
-                              List<Projection> projections,
+                              Collection<? extends Projection> projections,
                               Symbol where,
                               DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
@@ -87,7 +90,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
-        this.outputTypes = extractOutputTypes(toCollect, projections);
+        this.outputTypes = extractOutputTypes(toCollect, this.projections);
     }
 
     @Override
