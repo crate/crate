@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import io.crate.common.Suppliers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -62,10 +61,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.common.collections.Iterables;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.common.Suppliers;
+import io.crate.common.collections.Iterables;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -418,7 +418,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                     if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                         throw e;
                     }
-                    iterators.add(remoteCollectorFactory.createCollector(shardId, collectPhase, collectTask, shardCollectorProviderFactory));
+                    iterators.add(remoteCollectorFactory.createCollector(
+                        shardId,
+                        collectPhase,
+                        collectTask,
+                        shardCollectorProviderFactory,
+                        requiresScroll
+                    ));
                 } catch (IndexNotFoundException e) {
                     // Prevent wrapping this to not break retry-detection
                     throw e;
