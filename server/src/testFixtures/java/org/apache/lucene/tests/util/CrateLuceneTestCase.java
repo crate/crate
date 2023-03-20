@@ -309,13 +309,6 @@ public abstract class CrateLuceneTestCase {
         return LuceneTestCase.expectThrows(expectedType, runnable);
     }
 
-     /** Checks a specific exception class is thrown by the given runnable, and returns it. */
-    public static <T extends Throwable> T expectThrows(Class<T> expectedType,
-            String noExceptionMessage,
-            ThrowingRunnable runnable) {
-        return LuceneTestCase.expectThrows(expectedType, noExceptionMessage, runnable);
-    }
-
     /**
      * Access to the current {@link RandomizedContext}'s Random instance. It is safe
      * to use this

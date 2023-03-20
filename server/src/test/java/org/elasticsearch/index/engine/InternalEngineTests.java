@@ -20,6 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
@@ -3009,8 +3010,9 @@ public class InternalEngineTests extends EngineTestCase {
         long id = translog.currentFileGeneration();
         translog.close();
         IOUtils.rm(translog.location().resolve(Translog.getFilename(id)));
-        expectThrows(EngineCreationFailureException.class, "engine shouldn't start without a valid translog id",
-            () -> createEngine(store, primaryTranslogDir));
+        assertThatThrownBy(() -> createEngine(store, primaryTranslogDir))
+            .as("engine shouldn't start without a valid translog id")
+            .isExactlyInstanceOf(EngineCreationFailureException.class);
         // when a new translog is created it should be ok
         final String translogUUID = Translog.createEmptyTranslog(primaryTranslogDir, UNASSIGNED_SEQ_NO, shardId, newPrimaryTerm);
         store.associateIndexWithNewTranslog(translogUUID);

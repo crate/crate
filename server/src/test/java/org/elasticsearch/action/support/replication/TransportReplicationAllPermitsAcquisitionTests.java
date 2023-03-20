@@ -19,6 +19,7 @@
 package org.elasticsearch.action.support.replication;
 
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
@@ -371,8 +372,10 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             final TestAction action = actions[i];
 
             if (i < delayedOperations) {
-                ExecutionException exception = expectThrows(ExecutionException.class, "delayed operation should have failed", future::get);
-                assertFailedOperation(action, exception);
+                assertThatThrownBy(future::get)
+                    .as("delayed operation should have failed")
+                    .isExactlyInstanceOf(ExecutionException.class)
+                    .satisfies(e -> assertFailedOperation(action, (ExecutionException) e));
             } else {
                 // non delayed operation might fail depending on the order they were executed
                 try {
