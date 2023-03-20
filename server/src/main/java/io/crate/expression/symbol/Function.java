@@ -419,7 +419,7 @@ public class Function implements Symbol, Cloneable {
     private void printSubscriptFunction(StringBuilder builder, Style style) {
         Symbol base = arguments.get(0);
         if (base instanceof Reference ref && base.valueType() instanceof ArrayType && ref.column().path().size() > 0) {
-            builder.append(ref.column().name());
+            builder.append(ref.column().getRoot().quotedOutputName());
             builder.append("[");
             builder.append(arguments.get(1).toString(style));
             builder.append("]");
