@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.env;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_UP_FOUND;
@@ -221,7 +222,9 @@ public class NodeRepurposeCommandTests extends ESTestCase {
 
         assertThat(terminal.getOutput(), outputMatcher);
 
-        expectThrows(IllegalStateException.class, "Must consume input", () -> terminal.readText(""));
+        assertThatThrownBy(() -> terminal.readText(""))
+            .as("Must consume input")
+            .isExactlyInstanceOf(IllegalStateException.class);
     }
 
     private static void executeRepurposeCommand(MockTerminal terminal, Settings settings, int ordinal) throws Exception {
