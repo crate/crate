@@ -44,14 +44,14 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testFilterAndOuterJoinIsRewrittenToInnerJoinIfFilterEliminatesNullRow() {
+    public void testFilterAndOuterJoinIsRewrittenToHashJoinIfFilterEliminatesNullRow() {
         var plan = sqlExecutor.logicalPlan(
             "SELECT * FROM t1 LEFT JOIN t2 ON t1.x = t2.x " +
             "WHERE t2.x = '10'"
         );
         var expectedPlan =
             """
-            NestedLoopJoin[INNER | (x = x)]
+            HashJoin[(x = x)]
               ├ Collect[doc.t1 | [x] | true]
               └ Collect[doc.t2 | [x] | (x = 10)]
             """;
