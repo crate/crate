@@ -38,7 +38,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -74,7 +73,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  \"select\" byte," +
             "  idx int," +
             "  s_arr array(text)," +
-            "  a array(object as (b object as (c int)))" +
+            "  a array(object as (b object as (c int)))," +
+            "  \"OBJ\" object as (intarray int[])" +
             ")";
         RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
@@ -404,7 +404,19 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_printing_nested_objects() {
         Symbol symbol = sqlExpressions.asSymbol("a[1]['b']['c']");
-        assertThat(symbol instanceof Function).isTrue();
+        assertThat(symbol).isFunction("subscript");
         assertPrint(symbol, "a[1]['b']['c']");
+    }
+
+    /**
+     * Tracks a bug:
+     *      cr> CREATE TABLE t ("OBJ" OBJECT AS (intarray int[]), firstElement AS "OBJ"['intarray'][1]);
+     *      ColumnUnknownException[Column obj['intarray'] unknown]
+     */
+    @Test
+    public void test_subscript_function_quotes_root_column_if_required() {
+        Symbol symbol = sqlExpressions.asSymbol("\"OBJ\"[1]['intarray']");
+        assertThat(symbol).isFunction("subscript");
+        assertPrint(symbol, "\"OBJ\"[1]['intarray']");
     }
 }
