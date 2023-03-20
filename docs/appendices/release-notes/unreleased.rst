@@ -66,3 +66,12 @@ Fixes
 
 - Fixed a race condition that could lead to a ``ShardNotFoundException`` when
   executing ``UPDATE`` statements.
+
+- Fixed an issue that caused a ``ColumnUnknownException`` when creating a table
+  with a ``generated column`` involving a subscript expression with a root
+  column name containing upper cases.
+  An example::
+
+    CREATE TABLE t ("OBJ" OBJECT AS (intarray int[]), firstElement AS "OBJ"['intarray'][1]);
+    ColumnUnknownException[Column obj['intarray'] unknown]
+
