@@ -26,15 +26,10 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -46,6 +41,7 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
@@ -54,6 +50,7 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -65,6 +62,7 @@ public abstract class ShardCollectorProvider {
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
     final EvaluatingNormalizer shardNormalizer;
+    private final BatchIteratorFactory batchIteratorFactory;
 
     ShardCollectorProvider(ClusterService clusterService,
                            CircuitBreakerService circuitBreakerService,
@@ -102,63 +100,62 @@ public abstract class ShardCollectorProvider {
             indexShard.shardId(),
             fileOutputFactoryMap
         );
+        this.batchIteratorFactory = new BatchIteratorFactory();
+    }
+
+    public class BatchIteratorFactory {
+
+        public BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,
+                                              boolean requiresScroll,
+                                              CollectTask collectTask) {
+            assert collectPhase.orderBy() == null
+                : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
+            assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
+                "granularity must be DOC";
+
+            boolean isOpenIndex = indexShard.mapperService() != null;
+            RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
+            if (isOpenIndex) {
+                BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
+                if (fusedIterator != null) {
+                    return fusedIterator;
+                }
+            }
+            final BatchIterator<Row> iterator;
+            if (isOpenIndex && WhereClause.canMatch(normalizedCollectNode.where())) {
+                iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
+            } else {
+                iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+            }
+            return Projectors.wrap(
+                Projections.shardProjections(collectPhase.projections()),
+                collectPhase.jobId(),
+                collectTask.txnCtx(),
+                collectTask.getRamAccounting(),
+                collectTask.memoryManager(),
+                projectorFactory,
+                iterator
+            );
+        }
+
+        public OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
+                                                       SharedShardContext sharedShardContext,
+                                                       CollectTask collectTask,
+                                                       boolean requiresRepeat) {
+            return ShardCollectorProvider.this.getOrderedCollector(
+                collectPhase,
+                sharedShardContext,
+                collectTask,
+                requiresRepeat);
+        }
     }
 
     public ShardRowContext shardRowContext() {
         return shardRowContext;
     }
 
-    public CompletableFuture<BatchIterator<Row>> getFutureIterator(RoutedCollectPhase collectPhase,
-                                                                   boolean requiresScroll,
-                                                                   CollectTask collectTask) throws Exception {
-        var futureIt = new CompletableFuture<BatchIterator<Row>>();
-        indexShard.awaitShardSearchActive(b -> {
-            try {
-                futureIt.complete(getIterator(collectPhase, requiresScroll, collectTask));
-            } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                if (IndexParts.isPartitioned(e.getIndex().getName())) {
-                    futureIt.complete(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
-                } else {
-                    futureIt.completeExceptionally(e);
-                }
-            } catch (Throwable t) {
-                futureIt.completeExceptionally(t);
-            }
-        });
-        return futureIt;
-    }
-
-    private BatchIterator<Row> getIterator(RoutedCollectPhase collectPhase,
-                                           boolean requiresScroll,
-                                           CollectTask collectTask) throws Exception {
-        assert collectPhase.orderBy() == null
-            : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
-        assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
-            "granularity must be DOC";
-
-        boolean isOpenIndex = indexShard.mapperService() != null;
-        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
-        if (isOpenIndex) {
-            BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
-            if (fusedIterator != null) {
-                return fusedIterator;
-            }
-        }
-        final BatchIterator<Row> iterator;
-        if (isOpenIndex && WhereClause.canMatch(normalizedCollectNode.where())) {
-            iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
-        } else {
-            iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
-        }
-        return Projectors.wrap(
-            Projections.shardProjections(collectPhase.projections()),
-            collectPhase.jobId(),
-            collectTask.txnCtx(),
-            collectTask.getRamAccounting(),
-            collectTask.memoryManager(),
-            projectorFactory,
-            iterator
-        );
+    public CompletableFuture<BatchIteratorFactory> awaitShardSearchActive() {
+        return indexShard.awaitShardSearchActive().thenApply(ignored -> batchIteratorFactory);
     }
 
 
@@ -174,27 +171,6 @@ public abstract class ShardCollectorProvider {
     protected abstract BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
                                                                boolean requiresScroll,
                                                                CollectTask collectTask);
-
-    public final CompletableFuture<OrderedDocCollector> getFutureOrderedCollector(RoutedCollectPhase collectPhase,
-                                                                                  SharedShardContext sharedShardContext,
-                                                                                  CollectTask collectTask,
-                                                                                  boolean requiresRepeat) {
-        var futureIt = new CompletableFuture<OrderedDocCollector>();
-        indexShard.awaitShardSearchActive(b -> {
-            try {
-                futureIt.complete(getOrderedCollector(collectPhase, sharedShardContext, collectTask, requiresRepeat));
-            } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                if (IndexParts.isPartitioned(e.getIndex().getName())) {
-                    futureIt.complete(OrderedDocCollector.empty(e.getShardId()));
-                } else {
-                    futureIt.completeExceptionally(e);
-                }
-            } catch (Throwable t) {
-                futureIt.completeExceptionally(t);
-            }
-        });
-        return futureIt;
-    }
 
     protected abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
                                                                SharedShardContext sharedShardContext,
