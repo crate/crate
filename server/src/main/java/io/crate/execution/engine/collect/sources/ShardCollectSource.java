@@ -286,17 +286,15 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                     // use AsyncCompositeBatchIterator for multi-threaded loadNextBatch
                     // in order to process shard-based projections concurrently
 
-                    //noinspection unchecked
                     result = CompletableFutures.allAsList(iterators)
                         .thenApply(its -> CompositeBatchIterator.asyncComposite(
                             executor,
                             availableThreads,
-                            its.toArray(new BatchIterator[0])
+                            its
                         ));
                 } else {
-                    //noinspection unchecked
                     result = CompletableFutures.allAsList(iterators)
-                        .thenApply(its -> CompositeBatchIterator.seqComposite(its.toArray(new BatchIterator[0])));
+                        .thenApply(CompositeBatchIterator::seqComposite);
                 }
         }
         return result.thenApply(it -> projectors.wrap(it));
