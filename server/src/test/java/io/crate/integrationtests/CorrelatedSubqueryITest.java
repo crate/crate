@@ -38,16 +38,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
+@UseHashJoins(0)
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
     private Properties properties;
-
-    @Override
-    protected boolean isHashJoinEnabled() {
-        return false;
-    }
 
     @Before
     public void setup() {
