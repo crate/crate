@@ -21,19 +21,20 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
+import io.crate.common.unit.TimeValue;
 
 public final class ShardStateObserver {
 
@@ -47,26 +48,18 @@ public final class ShardStateObserver {
     }
 
     public CompletableFuture<ShardRouting> waitForActiveShard(ShardId shardId) {
-        return checkStateOrWaitForActiveShard(shardId, clusterService.state());
-    }
-
-    private CompletableFuture<ShardRouting> checkStateOrWaitForActiveShard(ShardId shardId, ClusterState state) {
+        ClusterState state = clusterService.state();
         try {
             var routingTable = state.routingTable().shardRoutingTable(shardId);
             var primaryShardRouting = routingTable.primaryShard();
             if (primaryShardRouting.started()) {
                 return CompletableFuture.completedFuture(primaryShardRouting);
-            } else {
-                return waitForActiveShard(shardId, state);
             }
-        } catch (ShardNotFoundException e) {
-            return waitForActiveShard(shardId, state);
         } catch (IndexNotFoundException e) {
             return CompletableFuture.failedFuture(e);
+        } catch (ShardNotFoundException ignored) {
+            // Fall-through to use observer and wait for state update
         }
-    }
-
-    private CompletableFuture<ShardRouting> waitForActiveShard(ShardId shardId, ClusterState state) {
         var stateObserver = new ClusterStateObserver(
             state, clusterService, MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER);
         var listener = new RetryIsShardActive(shardId);
@@ -84,7 +77,7 @@ public final class ShardStateObserver {
         }
     }
 
-    private class RetryIsShardActive implements ClusterStateObserver.Listener {
+    private static class RetryIsShardActive implements ClusterStateObserver.Listener {
 
         private final ShardId shardId;
 
@@ -96,13 +89,15 @@ public final class ShardStateObserver {
 
         @Override
         public void onNewClusterState(ClusterState state) {
-            checkStateOrWaitForActiveShard(shardId, state).whenComplete((routingTable, err) -> {
-                if (routingTable == null) {
-                    result.completeExceptionally(err);
-                } else {
-                    result.complete(routingTable);
+            try {
+                var routingTable = state.routingTable().shardRoutingTable(shardId);
+                var primaryShardRouting = routingTable.primaryShard();
+                if (primaryShardRouting.started()) {
+                    result.complete(primaryShardRouting);
                 }
-            });
+            } catch (Throwable e) {
+                result.completeExceptionally(e);
+            }
         }
 
         @Override
