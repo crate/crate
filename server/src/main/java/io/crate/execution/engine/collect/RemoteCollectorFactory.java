@@ -21,6 +21,27 @@
 
 package io.crate.execution.engine.collect;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists2;
@@ -40,27 +61,6 @@ import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
-
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.function.Consumer;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 /**
  * Used to create RemoteCollectors
