@@ -73,6 +73,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
@@ -399,6 +400,10 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 }
                 throw e;
             }
+            // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
+            // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
+            // and the reader required in the fetchPhase would be missing.
+            boolean containsFetch = Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID);
             for (IntCursor shardCursor: entry.getValue()) {
                 ShardId shardId = new ShardId(index, shardCursor.value);
                 try {
@@ -408,12 +413,21 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                         requiresScroll,
                         collectTask
                     );
-                    iterators.add(iterator);
+                    iterators.add(iterator.exceptionallyCompose(err -> {
+                        err = SQLExceptions.unwrap(err);
+                        if (!containsFetch && (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException)) {
+                            return remoteCollectorFactory.createCollector(
+                                shardId,
+                                collectPhase,
+                                collectTask,
+                                shardCollectorProviderFactory,
+                                requiresScroll
+                            );
+                        }
+                        throw Exceptions.toRuntimeException(err);
+                    }));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    // If toCollect contains a docId it means that this is a QueryThenFetch operation.
-                    // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
-                    // and the reader required in the fetchPhase would be missing.
-                    if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+                    if (containsFetch) {
                         throw e;
                     }
                     iterators.add(remoteCollectorFactory.createCollector(
