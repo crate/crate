@@ -961,7 +961,6 @@ public class InternalEngine extends Engine {
                         indexResult.getSeqNo() + "]";
                     localCheckpointTracker.markSeqNoAsPersisted(indexResult.getSeqNo());
                 }
-                indexResult.setTook(System.nanoTime() - index.startTime());
                 indexResult.freeze();
                 return indexResult;
             } finally {
@@ -1345,7 +1344,6 @@ public class InternalEngine extends Engine {
                     deleteResult.getSeqNo() + "]";
                 localCheckpointTracker.markSeqNoAsPersisted(deleteResult.getSeqNo());
             }
-            deleteResult.setTook(System.nanoTime() - delete.startTime());
             deleteResult.freeze();
         } catch (RuntimeException | IOException e) {
             try {
@@ -1652,7 +1650,6 @@ public class InternalEngine extends Engine {
                 assert noOp.origin().isFromTranslog() || noOpResult.getSeqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO;
                 localCheckpointTracker.markSeqNoAsPersisted(noOpResult.getSeqNo());
             }
-            noOpResult.setTook(System.nanoTime() - noOp.startTime());
             noOpResult.freeze();
             return noOpResult;
         }
