@@ -25,7 +25,6 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -832,15 +831,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 assignments);
         }
         return new SetStatement<>(SetStatement.Scope.GLOBAL, assignments);
-    }
-
-    @Override
-    public Node visitSetLicense(SqlBaseParser.SetLicenseContext ctx) {
-        Assignment<Expression> assignment = new Assignment<>(
-            new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
-
-        return new SetStatement<>(SetStatement.Scope.LICENSE,
-            SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
     }
 
     @Override
