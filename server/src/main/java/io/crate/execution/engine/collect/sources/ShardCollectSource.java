@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import io.crate.common.Suppliers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -62,10 +61,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.common.collections.Iterables;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.common.Suppliers;
+import io.crate.common.collections.Iterables;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -73,6 +73,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
@@ -286,17 +287,15 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                     // use AsyncCompositeBatchIterator for multi-threaded loadNextBatch
                     // in order to process shard-based projections concurrently
 
-                    //noinspection unchecked
                     result = CompletableFutures.allAsList(iterators)
                         .thenApply(its -> CompositeBatchIterator.asyncComposite(
                             executor,
                             availableThreads,
-                            its.toArray(new BatchIterator[0])
+                            its
                         ));
                 } else {
-                    //noinspection unchecked
                     result = CompletableFutures.allAsList(iterators)
-                        .thenApply(its -> CompositeBatchIterator.seqComposite(its.toArray(new BatchIterator[0])));
+                        .thenApply(CompositeBatchIterator::seqComposite);
                 }
         }
         return result.thenApply(it -> projectors.wrap(it));
@@ -401,6 +400,10 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 }
                 throw e;
             }
+            // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
+            // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
+            // and the reader required in the fetchPhase would be missing.
+            boolean containsFetch = Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID);
             for (IntCursor shardCursor: entry.getValue()) {
                 ShardId shardId = new ShardId(index, shardCursor.value);
                 try {
@@ -410,15 +413,30 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                         requiresScroll,
                         collectTask
                     );
-                    iterators.add(iterator);
+                    iterators.add(iterator.exceptionallyCompose(err -> {
+                        err = SQLExceptions.unwrap(err);
+                        if (!containsFetch && (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException)) {
+                            return remoteCollectorFactory.createCollector(
+                                shardId,
+                                collectPhase,
+                                collectTask,
+                                shardCollectorProviderFactory,
+                                requiresScroll
+                            );
+                        }
+                        throw Exceptions.toRuntimeException(err);
+                    }));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    // If toCollect contains a docId it means that this is a QueryThenFetch operation.
-                    // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
-                    // and the reader required in the fetchPhase would be missing.
-                    if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+                    if (containsFetch) {
                         throw e;
                     }
-                    iterators.add(remoteCollectorFactory.createCollector(shardId, collectPhase, collectTask, shardCollectorProviderFactory));
+                    iterators.add(remoteCollectorFactory.createCollector(
+                        shardId,
+                        collectPhase,
+                        collectTask,
+                        shardCollectorProviderFactory,
+                        requiresScroll
+                    ));
                 } catch (IndexNotFoundException e) {
                     // Prevent wrapping this to not break retry-detection
                     throw e;

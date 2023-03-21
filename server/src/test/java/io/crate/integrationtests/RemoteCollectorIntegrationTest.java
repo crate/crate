@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -35,7 +34,6 @@ import org.junit.Test;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends IntegTestCase {
@@ -79,9 +77,9 @@ public class RemoteCollectorIntegrationTest extends IntegTestCase {
         execute(plan).getResult();
 
         execute("refresh table t");
-        assertThat(TestingHelpers.printedTable(execute("select * from t order by id").rows()),
-            is("1| 20\n" +
-               "2| 40\n")
+        assertThat(execute("select * from t order by id")).hasRows(
+            "1| 20",
+            "2| 40"
         );
     }
 }

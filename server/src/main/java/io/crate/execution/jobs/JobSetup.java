@@ -72,7 +72,6 @@ import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
-import io.crate.common.collections.Tuple;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -93,6 +92,7 @@ import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.engine.JobLauncher.HandlerPhase;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectTask;
@@ -216,7 +216,7 @@ public class JobSetup {
     public List<CompletableFuture<StreamBucket>> prepareOnHandler(SessionSettings sessionInfo,
                                                                   Collection<? extends NodeOperation> nodeOperations,
                                                                   RootTask.Builder taskBuilder,
-                                                                  List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
+                                                                  List<HandlerPhase> handlerPhases,
                                                                   SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
@@ -226,16 +226,16 @@ public class JobSetup {
             distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts);
-        for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
-            context.registerLeaf(handlerPhase.v1(), handlerPhase.v2());
+        for (var handlerPhase : handlerPhases) {
+            context.registerLeaf(handlerPhase.phase(), handlerPhase.consumer());
         }
         registerContextPhases(nodeOperations, context);
         LOGGER.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
                      nodeOperations, handlerPhases, context.opCtx.targetToSourceMap);
 
         IntHashSet leafs = new IntHashSet();
-        for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
-            ExecutionPhase phase = handlerPhase.v1();
+        for (var handlerPhase : handlerPhases) {
+            ExecutionPhase phase = handlerPhase.phase();
             createContexts(phase, context);
             leafs.add(phase.phaseId());
         }

@@ -135,7 +135,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
-        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.shardLimitValidator = shardLimitValidator;
     }
 

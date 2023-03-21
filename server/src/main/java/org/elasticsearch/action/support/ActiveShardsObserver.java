@@ -19,19 +19,19 @@
 
 package org.elasticsearch.action.support;
 
+import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Arrays;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 /**
  * This class provides primitives for waiting for a configured number of shards
@@ -42,11 +42,9 @@ public class ActiveShardsObserver {
     private static final Logger LOGGER = LogManager.getLogger(ActiveShardsObserver.class);
 
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
 
-    public ActiveShardsObserver(final ClusterService clusterService, final ThreadPool threadPool) {
+    public ActiveShardsObserver(final ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
     }
 
     /**

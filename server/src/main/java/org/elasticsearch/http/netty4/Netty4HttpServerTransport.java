@@ -60,9 +60,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -98,6 +95,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
+
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
 
 import io.crate.netty.NettyBootstrap;
 import io.crate.netty.channel.PipelineRegistry;
@@ -223,8 +223,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final NodeClient nodeClient;
 
-    private final NettyBootstrap nettyBootstrap;
-
     private EventLoopGroup eventLoopGroup;
 
     public Netty4HttpServerTransport(Settings settings,
@@ -233,7 +231,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry,
                                      PipelineRegistry pipelineRegistry,
-                                     NettyBootstrap nettyBootstrap,
                                      NodeClient nodeClient) {
         this.settings = settings;
         this.networkService = networkService;
@@ -241,7 +238,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
         this.pipelineRegistry = pipelineRegistry;
-        this.nettyBootstrap = nettyBootstrap;
         this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);

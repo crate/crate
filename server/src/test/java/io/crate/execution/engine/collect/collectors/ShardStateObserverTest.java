@@ -21,12 +21,10 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -53,7 +51,7 @@ public class ShardStateObserverTest extends CrateDummyClusterServiceUnitTest {
         IndexShardRoutingTable routingTable = clusterService.state().routingTable().shardRoutingTable("t1", 0);
         ShardId shardId = routingTable.shardId();
         CompletableFuture<ShardRouting> shard0Active = observer.waitForActiveShard(shardId);
-        assertThat(shard0Active.isDone(), is(false));
+        assertThat(shard0Active.isDone()).isFalse();
 
         ShardRouting startedPrimaryShard = routingTable.primaryShard().moveToStarted();
         ClusterState newClusterState = ClusterState.builder(clusterService.state())
@@ -64,7 +62,6 @@ public class ShardStateObserverTest extends CrateDummyClusterServiceUnitTest {
             ).build();
         ClusterServiceUtils.setState(clusterService, newClusterState);
 
-        // This now shouldn't timeout
-        shard0Active.get(5, TimeUnit.SECONDS);
+        assertThat(shard0Active).isCompletedWithValue(startedPrimaryShard);
     }
 }

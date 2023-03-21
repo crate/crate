@@ -21,24 +21,25 @@
 
 package io.crate.analyze;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
 public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
 
     public static final ParamTypeHints EMPTY = new ParamTypeHints(Collections.emptyList());
 
-    private final List<DataType> types;
+    private final List<DataType<?>> types;
 
-    public ParamTypeHints(List<DataType> types) {
+    public ParamTypeHints(List<DataType<?>> types) {
         this.types = types;
     }
 

@@ -70,14 +70,14 @@ public final class CompositeBatchIterator {
     /**
      * Composite batchIterator that eagerly loads the individual iterators on `loadNext` multi-threaded
      */
-    @SafeVarargs
+    @SuppressWarnings("unchecked")
     public static <T> BatchIterator<T> asyncComposite(Executor executor,
                                                       IntSupplier availableThreads,
-                                                      BatchIterator<T> ... iterators) {
-        if (iterators.length == 1) {
-            return iterators[0];
+                                                      Collection<? extends BatchIterator<T>> iterators) {
+        if (iterators.size() == 1) {
+            return iterators.iterator().next();
         }
-        return new AsyncCompositeBI<>(executor, availableThreads, iterators);
+        return new AsyncCompositeBI<>(executor, availableThreads, iterators.toArray(new BatchIterator[0]));
     }
 
     private abstract static class AbstractCompositeBI<T> implements BatchIterator<T> {

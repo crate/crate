@@ -52,16 +52,17 @@ public class SimpleReference implements Reference {
 
     protected DataType<?> type;
 
-    private final int position;
-    private final ReferenceIdent ident;
-    private final ColumnPolicy columnPolicy;
-    private final RowGranularity granularity;
-    private final IndexType indexType;
-    private final boolean nullable;
-    private final boolean hasDocValues;
+    protected final int position;
+
+    protected final ReferenceIdent ident;
+    protected final ColumnPolicy columnPolicy;
+    protected final RowGranularity granularity;
+    protected final IndexType indexType;
+    protected final boolean nullable;
+    protected final boolean hasDocValues;
 
     @Nullable
-    private final Symbol defaultExpression;
+    protected final Symbol defaultExpression;
 
     public SimpleReference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);

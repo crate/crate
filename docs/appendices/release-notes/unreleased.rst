@@ -81,4 +81,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed a race condition that could lead to a ``ShardNotFoundException`` when
+  executing ``UPDATE`` statements.

@@ -62,8 +62,10 @@ public class AsyncCompositeBatchIteratorTest {
                 () -> CompositeBatchIterator.asyncComposite(
                     executorService,
                     () -> 3,
-                    TestingBatchIterators.range(0, 5),
-                    batchSimulatingItSupplier.get()
+                    List.of(
+                        TestingBatchIterators.range(0, 5),
+                        batchSimulatingItSupplier.get()
+                    )
                 )
             );
             tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
@@ -88,10 +90,12 @@ public class AsyncCompositeBatchIteratorTest {
             BatchIterator<Row> batchIterator = CompositeBatchIterator.asyncComposite(
                 executorService,
                 () -> 3,
-                batchSimulatingItSupplier.get(),
-                batchSimulatingItSupplier.get(),
-                batchSimulatingItSupplier.get(),
-                batchSimulatingItSupplier.get()
+                List.of(
+                    batchSimulatingItSupplier.get(),
+                    batchSimulatingItSupplier.get(),
+                    batchSimulatingItSupplier.get(),
+                    batchSimulatingItSupplier.get()
+                )
             );
 
             TestingRowConsumer consumer = new TestingRowConsumer();

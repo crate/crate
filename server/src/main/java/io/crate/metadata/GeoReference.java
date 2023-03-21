@@ -27,6 +27,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.expression.symbol.Symbol;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
@@ -68,6 +69,36 @@ public class GeoReference extends SimpleReference {
                         @Nullable Double distanceErrorPct) {
         super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
         this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
+        this.precision = precision;
+        this.treeLevels = treeLevels;
+        this.distanceErrorPct = distanceErrorPct;
+    }
+
+
+    public GeoReference(ReferenceIdent ident,
+                        RowGranularity granularity,
+                        DataType<?> type,
+                        ColumnPolicy columnPolicy,
+                        IndexType indexType,
+                        boolean nullable,
+                        boolean hasDocValues,
+                        int position,
+                        Symbol defaultExpression,
+                        String geoTree,
+                        String precision,
+                        Integer treeLevels,
+                        Double distanceErrorPct) {
+        super(ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            defaultExpression
+        );
+        this.geoTree = geoTree;
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
@@ -128,6 +159,7 @@ public class GeoReference extends SimpleReference {
         distanceErrorPct = in.readBoolean() ? null : in.readDouble();
     }
 
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
@@ -141,6 +173,25 @@ public class GeoReference extends SimpleReference {
         if (distanceErrorPct != null) {
             out.writeDouble(distanceErrorPct);
         }
+    }
+
+    @Override
+    public Reference getRelocated(ReferenceIdent newIdent) {
+        return new GeoReference(
+            newIdent,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
     }
 
     @Override

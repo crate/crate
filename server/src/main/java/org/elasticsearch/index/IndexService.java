@@ -93,7 +93,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final MapperService mapperService;
-    private final NamedXContentRegistry xContentRegistry;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -131,7 +130,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
         this.indexSettings = indexSettings;
-        this.xContentRegistry = xContentRegistry;
         this.circuitBreakerService = circuitBreakerService;
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
