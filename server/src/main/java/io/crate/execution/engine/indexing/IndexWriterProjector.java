@@ -188,9 +188,9 @@ public class IndexWriterProjector implements Projector {
             }
             assert value instanceof LinkedHashMap<String, Object> : "the raw source order should be preserved";
             Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
-            try {
-                BytesReference bytes = BytesReference.bytes(new XContentBuilder(XContentType.JSON.xContent(),
-                    new BytesStreamOutput(lastSourceSize)).map(filteredMap));
+            try (var stream = new BytesStreamOutput(lastSourceSize)) {
+                XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), stream);
+                BytesReference bytes = BytesReference.bytes(xContentBuilder.map(filteredMap));
                 lastSourceSize = bytes.length();
                 return bytes.utf8ToString();
             } catch (IOException ex) {

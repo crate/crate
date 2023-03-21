@@ -19,17 +19,17 @@
 
 package org.elasticsearch.index.translog;
 
-import org.apache.lucene.util.Counter;
-import org.elasticsearch.Assertions;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.lucene.util.Counter;
+import org.elasticsearch.Assertions;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 
 public class TranslogDeletionPolicy {
 
@@ -189,7 +189,8 @@ public class TranslogDeletionPolicy {
         int totalFiles = 1; // for the current writer
         for (int i = readers.size() - 1; i >= 0 && totalFiles < maxTotalFiles; i--) {
             totalFiles++;
-            minGen = readers.get(i).generation;
+            TranslogReader translogReader = readers.get(i);
+            minGen = translogReader.generation;
         }
         return minGen;
     }
