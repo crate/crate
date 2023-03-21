@@ -47,6 +47,8 @@ public class NodeToolCli extends MultiCommand {
     }
 
     public static void main(String[] args) throws Exception {
-        exit(new NodeToolCli().main(args, Terminal.DEFAULT));
+        try (var nodeToolCli = new NodeToolCli()) {
+            exit(nodeToolCli.main(args, Terminal.DEFAULT));
+        }
     }
 }
