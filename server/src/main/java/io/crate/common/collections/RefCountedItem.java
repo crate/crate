@@ -40,13 +40,21 @@ public class RefCountedItem<T> implements AutoCloseable {
         this.closeItem = closeItem;
     }
 
+    /**
+     * Marks resource as acquired by `source`.
+     * On the first acquisition the item is created.
+     *
+     * <p>
+     * If {@link #itemFactory} raises an error the ref-counter is <b>not</b> incremented.
+     * </p>
+     */
     public void markAcquired(String source) {
         synchronized (sources) {
-            sources.add(source);
-            refs++;
             if (item == null) {
                 item = itemFactory.apply(source);
             }
+            sources.add(source);
+            refs++;
         }
     }
 
