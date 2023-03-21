@@ -21,23 +21,30 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import io.crate.Constants;
+import io.crate.planner.PlannerContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 @Singleton
 public class TableCreator {
@@ -45,23 +52,38 @@ public class TableCreator {
     protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
 
     private final TransportCreateTableAction transportCreateTableAction;
+    private final PlannerContext plannerContext;
 
     @Inject
-    public TableCreator(TransportCreateTableAction transportCreateIndexAction) {
+    public TableCreator(TransportCreateTableAction transportCreateIndexAction, PlannerContext plannerContext) {
         this.transportCreateTableAction = transportCreateIndexAction;
+        this.plannerContext = plannerContext;
     }
 
-    public CompletableFuture<Long> create(BoundCreateTable createTable) {
+    public CompletableFuture<Long> create(BoundCreateTable createTable) throws IOException {
         var templateName = createTable.templateName();
         var relationName = createTable.tableIdent();
-        var createTableRequest = templateName == null
-            ? new CreateTableRequest(
+        CreateTableRequest createTableRequest;
+        if (plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_5_3_0)) {
+            var map = createTable.mapping();
+            // Wrap partitioned table mapping in a type map to align with PutIndexTemplateRequest.mapping()
+            if (templateName != null) {
+                if (map.size() != 1 || !map.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
+                    map = Map.of(Constants.DEFAULT_MAPPING_TYPE, map);
+                }
+            }
+            String mapping = Strings.toString(XContentFactory.jsonBuilder().map(map));
+            createTableRequest = new CreateTableRequest(relationName, createTable.tableParameter().settings(), mapping, templateName != null);
+        } else {
+            // TODO: Remove this in 5.4 to have a single entry point to assign column OID-s on a table creation.
+            createTableRequest = templateName == null
+                ? new CreateTableRequest(
                 new CreateIndexRequest(
                     relationName.indexNameOrAlias(),
                     createTable.tableParameter().settings()
                 ).mapping(createTable.mapping())
             )
-            : new CreateTableRequest(
+                : new CreateTableRequest(
                 new PutIndexTemplateRequest(templateName)
                     .mapping(createTable.mapping())
                     .create(true)
@@ -69,7 +91,9 @@ public class TableCreator {
                     .patterns(Collections.singletonList(createTable.templatePrefix()))
                     .order(100)
                     .alias(new Alias(relationName.indexNameOrAlias()))
-        );
+            );
+        }
+
         return transportCreateTableAction.execute(createTableRequest, resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());

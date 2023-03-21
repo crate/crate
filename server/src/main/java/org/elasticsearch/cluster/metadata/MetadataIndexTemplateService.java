@@ -176,12 +176,6 @@ public class MetadataIndexTemplateService {
                     }
 
                     validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry, currentState);
-
-                    for (Alias alias : request.aliases) {
-                        AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
-                            .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).build();
-                        templateBuilder.putAlias(aliasMetadata);
-                    }
                     IndexTemplateMetadata template = templateBuilder.build();
 
                     Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(template);
@@ -215,23 +209,42 @@ public class MetadataIndexTemplateService {
         return matchedTemplates;
     }
 
-    private static void validateAndAddTemplate(final PutRequest request,
+    public static void validateAndAddTemplate(final PutRequest request,
                                                IndexTemplateMetadata.Builder templateBuilder,
                                                IndicesService indicesService,
                                                NamedXContentRegistry xContentRegistry,
                                                ClusterState currentState) throws Exception {
+        validateAndAddTemplate(request.settings,
+                               request.indexPatterns,
+                               request.mapping,
+                               request.aliases,
+                               templateBuilder,
+                               indicesService,
+                               xContentRegistry,
+                               currentState
+        );
+    }
+
+    public static void validateAndAddTemplate(Settings settings,
+                                              List<String> patterns,
+                                              String mapping,
+                                              List<Alias> aliases,
+                                              IndexTemplateMetadata.Builder templateBuilder,
+                                              IndicesService indicesService,
+                                              NamedXContentRegistry xContentRegistry,
+                                              ClusterState currentState) throws Exception {
         Index createdIndex = null;
         final String temporaryIndexName = UUIDs.randomBase64UUID();
         try {
             // use the provided values, otherwise just pick valid dummy values
-            int dummyPartitionSize = IndexMetadata.INDEX_ROUTING_PARTITION_SIZE_SETTING.get(request.settings);
-            int dummyShards = request.settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS,
-                    dummyPartitionSize == 1 ? 1 : dummyPartitionSize + 1);
+            int dummyPartitionSize = IndexMetadata.INDEX_ROUTING_PARTITION_SIZE_SETTING.get(settings);
+            int dummyShards = settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS,
+                dummyPartitionSize == 1 ? 1 : dummyPartitionSize + 1);
 
             //create index service for parsing and validating "mappings"
             Settings dummySettings = Settings.builder()
                 .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .put(request.settings)
+                .put(settings)
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, dummyShards)
                 .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
@@ -241,23 +254,30 @@ public class MetadataIndexTemplateService {
             IndexService dummyIndexService = indicesService.createIndex(tmpIndexMetadata, Collections.emptyList(), false);
             createdIndex = dummyIndexService.index();
 
-            templateBuilder.order(request.order);
-            templateBuilder.version(request.version);
-            templateBuilder.patterns(request.indexPatterns);
+            // request version in not specified on table creation
+            // request order is removed in https://github.com/crate/crate/pull/13807
+            // TODO: patterns should be a single string.
+            templateBuilder.patterns(patterns);
 
             // inject `index.version.created` to the template settings to flag version of template creation (partitioned table)
-            var templateSettingsBuilder = Settings.builder().put(request.settings);
+            var templateSettingsBuilder = Settings.builder().put(settings);
             setIndexVersionCreatedSetting(templateSettingsBuilder, currentState);
 
             templateBuilder.settings(templateSettingsBuilder.build());
 
-            if (request.mapping != null) {
+            if (mapping != null) {
                 try {
-                    templateBuilder.putMapping(request.mapping);
+                    templateBuilder.putMapping(mapping);
                 } catch (Exception e) {
                     throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
                 }
-                dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, request.mapping), MergeReason.MAPPING_UPDATE);
+                dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, mapping), MergeReason.MAPPING_UPDATE);
+            }
+
+            for (Alias alias : aliases) {
+                AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
+                    .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).build();
+                templateBuilder.putAlias(aliasMetadata);
             }
         } finally {
             if (createdIndex != null) {
@@ -265,6 +285,8 @@ public class MetadataIndexTemplateService {
             }
         }
     }
+
+
 
     private void validate(PutRequest request) {
         List<String> validationErrors = new ArrayList<>();

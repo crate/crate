@@ -23,11 +23,15 @@ package io.crate.execution.ddl.tables;
 
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+import static org.elasticsearch.cluster.metadata.MetadataIndexTemplateService.validateAndAddTemplate;
 
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -37,14 +41,20 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -63,13 +73,17 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final IndicesService indicesService;
+    private final NamedXContentRegistry xContentRegistry;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       TransportCreateIndexAction transportCreateIndexAction,
-                                      TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+                                      TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                                      IndicesService indicesService,
+                                      NamedXContentRegistry xContentRegistry) {
         super(
             NAME,
             transportService,
@@ -78,6 +92,8 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         );
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.indicesService = indicesService;
+        this.xContentRegistry = xContentRegistry;
     }
 
     @Override
@@ -92,6 +108,10 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     @Override
     protected ClusterBlockException checkBlock(CreateTableRequest request, ClusterState state) {
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_3_0)) {
+            return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.relationName().indexNameOrAlias());
+        }
+
         if (request.getCreateIndexRequest() != null) {
             CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
             return transportCreateIndexAction.checkBlock(createIndexRequest, state);
@@ -106,12 +126,66 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     @Override
     protected void masterOperation(final CreateTableRequest request,
                                    final ClusterState state,
-                                   final ActionListener<CreateTableResponse> listener) {
+                                   final ActionListener<CreateTableResponse> listener) throws Exception {
         final RelationName relationName = request.getTableName();
         if (viewsExists(relationName, state)) {
             listener.onFailure(new RelationAlreadyExists(relationName));
             return;
         }
+
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_3_0)) {
+            validateSettings(request.settings(), state);
+            Metadata.Builder metadataBuilder = Metadata.builder(state.metadata());
+
+            if (request.isPartitioned()) {
+
+                // TODO: migrate more settings/request validations from MetadataIndexTemplateService
+                IndexTemplateMetadata templateMetadata = createTemplate(state,
+                                                                        request.relationName().schema(),
+                                                                        request.relationName().name(),
+                                                                        request.settings(),
+                                                                        request.mapping(),
+                                                                        request.relationName().indexNameOrAlias()
+                );
+                metadataBuilder.put(templateMetadata);
+            } else {
+                ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
+                    response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
+                    listener::onFailure
+                );
+                transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
+            }
+        } else {
+            createTablePre5_3(request, state, listener);
+        }
+    }
+
+    private IndexTemplateMetadata createTemplate(ClusterState state,
+                                                 String schemaName,
+                                                 String tableName,
+                                                 Settings settings,
+                                                 String mapping,
+                                                 String indexNameOrAlias) throws Exception {
+        var templateBuilder = new IndexTemplateMetadata.Builder(PartitionName.templateName(schemaName, tableName));
+        validateAndAddTemplate(
+            settings,
+            List.of(PartitionName.templatePrefix(schemaName, tableName)),
+            mapping,
+            List.of(new Alias(indexNameOrAlias)),
+            templateBuilder,
+            indicesService,
+            xContentRegistry,
+            state
+        );
+        return templateBuilder.build();
+    }
+
+
+    /**
+     * Depending on table (partitioned or not), either creates only a template or only an index.
+     * Kept for BWC reasons, to be removed in 5.4
+     */
+    private void createTablePre5_3(CreateTableRequest request, ClusterState state, ActionListener<CreateTableResponse> listener) {
         if (request.getCreateIndexRequest() != null) {
             CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
             validateSettings(createIndexRequest.settings(), state);
