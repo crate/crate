@@ -85,6 +85,13 @@ Supported session settings
   :ref:`evaluated <gloss-evaluation>` using the ``HashJoin`` implementation
   instead of the ``Nested-Loops`` implementation.
 
+  .. NOTE::
+
+     It is not always possible or efficient to use the ``HashJoin``
+     implementation. Having this setting enabled, will only add the option of
+     considering it, it will not guarantee it.  See also the :ref:`available
+     join algorithms <available-join-algo>` for more insights on this topic.
+
 .. _conf-session-error_on_unknown_object_key:
 
 **error_on_unknown_object_key**
@@ -94,13 +101,6 @@ Supported session settings
   This setting controls the behaviour of querying unknown object keys to
   dynamic objects. CrateDB will throw an error by default if any of the queried
   object keys are unknown or will return a null if the setting is set to false.
-
-  .. NOTE::
-
-     It is not always possible or efficient to use the ``HashJoin``
-     implementation. Having this setting enabled, will only add the option of
-     considering it, it will not guarantee it.  See also the :ref:`available
-     join algorithms <available-join-algo>` for more insights on this topic.
 
 .. _conf-session-datestyle:
 
