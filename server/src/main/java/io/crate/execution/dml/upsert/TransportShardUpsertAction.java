@@ -297,7 +297,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(request, location, null, indexShard, logger);
+        return new WriteReplicaResult<>(location, null, indexShard);
     }
 
     @Override
@@ -396,7 +396,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
             location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(request, location, null, indexShard, logger);
+        return new WriteReplicaResult<>(location, null, indexShard);
     }
 
     @Nullable

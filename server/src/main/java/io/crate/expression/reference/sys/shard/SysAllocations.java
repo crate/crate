@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
-import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -47,7 +46,6 @@ public class SysAllocations implements Iterable<SysAllocation> {
     private final ClusterService clusterService;
     private final ClusterInfoService clusterInfoService;
     private final AllocationDeciders allocationDeciders;
-    private final ShardsAllocator shardAllocator;
     private final AllocationService allocationService;
     private final SnapshotsInfoService snapshotInfoService;
 
@@ -56,13 +54,11 @@ public class SysAllocations implements Iterable<SysAllocation> {
                           ClusterInfoService clusterInfoService,
                           SnapshotsInfoService snapshotInfoService,
                           AllocationDeciders allocationDeciders,
-                          ShardsAllocator shardAllocator,
                           AllocationService allocationService) {
         this.clusterService = clusterService;
         this.clusterInfoService = clusterInfoService;
         this.snapshotInfoService = snapshotInfoService;
         this.allocationDeciders = allocationDeciders;
-        this.shardAllocator = shardAllocator;
         this.allocationService = allocationService;
     }
 
