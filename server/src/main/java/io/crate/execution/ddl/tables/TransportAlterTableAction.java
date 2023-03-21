@@ -27,15 +27,12 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -54,13 +51,10 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
     public TransportAlterTableAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     MetadataMappingService metadataMappingService,
                                      IndicesService indicesService,
-                                     AllocationService allocationService,
                                      IndexScopedSettings indexScopedSettings,
                                      MetadataCreateIndexService metadataCreateIndexService,
                                      MetadataUpdateSettingsService updateSettingsService,
-                                     ShardLimitValidator shardLimitValidator,
                                      NodeContext nodeContext) {
         super(ACTION_NAME,
               transportService,
@@ -71,13 +65,10 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               AcknowledgedResponse::new,
               "alter-table");
         executor = new AlterTableClusterStateExecutor(
-            metadataMappingService,
             indicesService,
-            allocationService,
             indexScopedSettings,
             metadataCreateIndexService,
             updateSettingsService,
-            shardLimitValidator,
             nodeContext
         );
     }

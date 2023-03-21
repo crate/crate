@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportActions;
@@ -187,17 +186,14 @@ public abstract class TransportWriteAction<
     public static class WriteReplicaResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>>
             extends ReplicaResult implements RespondingWriteResult {
         public final Location location;
-        private final ReplicaRequest request;
         private final IndexShard replica;
-        private final Logger logger;
 
-        public WriteReplicaResult(ReplicaRequest request, @Nullable Location location,
-                                  @Nullable Exception operationFailure, IndexShard replica, Logger logger) {
+        public WriteReplicaResult(@Nullable Location location,
+                                  @Nullable Exception operationFailure,
+                                  IndexShard replica) {
             super(operationFailure);
             this.location = location;
-            this.request = request;
             this.replica = replica;
-            this.logger = logger;
         }
 
         @Override

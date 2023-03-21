@@ -979,7 +979,6 @@ public class Node implements Closeable {
         configureNodeAndClusterIdStateListener(clusterService);
 
         if (initialStateTimeout.millis() > 0) {
-            final ThreadPool thread = injector.getInstance(ThreadPool.class);
             ClusterState clusterState = clusterService.state();
             ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger);
 
