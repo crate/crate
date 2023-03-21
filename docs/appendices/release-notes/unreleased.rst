@@ -42,7 +42,8 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed support for ``SET LICENSE``. The statement had no effect since CrateDB
+  4.5 and was only kept for backward compatibility.
 
 
 Deprecations
