@@ -19,16 +19,6 @@
 
 package org.elasticsearch.common.xcontent.support;
 
-import org.apache.lucene.util.automaton.Automata;
-import org.apache.lucene.util.automaton.Automaton;
-import org.apache.lucene.util.automaton.CharacterRunAutomaton;
-import org.apache.lucene.util.automaton.Operations;
-import org.elasticsearch.ElasticsearchParseException;
-import io.crate.common.Booleans;
-import org.elasticsearch.common.Numbers;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.regex.Regex;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,93 +27,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.lucene.util.automaton.Automata;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.CharacterRunAutomaton;
+import org.apache.lucene.util.automaton.Operations;
+import org.elasticsearch.common.Numbers;
+import org.elasticsearch.common.regex.Regex;
+
+import io.crate.common.Booleans;
+
 public class XContentMapValues {
 
-    @SuppressWarnings({"unchecked"})
-    private static void extractRawValues(List values, Map<String, Object> part, String[] pathElements, int index) {
-        if (index == pathElements.length) {
-            return;
-        }
-
-        String key = pathElements[index];
-        Object currentValue = part.get(key);
-        int nextIndex = index + 1;
-        while (currentValue == null && nextIndex != pathElements.length) {
-            key += "." + pathElements[nextIndex];
-            currentValue = part.get(key);
-            nextIndex++;
-        }
-
-        if (currentValue == null) {
-            return;
-        }
-
-        if (currentValue instanceof Map) {
-            extractRawValues(values, (Map<String, Object>) currentValue, pathElements, nextIndex);
-        } else if (currentValue instanceof List) {
-            extractRawValues(values, (List) currentValue, pathElements, nextIndex);
-        } else {
-            values.add(currentValue);
-        }
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private static void extractRawValues(List values, List<Object> part, String[] pathElements, int index) {
-        for (Object value : part) {
-            if (value == null) {
-                continue;
-            }
-            if (value instanceof Map) {
-                extractRawValues(values, (Map<String, Object>) value, pathElements, index);
-            } else if (value instanceof List) {
-                extractRawValues(values, (List) value, pathElements, index);
-            } else {
-                values.add(value);
-            }
-        }
-    }
-
-    public static Object extractValue(String path, Map<?, ?> map) {
-        String[] pathElements = path.split("\\.");
-        if (pathElements.length == 0) {
-            return null;
-        }
-        return extractValue(pathElements, 0, map);
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private static Object extractValue(String[] pathElements, int index, Object currentValue) {
-        if (index == pathElements.length) {
-            return currentValue;
-        }
-        if (currentValue == null) {
-            return null;
-        }
-        if (currentValue instanceof Map) {
-            Map map = (Map) currentValue;
-            String key = pathElements[index];
-            Object mapValue = map.get(key);
-            int nextIndex = index + 1;
-            while (mapValue == null && nextIndex != pathElements.length) {
-                key += "." + pathElements[nextIndex];
-                mapValue = map.get(key);
-                nextIndex++;
-            }
-            return extractValue(pathElements, nextIndex, mapValue);
-        }
-        if (currentValue instanceof List) {
-            List valueList = (List) currentValue;
-            List newList = new ArrayList(valueList.size());
-            for (Object o : valueList) {
-                Object listValue = extractValue(pathElements, index, o);
-                if (listValue != null) {
-                    newList.add(listValue);
-                }
-            }
-            return newList;
-        }
-        return null;
-    }
 
     /**
      * Only keep properties in {@code map} that match the {@code includes} but
@@ -307,27 +221,6 @@ public class XContentMapValues {
         return node.toString();
     }
 
-    public static float nodeFloatValue(Object node) {
-        if (node instanceof Number) {
-            return ((Number) node).floatValue();
-        }
-        return Float.parseFloat(node.toString());
-    }
-
-    public static double nodeDoubleValue(Object node, double defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        return nodeDoubleValue(node);
-    }
-
-    public static double nodeDoubleValue(Object node) {
-        if (node instanceof Number) {
-            return ((Number) node).doubleValue();
-        }
-        return Double.parseDouble(node.toString());
-    }
-
     public static int nodeIntegerValue(Object node) {
         if (node instanceof Number) {
             return Numbers.toIntExact((Number) node);
@@ -342,19 +235,6 @@ public class XContentMapValues {
         return nodeIntegerValue(node);
     }
 
-    public static boolean nodeBooleanValue(Object node, String name, boolean defaultValue) {
-        try {
-            return nodeBooleanValue(node, defaultValue);
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Could not convert [" + name + "] to boolean", ex);
-        }
-    }
-
-    public static boolean nodeBooleanValue(Object node, boolean defaultValue) {
-        String nodeValue = node == null ? null : node.toString();
-        return Booleans.parseBoolean(nodeValue, defaultValue);
-    }
-
     public static boolean nodeBooleanValue(Object node, String name) {
         try {
             return nodeBooleanValue(node);
@@ -365,31 +245,5 @@ public class XContentMapValues {
 
     public static boolean nodeBooleanValue(Object node) {
         return Booleans.parseBoolean(node.toString());
-    }
-
-    public static Map<String, Object> nodeMapValue(Object node, String desc) {
-        if (node instanceof Map) {
-            return (Map<String, Object>) node;
-        } else {
-            throw new ElasticsearchParseException(desc + " should be a hash but was of type: " + node.getClass());
-        }
-    }
-
-    /**
-     * Returns an array of string value from a node value.
-     *
-     * If the node represents an array the corresponding array of strings is returned.
-     * Otherwise the node is treated as a comma-separated string.
-     */
-    public static String[] nodeStringArrayValue(Object node) {
-        if (node instanceof List<?> nodes) {
-            String[] arr = new String[nodes.size()];
-            for (int i = 0; i < arr.length; i++) {
-                arr[i] = nodeStringValue(nodes.get(i), null);
-            }
-            return arr;
-        } else {
-            return Strings.splitStringByCommaToArray(node.toString());
-        }
     }
 }

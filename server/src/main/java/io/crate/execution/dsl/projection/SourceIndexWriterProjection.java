@@ -21,22 +21,24 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * IndexWriterProjector that gets its values from a source input
@@ -56,10 +58,10 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final List<? extends Symbol> outputs;
 
     @Nullable
-    private String[] includes;
+    private final String[] includes;
 
     @Nullable
-    private String[] excludes;
+    private final String[] excludes;
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
@@ -105,6 +107,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < length; i++) {
                 includes[i] = in.readString();
             }
+        } else {
+            includes = null;
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -112,6 +116,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < length; i++) {
                 excludes[i] = in.readString();
             }
+        } else {
+            excludes = null;
         }
         outputs = Symbols.listFromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
