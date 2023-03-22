@@ -92,6 +92,14 @@ Fixes
 - Fixed a race condition that could lead to a ``ShardNotFoundException`` when
   executing ``UPDATE`` statements.
 
+- Fixed misinterpretations of column names containing square brackets to
+  subscript expressions causing ``SQLParseExceptions``.
+  An example::
+
+    CREATE TABLE g ("""a[1]""" int);
+    SELECT """a[1]""" FROM g;
+    SQLParseException[line 1:3: mismatched input 'a' expecting ... ]
+
 - Fixed an issue that caused a ``ColumnUnknownException`` when creating a table
   with a ``generated column`` involving a subscript expression with a root
   column name containing upper cases.

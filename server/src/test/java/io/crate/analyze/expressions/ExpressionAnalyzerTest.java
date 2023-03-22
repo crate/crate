@@ -21,6 +21,7 @@
 
 package io.crate.analyze.expressions;
 
+import static io.crate.analyze.expressions.ExpressionAnalyzer.detectAndGenerateQuotedSubscriptExpression;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
@@ -33,6 +34,10 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.sql.tree.IntegerLiteral;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.SubscriptExpression;
 import io.crate.types.BitStringType;
 
 import org.joda.time.Period;
@@ -435,5 +440,23 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var result = executor.asSymbol("tarr.xs[1:3]");
 
         assertThat(result).isEqualTo(function);
+    }
+
+    /**
+     * bug: https://github.com/crate/crate/issues/13845
+     */
+    public void test_detectAndGenerateQuotedSubscriptExpression() {
+        assertThat(detectAndGenerateQuotedSubscriptExpression("A[1]"))
+            .isEqualTo(new SubscriptExpression(
+                new QualifiedNameReference(new QualifiedName("A")),
+                new IntegerLiteral(1)));
+
+        // not a valid subscript expression but a column name containing square brackets.
+        assertThat(detectAndGenerateQuotedSubscriptExpression("\"A[1]\"")).isNull();
+
+        assertThat(detectAndGenerateQuotedSubscriptExpression("\"A[1]\"[2]"))
+            .isEqualTo(new SubscriptExpression(
+                new QualifiedNameReference(new QualifiedName("A[1]")),
+                new IntegerLiteral(2)));
     }
 }

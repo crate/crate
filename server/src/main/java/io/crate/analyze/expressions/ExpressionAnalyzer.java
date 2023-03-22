@@ -56,6 +56,7 @@ import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.relations.SelectListFieldProvider;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
@@ -674,10 +675,10 @@ public class ExpressionAnalyzer {
             } else {
                 // Detect and process partial quoted subscript expression
                 var columnName = qualifiedName.getSuffix();
-                var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+                var maybeQuotedSubscript = detectAndGenerateQuotedSubscriptExpression(columnName);
                 if (maybeQuotedSubscript != null) {
-                    var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
-                    return visitSubscriptExpression(new SubscriptExpression(subscript, node.index()), context);
+                    return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()),
+                                                    context);
                 }
 
                 // Ideally the above base+index + subscriptFunction case would be enough
@@ -918,10 +919,9 @@ public class ExpressionAnalyzer {
             var columnName = parts.get(parts.size() - 1);
 
             // Detect and process quoted subscript expressions
-            var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+            var maybeQuotedSubscript = detectAndGenerateQuotedSubscriptExpression(columnName);
             if (maybeQuotedSubscript != null) {
-                var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
-                return visitSubscriptExpression(subscript, context);
+                return visitSubscriptExpression(maybeQuotedSubscript, context);
             }
 
             return fieldProvider.resolveField(node.getName(), null, operation, context.errorOnUnknownObjectKey());
@@ -1261,11 +1261,33 @@ public class ExpressionAnalyzer {
         }
     }
 
+    @VisibleForTesting
     @Nullable
-    private static String detectAndSanitizeQuotedSubscript(String columnName) {
-        var openSubscriptPos = columnName.indexOf("[");
-        if (openSubscriptPos > -1) {
-            return "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+    static SubscriptExpression detectAndGenerateQuotedSubscriptExpression(String columnName) {
+        if (!columnName.endsWith("]")) {
+            return null;
+        }
+        var recreatedExpression = SqlParser.createExpression(columnName);
+        if (recreatedExpression instanceof SubscriptExpression subscriptExpression) {
+            final String subscriptPart = "[" + subscriptExpression.index() + "]";
+            if (columnName.endsWith(subscriptPart) == false) {
+                throw new IllegalStateException("A quoted subscript expression cannot be parsed properly.");
+            }
+            // recreated subscript expression's base are converted to lower cases,
+            // hence the base needs to be obtained from the original string.
+            final String basePart = columnName.substring(0, columnName.length() - subscriptPart.length());
+            var baseExpression = detectAndGenerateQuotedSubscriptExpression(basePart);
+            if (baseExpression != null) {
+                return new SubscriptExpression(baseExpression, subscriptExpression.index());
+            } else {
+                if (subscriptExpression.base() instanceof QualifiedNameReference == false) {
+                    throw new IllegalStateException("A quoted subscript expression cannot be parsed properly.");
+                }
+                String unquotedBase = basePart.startsWith("\"") && basePart.endsWith("\"") ?
+                    basePart.substring(1, basePart.length() - 1) : basePart;
+                return new SubscriptExpression(
+                    new QualifiedNameReference(new QualifiedName(unquotedBase)), subscriptExpression.index());
+            }
         }
         return null;
     }
