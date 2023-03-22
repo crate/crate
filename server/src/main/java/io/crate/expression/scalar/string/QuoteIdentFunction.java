@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.string;
 
+import static io.crate.sql.Identifiers.isKeyWord;
+
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
@@ -46,8 +49,57 @@ public final class QuoteIdentFunction {
                     signature,
                     boundSignature,
                     DataTypes.STRING,
-                    Identifiers::maybeQuoteExpression
+                    QuoteIdentFunction::maybeQuoteExpression
                 )
         );
+    }
+
+    /**
+     * Similar to {@link Identifiers#quoteIfNeeded}.
+     * The main difference is that for subscript expressions, this method will quote the base(root) columns only
+     * when it's needed.
+     */
+    @VisibleForTesting
+    static String maybeQuoteExpression(String expression) {
+        int length = expression.length();
+        if (length == 0) {
+            return "\"\"";
+        }
+        if (isKeyWord(expression)) {
+            return '"' + expression + '"';
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean addQuotes = false;
+        int subscriptStartPos = -1;
+        for (int i = 0; i < length; i++) {
+            char c = expression.charAt(i);
+            if (c == '"') {
+                sb.append('"');
+            }
+            sb.append(c);
+            if (subscriptStartPos == -1) {
+                if (c == '[' && i + 1 < length && expression.charAt(i + 1) == '\'') {
+                    subscriptStartPos = i;
+                } else {
+                    addQuotes = addQuotes || charIsOutsideSafeRange(i, c);
+                }
+            }
+        }
+        if (addQuotes) {
+            sb.insert(0, '"');
+            if (subscriptStartPos == -1) {
+                sb.append('"');
+            } else {
+                sb.insert(subscriptStartPos + 1, '"');
+            }
+        }
+        return sb.toString();
+    }
+
+    private static boolean charIsOutsideSafeRange(int i, char c) {
+        if (i == 0) {
+            return c != '_' && (c < 'a' || c > 'z');
+        }
+        return c != '_' && (c < 'a' || c > 'z') && (c < '0' || c > '9');
     }
 }

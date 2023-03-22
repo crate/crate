@@ -23,6 +23,7 @@ package io.crate.expression.scalar.string;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -31,6 +32,7 @@ import org.junit.Test;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.sql.Identifiers;
 import io.crate.types.DataTypes;
 
 public class QuoteIdentFunctionTest extends ScalarTestCase {
@@ -72,5 +74,41 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
         assertNormalize(
             "quote_ident(name)",
             isFunction("quote_ident", List.of(DataTypes.STRING)));
+    }
+
+    @Test
+    public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() {
+        for (String candidate : List.of(
+            ("\""),
+            ("fhjgadhjgfhs"),
+            ("fhjgadhjgfhsÖ"),
+            ("ABC"),
+            ("abc\""),
+            ("select"),
+            ("1column"),
+            ("column name"),
+            ("col1a"),
+            ("_col"),
+            ("col_1")
+        )) {
+            assertThat(QuoteIdentFunction.maybeQuoteExpression(candidate)).isEqualTo(Identifiers.quoteIfNeeded(candidate));
+        }
+    }
+
+    @Test
+    public void test_quote_expression_quotes_only_base_part_of_subscript_expression() {
+        assertThat(QuoteIdentFunction.maybeQuoteExpression("col['a']")).isEqualTo("col['a']");
+        assertThat(QuoteIdentFunction.maybeQuoteExpression("Col['a']")).isEqualTo("\"Col\"['a']");
+        assertThat(QuoteIdentFunction.maybeQuoteExpression("col with space['a']")).isEqualTo("\"col with space\"['a']");
+    }
+
+    @Test
+    public void test_quote_expression_quotes_keywords() {
+        assertThat(QuoteIdentFunction.maybeQuoteExpression("select")).isEqualTo("\"select\""); // keyword
+    }
+
+    @Test
+    public void test_quote_expression_quotes_empty_ident() {
+        assertThat(QuoteIdentFunction.maybeQuoteExpression("")).isEqualTo("\"\"");
     }
 }
