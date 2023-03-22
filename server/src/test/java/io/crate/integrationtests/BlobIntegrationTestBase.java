@@ -29,6 +29,7 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESS
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -81,6 +82,7 @@ public abstract class BlobIntegrationTestBase extends IntegTestCase {
                         Path tmpDir = blobShard.blobContainer().getTmpDirectory();
                         try (Stream<Path> files = Files.list(tmpDir)) {
                             assertThat(files.count()).isEqualTo(0L);
+                        } catch (NoSuchFileException ignored) {
                         }
                     }
                 } catch (IOException | IllegalAccessException e) {
