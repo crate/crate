@@ -100,7 +100,7 @@ public class IndexNameExpressionResolver {
      * indices options in the context don't allow such a case.
      */
     public static Index[] concreteIndices(Metadata metadata, IndicesOptions options, String... indexExpressions) {
-        Context context = new Context(metadata, options, false, false);
+        Context context = new Context(metadata, options);
         return concreteIndices(context, indexExpressions);
     }
 
@@ -154,40 +154,29 @@ public class IndexNameExpressionResolver {
                 }
             }
 
-            if (aliasOrIndex.isAlias() && context.isResolveToWriteIndex()) {
-                AliasOrIndex.Alias alias = (AliasOrIndex.Alias) aliasOrIndex;
-                IndexMetadata writeIndex = alias.getWriteIndex();
-                if (writeIndex == null) {
-                    throw new IllegalArgumentException("no write index is defined for alias [" + alias.getAliasName() + "]." +
-                        " The write index may be explicitly disabled using is_write_index=false or the alias points to multiple" +
-                        " indices without one being designated as a write index");
+            if (aliasOrIndex.getIndices().size() > 1 && !options.allowAliasesToMultipleIndices()) {
+                String[] indexNames = new String[aliasOrIndex.getIndices().size()];
+                int i = 0;
+                for (IndexMetadata indexMetadata : aliasOrIndex.getIndices()) {
+                    indexNames[i++] = indexMetadata.getIndex().getName();
                 }
-                concreteIndices.add(writeIndex.getIndex());
-            } else {
-                if (aliasOrIndex.getIndices().size() > 1 && !options.allowAliasesToMultipleIndices()) {
-                    String[] indexNames = new String[aliasOrIndex.getIndices().size()];
-                    int i = 0;
-                    for (IndexMetadata indexMetadata : aliasOrIndex.getIndices()) {
-                        indexNames[i++] = indexMetadata.getIndex().getName();
-                    }
-                    throw new IllegalArgumentException("Alias [" + expression + "] has more than one indices associated with it [" +
-                        Arrays.toString(indexNames) + "], can't execute a single index op");
-                }
+                throw new IllegalArgumentException("Alias [" + expression + "] has more than one indices associated with it [" +
+                    Arrays.toString(indexNames) + "], can't execute a single index op");
+            }
 
-                for (IndexMetadata index : aliasOrIndex.getIndices()) {
-                    if (index.getState() == IndexMetadata.State.CLOSE) {
-                        if (failClosed) {
-                            throw new IndexClosedException(index.getIndex());
-                        } else {
-                            if (options.forbidClosedIndices() == false) {
-                                concreteIndices.add(index.getIndex());
-                            }
-                        }
-                    } else if (index.getState() == IndexMetadata.State.OPEN) {
-                        concreteIndices.add(index.getIndex());
+            for (IndexMetadata index : aliasOrIndex.getIndices()) {
+                if (index.getState() == IndexMetadata.State.CLOSE) {
+                    if (failClosed) {
+                        throw new IndexClosedException(index.getIndex());
                     } else {
-                        throw new IllegalStateException("index state [" + index.getState() + "] not supported");
+                        if (options.forbidClosedIndices() == false) {
+                            concreteIndices.add(index.getIndex());
+                        }
                     }
+                } else if (index.getState() == IndexMetadata.State.OPEN) {
+                    concreteIndices.add(index.getIndex());
+                } else {
+                    throw new IllegalStateException("index state [" + index.getState() + "] not supported");
                 }
             }
         }
@@ -333,18 +322,10 @@ public class IndexNameExpressionResolver {
 
         private final Metadata metadata;
         private final IndicesOptions options;
-        private final boolean preserveAliases;
-        private final boolean resolveToWriteIndex;
 
         Context(Metadata metadata, IndicesOptions options) {
-            this(metadata, options, false, false);
-        }
-
-        Context(Metadata metadata, IndicesOptions options, boolean preserveAliases, boolean resolveToWriteIndex) {
             this.metadata = metadata;
             this.options = options;
-            this.preserveAliases = preserveAliases;
-            this.resolveToWriteIndex = resolveToWriteIndex;
         }
 
         public Metadata metadata() {
@@ -353,23 +334,6 @@ public class IndexNameExpressionResolver {
 
         public IndicesOptions getOptions() {
             return options;
-        }
-
-        /**
-         * This is used to prevent resolving aliases to concrete indices but this also means
-         * that we might return aliases that point to a closed index. This is currently only used
-         * by {@link #filteringAliases(ClusterState, String, String...)} since it's the only one that needs aliases
-         */
-        boolean isPreserveAliases() {
-            return preserveAliases;
-        }
-
-        /**
-         * This is used to require that aliases resolve to their write-index. It is currently not used in conjunction
-         * with <code>preserveAliases</code>.
-         */
-        boolean isResolveToWriteIndex() {
-            return resolveToWriteIndex;
         }
     }
 
@@ -549,13 +513,9 @@ public class IndexNameExpressionResolver {
             Set<String> expand = new HashSet<>();
             for (Map.Entry<String, AliasOrIndex> entry : matches.entrySet()) {
                 AliasOrIndex aliasOrIndex = entry.getValue();
-                if (context.isPreserveAliases() && aliasOrIndex.isAlias()) {
-                    expand.add(entry.getKey());
-                } else {
-                    for (IndexMetadata meta : aliasOrIndex.getIndices()) {
-                        if (excludeState == null || meta.getState() != excludeState) {
-                            expand.add(meta.getIndex().getName());
-                        }
+                for (IndexMetadata meta : aliasOrIndex.getIndices()) {
+                    if (excludeState == null || meta.getState() != excludeState) {
+                        expand.add(meta.getIndex().getName());
                     }
                 }
             }
