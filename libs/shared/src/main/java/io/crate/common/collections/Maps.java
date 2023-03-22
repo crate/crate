@@ -90,6 +90,7 @@ public final class Maps {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     public static <T> T removeByPath(Map<String, T> map, List<String> path) {
         assert path instanceof RandomAccess : "`path` must support random access for performance";
         Map<String, T> m = map;
