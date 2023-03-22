@@ -476,8 +476,7 @@ public class MetadataCreateIndexService {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
                 for (Alias alias : request.aliases()) {
-                    AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
-                        .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).writeIndex(alias.writeIndex()).build();
+                    AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).build();
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 

@@ -19,14 +19,13 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.indices.InvalidAliasNameException;
-
 import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.indices.InvalidAliasNameException;
 
 
 /**
@@ -44,7 +43,7 @@ public class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public void validateAlias(Alias alias, String index, Metadata metadata) {
-        validateAlias(alias.name(), index, alias.indexRouting(), metadata::index);
+        validateAlias(alias.name(), index, null, metadata::index);
     }
 
     /**
@@ -64,14 +63,7 @@ public class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public void validateAliasStandalone(Alias alias) {
-        validateAliasStandalone(alias.name(), alias.indexRouting());
-        if (Strings.hasLength(alias.filter())) {
-            try {
-                XContentHelper.convertToMap(XContentFactory.xContent(alias.filter()), alias.filter(), false);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("failed to parse filter for alias [" + alias.name() + "]", e);
-            }
-        }
+        validateAliasStandalone(alias.name(), null);
     }
 
     /**

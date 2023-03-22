@@ -178,8 +178,7 @@ public class MetadataIndexTemplateService {
                     validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry, currentState);
 
                     for (Alias alias : request.aliases) {
-                        AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
-                            .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).build();
+                        AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).build();
                         templateBuilder.putAlias(aliasMetadata);
                     }
                     IndexTemplateMetadata template = templateBuilder.build();
