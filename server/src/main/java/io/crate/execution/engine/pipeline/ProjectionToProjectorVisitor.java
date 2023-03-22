@@ -472,7 +472,6 @@ public class ProjectionToProjectorVisitor
             sourceInput,
             ctx.expressions(),
             projection.bulkActions(),
-            projection.includes(),
             projection.excludes(),
             projection.autoCreateIndices(),
             projection.overwriteDuplicates(),
