@@ -97,7 +97,7 @@ public class RenameTableClusterStateExecutor {
                     String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
                     targetMd = IndexMetadata.builder(sourceIndexMetadata)
                         .removeAllAliases()
-                        .putAlias(AliasMetadata.builder(target.indexNameOrAlias()).build())
+                        .putAlias(new AliasMetadata(target.indexNameOrAlias()))
                         .index(targetIndexName)
                         .build();
                 } else {

@@ -116,7 +116,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .settings(settings(Version.CURRENT).put(settings))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
-                .putAlias(AliasMetadata.builder(alias).build())
+                .putAlias(new AliasMetadata(alias))
                 .build();
             clusterState = ClusterState.builder(clusterState)
                 .metadata(Metadata.builder(clusterState.metadata())
@@ -148,7 +148,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .builder(templateName)
                 .patterns(Collections.singletonList(PartitionName.templatePrefix(relation.schema(), relation.name())))
                 .order(100)
-                .putAlias(AliasMetadata.builder(relation.indexNameOrAlias()))
+                .putAlias(new AliasMetadata(relation.indexNameOrAlias()))
                 .putMapping("{\"default\": {}}")
                 .build();
 

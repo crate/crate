@@ -203,7 +203,7 @@ public class SwapRelationsOperation {
                 String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
                 targetMd = IndexMetadata.builder(sourceMd)
                     .removeAllAliases()
-                    .putAlias(AliasMetadata.builder(target.indexNameOrAlias()).build())
+                    .putAlias(new AliasMetadata(target.indexNameOrAlias()))
                     .index(targetIndexName)
                     .build();
                 onProcessedIndex.accept(targetIndexName);

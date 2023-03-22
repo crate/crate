@@ -40,7 +40,7 @@ public final class Templates {
             .settings(source.settings())
             .order(source.order())
             .putMapping(source.mapping())
-            .putAlias(AliasMetadata.builder(targetAlias).build())
+            .putAlias(new AliasMetadata(targetAlias))
             .version(source.version());
 
         return templateBuilder;

@@ -470,7 +470,7 @@ public class SQLExecutor {
 
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
-            AliasMetadata.Builder alias = AliasMetadata.builder(analyzedStmt.tableIdent().indexNameOrAlias());
+            AliasMetadata alias = new AliasMetadata(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
                 .order(100)
