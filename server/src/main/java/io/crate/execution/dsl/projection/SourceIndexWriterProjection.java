@@ -57,8 +57,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final InputColumn rawSourceSymbol;
     private final List<? extends Symbol> outputs;
 
-    @Nullable
-    private final String[] includes;
 
     @Nullable
     private final String[] excludes;
@@ -71,7 +69,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
                                        Settings settings,
-                                       @Nullable String[] includes,
                                        @Nullable String[] excludes,
                                        List<Symbol> idSymbols,
                                        @Nullable Symbol clusteredBySymbol,
@@ -79,7 +76,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
-        this.includes = includes;
         this.excludes = excludes;
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
@@ -101,14 +97,14 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
 
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            includes = new String[length];
-            for (int i = 0; i < length; i++) {
-                includes[i] = in.readString();
+        if (in.getVersion().before(Version.V_5_3_0)) {
+            if (in.readBoolean()) {
+                // includes
+                int length = in.readVInt();
+                for (int i = 0; i < length; i++) {
+                    in.readString();
+                }
             }
-        } else {
-            includes = null;
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -128,6 +124,36 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeBoolean(failFast);
+        }
+        out.writeBoolean(overwriteDuplicates);
+        Reference.toStream(rawSourceReference, out);
+        Symbols.toStream(rawSourceSymbol, out);
+
+        if (out.getVersion().before(Version.V_5_3_0)) {
+            // no includes
+            out.writeBoolean(false);
+        }
+        if (excludes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(excludes.length);
+            for (String exclude : excludes) {
+                out.writeString(exclude);
+            }
+        }
+        Symbols.toStream(outputs, out);
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeBoolean(validation);
+        }
+    }
+
+    @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitSourceIndexWriterProjection(this, context);
     }
@@ -138,11 +164,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public Reference rawSourceReference() {
         return rawSourceReference;
-    }
-
-    @Nullable
-    public String[] includes() {
-        return includes;
     }
 
     @Nullable
@@ -169,7 +190,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         return Objects.equals(overwriteDuplicates, that.overwriteDuplicates) &&
                Objects.equals(rawSourceReference, that.rawSourceReference) &&
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
-               Arrays.equals(includes, that.includes) &&
                Arrays.equals(excludes, that.excludes) &&
                failFast == that.failFast &&
                validation == that.validation;
@@ -183,44 +203,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                   rawSourceSymbol,
                                   failFast,
                                   validation);
-        result = 31 * result + Arrays.hashCode(includes);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-
-        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeBoolean(failFast);
-        }
-        out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(rawSourceReference, out);
-        Symbols.toStream(rawSourceSymbol, out);
-
-        if (includes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(includes.length);
-            for (String include : includes) {
-                out.writeString(include);
-            }
-        }
-        if (excludes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(excludes.length);
-            for (String exclude : excludes) {
-                out.writeString(exclude);
-            }
-        }
-        Symbols.toStream(outputs, out);
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeBoolean(validation);
-        }
     }
 
     public boolean overwriteDuplicates() {

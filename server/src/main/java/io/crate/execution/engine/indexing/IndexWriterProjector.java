@@ -89,7 +89,6 @@ public class IndexWriterProjector implements Projector {
                                 Input<?> sourceInput,
                                 List<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int bulkActions,
-                                @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
@@ -98,12 +97,12 @@ public class IndexWriterProjector implements Projector {
                                 boolean failFast,
                                 boolean validation) {
         Input<String> source;
-        if (includes == null && excludes == null) {
+        if (excludes == null) {
             //noinspection unchecked
             source = (Input<String>) sourceInput;
         } else {
             //noinspection unchecked
-            source = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+            source = new MapInput((Input<Map<String, Object>>) sourceInput, excludes);
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
@@ -168,14 +167,12 @@ public class IndexWriterProjector implements Projector {
     private static class MapInput implements Input<String> {
 
         private final Input<Map<String, Object>> sourceInput;
-        private final String[] includes;
         private final String[] excludes;
         private static final Logger LOGGER = LogManager.getLogger(MapInput.class);
         private int lastSourceSize;
 
-        private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {
+        private MapInput(Input<Map<String, Object>> sourceInput, String[] excludes) {
             this.sourceInput = sourceInput;
-            this.includes = includes;
             this.excludes = excludes;
             this.lastSourceSize = PageCacheRecycler.BYTE_PAGE_SIZE;
         }
@@ -187,7 +184,7 @@ public class IndexWriterProjector implements Projector {
                 return null;
             }
             assert value instanceof LinkedHashMap<String, Object> : "the raw source order should be preserved";
-            Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
+            Map<String, Object> filteredMap = XContentMapValues.filter(value, new String[0], excludes);
             try (var stream = new BytesStreamOutput(lastSourceSize)) {
                 XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), stream);
                 BytesReference bytes = BytesReference.bytes(xContentBuilder.map(filteredMap));

@@ -54,7 +54,6 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     List<Symbol> partitionedBySymbols,
                                                     @Nullable ColumnIdent clusteredByColumn,
                                                     Settings settings,
-                                                    @Nullable String[] includes,
                                                     @Nullable String[] excludes,
                                                     List<Symbol> idSymbols,
                                                     @Nullable Symbol clusteredBySymbol,
@@ -65,7 +64,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     InputColumn sourceParsingFailure,
                                                     InputColumn lineNumber) {
         super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
-            clusteredByColumn, settings, includes, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
+            clusteredByColumn, settings, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;
         this.sourceParsingFailure = sourceParsingFailure;

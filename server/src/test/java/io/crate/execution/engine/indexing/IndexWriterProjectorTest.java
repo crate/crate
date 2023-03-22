@@ -111,7 +111,6 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             collectExpressions,
             20,
             null,
-            null,
             false,
             false,
             UUID.randomUUID(),
@@ -120,7 +119,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             true
         );
 
-        BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
+        BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
             .mapToObj(i -> new RowN(new Object[]{i, "{\"id\": " + i + ", \"name\": \"Arthur\"}"}))
             .collect(Collectors.toList()), SENTINEL, true);
 
