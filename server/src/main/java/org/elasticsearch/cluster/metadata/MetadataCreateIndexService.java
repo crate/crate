@@ -352,7 +352,7 @@ public class MetadataCreateIndexService {
                             //Allow templatesAliases to be templated by replacing a token with the name of the index that we are applying it to
                             if (aliasMetadata.alias().contains("{index}")) {
                                 String templatedAlias = aliasMetadata.alias().replace("{index}", request.index());
-                                aliasMetadata = AliasMetadata.newAliasMetadata(aliasMetadata, templatedAlias);
+                                aliasMetadata = new AliasMetadata(templatedAlias);
                             }
 
                             aliasValidator.validateAliasMetadata(aliasMetadata, request.index(), currentState.metadata());
@@ -476,7 +476,7 @@ public class MetadataCreateIndexService {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
                 for (Alias alias : request.aliases()) {
-                    AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).build();
+                    AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 

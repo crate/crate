@@ -239,7 +239,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
 
         String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(templateName);
-        templateBuilder.putAlias(AliasMetadata.builder(indexName).build());
+        templateBuilder.putAlias(new AliasMetadata(indexName));
         templateBuilder.putMapping(mappingMetadata.source());
         Settings indexSettings = indexMetadata.getSettings();
         var templateCompatibleSettings =
@@ -261,7 +261,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         String[] indexParts = indexName.split("\\.");
 
         IndexMetadata.Builder partitionedIndexMetadata = new IndexMetadata.Builder(indexMetadata);
-        partitionedIndexMetadata.putAlias(AliasMetadata.builder(indexName));
+        partitionedIndexMetadata.putAlias(new AliasMetadata(indexName));
         String partitionedIndexName = new PartitionName(
             new RelationName(indexParts[0], indexParts[1]),
             partitionedByColumns.stream().map(c -> (String) null).toList())

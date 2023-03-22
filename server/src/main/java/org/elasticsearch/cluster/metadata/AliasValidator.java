@@ -21,8 +21,6 @@ package org.elasticsearch.cluster.metadata;
 
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.indices.InvalidAliasNameException;
@@ -43,7 +41,7 @@ public class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public void validateAlias(Alias alias, String index, Metadata metadata) {
-        validateAlias(alias.name(), index, null, metadata::index);
+        validateAlias(alias.name(), index, metadata::index);
     }
 
     /**
@@ -52,7 +50,7 @@ public class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public void validateAliasMetadata(AliasMetadata aliasMetadata, String index, Metadata metadata) {
-        validateAlias(aliasMetadata.alias(), index, aliasMetadata.indexRouting(), metadata::index);
+        validateAlias(aliasMetadata.alias(), index, metadata::index);
     }
 
     /**
@@ -63,14 +61,14 @@ public class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public void validateAliasStandalone(Alias alias) {
-        validateAliasStandalone(alias.name(), null);
+        validateAliasStandalone(alias.name());
     }
 
     /**
      * Validate a proposed alias.
      */
-    public void validateAlias(String alias, String index, @Nullable String indexRouting, Function<String, IndexMetadata> indexLookup) {
-        validateAliasStandalone(alias, indexRouting);
+    public void validateAlias(String alias, String index, Function<String, IndexMetadata> indexLookup) {
+        validateAliasStandalone(alias);
 
         if (!Strings.hasText(index)) {
             throw new IllegalArgumentException("index name is required");
@@ -82,13 +80,10 @@ public class AliasValidator {
         }
     }
 
-    void validateAliasStandalone(String alias, String indexRouting) {
+    void validateAliasStandalone(String alias) {
         if (!Strings.hasText(alias)) {
             throw new IllegalArgumentException("alias name is required");
         }
         MetadataCreateIndexService.validateIndexOrAliasName(alias, InvalidAliasNameException::new);
-        if (indexRouting != null && indexRouting.indexOf(',') != -1) {
-            throw new IllegalArgumentException("alias [" + alias + "] has several index routing values associated with it");
-        }
     }
 }

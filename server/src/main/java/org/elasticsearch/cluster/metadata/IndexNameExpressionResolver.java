@@ -250,37 +250,18 @@ public class IndexNameExpressionResolver {
                     String concreteIndex = item.v1();
                     AliasMetadata aliasMetadata = item.v2();
                     if (!norouting.contains(concreteIndex)) {
-                        if (!aliasMetadata.searchRoutingValues().isEmpty()) {
-                            // Routing alias
-                            if (routings == null) {
-                                routings = new HashMap<>();
-                            }
-                            Set<String> r = routings.get(concreteIndex);
-                            if (r == null) {
-                                r = new HashSet<>();
-                                routings.put(concreteIndex, r);
-                            }
-                            r.addAll(aliasMetadata.searchRoutingValues());
+                        // Non-routing alias
+                        if (!norouting.contains(concreteIndex)) {
+                            norouting.add(concreteIndex);
                             if (!routing.isEmpty()) {
-                                r.retainAll(routing);
-                            }
-                            if (r.isEmpty()) {
-                                routings.remove(concreteIndex);
-                            }
-                        } else {
-                            // Non-routing alias
-                            if (!norouting.contains(concreteIndex)) {
-                                norouting.add(concreteIndex);
-                                if (!routing.isEmpty()) {
-                                    Set<String> r = new HashSet<>(routing);
-                                    if (routings == null) {
-                                        routings = new HashMap<>();
-                                    }
-                                    routings.put(concreteIndex, r);
-                                } else {
-                                    if (routings != null) {
-                                        routings.remove(concreteIndex);
-                                    }
+                                Set<String> r = new HashSet<>(routing);
+                                if (routings == null) {
+                                    routings = new HashMap<>();
+                                }
+                                routings.put(concreteIndex, r);
+                            } else {
+                                if (routings != null) {
+                                    routings.remove(concreteIndex);
                                 }
                             }
                         }
