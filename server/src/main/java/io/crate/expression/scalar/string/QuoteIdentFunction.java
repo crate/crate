@@ -46,7 +46,7 @@ public final class QuoteIdentFunction {
                     signature,
                     boundSignature,
                     DataTypes.STRING,
-                    Identifiers::maybeQuoteExpression
+                    Identifiers::quoteIfNeeded
                 )
         );
     }
