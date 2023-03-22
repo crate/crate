@@ -19,20 +19,14 @@
 
 package org.elasticsearch.action.admin.indices.alias;
 
-import org.elasticsearch.ElasticsearchGenerationException;
-import javax.annotation.Nullable;
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-
-import java.io.IOException;
-import java.util.Map;
 
 /**
  * Represents an alias, to be associated with an index
@@ -40,28 +34,8 @@ import java.util.Map;
 public class Alias implements Writeable {
 
     private static final ParseField FILTER = new ParseField("filter");
-    private static final ParseField ROUTING = new ParseField("routing");
-    private static final ParseField INDEX_ROUTING = new ParseField("index_routing", "indexRouting", "index-routing");
-    private static final ParseField SEARCH_ROUTING = new ParseField("search_routing", "searchRouting", "search-routing");
-    private static final ParseField IS_WRITE_INDEX = new ParseField("is_write_index");
 
     private String name;
-
-    @Nullable
-    private String filter;
-
-    @Nullable
-    private String indexRouting;
-
-    @Nullable
-    private String searchRouting;
-
-    @Nullable
-    private Boolean writeIndex;
-
-    private Alias() {
-
-    }
 
     public Alias(String name) {
         this.name = name;
@@ -74,108 +48,25 @@ public class Alias implements Writeable {
         return name;
     }
 
-    /**
-     * Returns the filter associated with the alias
-     */
-    public String filter() {
-        return filter;
-    }
-
-    /**
-     * Associates a filter to the alias
-     */
-    public Alias filter(String filter) {
-        this.filter = filter;
-        return this;
-    }
-
-    /**
-     * Associates a filter to the alias
-     */
-    public Alias filter(Map<String, Object> filter) {
-        if (filter == null || filter.isEmpty()) {
-            this.filter = null;
-            return this;
-        }
-        try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-            builder.map(filter);
-            this.filter = Strings.toString(builder);
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + filter + "]", e);
-        }
-    }
-
-    /**
-     * Associates a routing value to the alias
-     */
-    public Alias routing(String routing) {
-        this.indexRouting = routing;
-        this.searchRouting = routing;
-        return this;
-    }
-
-    /**
-     * Returns the index routing value associated with the alias
-     */
-    public String indexRouting() {
-        return indexRouting;
-    }
-
-    /**
-     * Associates an index routing value to the alias
-     */
-    public Alias indexRouting(String indexRouting) {
-        this.indexRouting = indexRouting;
-        return this;
-    }
-
-    /**
-     * Returns the search routing value associated with the alias
-     */
-    public String searchRouting() {
-        return searchRouting;
-    }
-
-    /**
-     * Associates a search routing value to the alias
-     */
-    public Alias searchRouting(String searchRouting) {
-        this.searchRouting = searchRouting;
-        return this;
-    }
-
-    /**
-     * @return the write index flag for the alias
-     */
-    public Boolean writeIndex() {
-        return writeIndex;
-    }
-
-    /**
-     *  Sets whether an alias is pointing to a write-index
-     */
-    public Alias writeIndex(@Nullable Boolean writeIndex) {
-        this.writeIndex = writeIndex;
-        return this;
-    }
-
     public Alias(StreamInput in) throws IOException {
         name = in.readString();
-        filter = in.readOptionalString();
-        indexRouting = in.readOptionalString();
-        searchRouting = in.readOptionalString();
-        writeIndex = in.readOptionalBoolean();
+        if (in.getVersion().before(Version.V_5_3_0)) {
+            in.readOptionalString(); // filter
+            in.readOptionalString(); // indexRouting
+            in.readOptionalString(); // searchRouting
+            in.readOptionalBoolean(); // writeIndex
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
-        out.writeOptionalString(filter);
-        out.writeOptionalString(indexRouting);
-        out.writeOptionalString(searchRouting);
-        out.writeOptionalBoolean(writeIndex);
+        if (out.getVersion().before(Version.V_5_3_0)) {
+            out.writeOptionalString(null);
+            out.writeOptionalString(null);
+            out.writeOptionalString(null);
+            out.writeOptionalBoolean(null);
+        }
     }
 
     /**
@@ -194,20 +85,7 @@ public class Alias implements Writeable {
                 currentFieldName = parser.currentName();
             } else if (token == XContentParser.Token.START_OBJECT) {
                 if (FILTER.match(currentFieldName, parser.getDeprecationHandler())) {
-                    Map<String, Object> filter = parser.mapOrdered();
-                    alias.filter(filter);
-                }
-            } else if (token == XContentParser.Token.VALUE_STRING) {
-                if (ROUTING.match(currentFieldName, parser.getDeprecationHandler())) {
-                    alias.routing(parser.text());
-                } else if (INDEX_ROUTING.match(currentFieldName, parser.getDeprecationHandler())) {
-                    alias.indexRouting(parser.text());
-                } else if (SEARCH_ROUTING.match(currentFieldName, parser.getDeprecationHandler())) {
-                    alias.searchRouting(parser.text());
-                }
-            } else if (token == XContentParser.Token.VALUE_BOOLEAN) {
-                if (IS_WRITE_INDEX.match(currentFieldName, parser.getDeprecationHandler())) {
-                    alias.writeIndex(parser.booleanValue());
+                    parser.mapOrdered();
                 }
             }
         }
@@ -216,13 +94,7 @@ public class Alias implements Writeable {
 
     @Override
     public String toString() {
-        return "Alias{" +
-               "name='" + name + '\'' +
-               ", filter='" + filter + '\'' +
-               ", indexRouting='" + indexRouting + '\'' +
-               ", searchRouting='" + searchRouting + '\'' +
-               ", writeIndex=" + writeIndex +
-               '}';
+        return "Alias{" + "name='" + name + "'}";
     }
 
     @Override
