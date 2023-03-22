@@ -336,6 +336,9 @@ public abstract class IntegTestCase extends ESTestCase {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        // JDBC uses a thread to detect leaks,
+        // this thread would trigger thread-leak detection if it would run too long
+        System.setProperty("pgjdbc.config.cleanup.thread.ttl", "2");
         SUITE_SEED = randomLong();
         initializeSuiteScope();
     }
