@@ -121,7 +121,6 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             collectExpressions,
             20,
             null,
-            null,
             false,
             false,
             UUID.randomUUID(),
