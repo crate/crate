@@ -22,6 +22,7 @@
 package io.crate.execution.engine.indexing;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +46,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Maps;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -184,10 +185,15 @@ public class IndexWriterProjector implements Projector {
                 return null;
             }
             assert value instanceof LinkedHashMap<String, Object> : "the raw source order should be preserved";
-            Map<String, Object> filteredMap = XContentMapValues.filter(value, new String[0], excludes);
+            if (excludes != null) {
+                for (String exclude : excludes) {
+                    String[] path = exclude.split("\\.");
+                    Maps.removeByPath(value, Arrays.asList(path));
+                }
+            }
             try (var stream = new BytesStreamOutput(lastSourceSize)) {
                 XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), stream);
-                BytesReference bytes = BytesReference.bytes(xContentBuilder.map(filteredMap));
+                BytesReference bytes = BytesReference.bytes(xContentBuilder.map(value));
                 lastSourceSize = bytes.length();
                 return bytes.utf8ToString();
             } catch (IOException ex) {
