@@ -105,6 +105,16 @@ public class GenericPropertiesConverter {
             if (settingHolder == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
             }
+            Object value = entry.getValue();
+            if (value == null) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "Cannot set NULL to property %s.",
+                        entry.getKey()
+                    )
+                );
+            }
             settingHolder.apply(builder, entry.getValue());
         }
     }
