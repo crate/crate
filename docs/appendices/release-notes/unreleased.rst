@@ -100,6 +100,8 @@ Fixes
     CREATE TABLE t ("OBJ" OBJECT AS (intarray int[]), firstElement AS "OBJ"['intarray'][1]);
     ColumnUnknownException[Column obj['intarray'] unknown]
 
+- Fixed a ``NullPointerException`` which occurs when using NULL as a setting value.
+
 - Fixed a resource leak that could happen when inserting data which causes
   constraints violation or parsing errors.
 
