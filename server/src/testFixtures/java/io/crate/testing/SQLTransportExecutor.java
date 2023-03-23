@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -83,6 +84,8 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
+import io.crate.common.annotations.VisibleForTesting;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -92,6 +95,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.planner.optimizer.LoadedRules;
+import io.crate.planner.optimizer.Rule;
 import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -111,7 +117,7 @@ public class SQLTransportExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
-    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false);
+    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false, List.of());
 
     private final ClientProvider clientProvider;
 
@@ -153,6 +159,34 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
+    @VisibleForTesting
+    static List<String> buildRandomizedRuleSessionSettings(Random random,
+                                                           double factor,
+                                                           List<SessionSetting<?>> allSettings,
+                                                           List<Class<? extends Rule<?>>> rulesToKeep) {
+        var ruleToKeepNames = rulesToKeep.stream()
+            .map(LoadedRules::buildRuleSessionSetting)
+            .map(SessionSetting::name)
+            .collect(Collectors.toSet());
+
+        var ruleCandidates = new ArrayList<SessionSetting<?>>();
+        for (var setting : allSettings) {
+            if (ruleToKeepNames.contains(setting.name()) == false) {
+                ruleCandidates.add(setting);
+            }
+        }
+
+        Collections.shuffle(ruleCandidates, random);
+        int numberOfRulesToPick = (int) Math.ceil(ruleCandidates.size() * factor);
+
+        var result = new ArrayList<String>(numberOfRulesToPick);
+        for (int i = 0; i < numberOfRulesToPick; i++) {
+            result.add(String.format(Locale.ENGLISH, "set %s=false", ruleCandidates.get(i).name()));
+        }
+
+        return result;
+    }
+
     private SQLResponse executeTransportOrJdbc(TestExecutionConfig config,
                                                String stmt,
                                                @Nullable Object[] args,
@@ -173,6 +207,10 @@ public class SQLTransportExecutor {
         if (!config.isHashJoinEnabled()) {
             sessionList.add("set enable_hashjoin=false");
             LOGGER.trace("Executing with enable_hashjoin=false: {}", stmt);
+        }
+
+        if (config.isRuleRandomizationEnabled()) {
+            sessionList.addAll(buildRandomizedRuleSessionSettings(random, random.nextDouble(0.1, 1), LoadedRules.RULE_SETTINGS, config.rulesToKeep()));
         }
 
         if (pgUrl != null && config.isJdbcEnabled()) {

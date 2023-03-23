@@ -40,9 +40,14 @@ import io.crate.types.DataTypes;
 public class LoadedRules implements SessionSettingProvider {
 
     private static final String OPTIMIZER_SETTING_PREFIX = "optimizer_";
+    public static final List<SessionSetting<?>> RULE_SETTINGS = buildRuleSessingSettings();
 
     @Override
     public List<SessionSetting<?>> sessionSettings() {
+        return RULE_SETTINGS;
+    }
+
+    private static List<SessionSetting<?>> buildRuleSessingSettings() {
         var rules = new ArrayList<Rule<?>>();
         rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.WRITE_OPTIMIZER_RULES);
@@ -52,7 +57,7 @@ public class LoadedRules implements SessionSettingProvider {
     }
 
     @VisibleForTesting
-    SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
+    public static SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
         var simpleName = rule.getSimpleName();
         var optimizerRuleName = OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(simpleName);
         return new SessionSetting<>(
