@@ -298,7 +298,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             getIdentText(ctx.ident()),
             hold,
             !declareCursorParams.BINARY().isEmpty(),
-            declareCursorParams.NO().isEmpty(),
+            declareCursorParams.NO().isEmpty() && !declareCursorParams.SCROLL().isEmpty(),
             query
         );
     }
