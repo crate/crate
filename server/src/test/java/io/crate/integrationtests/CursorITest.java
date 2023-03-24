@@ -84,7 +84,7 @@ public class CursorITest extends IntegTestCase {
             Statement statement = conn.createStatement();
             conn.setAutoCommit(false);
 
-            String declare = "declare c1 cursor for select * from generate_series(1, 10)";
+            String declare = "declare c1 scroll cursor for select * from generate_series(1, 10)";
             statement.execute(declare);
             ResultSet result = statement.executeQuery("FETCH ALL FROM c1");
             int nextExpectedResult = 1;
