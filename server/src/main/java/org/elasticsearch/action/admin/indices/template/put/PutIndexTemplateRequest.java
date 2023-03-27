@@ -261,27 +261,20 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.map(source);
-            return aliases(BytesReference.bytes(builder));
+            // EMPTY is safe here because we never call namedObject
+            try (XContentParser parser = XContentHelper
+                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, BytesReference.bytes(builder), XContentType.JSON)) {
+                //move to the first alias
+                parser.nextToken();
+                while ((parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                    alias(Alias.fromXContent(parser));
+                }
+                return this;
+            } catch (IOException e) {
+                throw new ElasticsearchParseException("Failed to parse aliases", e);
+            }
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public PutIndexTemplateRequest aliases(BytesReference source) {
-        // EMPTY is safe here because we never call namedObject
-        try (XContentParser parser = XContentHelper
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, source)) {
-            //move to the first alias
-            parser.nextToken();
-            while ((parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                alias(Alias.fromXContent(parser));
-            }
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchParseException("Failed to parse aliases", e);
         }
     }
 

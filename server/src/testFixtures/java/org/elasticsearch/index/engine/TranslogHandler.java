@@ -19,9 +19,14 @@
 
 package org.elasticsearch.index.engine;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+
+import java.io.IOException;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
@@ -37,11 +42,6 @@ import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
-
-import java.io.IOException;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 
 public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
@@ -101,7 +101,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                         indexName,
                         index.id(),
                         index.getSource(),
-                        XContentHelper.xContentType(index.getSource())
+                        XContentType.JSON
                     ),
                     index.seqNo(),
                     index.primaryTerm(),
