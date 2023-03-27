@@ -30,9 +30,9 @@ import org.elasticsearch.indices.InvalidAliasNameException;
  * Validator for an alias, to be used before adding an alias to the index metadata
  * and make sure the alias is valid
  */
-public class AliasValidator {
+public final class AliasValidator {
 
-    public AliasValidator() {
+    private AliasValidator() {
     }
 
     /**
@@ -40,7 +40,7 @@ public class AliasValidator {
      * it's valid before it gets added to the index metadata. Doesn't validate the alias filter.
      * @throws IllegalArgumentException if the alias is not valid
      */
-    public void validateAlias(Alias alias, String index, Metadata metadata) {
+    public static void validateAlias(Alias alias, String index, Metadata metadata) {
         validateAlias(alias.name(), index, metadata::index);
     }
 
@@ -49,7 +49,7 @@ public class AliasValidator {
      * it's valid before it gets added to the index metadata. Doesn't validate the alias filter.
      * @throws IllegalArgumentException if the alias is not valid
      */
-    public void validateAliasMetadata(AliasMetadata aliasMetadata, String index, Metadata metadata) {
+    public static void validateAliasMetadata(AliasMetadata aliasMetadata, String index, Metadata metadata) {
         validateAlias(aliasMetadata.alias(), index, metadata::index);
     }
 
@@ -60,14 +60,14 @@ public class AliasValidator {
      * without validating it as a filter though.
      * @throws IllegalArgumentException if the alias is not valid
      */
-    public void validateAliasStandalone(Alias alias) {
+    public static void validateAliasStandalone(Alias alias) {
         validateAliasStandalone(alias.name());
     }
 
     /**
      * Validate a proposed alias.
      */
-    public void validateAlias(String alias, String index, Function<String, IndexMetadata> indexLookup) {
+    public static void validateAlias(String alias, String index, Function<String, IndexMetadata> indexLookup) {
         validateAliasStandalone(alias);
 
         if (!Strings.hasText(index)) {
@@ -80,7 +80,7 @@ public class AliasValidator {
         }
     }
 
-    void validateAliasStandalone(String alias) {
+    static void validateAliasStandalone(String alias) {
         if (!Strings.hasText(alias)) {
             throw new IllegalArgumentException("alias name is required");
         }
