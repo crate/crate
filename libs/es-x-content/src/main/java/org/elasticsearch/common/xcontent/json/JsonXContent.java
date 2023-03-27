@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.util.Set;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -75,8 +74,8 @@ public class JsonXContent implements XContent {
     }
 
     @Override
-    public XContentGenerator createGenerator(OutputStream os, Set<String> includes, Set<String> excludes) throws IOException {
-        return new JsonXContentGenerator(JSON_FACTORY.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
+    public XContentGenerator createGenerator(OutputStream os) throws IOException {
+        return new JsonXContentGenerator(JSON_FACTORY.createGenerator(os, JsonEncoding.UTF8), os);
     }
 
     @Override
