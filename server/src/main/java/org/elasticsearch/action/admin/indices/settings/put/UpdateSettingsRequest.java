@@ -39,9 +39,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Request for an update index settings action
@@ -144,7 +144,7 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
     @SuppressWarnings("unchecked")
     public UpdateSettingsRequest settings(Map source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             settings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {

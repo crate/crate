@@ -86,7 +86,7 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -468,7 +468,7 @@ public class SQLExecutor {
                 .put(customSettings)
                 .build();
 
-            XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
+            XContentBuilder mappingBuilder = JsonXContent.builder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             AliasMetadata alias = new AliasMetadata(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())

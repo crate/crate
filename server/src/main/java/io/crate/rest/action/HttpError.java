@@ -21,6 +21,17 @@
 
 package io.crate.rest.action;
 
+import static io.crate.exceptions.Exceptions.userFriendlyMessage;
+
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.MapperParsingException;
+
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.AnalyzerInvalidException;
@@ -61,15 +72,6 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.exceptions.VersioningValidationException;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.mapper.MapperParsingException;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-
-import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
 public class HttpError {
 
@@ -105,7 +107,7 @@ public class HttpError {
 
     public XContentBuilder toXContent(boolean includeErrorTrace) throws IOException {
         // @formatter:off
-        XContentBuilder builder = JsonXContent.contentBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("error")
             .field("message", userFriendlyMessage(t))

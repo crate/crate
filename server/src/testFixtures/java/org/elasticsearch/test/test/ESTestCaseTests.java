@@ -45,6 +45,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.RandomObjects;
 
@@ -81,9 +82,8 @@ public class ESTestCaseTests extends ESTestCase {
     }
 
     public void testShuffleMap() throws IOException {
-        XContentType xContentType = randomFrom(XContentType.values());
-        BytesReference source = RandomObjects.randomSource(random(), xContentType, 5);
-        try (XContentParser parser = createParser(xContentType.xContent(), source)) {
+        BytesReference source = RandomObjects.randomSource(random(), 5);
+        try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, source)) {
             LinkedHashMap<String, Object> initialMap = (LinkedHashMap<String, Object>)parser.mapOrdered();
 
             Set<List<String>> distinctKeys = new HashSet<>();

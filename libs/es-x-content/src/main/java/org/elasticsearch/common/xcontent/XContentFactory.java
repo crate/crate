@@ -34,13 +34,6 @@ import org.elasticsearch.common.xcontent.yaml.YamlXContent;
 public class XContentFactory {
 
     /**
-     * Returns a content builder using JSON format ({@link org.elasticsearch.common.xcontent.XContentType#JSON}.
-     */
-    public static XContentBuilder jsonBuilder() throws IOException {
-        return contentBuilder(XContentType.JSON);
-    }
-
-    /**
      * Constructs a new json builder that will output the result into the provided output stream.
      */
     public static XContentBuilder json(OutputStream os) throws IOException {
@@ -70,29 +63,5 @@ public class XContentFactory {
             case SMILE -> new XContentBuilder(SmileXContent.SMILE_XCONTENT, outputStream);
             case YAML -> new XContentBuilder(YamlXContent.YAML_XCONTENT, outputStream);
         };
-    }
-
-    /**
-     * Returns a binary content builder for the provided content type.
-     */
-    public static XContentBuilder contentBuilder(XContentType type) throws IOException {
-        if (type == XContentType.JSON) {
-            return JsonXContent.contentBuilder();
-        } else if (type == XContentType.SMILE) {
-            return SmileXContent.contentBuilder();
-        } else if (type == XContentType.YAML) {
-            return YamlXContent.contentBuilder();
-        }
-        throw new IllegalArgumentException("No matching content type for " + type);
-    }
-
-    /**
-     * Returns the {@link org.elasticsearch.common.xcontent.XContent} for the provided content type.
-     */
-    public static XContent xContent(XContentType type) {
-        if (type == null) {
-            throw new IllegalArgumentException("Cannot get xcontent for unknown type");
-        }
-        return type.xContent();
     }
 }

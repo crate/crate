@@ -30,9 +30,9 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.Constants;
@@ -43,7 +43,7 @@ public class DDLClusterStateHelpersTest {
     @Test
     public void testMergeTemplateMapping() throws Exception {
 
-        XContentBuilder oldMappingBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder oldMappingBuilder = JsonXContent.builder()
             .startObject()
             .startObject("properties")
             .startObject("foo")
@@ -62,7 +62,7 @@ public class DDLClusterStateHelpersTest {
         Map<String, Object> oldMapping =
             XContentHelper.convertToMap(BytesReference.bytes(oldMappingBuilder), true, XContentType.JSON).map();
 
-        XContentBuilder newMappingBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder newMappingBuilder = JsonXContent.builder()
             .startObject()
             .startObject("properties")
             .startObject("foo")
@@ -88,13 +88,13 @@ public class DDLClusterStateHelpersTest {
         Map<String, Object> mapping = DDLClusterStateHelpers.mergeTemplateMapping(
             IndexTemplateMetadata.builder("foo")
                 .patterns(List.of("*"))
-                .putMapping(Strings.toString(XContentFactory.jsonBuilder().map(
+                .putMapping(Strings.toString(JsonXContent.builder().map(
                             MapBuilder.<String, Object>newMapBuilder()
                                 .put(Constants.DEFAULT_MAPPING_TYPE, oldMapping)
                                 .map())))
                 .build(),
             newMapping);
-        assertThat(Strings.toString(XContentFactory.jsonBuilder().map(mapping))).isEqualTo(
+        assertThat(Strings.toString(JsonXContent.builder().map(mapping))).isEqualTo(
             "{\"_meta\":{\"meta2\":{\"field\":\"val2\",\"position\":3},\"meta1\":{\"field\":\"val1\",\"position\":2}},\"properties\":{\"foo\":{\"merge-this-field\":\"bar\",\"position\":1}}}");
     }
 
