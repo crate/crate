@@ -68,7 +68,6 @@ public class MetadataIndexTemplateService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataIndexTemplateService.class);
 
     private final ClusterService clusterService;
-    private final AliasValidator aliasValidator;
     private final IndicesService indicesService;
     private final MetadataCreateIndexService metadataCreateIndexService;
     private final IndexScopedSettings indexScopedSettings;
@@ -77,10 +76,10 @@ public class MetadataIndexTemplateService {
     @Inject
     public MetadataIndexTemplateService(ClusterService clusterService,
                                         MetadataCreateIndexService metadataCreateIndexService,
-                                        AliasValidator aliasValidator, IndicesService indicesService,
-                                        IndexScopedSettings indexScopedSettings, NamedXContentRegistry xContentRegistry) {
+                                        IndicesService indicesService,
+                                        IndexScopedSettings indexScopedSettings,
+                                        NamedXContentRegistry xContentRegistry) {
         this.clusterService = clusterService;
-        this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
         this.metadataCreateIndexService = metadataCreateIndexService;
         this.indexScopedSettings = indexScopedSettings;
@@ -309,7 +308,7 @@ public class MetadataIndexTemplateService {
 
         for (Alias alias : request.aliases) {
             //we validate the alias only partially, as we don't know yet to which index it'll get applied to
-            aliasValidator.validateAliasStandalone(alias);
+            AliasValidator.validateAliasStandalone(alias);
             if (request.indexPatterns.contains(alias.name())) {
                 throw new IllegalArgumentException("Alias [" + alias.name() +
                     "] cannot be the same as any pattern in [" + String.join(", ", request.indexPatterns) + "]");
