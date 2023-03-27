@@ -21,25 +21,18 @@ package org.elasticsearch.action.admin.indices.mapping.put;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 
@@ -126,45 +119,13 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
         return source;
     }
 
-    /**
-     * The mapping source definition.
-     */
-    public PutMappingRequest source(XContentBuilder mappingBuilder) {
-        return source(Strings.toString(mappingBuilder), mappingBuilder.contentType());
-    }
 
     /**
-     * The mapping source definition.
+     * The mapping source definition in JSON.
      */
-    @SuppressWarnings("unchecked")
-    public PutMappingRequest source(Map mappingSource) {
-        try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-            builder.map(mappingSource);
-            return source(Strings.toString(builder), XContentType.JSON);
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + mappingSource + "]", e);
-        }
-    }
-
-    /**
-     * The mapping source definition.
-     */
-    public PutMappingRequest source(String mappingSource, XContentType xContentType) {
-        return source(new BytesArray(mappingSource), xContentType);
-    }
-
-    /**
-     * The mapping source definition.
-     */
-    public PutMappingRequest source(BytesReference mappingSource, XContentType xContentType) {
-        Objects.requireNonNull(xContentType);
-        try {
-            this.source = XContentHelper.convertToJson(mappingSource, xContentType);
-            return this;
-        } catch (IOException e) {
-            throw new UncheckedIOException("failed to convert source to json", e);
-        }
+    public PutMappingRequest source(String mappingSource) {
+        this.source = mappingSource;
+        return this;
     }
 
     public PutMappingRequest(StreamInput in) throws IOException {
