@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.xcontent.json;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,7 +30,6 @@ import java.util.Set;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContent;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -47,8 +45,6 @@ import com.fasterxml.jackson.core.json.JsonWriteContext;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.core.util.JsonGeneratorDelegate;
-
-import io.crate.common.io.IOUtils;
 
 public class JsonXContentGenerator implements XContentGenerator {
 
@@ -334,40 +330,6 @@ public class JsonXContentGenerator implements XContentGenerator {
     }
 
     @Override
-    public void writeRawField(String name, InputStream content) throws IOException {
-        if (content.markSupported() == false) {
-            // needed for the XContentFactory.xContentType call
-            content = new BufferedInputStream(content);
-        }
-        XContentType contentType = XContentFactory.xContentType(content);
-        if (contentType == null) {
-            throw new IllegalArgumentException("Can't write raw bytes whose xcontent-type can't be guessed");
-        }
-        writeRawField(name, content, contentType);
-    }
-
-    @Override
-    public void writeRawField(String name, InputStream content, XContentType contentType) throws IOException {
-        if (mayWriteRawData(contentType) == false) {
-            // EMPTY is safe here because we never call namedObject when writing raw data
-            try (XContentParser parser = XContentFactory.xContent(contentType)
-                    // It's okay to pass the throwing deprecation handler
-                    // because we should not be writing raw fields when
-                    // generating JSON
-                    .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, content)) {
-                parser.nextToken();
-                writeFieldName(name);
-                copyCurrentStructure(parser);
-            }
-        } else {
-            writeStartRaw(name);
-            flush();
-            copyStream(content, os);
-            writeEndRaw();
-        }
-    }
-
-    @Override
     public void writeRawValue(InputStream stream, XContentType xContentType) throws IOException {
         if (mayWriteRawData(xContentType) == false) {
             copyRawValue(stream, xContentType.xContent());
@@ -377,22 +339,9 @@ public class JsonXContentGenerator implements XContentGenerator {
                 generator.writeRaw(':');
             }
             flush();
-            transfer(stream, os);
+            stream.transferTo(os);
             writeEndRaw();
         }
-    }
-
-    // A basic copy of Java 9's InputStream#transferTo
-    private static long transfer(InputStream in, OutputStream out) throws IOException {
-        Objects.requireNonNull(out, "out");
-        long transferred = 0;
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = in.read(buffer, 0, 8192)) >= 0) {
-            out.write(buffer, 0, read);
-            transferred += read;
-        }
-        return transferred;
     }
 
     private boolean mayWriteRawData(XContentType contentType) {
@@ -492,39 +441,6 @@ public class JsonXContentGenerator implements XContentGenerator {
     @Override
     public boolean isClosed() {
         return generator.isClosed();
-    }
-
-    /**
-     * Copy the contents of the given InputStream to the given OutputStream.
-     * Closes both streams when done.
-     *
-     * @param in  the stream to copy from
-     * @param out the stream to copy to
-     * @return the number of bytes copied
-     * @throws IOException in case of I/O errors
-     */
-    private static long copyStream(InputStream in, OutputStream out) throws IOException {
-        Objects.requireNonNull(in, "No InputStream specified");
-        Objects.requireNonNull(out, "No OutputStream specified");
-        final byte[] buffer = new byte[8192];
-        boolean success = false;
-        try {
-            long byteCount = 0;
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-                byteCount += bytesRead;
-            }
-            out.flush();
-            success = true;
-            return byteCount;
-        } finally {
-            if (success) {
-                IOUtils.close(in, out);
-            } else {
-                IOUtils.closeWhileHandlingException(in, out);
-            }
-        }
     }
 
     @Override
