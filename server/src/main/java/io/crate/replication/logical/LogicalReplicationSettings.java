@@ -21,7 +21,8 @@
 
 package io.crate.replication.logical;
 
-import io.crate.common.unit.TimeValue;
+import java.util.Set;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -29,8 +30,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDe
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
@@ -38,7 +39,7 @@ import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
 
-import java.util.Set;
+import io.crate.common.unit.TimeValue;
 
 public class LogicalReplicationSettings {
 
@@ -170,7 +171,7 @@ public class LogicalReplicationSettings {
         return batchSize;
     }
 
-    public void batchSize(int batchSize) {
+    private void batchSize(int batchSize) {
         this.batchSize = batchSize;
     }
 
@@ -178,7 +179,7 @@ public class LogicalReplicationSettings {
         return pollDelay;
     }
 
-    public void pollDelay(TimeValue pollDelay) {
+    private void pollDelay(TimeValue pollDelay) {
         this.pollDelay = pollDelay;
     }
 
@@ -186,7 +187,7 @@ public class LogicalReplicationSettings {
         return recoveryChunkSize;
     }
 
-    public void recoveryChunkSize(final ByteSizeValue recoveryChunkSize) {
+    private void recoveryChunkSize(final ByteSizeValue recoveryChunkSize) {
         this.recoveryChunkSize = recoveryChunkSize;
     }
 
@@ -194,7 +195,7 @@ public class LogicalReplicationSettings {
         return maxConcurrentFileChunks;
     }
 
-    public void maxConcurrentFileChunks(int maxConcurrentFileChunks) {
+    private void maxConcurrentFileChunks(int maxConcurrentFileChunks) {
         this.maxConcurrentFileChunks = maxConcurrentFileChunks;
     }
 }
