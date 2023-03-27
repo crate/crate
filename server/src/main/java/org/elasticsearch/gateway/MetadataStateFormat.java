@@ -266,7 +266,7 @@ public abstract class MetadataStateFormat<T> {
     }
 
     protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-        return XContentFactory.contentBuilder(type, stream);
+        return XContentFactory.builder(type, stream);
     }
 
     /**

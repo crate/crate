@@ -824,7 +824,7 @@ public class PersistedClusterStateService {
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
             try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
-                try (XContentBuilder xContentBuilder = XContentFactory.contentBuilder(XContentType.SMILE,
+                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
                         Streams.flushOnCloseStream(streamOutput))) {
                     xContentBuilder.startObject();
                     metadata.toXContent(xContentBuilder, FORMAT_PARAMS);

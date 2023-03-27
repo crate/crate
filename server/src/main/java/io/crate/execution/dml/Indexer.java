@@ -527,7 +527,7 @@ public class Indexer {
             expression.setNextRow(item);
         }
         stream.reset();
-        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder(stream)) {
+        try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
             xContentBuilder.startObject();
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
