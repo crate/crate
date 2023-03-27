@@ -34,7 +34,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 /**
@@ -46,14 +46,10 @@ public class YamlXContent implements XContent {
         return XContentBuilder.builder(YAML_XCONTENT);
     }
 
-    static final YAMLFactory YAML_FACTORY;
-    public static final YamlXContent YAML_XCONTENT;
-
-    static {
-        YAML_FACTORY = new YAMLFactory();
-        YAML_FACTORY.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
-        YAML_XCONTENT = new YamlXContent();
-    }
+    static final YAMLFactory YAML_FACTORY = YAMLFactory.builder()
+        .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled())
+        .build();
+    public static final YamlXContent YAML_XCONTENT = new YamlXContent();
 
     private YamlXContent() {
     }
