@@ -371,9 +371,14 @@ public class AnalyzedTableElements<T> {
         return new TableReferenceResolver(tableReferences.values(), relationName);
     }
 
-    public void collectReferences(RelationName relationName, LinkedHashMap<ColumnIdent, Reference> target, IntArrayList pKeysIndices, boolean isAddColumn) {
+    /**
+     * @param bound indicates whether symbols (geo properties, analyzer) in AnalyzedColumnDefinition-s are resolved.
+     * If it's false, we are creating TableReferenceResolver when analyzing CREATE STATEMENT, we don't need geo/index reference.
+     * If it's true, we are re-using underlying buildReference to transform AnalyzedColumnDefinition -> Reference and such create AddColumnRequest.
+     */
+    public void collectReferences(RelationName relationName, LinkedHashMap<ColumnIdent, Reference> target, IntArrayList pKeysIndices, boolean bound) {
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
-            buildReference(relationName, columnDefinition, target, pKeysIndices, isAddColumn);
+            buildReference(relationName, columnDefinition, target, pKeysIndices, bound);
         }
     }
 
@@ -453,7 +458,7 @@ public class AnalyzedTableElements<T> {
                                           AnalyzedColumnDefinition<T> columnDefinition,
                                           LinkedHashMap<ColumnIdent, Reference> references,
                                           IntArrayList pKeysIndices,
-                                          boolean isAddColumn) {
+                                          boolean bound) {
 
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
@@ -462,7 +467,7 @@ public class AnalyzedTableElements<T> {
 
         Reference ref;
         boolean isNullable = !columnDefinition.hasNotNullConstraint();
-        if (isAddColumn && type.id() == GeoShapeType.ID) {
+        if (bound && type.id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
                 // applySettings validates geo properties.
@@ -481,7 +486,7 @@ public class AnalyzedTableElements<T> {
                 (Integer) geoMap.get("tree_levels"),
                 distError != null ? distError.doubleValue() : null
             );
-        } else if (isAddColumn && columnDefinition.analyzer() != null) {
+        } else if (bound && columnDefinition.analyzer() != null) {
             // We are sending IndexReference since it's the only Reference implementation having 'analyzer'.
             // However, IndexReference is dedicated to reflect index declaration like 'INDEX some_index using fulltext(some_col) with (analyzer = 'english')'
             // Hence, we ignore copyTo which is irrelevant for ADD COLUMN.
@@ -521,7 +526,7 @@ public class AnalyzedTableElements<T> {
         }
 
         for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
-            buildReference(relationName, childDefinition, references, pKeysIndices, isAddColumn);
+            buildReference(relationName, childDefinition, references, pKeysIndices, bound);
         }
     }
 

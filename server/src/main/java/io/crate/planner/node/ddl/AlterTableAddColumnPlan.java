@@ -44,6 +44,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -70,28 +71,25 @@ public class AlterTableAddColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var addColumnRequest = createRequest(alterTable, dependencies.nodeContext(), plannerContext,
-                                                              params, subQueryResults, dependencies.fulltextAnalyzerResolver());
+        var tableElements = validate(
+            alterTable,
+            plannerContext.transactionContext(),
+            dependencies.nodeContext(),
+            params,
+            subQueryResults,
+            dependencies.fulltextAnalyzerResolver()
+        );
+        var addColumnRequest = createRequest(tableElements, alterTable.tableInfo().ident());
 
         dependencies.alterTableOperation().executeAlterTableAddColumn(addColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
-    public static AddColumnRequest createRequest(AnalyzedAlterTableAddColumn alterTable,
-                                                 NodeContext nodeContext,
-                                                 PlannerContext plannerContext,
-                                                 Row params,
-                                                 SubQueryResults subQueryResults,
-                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        var tableElements = validate(
-            alterTable,
-            plannerContext.transactionContext(),
-            nodeContext,
-            params,
-            subQueryResults,
-            fulltextAnalyzerResolver
-        );
-
+    /**
+     * @param tableElements has to be finalized and validated before passing to this method.
+     * collectReferences is called with bound = true meaning that it expects analyzer, geo properties to be resolved at this point.
+     */
+    public static AddColumnRequest createRequest(AnalyzedTableElements<Object> tableElements, RelationName relationName) {
         // We can add multiple object columns via ALTER TABLE ADD COLUMN.
         // Those columns can have overlapping paths, for example we can add columns o['a']['b'] and o['a']['c'].
         // For every added column AnalyzedColumnDefinition provides not only leaf but also path to the root.
@@ -105,10 +103,10 @@ public class AlterTableAddColumnPlan implements Plan {
 
         LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
         IntArrayList pKeysIndices = new IntArrayList();
-        tableElements.collectReferences(alterTable.tableInfo().ident(), references, pKeysIndices, true);
+        tableElements.collectReferences(relationName, references, pKeysIndices, true);
 
         return new AddColumnRequest(
-            alterTable.tableInfo().ident(),
+            relationName,
             new ArrayList<>(references.values()), // We don't use Map in the request itself since we need directly indexed structure referred by pKeysIndices.
             tableElements.getCheckConstraints(),
             pKeysIndices
