@@ -19,14 +19,14 @@
 
 package org.elasticsearch.common.xcontent;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 
 public interface XContentGenerator extends Closeable, Flushable {
 
@@ -95,18 +95,6 @@ public interface XContentGenerator extends Closeable, Flushable {
     void writeBinary(byte[] value) throws IOException;
 
     void writeBinary(byte[] value, int offset, int length) throws IOException;
-
-    /**
-     * Writes a raw field with the value taken from the bytes in the stream
-     * @deprecated use {@link #writeRawField(String, InputStream, XContentType)} to avoid content type auto-detection
-     */
-    @Deprecated
-    void writeRawField(String name, InputStream value) throws IOException;
-
-    /**
-     * Writes a raw field with the value taken from the bytes in the stream
-     */
-    void writeRawField(String name, InputStream value, XContentType xContentType) throws IOException;
 
     /**
      * Writes a raw value taken from the bytes in the stream
