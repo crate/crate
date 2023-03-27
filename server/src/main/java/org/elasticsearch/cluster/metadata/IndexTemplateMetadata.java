@@ -43,6 +43,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -347,7 +348,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
             if (params.paramAsBoolean("reduce_mappings", false)) {
                 builder.startObject("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true).map();
+                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true, XContentType.JSON).map();
                 if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
                     // the type name is the root value, reduce it
                     mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -357,7 +358,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 builder.endObject();
             } else {
                 builder.startArray("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true).map();
+                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true, XContentType.JSON).map();
                 builder.map(mapping);
                 builder.endArray();
             }
