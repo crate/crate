@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -59,23 +58,6 @@ public final class XContentBuilder implements Closeable, Flushable {
      */
     public static XContentBuilder builder(XContent xContent) throws IOException {
         return new XContentBuilder(xContent, new ByteArrayOutputStream());
-    }
-
-    /**
-     * Create a new {@link XContentBuilder} using the given {@link XContent} content and some inclusive and/or exclusive filters.
-     * <p>
-     * The builder uses an internal {@link ByteArrayOutputStream} output stream to build the content. When both exclusive and
-     * inclusive filters are provided, the underlying builder will first use exclusion filters to remove fields and then will check the
-     * remaining fields against the inclusive filters.
-     * <p>
-     *
-     * @param xContent the {@link XContent}
-     * @param includes the inclusive filters: only fields and objects that match the inclusive filters will be written to the output.
-     * @param excludes the exclusive filters: only fields and objects that don't match the exclusive filters will be written to the output.
-     * @throws IOException if an {@link IOException} occurs while building the content
-     */
-    public static XContentBuilder builder(XContent xContent, Set<String> includes, Set<String> excludes) throws IOException {
-        return new XContentBuilder(xContent, new ByteArrayOutputStream(), includes, excludes);
     }
 
     private static final Map<Class<?>, Writer> WRITERS;
@@ -170,33 +152,8 @@ public final class XContentBuilder implements Closeable, Flushable {
      * to call {@link #close()} when the builder is done with.
      */
     public XContentBuilder(XContent xContent, OutputStream bos) throws IOException {
-        this(xContent, bos, Collections.emptySet(), Collections.emptySet());
-    }
-
-    /**
-     * Constructs a new builder using the provided XContent, an OutputStream and
-     * some filters. If filters are specified, only those values matching a
-     * filter will be written to the output stream. Make sure to call
-     * {@link #close()} when the builder is done with.
-     */
-    public XContentBuilder(XContent xContent, OutputStream bos, Set<String> includes) throws IOException {
-        this(xContent, bos, includes, Collections.emptySet());
-    }
-
-    /**
-     * Creates a new builder using the provided XContent, output stream and some inclusive and/or exclusive filters. When both exclusive and
-     * inclusive filters are provided, the underlying builder will first use exclusion filters to remove fields and then will check the
-     * remaining fields against the inclusive filters.
-     * <p>
-     * Make sure to call {@link #close()} when the builder is done with.
-     *
-     * @param os       the output stream
-     * @param includes the inclusive filters: only fields and objects that match the inclusive filters will be written to the output.
-     * @param excludes the exclusive filters: only fields and objects that don't match the exclusive filters will be written to the output.
-     */
-    public XContentBuilder(XContent xContent, OutputStream os, Set<String> includes, Set<String> excludes) throws IOException {
-        this.bos = os;
-        this.generator = xContent.createGenerator(bos, includes, excludes);
+        this.bos = bos;
+        this.generator = xContent.createGenerator(bos);
     }
 
     public XContentType contentType() {
