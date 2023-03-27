@@ -79,16 +79,6 @@ public class XContentHelper {
         }
     }
 
-    /**
-     * Converts the given bytes into a map that is optionally ordered.
-     * @deprecated this method relies on auto-detection of content type. Use {@link #convertToMap(BytesReference, boolean, XContentType)}
-     *             instead with the proper {@link XContentType}
-     */
-    @Deprecated
-    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered) throws ElasticsearchParseException {
-        return convertToMap(bytes, ordered, null);
-    }
-
     public static Map<String, Object> toMap(BytesReference bytes, XContentType xContentType) {
         try (InputStream inputStream = getUncompressedInputStream(bytes)) {
             XContentParser parser = xContentType.xContent().createParser(
@@ -147,7 +137,7 @@ public class XContentHelper {
 
     /**
      * Convert a string in some {@link XContent} format to a {@link Map}. Throws an {@link ElasticsearchParseException} if there is any
-     * error. Note that unlike {@link #convertToMap(BytesReference, boolean)}, this doesn't automatically uncompress the input.
+     * error. This doesn't automatically uncompress the input.
      */
     public static Map<String, Object> convertToMap(XContent xContent, InputStream input, boolean ordered)
             throws ElasticsearchParseException {
