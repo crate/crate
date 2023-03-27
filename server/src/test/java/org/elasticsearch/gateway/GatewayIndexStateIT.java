@@ -69,7 +69,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
@@ -524,7 +523,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 "        }\n" +
                 "      }\n" +
                 "    }\n" +
-                "  }}", XContentType.JSON)
+                "  }}")
         ).get();
         logger.info("--> indexing a simple document");
         execute("insert into test (field1) values ('value one')");

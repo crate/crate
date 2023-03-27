@@ -21,7 +21,15 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.RelationName;
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,13 +41,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import io.crate.metadata.RelationName;
 
 public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
 
@@ -104,7 +106,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         }
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.map(mapping);
-        return XContentHelper.convertToJson(BytesReference.bytes(builder), XContentType.JSON);
+        return BytesReference.bytes(builder).utf8ToString();
     }
 
     @Nullable
