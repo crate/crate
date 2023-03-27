@@ -19,23 +19,11 @@
 
 package org.elasticsearch.test;
 
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
-import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo.Failure;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.shard.IndexShardRecoveringException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.rest.RestStatus;
+import static com.carrotsearch.randomizedtesting.generators.RandomNumbers.randomIntBetween;
+import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiLettersOfLength;
+import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomUnicodeOfLengthBetween;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
+import static org.elasticsearch.test.ESTestCase.randomFrom;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,11 +32,24 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 
-import static com.carrotsearch.randomizedtesting.generators.RandomNumbers.randomIntBetween;
-import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiLettersOfLength;
-import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomUnicodeOfLengthBetween;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
-import static org.elasticsearch.test.ESTestCase.randomFrom;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
+import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo.Failure;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.shard.IndexShardRecoveringException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.rest.RestStatus;
+
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+
+import io.crate.common.collections.Tuple;
 
 public final class RandomObjects {
 
@@ -141,22 +142,12 @@ public final class RandomObjects {
 
     /**
      * Returns a random source containing a random number of fields, objects and array, with maximum depth 5.
-     *
-     * @param random Random generator
-     */
-    public static BytesReference randomSource(Random random) {
-        //the source can be stored in any format and eventually converted when retrieved depending on the format of the response
-        return randomSource(random, RandomPicks.randomFrom(random, XContentType.values()));
-    }
-
-    /**
-     * Returns a random source in a given XContentType containing a random number of fields, objects and array, with maximum depth 5.
      * The minimum number of fields per object is 1.
      *
      * @param random Random generator
      */
-    public static BytesReference randomSource(Random random, XContentType xContentType) {
-        return randomSource(random, xContentType, 1);
+    public static BytesReference randomSource(Random random) {
+        return randomSource(random, 1);
     }
 
     /**
@@ -165,8 +156,8 @@ public final class RandomObjects {
      *
      * @param random Random generator
      */
-    public static BytesReference randomSource(Random random, XContentType xContentType, int minNumFields) {
-        try (XContentBuilder builder = XContentFactory.contentBuilder(xContentType)) {
+    public static BytesReference randomSource(Random random, int minNumFields) {
+        try (XContentBuilder builder = JsonXContent.builder()) {
             builder.startObject();
             addFields(random, builder, minNumFields, 0);
             builder.endObject();

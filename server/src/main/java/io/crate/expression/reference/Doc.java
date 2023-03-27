@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference;
 
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 public final class Doc {
 
@@ -100,7 +100,7 @@ public final class Doc {
             updatedSource,
             () -> {
                 try {
-                    return Strings.toString(XContentFactory.jsonBuilder().map(updatedSource));
+                    return Strings.toString(JsonXContent.builder().map(updatedSource));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

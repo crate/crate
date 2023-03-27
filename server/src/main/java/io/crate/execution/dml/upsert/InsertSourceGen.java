@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder.Writer;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -48,7 +48,7 @@ public interface InsertSourceGen {
 
 
     default BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values, List.of()), SOURCE_WRITERS));
+        return BytesReference.bytes(JsonXContent.builder().map(generateSourceAndCheckConstraints(values, List.of()), SOURCE_WRITERS));
     }
 
     Map<String, Object> generateSourceAndCheckConstraints(Object[] values, List<String> pkValues) throws IOException;

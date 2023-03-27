@@ -62,8 +62,8 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
@@ -372,7 +372,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         // To ensure we index the values the same way we do in real production code.
         for (int i = 0; i < data.length; i++) {
             var cell = data[i];
-            XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+            XContentBuilder builder = JsonXContent.builder().startObject();
             for (int j = 0; j < cell.length; j++) {
                 Object value = cell[j];
                 if (value instanceof BitString bs) {
@@ -401,7 +401,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     private XContentBuilder buildMapping(List<DataType<?>> argumentTypes) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("properties");
         for (int i = 0; i < argumentTypes.size(); i++) {

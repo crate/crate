@@ -40,7 +40,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -83,7 +82,7 @@ public class DDLClusterStateHelpers {
         try {
             return new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .settings(settings)
-                .putMapping(Strings.toString(XContentFactory.jsonBuilder().map(mapping)))
+                .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
                 .build();
         } catch (IOException e) {
             throw new RuntimeException(e);

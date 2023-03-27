@@ -36,9 +36,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.metadata.RelationName;
@@ -104,7 +102,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         if (mapping.isEmpty()) {
             return null;
         }
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+        XContentBuilder builder = JsonXContent.builder();
         builder.map(mapping);
         return BytesReference.bytes(builder).utf8ToString();
     }

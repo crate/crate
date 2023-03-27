@@ -37,7 +37,7 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -60,7 +60,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
     @Test
     public void test_allow_drop_of_corrupted_table() throws Exception {
         execute("create table doc.tbl (ts timestamp without time zone as '2020-01-01')");
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("default")
                 .startObject("_meta")

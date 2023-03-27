@@ -50,7 +50,7 @@ public class XContentHelper {
             if (compressedInput.markSupported() == false) {
                 compressedInput = new BufferedInputStream(compressedInput);
             }
-            return XContentFactory.xContent(xContentType).createParser(xContentRegistry, deprecationHandler, compressedInput);
+            return xContentType.xContent().createParser(xContentRegistry, deprecationHandler, compressedInput);
         } else {
             return xContentType.xContent().createParser(xContentRegistry, deprecationHandler, bytes.streamInput());
         }
@@ -91,7 +91,7 @@ public class XContentHelper {
             try (InputStream input = getUncompressedInputStream(bytes)) {
                 return new ParsedXContent(
                     xContentType,
-                    convertToMap(XContentFactory.xContent(xContentType), input, ordered));
+                    convertToMap(xContentType.xContent(), input, ordered));
             }
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);

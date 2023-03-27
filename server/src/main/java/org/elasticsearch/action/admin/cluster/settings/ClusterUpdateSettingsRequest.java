@@ -19,6 +19,13 @@
 
 package org.elasticsearch.action.admin.cluster.settings;
 
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+
+import java.io.IOException;
+import java.util.Map;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.ParseField;
@@ -28,15 +35,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-
-import java.io.IOException;
-import java.util.Map;
-
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Request for an update cluster settings action
@@ -90,7 +90,7 @@ public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpd
     @SuppressWarnings({"unchecked", "rawtypes"})
     public ClusterUpdateSettingsRequest transientSettings(Map source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             transientSettings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {
@@ -129,7 +129,7 @@ public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpd
     @SuppressWarnings({"unchecked", "rawtypes"})
     public ClusterUpdateSettingsRequest persistentSettings(Map source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             persistentSettings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {

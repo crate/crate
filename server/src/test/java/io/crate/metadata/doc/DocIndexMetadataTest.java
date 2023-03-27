@@ -54,9 +54,9 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.hamcrest.Matchers;
@@ -136,7 +136,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedColumnIdent() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject("properties")
                     .startObject("person")
@@ -169,7 +169,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractObjectColumnDefinitions() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("properties")
             .startObject("implicit_dynamic")
@@ -234,7 +234,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractColumnDefinitions() throws Exception {
         // @formatter:off
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject("_meta")
                     .field("primary_keys", "integerIndexed")
@@ -368,7 +368,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractColumnDefinitionsWithDefaultExpression() throws Exception {
         // @formatter:off
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject("_meta")
                     .field("primary_keys", "integerIndexed")
@@ -456,7 +456,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractPartitionedByColumns() throws Exception {
         // @formatter:off
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("_meta")
                 .field("primary_keys", "id")
@@ -527,7 +527,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractPartitionedByWithPartitionedByInColumns() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("_meta")
             .startArray("partitioned_by")
@@ -558,7 +558,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractPartitionedByWithNestedPartitionedByInColumns() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("_meta")
             .startArray("partitioned_by")
@@ -632,7 +632,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractColumnDefinitionsFromEmptyIndex() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .endObject()
@@ -644,7 +644,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDocSysColumnReferences() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("properties")
@@ -674,7 +674,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractPrimaryKey() throws Exception {
 
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -710,7 +710,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.primaryKey().size(), is(1));
         assertThat(md.primaryKey(), contains(new ColumnIdent("id")));
 
-        builder = XContentFactory.jsonBuilder()
+        builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("properties")
@@ -725,7 +725,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         md = newMeta(getIndexMetadata("test4", builder), "test4");
         assertThat(md.primaryKey().size(), is(1)); // _id is always the fallback primary key
 
-        builder = XContentFactory.jsonBuilder()
+        builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .endObject()
@@ -736,7 +736,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractMultiplePrimaryKeys() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -763,7 +763,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractCheckConstraints() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -795,7 +795,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractNoPrimaryKey() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -818,7 +818,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.primaryKey().size(), is(1));
         assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
 
-        builder = XContentFactory.jsonBuilder()
+        builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -845,7 +845,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemaWithNotNullColumns() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -877,7 +877,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemaWithNotNullNestedColumns() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                     .startObject("_meta")
@@ -917,7 +917,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemaWithNotNullGeneratedColumn() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject("_meta")
                     .startObject("generated_columns")
@@ -952,7 +952,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void extractRoutingColumn() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -974,7 +974,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(getIndexMetadata("test8", builder), "test8");
         assertThat(md.routingCol(), is(new ColumnIdent("id")));
 
-        builder = XContentFactory.jsonBuilder()
+        builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("properties")
@@ -989,7 +989,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         md = newMeta(getIndexMetadata("test9", builder), "test8");
         assertThat(md.routingCol(), is(new ColumnIdent("_id")));
 
-        builder = XContentFactory.jsonBuilder()
+        builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("_meta")
@@ -1020,7 +1020,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void extractRoutingColumnFromEmptyIndex() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .endObject()
@@ -1031,7 +1031,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAutogeneratedPrimaryKey() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .endObject()
@@ -1044,7 +1044,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoAutogeneratedPrimaryKey() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                     .startObject("_meta")
@@ -1066,7 +1066,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnalyzedColumnWithAnalyzer() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                     .startObject("properties")
@@ -1239,7 +1239,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractColumnPolicy() throws Exception {
-        XContentBuilder ignoredBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder ignoredBuilder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .field("dynamic", false)
@@ -1259,7 +1259,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata mdIgnored = newMeta(getIndexMetadata("test_ignored", ignoredBuilder), "test_ignored");
         assertThat(mdIgnored.columnPolicy(), is(ColumnPolicy.IGNORED));
 
-        XContentBuilder strictBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder strictBuilder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .field("dynamic", "strict")
@@ -1279,7 +1279,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata mdStrict = newMeta(getIndexMetadata("test_strict", strictBuilder), "test_strict");
         assertThat(mdStrict.columnPolicy(), is(ColumnPolicy.STRICT));
 
-        XContentBuilder dynamicBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder dynamicBuilder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .field("dynamic", true)
@@ -1299,7 +1299,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata mdDynamic = newMeta(getIndexMetadata("test_dynamic", dynamicBuilder), "test_dynamic");
         assertThat(mdDynamic.columnPolicy(), is(ColumnPolicy.DYNAMIC));
 
-        XContentBuilder missingBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder missingBuilder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("properties")
@@ -1318,7 +1318,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata mdMissing = newMeta(getIndexMetadata("test_missing", missingBuilder), "test_missing");
         assertThat(mdMissing.columnPolicy(), is(ColumnPolicy.DYNAMIC));
 
-        XContentBuilder wrongBuilder = XContentFactory.jsonBuilder()
+        XContentBuilder wrongBuilder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .field("dynamic", "wrong")
@@ -1385,7 +1385,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoBackwardCompatibleArrayMapping() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("_meta")
             .field("primary_keys", "id")
@@ -1440,7 +1440,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNewArrayMapping() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("_meta")
             .field("primary_keys", "id")
@@ -1506,7 +1506,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemaWithGeneratedColumn() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject("_meta")
                     .startObject("generated_columns")
@@ -1541,7 +1541,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithoutMetaIndices() throws Exception {
         // regression test... this mapping used to cause an NPE
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject("properties")
             .startObject("description")
@@ -1582,7 +1582,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTimestampColumnReferences() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                     .startObject("properties")
@@ -1614,7 +1614,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_inner_object_types() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
                 .startObject("properties")
@@ -1660,7 +1660,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_string_type_with_length_from_mappings_with_text_and_keyword_types() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                     .startObject("properties")
