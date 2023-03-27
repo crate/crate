@@ -24,12 +24,10 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -187,14 +185,8 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
             builder.map(source);
-            XContentType xContentType = builder.contentType();
-            Objects.requireNonNull(xContentType);
-            try {
-                mapping = XContentHelper.convertToJson(BytesReference.bytes(builder), xContentType);
-                return this;
-            } catch (IOException e) {
-                throw new UncheckedIOException("failed to convert source to json", e);
-            }
+            mapping = BytesReference.bytes(builder).utf8ToString();
+            return this;
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }

@@ -33,7 +33,6 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.Compressor;
 import org.elasticsearch.common.compress.CompressorFactory;
@@ -158,25 +157,6 @@ public class XContentHelper {
             return ordered ? parser.mapOrdered() : parser.map();
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);
-        }
-    }
-
-
-    public static String convertToJson(BytesReference bytes, XContentType xContentType) throws IOException {
-        Objects.requireNonNull(xContentType);
-        if (xContentType == XContentType.JSON) {
-            return bytes.utf8ToString();
-        }
-        // It is safe to use EMPTY here because this never uses namedObject
-        try (InputStream stream = bytes.streamInput();
-             XContentParser parser = XContentFactory.xContent(xContentType).createParser(
-                 NamedXContentRegistry.EMPTY,
-                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                 stream)) {
-            parser.nextToken();
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.copyCurrentStructure(parser);
-            return Strings.toString(builder);
         }
     }
 
