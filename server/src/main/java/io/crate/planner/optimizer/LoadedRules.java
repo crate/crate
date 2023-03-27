@@ -40,21 +40,23 @@ import io.crate.types.DataTypes;
 public class LoadedRules implements SessionSettingProvider {
 
     private static final String OPTIMIZER_SETTING_PREFIX = "optimizer_";
+    public static final List<Class<? extends Rule<?>>> RULES = buildRules();
 
-    @Override
-    public List<SessionSetting<?>> sessionSettings() {
+    private static List<Class<? extends Rule<?>>> buildRules() {
         var rules = new ArrayList<Rule<?>>();
         rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.WRITE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
+        return Lists2.map(rules, x -> (Class<? extends Rule<?>>) x.getClass());
+    }
 
-        return Lists2.map(rules, x -> buildRuleSessionSetting((Class<? extends Rule<?>>) x.getClass()));
+    public static String buildSessionSettingName(Class<? extends Rule<?>> rule) {
+        return OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(rule.getSimpleName());
     }
 
     @VisibleForTesting
-    SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
-        var simpleName = rule.getSimpleName();
-        var optimizerRuleName = OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(simpleName);
+    static SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
+        var optimizerRuleName = buildSessionSettingName(rule);
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> {},
@@ -74,8 +76,13 @@ public class LoadedRules implements SessionSettingProvider {
                 return "false";
             },
             () -> String.valueOf(true),
-            String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
+            String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", rule.getSimpleName()),
             DataTypes.BOOLEAN
         );
+    }
+
+    @Override
+    public List<SessionSetting<?>> sessionSettings() {
+        return Lists2.map(RULES, LoadedRules::buildRuleSessionSetting);
     }
 }
