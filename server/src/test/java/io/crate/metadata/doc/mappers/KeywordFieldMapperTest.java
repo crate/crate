@@ -31,7 +31,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
@@ -62,7 +62,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_keyword_field_parser_on_mapping_with_length_limit() throws Exception {
         String expectedMapping = Strings.toString(
-            XContentFactory.jsonBuilder()
+            JsonXContent.builder()
                 .startObject()
                     .startObject(TYPE)
                         .startObject("properties")
@@ -93,7 +93,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
         var parser = parser(new TextFieldMapper.TypeParser());
 
         var mapper = parser.parse(new CompressedXContent(Strings.toString(
-            XContentFactory.jsonBuilder()
+            JsonXContent.builder()
                 .startObject()
                     .startObject(TYPE)
                         .startObject("properties")
@@ -106,7 +106,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                     .endObject()
                 .endObject())));
         var anotherMapper = parser.parse(new CompressedXContent(Strings.toString(
-            XContentFactory.jsonBuilder()
+            JsonXContent.builder()
                 .startObject()
                     .startObject(TYPE)
                         .startObject("properties")

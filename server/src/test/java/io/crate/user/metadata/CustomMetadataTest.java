@@ -33,7 +33,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
@@ -79,7 +78,7 @@ public class CustomMetadataTest {
     }
 
     private String xContentFromMetadata(Metadata metadata) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         Metadata.FORMAT.toXContent(builder, metadata);
         builder.endObject();

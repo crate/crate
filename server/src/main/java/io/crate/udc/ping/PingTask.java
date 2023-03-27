@@ -21,16 +21,6 @@
 
 package io.crate.udc.ping;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.monitor.ExtendedNodeInfo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -47,6 +37,18 @@ import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.monitor.ExtendedNodeInfo;
 
 public class PingTask extends TimerTask {
 
@@ -101,9 +103,9 @@ public class PingTask extends TimerTask {
         // in this case, the "expected number of elements" = 10 while default load factor = .75
         Map<String, String> queryMap = new HashMap<>(14);
         queryMap.put("cluster_id", getClusterId());
-        queryMap.put("kernel", Strings.toString(XContentFactory.jsonBuilder().map(getKernelData())));
+        queryMap.put("kernel", Strings.toString(JsonXContent.builder().map(getKernelData())));
         queryMap.put("master", isMasterNode().toString());
-        queryMap.put("ping_count", Strings.toString(XContentFactory.jsonBuilder().map(getCounters())));
+        queryMap.put("ping_count", Strings.toString(JsonXContent.builder().map(getCounters())));
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("num_processors", Integer.toString(Runtime.getRuntime().availableProcessors()));
         queryMap.put("crate_version", Version.CURRENT.externalNumber());

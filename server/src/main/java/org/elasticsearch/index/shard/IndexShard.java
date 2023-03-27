@@ -98,7 +98,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AsyncIOProcessor;
 import org.elasticsearch.common.util.concurrent.RunOnce;
-import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexModule;
@@ -1387,7 +1387,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         shardId.getIndexName(),
                         index.id(),
                         index.getSource(),
-                        XContentHelper.xContentType(index.getSource())
+                        XContentType.JSON
                     )
                 );
                 break;

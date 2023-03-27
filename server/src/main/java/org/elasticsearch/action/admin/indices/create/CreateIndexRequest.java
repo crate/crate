@@ -41,8 +41,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Constants;
 
@@ -165,7 +164,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
             throw new IllegalStateException("mapping already defined");
         }
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             mapping = BytesReference.bytes(builder).utf8ToString();
             return this;

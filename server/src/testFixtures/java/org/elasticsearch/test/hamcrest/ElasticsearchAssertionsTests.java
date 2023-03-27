@@ -35,7 +35,7 @@ import org.elasticsearch.test.RandomObjects;
 public class ElasticsearchAssertionsTests extends ESTestCase {
 
     public void testAssertXContentEquivalent() throws IOException {
-        try (XContentBuilder original = JsonXContent.contentBuilder()) {
+        try (XContentBuilder original = JsonXContent.builder()) {
             original.startObject();
             for (Object value : RandomObjects.randomStoredFieldValues(random(), original.contentType()).v1()) {
                 original.field(randomAlphaOfLength(10), value);
@@ -56,7 +56,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             }
             original.endObject();
 
-            try (XContentBuilder copy = JsonXContent.contentBuilder();
+            try (XContentBuilder copy = JsonXContent.builder();
                     XContentParser parser = createParser(original.contentType().xContent(), BytesReference.bytes(original))) {
                 parser.nextToken();
                 copy.generator().copyCurrentStructure(parser);
@@ -69,7 +69,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
 
     public void testAssertXContentEquivalentErrors() throws IOException {
         {
-            XContentBuilder builder = JsonXContent.contentBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
             {
                 builder.startObject("foo");
@@ -81,7 +81,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             }
             builder.endObject();
 
-            XContentBuilder otherBuilder = JsonXContent.contentBuilder();
+            XContentBuilder otherBuilder = JsonXContent.builder();
             otherBuilder.startObject();
             {
                 otherBuilder.startObject("foo");
@@ -97,7 +97,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             assertThat(error.getMessage(), containsString("f2: expected [value2] but not found"));
         }
         {
-            XContentBuilder builder = JsonXContent.contentBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
             {
                 builder.startObject("foo");
@@ -109,7 +109,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             }
             builder.endObject();
 
-            XContentBuilder otherBuilder = JsonXContent.contentBuilder();
+            XContentBuilder otherBuilder = JsonXContent.builder();
             otherBuilder.startObject();
             {
                 otherBuilder.startObject("foo");
@@ -126,7 +126,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             assertThat(error.getMessage(), containsString("f2: expected [value2] but was [differentValue2]"));
         }
         {
-            XContentBuilder builder = JsonXContent.contentBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
             {
                 builder.startArray("foo");
@@ -140,7 +140,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             builder.field("f1", "value");
             builder.endObject();
 
-            XContentBuilder otherBuilder = JsonXContent.contentBuilder();
+            XContentBuilder otherBuilder = JsonXContent.builder();
             otherBuilder.startObject();
             {
                 otherBuilder.startArray("foo");
@@ -159,7 +159,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             assertThat(error.getMessage(), containsString("2: expected [three] but was [four]"));
         }
         {
-            XContentBuilder builder = JsonXContent.contentBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
             {
                 builder.startArray("foo");
@@ -172,7 +172,7 @@ public class ElasticsearchAssertionsTests extends ESTestCase {
             }
             builder.endObject();
 
-            XContentBuilder otherBuilder = JsonXContent.contentBuilder();
+            XContentBuilder otherBuilder = JsonXContent.builder();
             otherBuilder.startObject();
             {
                 otherBuilder.startArray("foo");

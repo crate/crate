@@ -72,7 +72,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
@@ -1718,7 +1718,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) XContentFactory.xContent(mappingSource)
+        Map mapping = (Map) JsonXContent.JSON_XCONTENT
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map()
             .get(DEFAULT_MAPPING_TYPE);
@@ -1746,7 +1746,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) XContentFactory.xContent(mappingSource)
+        Map mapping = (Map) JsonXContent.JSON_XCONTENT
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map().get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));

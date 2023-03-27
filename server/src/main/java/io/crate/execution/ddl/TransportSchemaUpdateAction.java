@@ -206,7 +206,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         mergeIntoSource(source, newMapping);
         Map<String, Object> defaultMap = Maps.get(source, Constants.DEFAULT_MAPPING_TYPE);
         populateColumnPositions(defaultMap);
-        try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
+        try (XContentBuilder xContentBuilder = JsonXContent.builder()) {
             templateBuilder.putMapping(Strings.toString(xContentBuilder.map(source)));
         }
         Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(templateBuilder);

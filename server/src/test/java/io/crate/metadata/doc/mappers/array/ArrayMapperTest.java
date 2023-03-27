@@ -47,7 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
@@ -89,7 +88,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         DocumentMapperParser parser = mapperService.documentMapperParser();
 
         DocumentMapper defaultMapper = parser.parse(new CompressedXContent(mapping));
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         defaultMapper.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
@@ -100,7 +99,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSimpleArrayMapping() throws Exception {
         // @formatter:off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -118,7 +117,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(mapper.mappers().getMapper("array_field"), is(instanceOf(ArrayMapper.class)));
 
-        BytesReference bytesReference = BytesReference.bytes(JsonXContent.contentBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .array("array_field", "a", "b", "c")
             .endObject());
@@ -154,7 +153,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInvalidArraySimpleField() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -170,7 +169,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInvalidArrayNonConvertableType() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -184,7 +183,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("failed to parse field [array_field] of type [double]");
 
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .array("array_field", true, false, true)
             .endObject());
@@ -195,7 +194,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testObjectArrayMapping() throws Exception {
         // @formatter: off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -217,7 +216,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         DocumentMapper mapper = mapper(INDEX, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("array_field")
             .startObject()
@@ -262,7 +261,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testObjectArrayMappingNewColumn() throws Exception {
         // @formatter: off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -286,7 +285,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         DocumentMapper mapper = mapper(INDEX, mapping);
         // child object mapper
         assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("array_field")
             .startObject()
@@ -332,7 +331,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedArrayMapping() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -353,7 +352,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParseNull() throws Exception {
         // @formatter: off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -368,7 +367,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         // @formatter: on
         DocumentMapper mapper = mapper(INDEX, mapping);
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .nullField("array_field")
             .endObject());
@@ -380,7 +379,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParseNullOnObjectArray() throws Exception {
         // @formatter: on
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject()
                 .startObject(TYPE)
                     .startObject("properties")
@@ -397,7 +396,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         // @formatter: off
         DocumentMapper mapper = mapper(INDEX, mapping);
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .nullField("array_field")
             .endObject());
@@ -410,13 +409,13 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParseDynamicEmptyArray() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject(TYPE).startObject("properties")
             .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, mapping);
 
         // parse source with empty array
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .array("new_array_field")
             .endObject());
@@ -428,13 +427,13 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParseDynamicNullArray() throws Exception {
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject(TYPE).startObject("properties")
             .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, mapping);
 
         // parse source with null array
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("new_array_field").nullValue().endArray()
             .endObject());
@@ -447,7 +446,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToFieldsOfInnerMapping() throws Exception {
         // @formatter:off
-        String mapping = Strings.toString(XContentFactory.jsonBuilder()
+        String mapping = Strings.toString(JsonXContent.builder()
             .startObject().startObject(TYPE).startObject("properties")
                 .startObject("string_array")
                     .field("type", ArrayMapper.CONTENT_TYPE)
@@ -467,7 +466,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         assertThat(arrayMapper.copyTo().copyToFields(), contains("string_array_ft"));
 
         // @formatter:on
-        BytesReference bytesReference = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("string_array")
             .value("foo")

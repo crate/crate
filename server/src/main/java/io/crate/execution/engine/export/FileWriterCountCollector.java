@@ -21,23 +21,6 @@
 
 package io.crate.execution.engine.export;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -56,6 +39,26 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnhandledServerException;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.ColumnIdent;
 
 /**
  * Collector implementation which writes the rows to the configured {@link FileOutput}
@@ -212,7 +215,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     @VisibleForTesting
     static XContentBuilder createJsonBuilder(OutputStream outputStream) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder(outputStream);
+        XContentBuilder builder = XContentFactory.json(outputStream);
         builder.generator().configure(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM, false);
         return builder;
     }

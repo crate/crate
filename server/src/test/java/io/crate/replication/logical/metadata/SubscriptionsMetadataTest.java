@@ -36,7 +36,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
@@ -88,7 +87,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
 
     @Test
     public void testToXContent() throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
+        XContentBuilder builder = JsonXContent.builder();
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();

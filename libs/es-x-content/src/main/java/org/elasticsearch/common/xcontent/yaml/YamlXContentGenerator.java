@@ -19,17 +19,17 @@
 
 package org.elasticsearch.common.xcontent.yaml;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import java.io.OutputStream;
+
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContentGenerator;
 
-import java.io.OutputStream;
-import java.util.Set;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 public class YamlXContentGenerator extends JsonXContentGenerator {
 
-    public YamlXContentGenerator(JsonGenerator jsonGenerator, OutputStream os, Set<String> includes, Set<String> excludes) {
-        super(jsonGenerator, os, includes, excludes);
+    public YamlXContentGenerator(JsonGenerator jsonGenerator, OutputStream os) {
+        super(jsonGenerator, os);
     }
 
     @Override

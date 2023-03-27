@@ -47,7 +47,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
@@ -216,7 +216,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         } else if (value instanceof Map) {
             try {
                 //noinspection unchecked
-                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
+                return Strings.toString(JsonXContent.builder().map((Map<String, ?>) value));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot cast `" + value + "` to type " + getName().toUpperCase(Locale.ENGLISH), e);
             }

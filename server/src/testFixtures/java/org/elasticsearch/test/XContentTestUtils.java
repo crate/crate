@@ -19,17 +19,9 @@
 
 package org.elasticsearch.test;
 
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.rest.yaml.ObjectPath;
+import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiOfLength;
+import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.elasticsearch.common.xcontent.XContentHelper.createParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,9 +33,17 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiOfLength;
-import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.common.xcontent.XContentHelper.createParser;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.test.rest.yaml.ObjectPath;
 
 public final class XContentTestUtils {
     private XContentTestUtils() {
@@ -51,7 +51,7 @@ public final class XContentTestUtils {
     }
 
     public static Map<String, Object> convertToMap(ToXContent part) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         part.toXContent(builder, EMPTY_PARAMS);
         builder.endObject();

@@ -19,12 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,8 +29,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Wrapper around everything that defines a mapping, without references to
@@ -123,7 +123,7 @@ public final class Mapping implements ToXContentFragment {
     @Override
     public String toString() {
         try {
-            XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+            XContentBuilder builder = JsonXContent.builder().startObject();
             toXContent(builder, new ToXContent.MapParams(emptyMap()));
             return Strings.toString(builder.endObject());
         } catch (IOException bogus) {

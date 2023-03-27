@@ -92,9 +92,11 @@ import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.common.xcontent.smile.SmileXContent;
+import org.elasticsearch.common.xcontent.yaml.YamlXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
@@ -851,7 +853,11 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      */
     public static XContentBuilder shuffleXContent(XContentParser parser, boolean prettyPrint, String... exceptFieldNames)
             throws IOException {
-        XContentBuilder xContentBuilder = XContentFactory.contentBuilder(parser.contentType());
+        XContentBuilder xContentBuilder = switch (parser.contentType()) {
+            case JSON -> JsonXContent.builder();
+            case SMILE -> SmileXContent.contentBuilder();
+            case YAML -> YamlXContent.contentBuilder();
+        };
         if (prettyPrint) {
             xContentBuilder.prettyPrint();
         }

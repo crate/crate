@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.util.Set;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -34,7 +33,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 /**
@@ -46,14 +45,10 @@ public class YamlXContent implements XContent {
         return XContentBuilder.builder(YAML_XCONTENT);
     }
 
-    static final YAMLFactory YAML_FACTORY;
-    public static final YamlXContent YAML_XCONTENT;
-
-    static {
-        YAML_FACTORY = new YAMLFactory();
-        YAML_FACTORY.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
-        YAML_XCONTENT = new YamlXContent();
-    }
+    static final YAMLFactory YAML_FACTORY = YAMLFactory.builder()
+        .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled())
+        .build();
+    public static final YamlXContent YAML_XCONTENT = new YamlXContent();
 
     private YamlXContent() {
     }
@@ -69,8 +64,8 @@ public class YamlXContent implements XContent {
     }
 
     @Override
-    public XContentGenerator createGenerator(OutputStream os, Set<String> includes, Set<String> excludes) throws IOException {
-        return new YamlXContentGenerator(YAML_FACTORY.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
+    public XContentGenerator createGenerator(OutputStream os) throws IOException {
+        return new YamlXContentGenerator(YAML_FACTORY.createGenerator(os, JsonEncoding.UTF8), os);
     }
 
     @Override

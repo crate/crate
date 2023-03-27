@@ -24,8 +24,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Objects;
-import java.util.Set;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -33,18 +31,14 @@ import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.filtering.FilterPathBasedFilter;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonStreamContext;
 import com.fasterxml.jackson.core.base.GeneratorBase;
-import com.fasterxml.jackson.core.filter.FilteringGeneratorDelegate;
-import com.fasterxml.jackson.core.filter.TokenFilter.Inclusion;
 import com.fasterxml.jackson.core.io.SerializedString;
 import com.fasterxml.jackson.core.json.JsonWriteContext;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.core.util.JsonGeneratorDelegate;
 
 public class JsonXContentGenerator implements XContentGenerator {
 
@@ -57,13 +51,6 @@ public class JsonXContentGenerator implements XContentGenerator {
      */
     private final GeneratorBase base;
 
-    /**
-     * Reference to filtering generator because
-     * writing an empty object '{}' when everything is filtered
-     * out needs a specific treatment
-     */
-    private final FilteringGeneratorDelegate filter;
-
     private final OutputStream os;
 
     private boolean writeLineFeedAtEnd;
@@ -71,43 +58,14 @@ public class JsonXContentGenerator implements XContentGenerator {
     private static final DefaultPrettyPrinter.Indenter INDENTER = new DefaultIndenter("  ", LF.getValue());
     private boolean prettyPrint = false;
 
-    public JsonXContentGenerator(JsonGenerator jsonGenerator, OutputStream os, Set<String> includes, Set<String> excludes) {
-        Objects.requireNonNull(includes, "Including filters must not be null");
-        Objects.requireNonNull(excludes, "Excluding filters must not be null");
+    public JsonXContentGenerator(JsonGenerator jsonGenerator, OutputStream os) {
         this.os = os;
         if (jsonGenerator instanceof GeneratorBase) {
             this.base = (GeneratorBase) jsonGenerator;
         } else {
             this.base = null;
         }
-
         JsonGenerator generator = jsonGenerator;
-
-        boolean hasExcludes = excludes.isEmpty() == false;
-        if (hasExcludes) {
-            generator = new FilteringGeneratorDelegate(
-                generator,
-                new FilterPathBasedFilter(excludes, false),
-                Inclusion.INCLUDE_ALL_AND_PATH,
-                true
-            );
-        }
-
-        boolean hasIncludes = includes.isEmpty() == false;
-        if (hasIncludes) {
-            generator = new FilteringGeneratorDelegate(
-                generator,
-                new FilterPathBasedFilter(includes, true),
-                Inclusion.INCLUDE_ALL_AND_PATH,
-                true
-            );
-        }
-
-        if (hasExcludes || hasIncludes) {
-            this.filter = (FilteringGeneratorDelegate) generator;
-        } else {
-            this.filter = null;
-        }
         this.generator = generator;
     }
 
@@ -132,47 +90,17 @@ public class JsonXContentGenerator implements XContentGenerator {
         writeLineFeedAtEnd = true;
     }
 
-    private boolean isFiltered() {
-        return filter != null;
-    }
-
     private JsonGenerator getLowLevelGenerator() {
-        if (isFiltered()) {
-            JsonGenerator delegate = filter.delegate();
-            if (delegate instanceof JsonGeneratorDelegate generatorDelegate) {
-                // In case of combined inclusion and exclusion filters, we have one and only one another delegating level
-                delegate = generatorDelegate.delegate();
-                assert delegate instanceof JsonGeneratorDelegate == false;
-            }
-            return delegate;
-        }
         return generator;
-    }
-
-    private boolean inRoot() {
-        JsonStreamContext context = generator.getOutputContext();
-        return ((context != null) && (context.inRoot() && context.getCurrentName() == null));
     }
 
     @Override
     public void writeStartObject() throws IOException {
-        if (inRoot()) {
-            // Use the low level generator to write the startObject so that the root
-            // start object is always written even if a filtered generator is used
-            getLowLevelGenerator().writeStartObject();
-            return;
-        }
         generator.writeStartObject();
     }
 
     @Override
     public void writeEndObject() throws IOException {
-        if (inRoot()) {
-            // Use the low level generator to write the startObject so that the root
-            // start object is always written even if a filtered generator is used
-            getLowLevelGenerator().writeEndObject();
-            return;
-        }
         generator.writeEndObject();
     }
 
@@ -315,11 +243,6 @@ public class JsonXContentGenerator implements XContentGenerator {
         generator.writeBinary(value, offset, len);
     }
 
-    private void writeStartRaw(String name) throws IOException {
-        writeFieldName(name);
-        generator.writeRaw(':');
-    }
-
     public void writeEndRaw() {
         assert base != null : "JsonGenerator should be of instance GeneratorBase but was: " + generator.getClass();
         if (base != null) {
@@ -345,12 +268,10 @@ public class JsonXContentGenerator implements XContentGenerator {
     }
 
     private boolean mayWriteRawData(XContentType contentType) {
-        // When the current generator is filtered (ie filter != null)
-        // or the content is in a different format than the current generator,
+        // When the content is in a different format than the current generator,
         // we need to copy the whole structure so that it will be correctly
-        // filtered or converted
+        // converted
         return supportsRawWrites()
-                && isFiltered() == false
                 && contentType == contentType()
                 && prettyPrint == false;
     }

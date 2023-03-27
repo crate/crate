@@ -72,11 +72,11 @@ public class RestActionReceiversTest extends ESTestCase {
 
     @Test
     public void testRestRowCountReceiver() throws Exception {
-        RestRowCountReceiver receiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), 0L, true);
+        RestRowCountReceiver receiver = new RestRowCountReceiver(JsonXContent.builder(), 0L, true);
         receiver.setNextRow(row);
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder());
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder());
         builder.cols(Collections.<ScopedSymbol>emptyList());
         builder.colTypes(Collections.<ScopedSymbol>emptyList());
         builder.startRows();
@@ -90,7 +90,7 @@ public class RestActionReceiversTest extends ESTestCase {
     @Test
     public void testRestResultSetReceiver() throws Exception {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
-            JsonXContent.contentBuilder(),
+            JsonXContent.builder(),
             fields,
             0L,
             new RowAccountingWithEstimators(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
@@ -101,7 +101,7 @@ public class RestActionReceiversTest extends ESTestCase {
         }
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder());
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder());
         builder.cols(fields);
         builder.colTypes(fields);
         builder.startRows();
@@ -121,7 +121,7 @@ public class RestActionReceiversTest extends ESTestCase {
             new RestBulkRowCountReceiver.Result(null, 2),
             new RestBulkRowCountReceiver.Result(null, 3)
         };
-        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.contentBuilder())
+        ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
             .bulkRows(results);
         String s = Strings.toString(builder.build());
         assertEquals(s, "{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}");
