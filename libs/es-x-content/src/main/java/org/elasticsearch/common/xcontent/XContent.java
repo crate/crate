@@ -19,13 +19,12 @@
 
 package org.elasticsearch.common.xcontent;
 
-import io.crate.common.Booleans;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.util.Set;
+
+import io.crate.common.Booleans;
 
 /**
  * A generic abstraction on top of handling content, inspired by JSON and pull parsing.
@@ -94,10 +93,4 @@ public interface XContent {
      */
     XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data, int offset, int length) throws IOException;
-
-    /**
-     * Creates a parser over the provided reader.
-     */
-    XContentParser createParser(NamedXContentRegistry xContentRegistry,
-            DeprecationHandler deprecationHandler, Reader reader) throws IOException;
 }

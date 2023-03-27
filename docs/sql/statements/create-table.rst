@@ -385,14 +385,17 @@ automatic background refresh.
 The interval of this background refresh is specified in milliseconds using this
 ``refresh_interval`` setting.
 
-The default is ``null``, which causes tables to be refreshed once every second
-(``1000ms``), but only if the table is not idle. A table can become idle if no
+By default it's not specified, which causes tables to be refreshed once every
+second but only if the table is not idle. A table can become idle if no
 query accesses it for more than 30 seconds.
 
 If a table is idle, the periodic refresh is temporarily disabled. A query
 hitting an idle table will trigger a refresh and enable the periodic refresh
 again.
 
+When ``refresh_interval`` is set explicitly, table is refreshed regardless of
+idle state. Use :ref:`ALTER TABLE RESET <sql-alter-table-set-reset>` to switch
+to default 1 second refresh and freeze-on-idle behavior.
 
 :value:
   The refresh interval in milliseconds. A value smaller or equal than 0

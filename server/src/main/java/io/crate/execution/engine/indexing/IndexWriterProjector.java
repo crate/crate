@@ -191,8 +191,7 @@ public class IndexWriterProjector implements Projector {
                     Maps.removeByPath(value, Arrays.asList(path));
                 }
             }
-            try (var stream = new BytesStreamOutput(lastSourceSize)) {
-                XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), stream);
+            try (XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), new BytesStreamOutput(lastSourceSize))) {
                 BytesReference bytes = BytesReference.bytes(xContentBuilder.map(value));
                 lastSourceSize = bytes.length();
                 return bytes.utf8ToString();

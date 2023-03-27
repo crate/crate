@@ -74,6 +74,10 @@ Changes
   function for improved PostgreSQL compatibility. CrateDB does not support
   comments for columns, so this function always returns ``NULL``.
 
+- Improved performance of statements that create multiple partitions at once,
+  which can occur during ``COPY FROM`` or INSERTS with multi-values into
+  partitioned tables.
+
 Fixes
 =====
 
@@ -95,4 +99,9 @@ Fixes
 
     CREATE TABLE t ("OBJ" OBJECT AS (intarray int[]), firstElement AS "OBJ"['intarray'][1]);
     ColumnUnknownException[Column obj['intarray'] unknown]
+
+- Fixed a ``NullPointerException`` which occurs when using NULL as a setting value.
+
+- Fixed a resource leak that could happen when inserting data which causes
+  constraints violation or parsing errors.
 
