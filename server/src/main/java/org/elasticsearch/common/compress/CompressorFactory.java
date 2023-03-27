@@ -19,13 +19,16 @@
 
 package org.elasticsearch.common.compress;
 
-import javax.annotation.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-
 import java.io.IOException;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentType;
+
+import com.fasterxml.jackson.dataformat.smile.SmileConstants;
 
 public class CompressorFactory {
 
@@ -37,10 +40,10 @@ public class CompressorFactory {
             // bytes should be either detected as compressed or as xcontent,
             // if we have bytes that can be either detected as compressed or
             // as a xcontent, we have a problem
-            assert XContentHelper.xContentType(bytes) == null;
+            assert xContentType(bytes) == null;
             return COMPRESSOR;
         }
-        XContentType contentType = XContentHelper.xContentType(bytes);
+        XContentType contentType = xContentType(bytes);
         if (contentType == null) {
             if (isAncient(bytes)) {
                 throw new IllegalStateException(
@@ -50,6 +53,54 @@ public class CompressorFactory {
             throw new NotXContentException(
                 "Compressor detection can only be called on some xcontent bytes or compressed xcontent bytes"
             );
+        }
+        return null;
+    }
+
+    /**
+     * Guesses the content type based on the provided bytes.
+     *
+     */
+    private static XContentType xContentType(BytesReference bytesReference) {
+        BytesRef br = bytesReference.toBytesRef();
+        byte[] bytes = br.bytes;
+        int offset = br.offset;
+        int length = br.length;
+        int totalLength = bytes.length;
+        if (totalLength == 0 || length == 0) {
+            return null;
+        } else if ((offset + length) > totalLength) {
+            return null;
+        }
+        byte first = bytes[offset];
+        if (first == '{') {
+            return XContentType.JSON;
+        }
+        if (length > 2
+                && first == SmileConstants.HEADER_BYTE_1
+                && bytes[offset + 1] == SmileConstants.HEADER_BYTE_2
+                && bytes[offset + 2] == SmileConstants.HEADER_BYTE_3) {
+            return XContentType.SMILE;
+        }
+        if (length > 2 && first == '-' && bytes[offset + 1] == '-' && bytes[offset + 2] == '-') {
+            return XContentType.YAML;
+        }
+
+        int jsonStart = 0;
+        // JSON may be preceded by UTF-8 BOM
+        if (length > 3 && first == (byte) 0xEF && bytes[offset + 1] == (byte) 0xBB && bytes[offset + 2] == (byte) 0xBF) {
+            jsonStart = 3;
+        }
+
+        // a last chance for JSON
+        for (int i = jsonStart; i < length; i++) {
+            byte b = bytes[offset + i];
+            if (b == '{') {
+                return XContentType.JSON;
+            }
+            if (Character.isWhitespace(b) == false) {
+                break;
+            }
         }
         return null;
     }

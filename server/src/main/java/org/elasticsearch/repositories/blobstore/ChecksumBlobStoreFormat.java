@@ -159,7 +159,7 @@ public final class ChecksumBlobStoreFormat<T extends ToXContent> {
                         // this is important since some of the XContentBuilders write bytes on close.
                         // in order to write the footer we need to prevent closing the actual index input.
                     }
-                }; XContentBuilder builder = XContentFactory.contentBuilder(XContentType.SMILE,
+                }; XContentBuilder builder = XContentFactory.builder(XContentType.SMILE,
                         compress ? CompressorFactory.COMPRESSOR.threadLocalOutputStream(indexOutputOutputStream)
                                 : indexOutputOutputStream)) {
                     builder.startObject();

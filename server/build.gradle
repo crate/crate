@@ -109,6 +109,7 @@ dependencies {
     implementation "joda-time:joda-time:${versions.jodatime}"
     implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     implementation "org.apache.commons:commons-math3:${versions.commonsmath}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${versions.jackson}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
     // Needed by aws-java-sdk-s3 in Java 9

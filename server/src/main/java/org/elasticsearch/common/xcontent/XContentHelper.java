@@ -29,9 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
-
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.Compressor;
@@ -88,13 +85,13 @@ public class XContentHelper {
     /**
      * Converts the given bytes into a map that is optionally ordered.
      */
-    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, @Nullable XContentType xContentType)
+    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, XContentType xContentType)
         throws ElasticsearchParseException {
         try {
-            final XContentType contentType;
             try (InputStream input = getUncompressedInputStream(bytes)) {
-                contentType = xContentType != null ? xContentType : XContentFactory.xContentType(input);
-                return new ParsedXContent(Objects.requireNonNull(contentType), convertToMap(XContentFactory.xContent(contentType), input, ordered));
+                return new ParsedXContent(
+                    xContentType,
+                    convertToMap(XContentFactory.xContent(xContentType), input, ordered));
             }
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);
@@ -229,7 +226,7 @@ public class XContentHelper {
             if (!(o instanceof Map)) {
                 return false;
             }
-            if (((Map) o).size() != 1) {
+            if (((Map<?, ?>) o).size() != 1) {
                 return false;
             }
         }
@@ -253,18 +250,5 @@ public class XContentHelper {
             }
             return BytesReference.bytes(builder);
         }
-    }
-
-    /**
-     * Guesses the content type based on the provided bytes.
-     *
-     * @deprecated the content type should not be guessed except for few cases where we effectively don't know the content type.
-     * The REST layer should move to reading the Content-Type header instead. There are other places where auto-detection may be needed.
-     * This method is deprecated to prevent usages of it from spreading further without specific reasons.
-     */
-    @Deprecated
-    public static XContentType xContentType(BytesReference bytes) {
-        BytesRef br = bytes.toBytesRef();
-        return XContentFactory.xContentType(br.bytes, br.offset, br.length);
     }
 }
