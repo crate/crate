@@ -68,6 +68,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
     }
 
     @VisibleForTesting
+    @SuppressWarnings("unchecked")
     MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, String indexName, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (mappingMetadata == null) { // blobs have no mappingMetadata
             return null;
@@ -84,6 +85,15 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
 
                 case "_all":
                     break; // `_all` is no longer supported and via CREATE TABLE we always set `_all: {enabled: false}` which is safe to remove.
+
+                case "_meta":
+                    Map<String, Object> meta = (Map<String, Object>) fieldNode;
+                    Map<String, Object> indices = (Map<String, Object>) meta.get("indices");
+                    if (indices != null) {
+                        meta.put("indices",  indices.keySet());
+                        newMapping.put(fieldName, meta);
+                    }
+                    break;
 
                 default:
                     newMapping.put(fieldName, fieldNode);

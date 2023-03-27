@@ -21,9 +21,11 @@
 
 package io.crate.metadata.upgrade;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
+
 
 import java.io.IOException;
 
@@ -80,6 +82,31 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
         MappingMetadata mapping = updatedMetadata.mapping();
         assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}"));
+    }
+
+    @Test
+    public void test_indices_turned_from_map_to_list() throws Throwable {
+        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .putMapping(
+                "{" +
+                    "   \"_meta\": {\"indices\": {\"ft\": {}}}," +
+                    "   \"properties\": {" +
+                    "       \"name\": {" +
+                    "           \"type\": \"keyword\"" +
+                    "       }" +
+                    "   }" +
+                    "}")
+            .build();
+
+        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+
+        MappingMetadata mapping = updatedMetadata.mapping();
+        assertThat(mapping.source().string())
+            .isEqualTo("{\"default\":{\"_meta\":{\"indices\":[\"ft\"]},\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
     }
 
     @Test

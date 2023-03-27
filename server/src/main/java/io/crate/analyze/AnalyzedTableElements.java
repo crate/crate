@@ -123,11 +123,11 @@ public class AnalyzedTableElements<T> {
         final Map<String, Object> properties = new HashMap<>(elements.columns.size());
 
         Map<String, String> generatedColumns = new HashMap<>();
-        Map<String, Object> indicesMap = new HashMap<>();
+        List<String> indices = new ArrayList<>();
         for (AnalyzedColumnDefinition<Object> column : elements.columns) {
             properties.put(column.name(), AnalyzedColumnDefinition.toMapping(column));
             if (column.isIndexColumn()) {
-                indicesMap.put(column.name(), column.toMetaIndicesMapping());
+                indices.add(column.name());
             }
             addToGeneratedColumns("", column, generatedColumns);
         }
@@ -135,8 +135,8 @@ public class AnalyzedTableElements<T> {
         if (!elements.partitionedByColumns.isEmpty()) {
             meta.put("partitioned_by", elements.partitionedBy());
         }
-        if (!indicesMap.isEmpty()) {
-            meta.put("indices", indicesMap);
+        if (!indices.isEmpty()) {
+            meta.put("indices", indices);
         }
         if (!primaryKeys(elements).isEmpty()) {
             meta.put("primary_keys", primaryKeys(elements));

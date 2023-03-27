@@ -35,9 +35,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.metadata.RelationName;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.VersionUtils;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -58,6 +62,34 @@ public class IndexTemplateUpgraderTest {
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
         assertThat(upgradedTemplates.get(TEMPLATE_NAME), Matchers.nullValue());
+    }
+
+    @Test
+    public void test_indices_turned_from_map_to_list() throws Throwable {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(
+                "{" +
+                    "   \"default\": {" +
+                    "       \"_meta\": {\"indices\": {\"ft\": {}}}," +
+                    "       \"properties\": {" +
+                    "           \"name\": {" +
+                    "               \"type\": \"keyword\"" +
+                    "           }" +
+                    "       }" +
+                    "   }" +
+                    "}")
+            .build();
+
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetadata updatedTemplate = result.get(templateName);
+
+        CompressedXContent compressedXContent = updatedTemplate.mapping();
+        assertThat(compressedXContent.string())
+            .isEqualTo("{\"default\":{\"_meta\":{\"indices\":[\"ft\"]},\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}");
     }
 
     @Test

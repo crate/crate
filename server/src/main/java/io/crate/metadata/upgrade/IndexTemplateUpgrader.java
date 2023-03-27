@@ -72,6 +72,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
      * by {@link IndexTemplateMetadata.Builder#fromXContent} logic to prefix all settings with `index.` when applying
      * the new cluster state.
      */
+    @SuppressWarnings("unchecked")
     private HashMap<String, IndexTemplateMetadata> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetadata> templates) {
         HashMap<String, IndexTemplateMetadata> upgradedTemplates = new HashMap<>(templates.size());
         for (Map.Entry<String, IndexTemplateMetadata> entry : templates.entrySet()) {
@@ -101,6 +102,13 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                     // Support for `_all` was removed (in favour of `copy_to`.
                     // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
                     defaultMapping.remove("_all");
+                    updated = true;
+                }
+                Map<String, Object> meta = (Map<String, Object>) defaultMapping.get("_meta");
+                Map<String, Object> indices = meta != null ? (Map<String, Object>) meta.get("indices") : null;
+                if (indices != null) {
+                    meta.put("indices",  indices.keySet());
+                    defaultMapping.put("_meta", meta);
                     updated = true;
                 }
                 if (updated) {

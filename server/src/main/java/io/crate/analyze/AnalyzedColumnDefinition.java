@@ -535,10 +535,6 @@ public class AnalyzedColumnDefinition<T> {
         return isNotNull;
     }
 
-    Map<String, Object> toMetaIndicesMapping() {
-        return Map.of();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

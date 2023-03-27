@@ -115,7 +115,7 @@ public class DocIndexMetadata {
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final Settings tableParameters;
-    private final Map<String, Object> indicesMap;
+    private final List<String> ftIndices;
     private final List<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
     private Map<ColumnIdent, IndexReference> indices;
@@ -153,7 +153,7 @@ public class DocIndexMetadata {
         this.tableParameters = metadata.getSettings();
 
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
-        indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
+        ftIndices = Maps.getOrDefault(metaMap, "indices", List.of());
         List<List<String>> partitionedByList = Maps.getOrDefault(metaMap, "partitioned_by", List.of());
         this.partitionedBy = getPartitionedBy(partitionedByList);
         generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
@@ -514,7 +514,7 @@ public class DocIndexMetadata {
                     }
                 }
                 // is it an index?
-                if (indicesMap.containsKey(newIdent.fqn())) {
+                if (ftIndices.contains(newIdent.fqn())) {
                     IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));

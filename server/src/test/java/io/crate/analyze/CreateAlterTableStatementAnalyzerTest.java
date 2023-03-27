@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -30,7 +31,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
@@ -775,18 +775,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             ")");
         Map<String, Object> metaMap = (Map) analysis.mapping().get("_meta");
         assertThat(
-            metaMap.get("indices").toString(),
-            is("{ft={}}"));
+            metaMap.get("indices").toString()).isEqualTo("[ft]");
         assertThat(
             (List<String>) ((Map<String, Object>) analysis.mappingProperties()
-                .get("title")).get("copy_to"),
-            hasItem("ft")
-        );
+            .get("title"))
+            .get("copy_to")).containsExactly("ft");
         assertThat(
             (List<String>) ((Map<String, Object>) analysis.mappingProperties()
-                .get("name")).get("copy_to"),
-            hasItem("ft"));
-
+                .get("name"))
+                .get("copy_to")).containsExactly("ft");
     }
 
     @Test(expected = ColumnUnknownException.class)
