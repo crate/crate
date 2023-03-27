@@ -216,6 +216,7 @@ import io.crate.testing.TestExecutionConfig;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.user.User;
@@ -1698,7 +1699,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args) {
         try {
-            SQLResponse response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
             this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
@@ -1718,7 +1719,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
         try {
-            SQLResponse response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args, timeout);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
             this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
@@ -2021,6 +2022,14 @@ public abstract class IntegTestCase extends ESTestCase {
         return sqlOperations.createSession(defaultSchema, User.CRATE_USER);
     }
 
+    private TestExecutionConfig testExecutionConfig() {
+        var randomizedRulesConfig = randomizedRulesConfig();
+        return new TestExecutionConfig(isJdbcEnabled(),
+                                       isHashJoinEnabled(),
+                                       randomizedRulesConfig.enabled,
+                                       randomizedRulesConfig.rulesToKeep);
+    }
+
     /**
      * If the Test class or method contains a @UseJdbc annotation then,
      * based on the ratio provided, a random value of true or false is returned.
@@ -2050,6 +2059,22 @@ public abstract class IntegTestCase extends ESTestCase {
         }
         return isFeatureEnabled(useHashJoins.value());
     }
+
+    private RandomizedRulesConfig randomizedRulesConfig() {
+        var useRandomizedOptimizerRules = getTestAnnotation(UseRandomizedOptimizerRules.class);
+        var enabled = false;
+        List<Class<? extends io.crate.planner.optimizer.Rule<?>>> rulesToKeep = List.of();
+        if (useRandomizedOptimizerRules != null) {
+            enabled = isFeatureEnabled(useRandomizedOptimizerRules.value());
+            if (enabled) {
+                rulesToKeep = Arrays.asList(useRandomizedOptimizerRules.alwaysKeep());
+            }
+        }
+        return new RandomizedRulesConfig(enabled, rulesToKeep);
+    }
+
+    private record RandomizedRulesConfig(boolean enabled, List<Class<? extends io.crate.planner.optimizer.Rule<?>>> rulesToKeep) {}
+
 
     /**
      * Checks if the current test method or test class is annotated with the provided {@param annotationClass}
