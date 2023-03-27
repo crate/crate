@@ -42,26 +42,6 @@ import org.elasticsearch.common.xcontent.ToXContent.Params;
 public class XContentHelper {
 
     /**
-     * Creates a parser based on the bytes provided
-     * @deprecated use {@link #createParser(NamedXContentRegistry, DeprecationHandler, BytesReference, XContentType)} to avoid content type auto-detection
-     */
-    @Deprecated
-    public static XContentParser createParser(NamedXContentRegistry xContentRegistry, DeprecationHandler deprecationHandler,
-                                              BytesReference bytes) throws IOException {
-        Compressor compressor = CompressorFactory.compressor(bytes);
-        if (compressor != null) {
-            InputStream compressedInput = compressor.threadLocalInputStream(bytes.streamInput());
-            if (compressedInput.markSupported() == false) {
-                compressedInput = new BufferedInputStream(compressedInput);
-            }
-            final XContentType contentType = XContentFactory.xContentType(compressedInput);
-            return XContentFactory.xContent(contentType).createParser(xContentRegistry, deprecationHandler, compressedInput);
-        } else {
-            return XContentFactory.xContent(xContentType(bytes)).createParser(xContentRegistry, deprecationHandler, bytes.streamInput());
-        }
-    }
-
-    /**
      * Creates a parser for the bytes using the supplied content-type
      */
     public static XContentParser createParser(NamedXContentRegistry xContentRegistry, DeprecationHandler deprecationHandler,
