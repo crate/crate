@@ -42,9 +42,9 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -105,7 +105,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 }
                 if (updated) {
                     builder.putMapping(
-                        new CompressedXContent(BytesReference.bytes(XContentFactory.jsonBuilder().value(mappingSource))));
+                        new CompressedXContent(BytesReference.bytes(JsonXContent.builder().value(mappingSource))));
                 } else {
                     builder.putMapping(templateMetadata.mapping());
                 }

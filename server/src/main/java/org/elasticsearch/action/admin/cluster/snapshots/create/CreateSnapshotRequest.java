@@ -41,8 +41,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Create snapshot request
@@ -326,7 +326,7 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      */
     public CreateSnapshotRequest settings(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             settings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {

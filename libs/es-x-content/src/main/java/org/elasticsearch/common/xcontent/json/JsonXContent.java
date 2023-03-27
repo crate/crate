@@ -45,10 +45,6 @@ import com.fasterxml.jackson.core.json.JsonWriteFeature;
  */
 public class JsonXContent implements XContent {
 
-    public static XContentBuilder contentBuilder() throws IOException {
-        return XContentBuilder.builder(JSON_XCONTENT);
-    }
-
     private static final JsonFactory JSON_FACTORY = new JsonFactoryBuilder()
         .configure(JsonWriteFeature.QUOTE_FIELD_NAMES, true)
         .configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true)
@@ -59,6 +55,10 @@ public class JsonXContent implements XContent {
         .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled())
         .build();
     public static final JsonXContent JSON_XCONTENT = new JsonXContent();
+
+    public static XContentBuilder builder() throws IOException {
+        return XContentBuilder.builder(JSON_XCONTENT);
+    }
 
     private JsonXContent() {
     }

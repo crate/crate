@@ -27,7 +27,6 @@ import java.util.Map;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -72,7 +71,7 @@ public final class SQLRequestParser {
         XContentParser parser = null;
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
-            parser = XContentFactory.xContent(XContentType.JSON).createParser(
+            parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, source.streamInput());
             parse(parseContext, parser);
             validate(parseContext);

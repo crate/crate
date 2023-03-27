@@ -89,7 +89,7 @@ class JsonType extends PGType<Object> {
             return str.getBytes(StandardCharsets.UTF_8);
         }
         try {
-            XContentBuilder builder = JsonXContent.contentBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             if (value instanceof List<?> values) {
                 builder.startArray();
                 for (Object o : values) {

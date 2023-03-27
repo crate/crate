@@ -42,7 +42,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.locationtech.spatial4j.shape.Point;
@@ -213,9 +212,9 @@ public class ArrayType<T> extends DataType<List<T>> {
                 //noinspection unchecked
                 return
                     Strings.toString(
-                        XContentFactory.jsonBuilder().map((Map<String, ?>) value));
+                        JsonXContent.builder().map((Map<String, ?>) value));
             } else if (value instanceof Collection) {
-                var array = XContentFactory.jsonBuilder().startArray();
+                var array = JsonXContent.builder().startArray();
                 for (var element : (Collection<?>) value) {
                     array.value(element);
                 }

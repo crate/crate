@@ -19,6 +19,9 @@
 
 package org.elasticsearch.common.geo;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.util.SloppyMath;
@@ -31,9 +34,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 public class GeoUtils {
 
@@ -232,7 +232,7 @@ public class GeoUtils {
      */
     public static GeoPoint parseGeoPoint(Object value, final boolean ignoreZValue) throws ElasticsearchParseException {
         try {
-            XContentBuilder content = JsonXContent.contentBuilder();
+            XContentBuilder content = JsonXContent.builder();
             content.startObject();
             content.field("null_value", value);
             content.endObject();

@@ -56,9 +56,9 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.common.Booleans;
 import io.crate.common.StringUtils;
@@ -1001,7 +1001,7 @@ public class Setting<T> implements ToXContentObject {
         public String innerGetRaw(final Settings settings) {
             Settings subSettings = get(settings);
             try {
-                XContentBuilder builder = XContentFactory.jsonBuilder();
+                XContentBuilder builder = JsonXContent.builder();
                 builder.startObject();
                 subSettings.toXContent(builder, EMPTY_PARAMS);
                 builder.endObject();

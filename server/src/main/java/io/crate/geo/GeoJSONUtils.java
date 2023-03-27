@@ -21,14 +21,21 @@
 
 package io.crate.geo;
 
-import io.crate.common.collections.ForEach;
-import io.crate.types.GeoPointType;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.locationtech.jts.geom.Coordinate;
@@ -45,15 +52,8 @@ import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.ShapeCollection;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import io.crate.common.collections.ForEach;
+import io.crate.types.GeoPointType;
 
 public class GeoJSONUtils {
 
@@ -131,7 +131,7 @@ public class GeoJSONUtils {
      */
     public static Shape map2Shape(Map<String, Object> geoJSONMap) {
         try {
-            return geoJSONString2Shape(Strings.toString(XContentFactory.jsonBuilder().map(geoJSONMap)));
+            return geoJSONString2Shape(Strings.toString(JsonXContent.builder().map(geoJSONMap)));
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert Map \"%s\" to shape", geoJSONMap), e);

@@ -122,7 +122,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.http.HttpTransportSettings;
@@ -1895,7 +1895,7 @@ public abstract class IntegTestCase extends ESTestCase {
         ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+        XContentBuilder builder = JsonXContent.builder().startObject();
 
         IndexMetadata indexMetadata = metadata.iterator().next();
         builder.field(Constants.DEFAULT_MAPPING_TYPE);
@@ -1977,7 +1977,7 @@ public abstract class IntegTestCase extends ESTestCase {
         ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+        XContentBuilder builder = JsonXContent.builder().startObject();
 
         for (IndexMetadata indexMetadata : metadata) {
             builder.startObject(indexMetadata.getIndex().getName());
