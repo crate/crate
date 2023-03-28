@@ -105,6 +105,13 @@ Fixes
 - Fixed a race condition that could lead to a ``ShardNotFoundException`` when
   executing ``UPDATE`` statements.
 
+- Fixed an issue that caused a subset of a ``WHERE`` clause to be lost from a
+  ``JOIN`` statement. The first trigger condition was using a column by itself
+  as a boolean expression. For example from ``WHERE NOT b AND c`` the column
+  ``c`` representing a boolean expression ``c = TRUE`` overrode ``NOT b``. The
+  second trigger condition was :ref:`MATCH predicate <predicates_match>`
+  which also overrode preceding ``WHERE`` conditions.
+
 - Fixed an issue that caused a ``ColumnUnknownException`` when creating a table
   with a ``generated column`` involving a subscript expression with a root
   column name containing upper cases.
