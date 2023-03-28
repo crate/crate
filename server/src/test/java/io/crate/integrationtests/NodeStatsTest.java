@@ -48,6 +48,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
@@ -250,10 +251,11 @@ public class NodeStatsTest extends IntegTestCase {
         assertEquals(Constants.OS_VERSION, results.get("version"));
 
         Map<String, Object> jvmObj = new HashMap<>(4);
-        jvmObj.put("version", Constants.JAVA_VERSION);
+        java.lang.Runtime.Version version = Runtime.version();
+        jvmObj.put("version", Lists2.joinOn(".", version.version(), num -> Integer.toString(num)));
         jvmObj.put("vm_name", Constants.JVM_NAME);
         jvmObj.put("vm_vendor", Constants.JVM_VENDOR);
-        jvmObj.put("vm_version", Constants.JVM_VERSION);
+        jvmObj.put("vm_version", version.toString());
         assertEquals(jvmObj, results.get("jvm"));
     }
 
