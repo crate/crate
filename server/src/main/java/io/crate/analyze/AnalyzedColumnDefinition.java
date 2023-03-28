@@ -637,4 +637,8 @@ public class AnalyzedColumnDefinition<T> {
     public boolean docValues() {
         return docValues;
     }
+
+    public List<String> copyTo() {
+        return copyToTargets;
+    }
 }

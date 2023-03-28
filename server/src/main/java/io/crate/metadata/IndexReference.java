@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -83,14 +84,18 @@ public class IndexReference extends SimpleReference {
     @Nullable
     private final String analyzer;
     private final List<Reference> columns;
+    private List<String> columnFqns;
 
     public IndexReference(StreamInput in) throws IOException {
         super(in);
         analyzer = in.readOptionalString();
         int size = in.readVInt();
         columns = new ArrayList<>(size);
+        columnFqns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            columns.add(Reference.fromStream(in));
+            var ref = Reference.fromStream(in);
+            columns.add(ref);
+            columnFqns.add(ref.column().sqlFqn());
         }
     }
 
@@ -101,6 +106,7 @@ public class IndexReference extends SimpleReference {
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
         this.columns = columns;
+        this.columnFqns = columns.stream().map(ref -> ref.column().sqlFqn()).collect(Collectors.toList());
         this.analyzer = analyzer;
     }
 
@@ -113,6 +119,7 @@ public class IndexReference extends SimpleReference {
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, nullable, hasDocValues, position, null);
         this.columns = columns;
+        this.columnFqns = columns.stream().map(ref -> ref.column().sqlFqn()).collect(Collectors.toList());
         this.analyzer = analyzer;
     }
 
@@ -138,11 +145,20 @@ public class IndexReference extends SimpleReference {
               defaultExpression
         );
         this.columns = columns;
+        this.columnFqns = columns.stream().map(ref -> ref.column().sqlFqn()).collect(Collectors.toList());
         this.analyzer = analyzer;
     }
 
     public List<Reference> columns() {
         return columns;
+    }
+
+    public List<String> columnNames() {
+        return columnFqns;
+    }
+
+    public void columnNames(List<String> columnNames) {
+        this.columnFqns = columnNames;
     }
 
     @Nullable
@@ -209,6 +225,10 @@ public class IndexReference extends SimpleReference {
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
             mapping.put("type", "text");
+        }
+        if (columnFqns != null && columnFqns.isEmpty() == false) {
+            // Relevant only for CREATE TABLE case
+            mapping.put("copy_to", columnFqns);
         }
         return mapping;
     }

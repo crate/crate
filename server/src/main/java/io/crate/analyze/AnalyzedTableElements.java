@@ -509,9 +509,10 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.docValues(),
                 columnDefinition.position,
                 (Symbol) columnDefinition.defaultExpression(),
-                null,
+                null, // set below via setter
                 columnDefinition.analyzer()
             );
+            ((IndexReference)ref).columnNames(columnDefinition.copyTo());
         } else {
             ref = new SimpleReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
