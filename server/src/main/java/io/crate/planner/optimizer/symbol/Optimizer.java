@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.crate.expression.symbol.AliasResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -35,6 +34,7 @@ import org.elasticsearch.Version;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -113,23 +113,17 @@ public class Optimizer {
         while (!done && numIterations < 10_000) {
             done = true;
             Version minVersion = minNodeVersionInCluster.get();
-            for (Rule rule : rules) {
+            for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty());
-                if (match.isPresent()) {
+                Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
+                if (transformed != null) {
                     if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the symbol");
                     }
-                    Symbol transformedNode = rule.apply(match.value(), match.captures(), nodeCtx, visitor.getParentFunction());
-                    if (transformedNode != null) {
-                        if (isTraceEnabled) {
-                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the symbol");
-                        }
-                        node = transformedNode;
-                        done = false;
-                    }
+                    node = transformed;
+                    done = false;
                 }
             }
             numIterations++;
@@ -137,6 +131,17 @@ public class Optimizer {
         assert numIterations < 10_000
             : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
         return node;
+    }
+
+    private <T> Symbol tryMatchAndApply(Rule<T> rule, Symbol node, NodeContext nodeCtx) {
+        Match<T> match = rule.pattern().accept(node, Captures.empty());
+        if (match.isPresent()) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+            }
+            return rule.apply(match.value(), match.captures(), nodeCtx, visitor.getParentFunction());
+        }
+        return null;
     }
 
     private class Visitor extends FunctionCopyVisitor<Void> {

@@ -21,6 +21,18 @@
 
 package io.crate.planner.optimizer;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -29,15 +41,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class Optimizer {
 
@@ -92,28 +95,21 @@ public class Optimizer {
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
         int numIterations = 0;
+        Function<LogicalPlan, LogicalPlan> resolvePlan = Function.identity();
+        Version minVersion = minNodeVersionInCluster.get();
         while (!done && numIterations < 10_000) {
             done = true;
-            Version minVersion = minNodeVersionInCluster.get();
-            for (Rule rule : rules) {
+            for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty());
-                if (match.isPresent()) {
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, tableStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                if (transformedPlan != null) {
                     if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
                     }
-                    @SuppressWarnings("unchecked")
-                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx,
-                                                             Function.identity());
-                    if (transformedPlan != null) {
-                        if (isTraceEnabled) {
-                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                        }
-                        node = transformedPlan;
-                        done = false;
-                    }
+                    node = transformedPlan;
+                    done = false;
                 }
             }
             numIterations++;
@@ -121,5 +117,23 @@ public class Optimizer {
         assert numIterations < 10_000
             : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
         return node;
+    }
+
+    @Nullable
+    public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
+                                                   LogicalPlan node,
+                                                   TableStats tableStats,
+                                                   NodeContext nodeCtx,
+                                                   TransactionContext txnCtx,
+                                                   Function<LogicalPlan, LogicalPlan> resolvePlan,
+                                                   boolean traceEnabled) {
+        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
+        if (match.isPresent()) {
+            if (traceEnabled) {
+                LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+            }
+            return rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx, resolvePlan);
+        }
+        return null;
     }
 }
