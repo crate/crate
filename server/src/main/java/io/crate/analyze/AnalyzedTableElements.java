@@ -36,6 +36,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
@@ -391,6 +392,7 @@ public class AnalyzedTableElements<T> {
                 generatedExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
+                columnDefinitionEvaluated::generatedExpression,
                 columnDefinitionEvaluated::formattedGeneratedExpression);
         }
         Symbol defaultExpression = columnDefinitionWithExpressionSymbols.defaultExpression();
@@ -404,6 +406,7 @@ public class AnalyzedTableElements<T> {
                 defaultExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
+                columnDefinitionEvaluated::defaultExpression,
                 columnDefinitionEvaluated::formattedDefaultExpression);
         }
         for (int i = 0; i < columnDefinitionWithExpressionSymbols.children().size(); i++) {
@@ -417,6 +420,7 @@ public class AnalyzedTableElements<T> {
     private static void validateAndFormatExpression(Symbol function,
                                                     AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
                                                     AnalyzedColumnDefinition<Object> columnDefinitionEvaluated,
+                                                    Consumer<Symbol> expressionConsumer,
                                                     Consumer<String> formattedExpressionConsumer) {
         String formattedExpression;
         DataType<?> valueType = function.valueType();
@@ -453,6 +457,9 @@ public class AnalyzedTableElements<T> {
             formattedExpression = function.toString(Style.UNQUALIFIED);
         }
         formattedExpressionConsumer.accept(formattedExpression);
+        // Let evaluated version have not only formatted default/generated expressions but also not-null symbol versions.
+        // It's needed when we construct Reference from AnalyzedColumnDefinition to create AddColumnRequest
+        expressionConsumer.accept(function);
     }
 
     public static <T> void buildReference(RelationName relationName,
@@ -471,34 +478,38 @@ public class AnalyzedTableElements<T> {
         if (bound && type.id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
-                // applySettings validates geo properties.
-                // If this method called from CreateTablePlan geoProperties are not yet resolved, they are still Literals. No need to validate, it will be done later.
-                // In case of ADD COLUMN we have to validate geo properties.
                 GeoSettingsApplier.applySettings(geoMap, (GenericProperties<Object>) columnDefinition.geoProperties(), columnDefinition.geoTree());
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
+            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new GeoReference(
-                columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                isNullable,
+                RowGranularity.DOC,
                 realType,
+                ColumnPolicy.STRICT, // Use relevant for non-object field value.
+                IndexType.PLAIN,
+                isNullable,
+                columnDefinition.docValues(),
+                columnDefinition.position,
+                (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
                 (Integer) geoMap.get("tree_levels"),
                 distError != null ? distError.doubleValue() : null
             );
         } else if (bound && columnDefinition.analyzer() != null) {
-            // We are sending IndexReference since it's the only Reference implementation having 'analyzer'.
-            // However, IndexReference is dedicated to reflect index declaration like 'INDEX some_index using fulltext(some_col) with (analyzer = 'english')'
-            // Hence, we ignore copyTo which is irrelevant for ADD COLUMN.
-            // columnDefinition.isIndexColumn() cannot be used here, it's always false for ADD COLUMN.
+            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new IndexReference(
-                columnDefinition.position,
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                ColumnPolicy.STRICT, // Use relevant for non-object field value.
+                columnDefinition.indexConstraint(),
                 isNullable,
                 columnDefinition.docValues(),
-                new ReferenceIdent(relationName, columnDefinition.ident()),
-                columnDefinition.indexConstraint(),
-                List.of(), //copyTo is irrelevant for ADD COLUMN
+                columnDefinition.position,
+                (Symbol) columnDefinition.defaultExpression(),
+                null,
                 columnDefinition.analyzer()
             );
         } else {
@@ -511,7 +522,7 @@ public class AnalyzedTableElements<T> {
                 isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
-                null // not required in this context
+                (Symbol) columnDefinition.defaultExpression()
             );
         }
 
