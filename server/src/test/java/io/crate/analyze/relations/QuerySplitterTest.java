@@ -23,17 +23,25 @@ package io.crate.analyze.relations;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.DataTypes;
 
 
 public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
@@ -113,5 +121,31 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(split).containsExactlyInAnyOrderEntriesOf(Map.of(
             Set.of(tr1, tr2), t1t2,
             Set.of(tr1, tr2, tr3), t1t2t3));
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/13888
+     */
+    @Test
+    public void test_can_split_query_consist_of_multiple_types() {
+        Symbol bool_a = new SimpleReference(
+            new ReferenceIdent(tr1, "a"),
+            RowGranularity.DOC,
+            DataTypes.BOOLEAN,
+            0,
+            null
+        );
+        Symbol bool_b = new SimpleReference(
+            new ReferenceIdent(tr1, "b"),
+            RowGranularity.DOC,
+            DataTypes.BOOLEAN,
+            1,
+            null
+        );
+        ScopedSymbol scopedSymbol = new ScopedSymbol(tr1, new ColumnIdent("c"), DataTypes.BOOLEAN);
+        Symbol matchPredicate = asSymbol("Match(t1.a, 'abc')");
+
+        Symbol query = AndOperator.join(List.of(bool_a, bool_b, scopedSymbol, matchPredicate));
+        assertThat(QuerySplitter.split(query)).containsExactlyEntriesOf(Map.of(Set.of(tr1), query));
     }
 }
