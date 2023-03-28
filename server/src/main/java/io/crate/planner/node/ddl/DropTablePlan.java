@@ -21,12 +21,19 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.index.IndexNotFoundException;
+
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -34,13 +41,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.index.IndexNotFoundException;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class DropTablePlan implements Plan {
 
@@ -93,23 +93,20 @@ public class DropTablePlan implements Plan {
             boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
             request = new DropTableRequest(table.ident(), isPartitioned);
         }
-        dependencies.transportDropTableAction().execute(request, new ActionListener<>() {
-            @Override
-            public void onResponse(AcknowledgedResponse response) {
+        dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
+            if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
                     if (LOGGER.isWarnEnabled()) {
                         LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", dropTable.tableName());
                     }
                 }
                 consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                if (dropTable.dropIfExists() && e instanceof IndexNotFoundException) {
+            } else {
+                err = SQLExceptions.unwrap(err);
+                if (dropTable.dropIfExists() && err instanceof IndexNotFoundException) {
                     consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
                 } else {
-                    consumer.accept(null, e);
+                    consumer.accept(null, err);
                 }
             }
         });

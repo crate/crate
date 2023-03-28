@@ -301,7 +301,7 @@ public abstract class TransportReplicationAction<
     }
 
     protected void handleOperationRequest(final Request request, final TransportChannel channel) {
-        execute(request, new ChannelActionListener<>(channel, actionName, request));
+        execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
     }
 
     protected void handlePrimaryRequest(final ConcreteShardRequest<Request> request, final TransportChannel channel) {

@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.ddl;
 
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -31,7 +33,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 public class DropFunctionPlan implements Plan {
 
@@ -58,6 +59,6 @@ public class DropFunctionPlan implements Plan {
             analyzedDropFunction.ifExists()
         );
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, r -> new Row1(1L));
-        dependencies.dropFunctionAction().execute(request, listener);
+        dependencies.dropFunctionAction().execute(request).whenComplete(listener);
     }
 }
