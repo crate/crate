@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -102,11 +101,8 @@ public class QuerySplitter {
     private static class SplitVisitor extends SymbolVisitor<Context, Void> {
 
         @Override
-        public Void visitLiteral(Literal literal, Context ctx) {
-            Symbol prevQuery = ctx.parts.put(ctx.allNames, literal);
-            if (prevQuery != null) {
-                ctx.parts.put(ctx.allNames, AndOperator.of(prevQuery, literal));
-            }
+        public Void visitLiteral(Literal<?> literal, Context ctx) {
+            ctx.parts.merge(ctx.allNames, literal, AndOperator::of);
             return null;
         }
 
@@ -116,10 +112,7 @@ public class QuerySplitter {
             assert signature != null : "Expecting functions signature not to be null";
             if (!signature.equals(AndOperator.SIGNATURE)) {
                 Set<RelationName> qualifiedNames = RelationNameCollector.collect(function);
-                Symbol prevQuery = ctx.parts.put(qualifiedNames, function);
-                if (prevQuery != null) {
-                    ctx.parts.put(qualifiedNames, AndOperator.of(prevQuery, function));
-                }
+                ctx.parts.merge(qualifiedNames, function, AndOperator::of);
                 return null;
             }
             for (Symbol arg : function.arguments()) {
@@ -130,13 +123,13 @@ public class QuerySplitter {
 
         @Override
         public Void visitField(ScopedSymbol field, Context ctx) {
-            ctx.parts.put(Collections.singleton(field.relation()), field);
+            ctx.parts.merge(Set.of(field.relation()), field, AndOperator::of);
             return null;
         }
 
         @Override
         public Void visitReference(Reference ref, Context ctx) {
-            ctx.parts.put(Set.of(ref.ident().tableIdent()), ref);
+            ctx.parts.merge(Set.of(ref.ident().tableIdent()), ref, AndOperator::of);
             return null;
         }
 
@@ -150,7 +143,7 @@ public class QuerySplitter {
                     relationNames.add(ref.ident().tableIdent());
                 }
             }
-            ctx.parts.put(relationNames, matchPredicate);
+            ctx.parts.merge(relationNames, matchPredicate, AndOperator::of);
             return null;
         }
     }
