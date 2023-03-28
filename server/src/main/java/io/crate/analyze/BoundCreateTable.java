@@ -139,6 +139,10 @@ public class BoundCreateTable {
         return relationName;
     }
 
+    public String routingColumn() {
+        return routingColumn.sqlFqn();
+    }
+
     /**
      * return true if a columnDefinition with name <code>columnIdent</code> exists
      */
@@ -147,7 +151,7 @@ public class BoundCreateTable {
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    AnalyzedTableElements<Object> analyzedTableElements() {
+    public AnalyzedTableElements<Object> analyzedTableElements() {
         return analyzedTableElements;
     }
 

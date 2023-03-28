@@ -26,9 +26,11 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import io.crate.planner.PlannerContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -38,6 +40,8 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
+
+import static io.crate.planner.node.ddl.AlterTableAddColumnPlan.createRequest;
 
 @Singleton
 public class TableCreator {
@@ -51,17 +55,32 @@ public class TableCreator {
         this.transportCreateTableAction = transportCreateIndexAction;
     }
 
-    public CompletableFuture<Long> create(BoundCreateTable createTable) {
+    public CompletableFuture<Long> create(BoundCreateTable createTable, Version minNodeVersion) {
         var templateName = createTable.templateName();
         var relationName = createTable.tableIdent();
-        var createTableRequest = templateName == null
-            ? new CreateTableRequest(
+        CreateTableRequest createTableRequest;
+
+
+        if (minNodeVersion.onOrAfter(Version.V_5_3_0)) {
+            AddColumnRequest addColumnRequest = createRequest(createTable.analyzedTableElements(), relationName);
+            createTableRequest = new CreateTableRequest(
+                addColumnRequest,
+                createTable.tableParameter().settings(),
+                createTable.routingColumn(),
+                (String) createTable.tableParameter().mappings().get("column_policy"),
+                createTable.partitionedBy(),
+                createTable.analyzedTableElements().indicesMap()
+            );
+
+        } else {
+            createTableRequest = templateName == null
+                ? new CreateTableRequest(
                 new CreateIndexRequest(
                     relationName.indexNameOrAlias(),
                     createTable.tableParameter().settings()
                 ).mapping(createTable.mapping())
             )
-            : new CreateTableRequest(
+                : new CreateTableRequest(
                 new PutIndexTemplateRequest(templateName)
                     .mapping(createTable.mapping())
                     .create(true)
@@ -69,7 +88,8 @@ public class TableCreator {
                     .patterns(Collections.singletonList(createTable.templatePrefix()))
                     .order(100)
                     .alias(new Alias(relationName.indexNameOrAlias()))
-        );
+            );
+        }
         return transportCreateTableAction.execute(createTableRequest, resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());

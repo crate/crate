@@ -78,6 +78,7 @@ public class AnalyzedTableElements<T> {
     private Set<ColumnIdent> columnIdents = new HashSet<>();
     private Map<ColumnIdent, DataType> columnTypes = new HashMap<>();
     private Set<String> primaryKeys;
+    Map<String, Object> indicesMap = new HashMap<>();
     private Set<String> notNullColumns;
     private Map<String, String> checkConstraints = new LinkedHashMap<>();
     private List<List<String>> partitionedBy;
@@ -123,11 +124,11 @@ public class AnalyzedTableElements<T> {
         final Map<String, Object> properties = new HashMap<>(elements.columns.size());
 
         Map<String, String> generatedColumns = new HashMap<>();
-        Map<String, Object> indicesMap = new HashMap<>();
+
         for (AnalyzedColumnDefinition<Object> column : elements.columns) {
             properties.put(column.name(), AnalyzedColumnDefinition.toMapping(column));
             if (column.isIndexColumn()) {
-                indicesMap.put(column.name(), column.toMetaIndicesMapping());
+                elements.indicesMap.put(column.name(), column.toMetaIndicesMapping());
             }
             addToGeneratedColumns("", column, generatedColumns);
         }
@@ -135,8 +136,8 @@ public class AnalyzedTableElements<T> {
         if (!elements.partitionedByColumns.isEmpty()) {
             meta.put("partitioned_by", elements.partitionedBy());
         }
-        if (!indicesMap.isEmpty()) {
-            meta.put("indices", indicesMap);
+        if (!elements.indicesMap.isEmpty()) {
+            meta.put("indices", elements.indicesMap);
         }
         if (!primaryKeys(elements).isEmpty()) {
             meta.put("primary_keys", primaryKeys(elements));
@@ -700,6 +701,10 @@ public class AnalyzedTableElements<T> {
     @VisibleForTesting
     public Map<String, String> getCheckConstraints() {
         return Map.copyOf(checkConstraints);
+    }
+
+    public Map<String, Object> indicesMap() {
+        return indicesMap;
     }
 
     public boolean hasGeneratedColumns() {
