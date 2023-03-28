@@ -55,6 +55,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
@@ -62,6 +63,7 @@ import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.ShuffleForcedMergePolicy;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -2863,7 +2865,9 @@ public class InternalEngine extends Engine {
             if (scorer == null) {
                 continue;
             }
-            final CombinedDocValues dv = new CombinedDocValues(leaf.reader());
+            final LeafReader reader = leaf.reader();
+            final StoredFields storedFields = reader.storedFields();
+            final CombinedDocValues dv = new CombinedDocValues(reader);
             final IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
             final DocIdSetIterator iterator = scorer.iterator();
             int docId;
@@ -2873,7 +2877,7 @@ public class InternalEngine extends Engine {
                 localCheckpointTracker.markSeqNoAsProcessed(seqNo);
                 localCheckpointTracker.markSeqNoAsPersisted(seqNo);
                 idFieldVisitor.reset();
-                leaf.reader().document(docId, idFieldVisitor);
+                storedFields.document(docId, idFieldVisitor);
                 if (idFieldVisitor.getId() == null) {
                     assert dv.isTombstone(docId);
                     continue;
