@@ -34,9 +34,8 @@ import org.elasticsearch.Version;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 
 /**
@@ -114,33 +113,28 @@ public class IterativeOptimizer {
         var minVersion = minNodeVersionInCluster.get();
         while (!done) {
             done = true;
-            for (Rule rule : rules) {
+            for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match<?> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
-                if (match.isPresent()) {
+                LogicalPlan transformed = Optimizer.tryMatchAndApply(
+                    rule,
+                    node,
+                    context.tableStats,
+                    nodeCtx,
+                    context.txnCtx,
+                    resolvePlan,
+                    isTraceEnabled
+                );
+                if (transformed != null) {
                     if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
                     }
-                    LogicalPlan transformed = rule.apply(
-                        match.value(),
-                        match.captures(),
-                        context.tableStats,
-                        context.txnCtx,
-                        nodeCtx,
-                        context.groupReferenceResolver
-                    );
-                    if (transformed != null) {
-                        if (isTraceEnabled) {
-                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                        }
-                        // the plan changed, update memo to reference to the new plan
-                        context.memo.replace(group, transformed);
-                        node = transformed;
-                        done = false;
-                        progress = true;
-                    }
+                    // the plan changed, update memo to reference to the new plan
+                    context.memo.replace(group, transformed);
+                    node = transformed;
+                    done = false;
+                    progress = true;
                 }
             }
         }
