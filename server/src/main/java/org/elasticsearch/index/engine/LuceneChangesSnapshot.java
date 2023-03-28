@@ -29,6 +29,7 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -238,7 +239,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
         final String sourceField = parallelArray.hasRecoverySource[docIndex] ? SourceFieldMapper.RECOVERY_SOURCE_NAME :
             SourceFieldMapper.NAME;
         final FieldsVisitor fields = new FieldsVisitor(true, sourceField);
-        leaf.reader().document(segmentDocID, fields);
+        StoredFields storedFields = leaf.reader().storedFields();
+        storedFields.document(segmentDocID, fields);
 
         final Translog.Operation op;
         final boolean isTombstone = parallelArray.isTombStone[docIndex];

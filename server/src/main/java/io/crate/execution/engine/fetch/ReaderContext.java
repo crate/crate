@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
+import org.apache.lucene.index.StoredFields;
 
 public class ReaderContext {
 
@@ -43,10 +44,11 @@ public class ReaderContext {
         this.storedFieldsReader = storedFieldsReader;
     }
 
-    public ReaderContext(LeafReaderContext leafReaderContext) {
+    public ReaderContext(LeafReaderContext leafReaderContext) throws IOException {
         LeafReader reader = leafReaderContext.reader();
+        StoredFields storedFields = reader.storedFields();
         this.leafReaderContext = leafReaderContext;
-        this.storedFieldsReader = reader::document;
+        this.storedFieldsReader = storedFields::document;
     }
 
     public void visitDocument(int docId, StoredFieldVisitor visitor) throws IOException {

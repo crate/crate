@@ -51,6 +51,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -441,11 +442,13 @@ public class PersistedClusterStateService {
                 final Bits liveDocs = leafReaderContext.reader().getLiveDocs();
                 final IntPredicate isLiveDoc = liveDocs == null ? i -> true : liveDocs::get;
                 final DocIdSetIterator docIdSetIterator = scorer.iterator();
+
+                StoredFields storedFields = leafReaderContext.reader().storedFields();
                 while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                     if (isLiveDoc.test(docIdSetIterator.docID())) {
                         LOGGER.trace("processing doc {}", docIdSetIterator.docID());
                         bytesRefConsumer.accept(
-                            leafReaderContext.reader().document(docIdSetIterator.docID()).getBinaryValue(DATA_FIELD_NAME));
+                            storedFields.document(docIdSetIterator.docID()).getBinaryValue(DATA_FIELD_NAME));
                     }
                 }
             }
