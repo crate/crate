@@ -57,10 +57,7 @@ public class CreatePublicationPlan implements Plan {
             analyzedCreatePublication.tables()
         );
 
-        dependencies.createPublicationAction()
-            .execute(
-                request,
-                new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L))
-            );
+        dependencies.createPublicationAction().execute(request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L)));
     }
 }

@@ -56,9 +56,7 @@ public class AlterPublicationPlan implements Plan {
             alterPublication.operation(),
             alterPublication.tables()
         );
-        dependencies.alterPublicationAction().execute(
-            request,
-            new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L))
-        );
+        dependencies.alterPublicationAction().execute(request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L)));
     }
 }
