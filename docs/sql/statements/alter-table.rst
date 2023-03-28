@@ -168,7 +168,8 @@ expression <sql-literal-value>`.
   Data type of the column which should be added.
 
 :column_name:
-  Name of the column which should be added.
+  Name of the column which should be added. 
+  This can be a sub-column on an existing `OBJECT`.
 
 It's possible to add multiple columns at once.
 
