@@ -227,7 +227,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Limit[2::bigint;0::bigint]",
             "    └ MultiPhase",
             "      └ Eval[1]",
-            "        └ Collect[doc.t1 | [1, x] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]",
+            "        └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]",
             "      └ Limit[2::bigint;0::bigint]",
             "        └ Limit[1::bigint;0]",
             "          └ Count[doc.t2 | true]"
@@ -570,5 +570,20 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
                   └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
                     └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]"""));
+    }
+
+    @Test
+    public void test_column_pruning_is_applied_to_subqueries() throws Exception {
+        var plan = sqlExecutor.logicalPlan(
+            "select name from users where id in (select a from t1 where x > 10)");
+        assertThat(plan)
+            .as("Must not collect `x`")
+            .hasOperators(
+                "MultiPhase",
+                "  └ Collect[doc.users | [name] | (id = ANY(_cast((SELECT a FROM (doc.t1)), 'array(bigint)')))]",
+                "  └ Eval[a]",
+                "    └ OrderBy[a ASC]",
+                "      └ Collect[doc.t1 | [a] | (x > 10)]"
+            );
     }
 }

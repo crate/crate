@@ -414,4 +414,36 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "      └ Get[doc.users | id, name | DocKeys{1::bigint} | (id = 1::bigint)]";
         assertThat(plan, isPlan(expectedPlan));
     }
+
+    @Test
+    public void test_filter_on_relation_is_pushed_beneath_correlated_join() {
+        var plan = sqlExecutor.logicalPlan(
+            """
+            SELECT a.mountain
+            FROM sys.summits a
+            WHERE
+                EXISTS
+                (
+                    SELECT 1
+                    FROM sys.summits b
+                    WHERE
+                        b.height = a.height
+                )
+                AND
+                a.country = 'DE'
+            """);
+        var expectedPlan =
+            """
+            Eval[mountain]
+              └ Filter[(EXISTS (SELECT 1 FROM (b)) AND (country = 'DE'))]
+                └ CorrelatedJoin[mountain, height, country, (SELECT 1 FROM (b))]
+                  └ Rename[mountain, height, country] AS a
+                    └ Collect[sys.summits | [mountain, height, country] | true]
+                  └ SubPlan
+                    └ Eval[1]
+                      └ Rename[1] AS b
+                        └ Limit[1;0]
+                          └ Collect[sys.summits | [1] | (height = height)]""";
+        assertThat(plan, isPlan(expectedPlan));
+    }
 }
