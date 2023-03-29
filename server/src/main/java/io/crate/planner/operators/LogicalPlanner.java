@@ -221,7 +221,9 @@ public class LogicalPlanner {
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
-        return new RootRelationBoundary(optimizedPlan);
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
+        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
+        return new RootRelationBoundary(prunedPlan);
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
@@ -264,7 +266,7 @@ public class LogicalPlanner {
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
-        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
+        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
             tableStats,

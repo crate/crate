@@ -91,6 +91,13 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a performance regression for queries that used a scalar sub-query in the
+  ``WHERE`` which itself also filtered on columns in a ``WHERE`` without
+  selecting those columns. An example::
+
+    SELECT name FROM users
+      WHERE id IN (SELECT user_id FROM hits WHERE ts > '2023-01-01')
+
 - Fixed default behaviour for :ref:`CURSOR <sql-declare>`'s
   :ref:`SCROLL <sql-declare-scroll>`. When neither ``SCROLL`` nor ``NO SCROLL``
   is provided in the statement, ``NO SCROLL`` is now assumed.
