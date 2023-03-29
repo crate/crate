@@ -51,6 +51,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
     private final DummyScorer scorer;
     private final InputRow inputRow;
     private final Runnable onScoreDoc;
+    private final ReaderContext[] readerContexts;
 
     ScoreDocRowFunction(IndexReader indexReader,
                         List<? extends Input<?>> inputs,
@@ -63,9 +64,18 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         this.inputRow = new InputRow(inputs);
         this.onScoreDoc = onScoreDoc;
         for (LuceneCollectorExpression<?> expression : this.expressions) {
-            if (expression instanceof OrderByCollectorExpression) {
-                orderByCollectorExpressions.add((OrderByCollectorExpression) expression);
+            if (expression instanceof OrderByCollectorExpression orderByExpr) {
+                orderByCollectorExpressions.add(orderByExpr);
             }
+        }
+        List<LeafReaderContext> leaves = indexReader.leaves();
+        readerContexts = new ReaderContext[leaves.size()];
+        try {
+            for (int i = 0; i < readerContexts.length; i++) {
+                readerContexts[i] = new ReaderContext(leaves.get(i));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -84,9 +94,9 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         List<LeafReaderContext> leaves = indexReader.leaves();
         int readerIndex = ReaderUtil.subIndex(fieldDoc.doc, leaves);
         LeafReaderContext subReaderContext = leaves.get(readerIndex);
+        var readerContext = readerContexts[readerIndex];
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         try {
-            var readerContext = new ReaderContext(subReaderContext);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextReader(readerContext);
                 expression.setNextDocId(subDoc);
