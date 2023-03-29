@@ -24,8 +24,6 @@ package io.crate.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
 import org.junit.Test;
 
 public class IdentifiersTest {
@@ -59,7 +57,6 @@ public class IdentifiersTest {
 
     @Test
     public void testQuoteIfNeeded() {
-        assertThat(Identifiers.quoteIfNeeded("")).isEqualTo("\"\"");
         assertThat(Identifiers.quoteIfNeeded("\"")).isEqualTo("\"\"\"\"");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");
@@ -73,37 +70,5 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("_col")).isEqualTo("_col");
         assertThat(Identifiers.quoteIfNeeded("col_1")).isEqualTo("col_1");
         assertThat(Identifiers.quoteIfNeeded("col['a']")).isEqualTo("\"col['a']\"");
-    }
-
-    @Test
-    public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() {
-        for (String candidate : List.of(
-            (""),
-            ("\""),
-            ("fhjgadhjgfhs"),
-            ("fhjgadhjgfhsÖ"),
-            ("ABC"),
-            ("abc\""),
-            ("select"),
-            ("1column"),
-            ("column name"),
-            ("col1a"),
-            ("_col"),
-            ("col_1")
-        )) {
-            assertThat(Identifiers.maybeQuoteExpression(candidate)).isEqualTo(Identifiers.quoteIfNeeded(candidate));
-        }
-    }
-
-    @Test
-    public void test_quote_expression_quotes_only_base_part_of_subscript_expression() {
-        assertThat(Identifiers.maybeQuoteExpression("col['a']")).isEqualTo("col['a']");
-        assertThat(Identifiers.maybeQuoteExpression("Col['a']")).isEqualTo("\"Col\"['a']");
-        assertThat(Identifiers.maybeQuoteExpression("col with space['a']")).isEqualTo("\"col with space\"['a']");
-    }
-
-    @Test
-    public void test_quote_expression_quotes_keywords() {
-        assertThat(Identifiers.maybeQuoteExpression("select")).isEqualTo("\"select\""); // keyword
     }
 }

@@ -75,7 +75,7 @@ public class NodeClient extends AbstractClient {
             Response extends TransportResponse> void executeLocally(ActionType<Response> action,
                                                                     Request request,
                                                                     ActionListener<Response> listener) {
-        transportAction(action).execute(request, listener);
+        transportAction(action).execute(request).whenComplete(listener);
     }
 
     /**
