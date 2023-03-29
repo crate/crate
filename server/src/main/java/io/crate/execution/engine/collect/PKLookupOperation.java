@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -94,8 +93,8 @@ public final class PKLookupOperation {
             }
             SourceFieldVisitor visitor = new SourceFieldVisitor();
             try {
-                StoredFields storedFields = docIdAndVersion.reader.storedFields();
-                storedFields.document(docIdAndVersion.docId, visitor);
+                //StoredFields storedFields = docIdAndVersion.reader.storedFields();
+                docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
