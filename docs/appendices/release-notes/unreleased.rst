@@ -64,6 +64,13 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a performance regression for queries that used a scalar sub-query in the
+  ``WHERE`` which itself also filtered on columns in a ``WHERE`` without
+  selecting those columns. An example::
+
+    SELECT name FROM users
+      WHERE id IN (SELECT user_id FROM hits WHERE ts > '2023-01-01')
+
 - Fixed an issue that a wrong HTTP response was sent, when trying to ``POST`` to
   an invalid URL, causing the HTTP client to stall.
 
