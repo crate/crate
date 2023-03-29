@@ -84,6 +84,8 @@ Performance Improvements
   which can occur during ``COPY FROM`` or INSERTS with multi-values into
   partitioned tables.
 
+- Improved ingestion performance by up to 30%.
+
 Fixes
 =====
 
