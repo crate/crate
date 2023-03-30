@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed response for HTTP ``GET`` request to not expose internal paths when the
+  requested URL doesn't exist.
+
 - Fixed default behaviour for :ref:`CURSOR <sql-declare>`'s
   :ref:`SCROLL <sql-declare-scroll>`. When neither ``SCROLL`` nor ``NO SCROLL``
   is provided in the statement, ``NO SCROLL`` is now assumed.
