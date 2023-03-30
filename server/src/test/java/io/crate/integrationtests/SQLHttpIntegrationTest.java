@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -93,6 +94,32 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
             usesSSL ? "https" : "http", address.getHostName(), address.getPort()));
     }
 
+    protected CloseableHttpResponse get(String url, @Nullable Header[] headers) throws IOException {
+        assert url != null : "url cannot be null";
+        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH,
+            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), url)
+        );
+        httpGet.setHeaders(headers);
+        return httpClient.execute(httpGet);
+    }
+
+    protected CloseableHttpResponse get(String url) throws IOException {
+        return get(url, null);
+    }
+
+    protected CloseableHttpResponse post(String url,
+                                         @Nullable String body,
+                                         @Nullable Header[] headers) throws IOException {
+        assert url != null : "url cannot be null";
+        HttpPost post = new HttpPost(String.format(Locale.ENGLISH,
+            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), url));
+        if (body != null) {
+            StringEntity bodyEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
+            post.setEntity(bodyEntity);
+        }
+        post.setHeaders(headers);
+        return httpClient.execute(post);
+    }
 
     protected CloseableHttpResponse post(String body, @Nullable Header[] headers) throws IOException {
         if (body != null) {
