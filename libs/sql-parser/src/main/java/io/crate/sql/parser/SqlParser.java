@@ -25,6 +25,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -57,8 +58,11 @@ public class SqlParser {
         }
     };
 
+    private static final BiConsumer<SqlBaseLexer, SqlBaseParser> DEFAULT_PARSER_INITIALIZER = (SqlBaseLexer lexer, SqlBaseParser parser) -> {};
+
     public static final SqlParser INSTANCE = new SqlParser();
 
+    private final BiConsumer<SqlBaseLexer, SqlBaseParser> initializer;
     private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols;
 
     public SqlParser() {
@@ -66,6 +70,11 @@ public class SqlParser {
     }
 
     public SqlParser(SqlParserOptions options) {
+        this(options, DEFAULT_PARSER_INITIALIZER);
+    }
+
+    public SqlParser(SqlParserOptions options, BiConsumer<SqlBaseLexer, SqlBaseParser> initializer) {
+        this.initializer = requireNonNull(initializer, "initializer is null");
         requireNonNull(options, "options is null");
         allowedIdentifierSymbols = EnumSet.copyOf(options.getAllowedIdentifierSymbols());
     }
@@ -99,6 +108,7 @@ public class SqlParser {
             SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql, name)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
             SqlBaseParser parser = new SqlBaseParser(tokenStream);
+            initializer.accept(lexer, parser);
 
             parser.addParseListener(new PostProcessor());
 
