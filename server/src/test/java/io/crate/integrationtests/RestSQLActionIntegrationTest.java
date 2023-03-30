@@ -61,6 +61,20 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    public void testPostNotAllowedForIncorrectPaths() throws IOException {
+        try (var response = post("/file/path/notexists", null, null)) {
+            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            assertThat(bodyAsString).isEqualTo("POST method is not allowed for [/file/path/notexists]");
+        }
+        try (var response = post("/file/path/notexists", "{\"stmt\": \"select 1\"}", null)) {
+            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            assertThat(bodyAsString).isEqualTo("POST method is not allowed for [/file/path/notexists]");
+        }
+    }
+
+    @Test
     public void testWithoutBody() throws IOException {
         try (var response = post(null)) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
