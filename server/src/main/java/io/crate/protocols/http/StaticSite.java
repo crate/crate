@@ -69,7 +69,7 @@ public final class StaticSite {
             !file.toAbsolutePath().normalize().startsWith(siteDirectory.toAbsolutePath().normalize())) {
 
             return Responses.contentResponse(
-                HttpResponseStatus.NOT_FOUND, alloc, "Requested file [" + file + "] was not found");
+                HttpResponseStatus.NOT_FOUND, alloc, "Requested file [" + sitePath + "] was not found");
         }
 
         BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);
