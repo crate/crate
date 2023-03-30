@@ -127,6 +127,8 @@ for instance::
 Read :ref:`Alter Partitioned Tables <partitioned-alter>` to see how to
 alter parameters of partitioned tables.
 
+.. _alter-table-add-column:
+
 Adding columns
 ==============
 
