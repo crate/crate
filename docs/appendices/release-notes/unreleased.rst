@@ -93,6 +93,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed response for HTTP ``GET`` request to not expose internal paths when the
+  requested URL doesn't exist.
+
 - Fixed a performance regression for queries that used a scalar sub-query in the
   ``WHERE`` which itself also filtered on columns in a ``WHERE`` without
   selecting those columns. An example::
