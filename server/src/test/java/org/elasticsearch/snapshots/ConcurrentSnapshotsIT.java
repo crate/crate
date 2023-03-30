@@ -37,6 +37,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
@@ -893,9 +894,10 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         }
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
         awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
-        for (var deleteResponse : deleteResponses) {
-            assertThat(deleteResponse).isNotDone();
-        }
+        final AtomicInteger cntNotDone = new AtomicInteger(0);
+        deleteResponses.forEach(dr -> cntNotDone.getAndAdd(dr.isDone() ? 0 : 1));
+        // Since the deletes are de-duplicated, at least one should be blocked
+        assertThat(cntNotDone.get()).isGreaterThanOrEqualTo(1);
         awaitClusterState(masterName, state -> (hasDeletionsInProgress(state, 1)));
         unblockNode(repoName, masterName);
         for (var deleteResponse : deleteResponses) {
