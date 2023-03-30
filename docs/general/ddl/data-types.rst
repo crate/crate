@@ -2318,6 +2318,8 @@ Example::
     cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
+New sub-columns can be added to the ``columnDefinition`` at any time.
+See :ref:`Adding columns <alter-table-add-column>` for details.
 
 .. _type-object-column-policy:
 
@@ -2351,13 +2353,12 @@ Example::
     ... ) VALUES (
     ...     'Alice in Wonderland',
     ...     {
-    ...         "age" = '10',
+    ...         "age" = '10'
     ...     }
     ... );
-    SQLParseException[line 8:5: no viable alternative at input 'VALUES (\n    'Alice in Wonderland',\n    {\n        "age" = '10',\n    }']
+    StrictDynamicMappingException[mapping set to strict, dynamic introduction of [age] within [protagonist] is not allowed]
 
-The insert above failed because the ``protagonist`` column defines a ``name``
-column and does not define an ``age`` column.
+The insert above failed because the ``age`` sub-column is not defined.
 
 .. HIDE:
 
