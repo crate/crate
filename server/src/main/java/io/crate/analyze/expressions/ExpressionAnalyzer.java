@@ -104,6 +104,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparison;
@@ -1267,7 +1268,11 @@ public class ExpressionAnalyzer {
         if (!columnName.endsWith("]")) {
             return null;
         }
-        var recreatedExpression = SqlParser.createExpression(columnName);
+        var recreatedExpression = SqlParser.createExpression(
+            // make sure to escape the column name such that the number of quotes are restored.
+            // ex) ""A[1]"" is a column name that starts and ends with two double quotes,
+            // it should be restored as " "" "" A[1] "" "" ".
+            Identifiers.escape(columnName));
         if (recreatedExpression instanceof SubscriptExpression subscriptExpression) {
             final String subscriptPart = "[" + subscriptExpression.index() + "]";
             if (columnName.endsWith(subscriptPart) == false) {
@@ -1283,10 +1288,8 @@ public class ExpressionAnalyzer {
                 if (subscriptExpression.base() instanceof QualifiedNameReference == false) {
                     throw new IllegalStateException("A quoted subscript expression cannot be parsed properly.");
                 }
-                String unquotedBase = basePart.startsWith("\"") && basePart.endsWith("\"") ?
-                    basePart.substring(1, basePart.length() - 1) : basePart;
                 return new SubscriptExpression(
-                    new QualifiedNameReference(new QualifiedName(unquotedBase)), subscriptExpression.index());
+                    new QualifiedNameReference(new QualifiedName(basePart)), subscriptExpression.index());
             }
         }
         return null;

@@ -21,7 +21,6 @@
 
 package io.crate.analyze.expressions;
 
-import static io.crate.analyze.expressions.ExpressionAnalyzer.detectAndGenerateQuotedSubscriptExpression;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
@@ -34,10 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.sql.tree.IntegerLiteral;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.SubscriptExpression;
 import io.crate.types.BitStringType;
 
 import org.joda.time.Period;
@@ -103,6 +98,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
                       "\"myObj\" object as (x object as (\"AbC\" int))" +
+                      ")")
+            .addTable("create table subscript (" +
+                      "\"\"\"\"\"A[1]\"\"\"\"\" int[]" +  // column name: '""A[1]""'
                       ")")
             .build();
         expressions = new SqlExpressions(Collections.emptyMap());
@@ -445,18 +443,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     /**
      * bug: https://github.com/crate/crate/issues/13845
      */
-    public void test_detectAndGenerateQuotedSubscriptExpression() {
-        assertThat(detectAndGenerateQuotedSubscriptExpression("A[1]"))
-            .isEqualTo(new SubscriptExpression(
-                new QualifiedNameReference(new QualifiedName("A")),
-                new IntegerLiteral(1)));
+    public void test_qualified_names_looking_like_subscript_expressions() {
+        var symbol = executor.asSymbol("subscript.\"\"\"\"\"A[1]\"\"\"\"\"");
+        assertThat(symbol).isReference("\"\"A[1]\"\"");
 
-        // not a valid subscript expression but a column name containing square brackets.
-        assertThat(detectAndGenerateQuotedSubscriptExpression("\"A[1]\"")).isNull();
+        symbol = executor.asSymbol("subscript.\"\"\"\"\"A[1]\"\"\"\"\"[1]");
+        assertThat(symbol).isFunction("subscript", isReference("\"\"A[1]\"\""), isLiteral(1));
 
-        assertThat(detectAndGenerateQuotedSubscriptExpression("\"A[1]\"[2]"))
-            .isEqualTo(new SubscriptExpression(
-                new QualifiedNameReference(new QualifiedName("A[1]")),
-                new IntegerLiteral(2)));
+        symbol = executor.asSymbol("subscript.\"\"\"\"\"A[1]\"\"\"\"[1]\"");
+        assertThat(symbol).isFunction("subscript", isReference("\"\"A[1]\"\""), isLiteral(1));
     }
 }
