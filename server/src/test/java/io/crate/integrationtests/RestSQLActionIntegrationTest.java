@@ -33,7 +33,7 @@ import org.junit.Test;
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
-    public void testGet() throws IOException {
+    public void test_get() throws IOException {
         var response = get("");
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
         String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -53,7 +53,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testGetWrongFilePath() throws IOException {
+    public void test_get_wrong_file_path() throws IOException {
         var response = get("/file/path/notexists");
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
         String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -61,7 +61,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testPostNotAllowedForIncorrectPaths() throws IOException {
+    public void test_post_not_allowed_for_incorrect_paths() throws IOException {
         try (var response = post("/file/path/notexists", null, null)) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
             String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -75,7 +75,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testWithoutBody() throws IOException {
+    public void test_without_body() throws IOException {
         try (var response = post(null)) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
             String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -86,7 +86,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testWithInvalidPayload() throws IOException {
+    public void test_with_invalid_payload() throws IOException {
         try (var response = post("{\"foo\": \"bar\"}")) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
             String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -96,7 +96,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testWithArgsAndBulkArgs() throws IOException {
+    public void test_with_args_and_bulk_args() throws IOException {
         try (var response
             = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
@@ -107,7 +107,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testEmptyBulkArgsWithStatementContainingParameters() throws IOException {
+    public void test_empty_bulk_args_with_statement_containing_parameters() throws IOException {
         execute("create table doc.t (id int primary key) with (number_of_replicas = 0)");
         try (var response = post("{\"stmt\": \"delete from t where id = ?\", \"bulk_args\": []}")) {
             assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
@@ -117,7 +117,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testSetCustomSchema() throws IOException {
+    public void test_set_custom_schema() throws IOException {
         execute("create table custom.foo (id string)");
         Header[] headers = new Header[]{
             new BasicHeader("Default-Schema", "custom")
@@ -132,7 +132,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testInsertWithMixedCompatibleTypes() throws IOException {
+    public void test_insert_with_mixed_compatible_types() throws IOException {
         execute("create table doc.t1 (x array(float))");
         try (var resp =
                  post("{\"stmt\": \"insert into doc.t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}")) {
@@ -143,7 +143,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testExecutionErrorContainsStackTrace() throws Exception {
+    public void test_execution_error_contains_stack_trace() throws Exception {
         try (var resp = post("{\"stmt\": \"select 1 / 0\"}")) {
             String bodyAsString = EntityUtils.toString(resp.getEntity());
             assertThat(bodyAsString).contains("BinaryScalar.java");
