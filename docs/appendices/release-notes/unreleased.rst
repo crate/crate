@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that a wrong HTTP response was sent, when trying to ``POST`` to
+  an invalid URL, causing the HTTP client to stall.
+
 - Fixed response for HTTP ``GET`` request to not expose internal paths when the
   requested URL doesn't exist.
 
