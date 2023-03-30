@@ -107,6 +107,20 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
         return get(url, null);
     }
 
+    protected CloseableHttpResponse post(String url,
+                                         @Nullable String body,
+                                         @Nullable Header[] headers) throws IOException {
+        assert url != null : "url cannot be null";
+        HttpPost post = new HttpPost(String.format(Locale.ENGLISH,
+            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), url));
+        if (body != null) {
+            StringEntity bodyEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
+            post.setEntity(bodyEntity);
+        }
+        post.setHeaders(headers);
+        return httpClient.execute(post);
+    }
+
     protected CloseableHttpResponse post(String body, @Nullable Header[] headers) throws IOException {
         if (body != null) {
             StringEntity bodyEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
