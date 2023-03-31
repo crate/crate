@@ -489,7 +489,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testAccessesToPgClassEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
-            execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
+            StringBuilder bigSelect = new StringBuilder("select relname from pg_catalog.pg_class where relname in (");
+            int inSize = 13000*200;
+            for (int i = 1; i <= inSize; i++) {
+                bigSelect.append("'dummy_long_long_long_long_long_value").append(i).append("'");
+                if (i < inSize) {
+                    bigSelect.append(",");
+                } else {
+                    bigSelect.append(")");
+                }
+            }
+            String query = bigSelect.toString();
+            logger.info("------------------ heap space didn't happen because of query construction, test is still alive here -------------------------------------");
+            execute(query);
+            //execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
         }
         assertThat(response.rowCount(), is(46L));
         assertThat(printedTable(response.rows()), is(
