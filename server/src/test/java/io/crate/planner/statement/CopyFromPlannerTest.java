@@ -22,11 +22,8 @@
 package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -84,26 +81,26 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromPlan() {
         Collect plan = plan("copy users from '/path/to/file.extension'");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
+        assertThat(plan.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
-        assertThat(((Literal) collectPhase.targetUri()).value(), is("/path/to/file.extension"));
+        assertThat(((Literal<?>) collectPhase.targetUri()).value()).isEqualTo("/path/to/file.extension");
     }
 
     public void testCopyFromPlanWithTargetColumns() {
         Collect plan = plan("copy users(id, name) from '/path/to/file.extension'");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
+        assertThat(plan.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
-        assertThat(collectPhase.targetColumns(), is(List.of("id", "name")));
+        assertThat(collectPhase.targetColumns()).containsExactly("id", "name");
     }
 
     @Test
     public void testCopyFromNumReadersSetting() {
         Collect plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
+        assertThat(plan.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
-        assertThat(collectPhase.nodeIds().size(), is(1));
+        assertThat(collectPhase.nodeIds()).hasSize(1);
     }
 
     @Test
@@ -111,25 +108,25 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = plan("copy users " +
                                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
                                "fail_fast=true, protocol='http', wait_for_completion=false)");
-        assertThat(collect.collectPhase(), instanceOf(FileUriCollectPhase.class));
+        assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
-        assertThat(indexWriterProjection.bulkActions(), is(30));
-        assertThat(collectPhase.compression(), is("gzip"));
-        assertThat(collectPhase.sharedStorage(), is(true));
-        assertThat(indexWriterProjection.failFast(), is(true));
-        assertThat(collectPhase.withClauseOptions().get("protocol"), is("http"));
-        assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true), is(false));
+        assertThat(indexWriterProjection.bulkActions()).isEqualTo(30);
+        assertThat(collectPhase.compression()).isEqualTo("gzip");
+        assertThat(collectPhase.sharedStorage()).isTrue();
+        assertThat(indexWriterProjection.failFast()).isTrue();
+        assertThat(collectPhase.withClauseOptions().get("protocol")).isEqualTo("http");
+        assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true)).isFalse();
 
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");
         collectPhase = (FileUriCollectPhase) collect.collectPhase();
         indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
-        assertThat(collectPhase.compression(), is(nullValue()));
-        assertThat(collectPhase.sharedStorage(), is(nullValue()));
-        assertThat(indexWriterProjection.failFast(), is(false));
-        assertThat(collectPhase.withClauseOptions(), is(Settings.EMPTY));
+        assertThat(collectPhase.compression()).isNull();
+        assertThat(collectPhase.sharedStorage()).isNull();
+        assertThat(indexWriterProjection.failFast()).isFalse();
+        assertThat(collectPhase.withClauseOptions()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
@@ -137,18 +134,19 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = plan("copy t1 from '/path/file.ext'");
         SourceIndexWriterProjection projection =
             (SourceIndexWriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(projection.clusteredBy(), is(nullValue()));
+        assertThat(projection.clusteredBy()).isNull();
         List<Symbol> toCollectSymbols = collect.collectPhase().toCollect();
-        assertThat(toCollectSymbols.size(), is(1));
-        assertThat(toCollectSymbols.get(0), instanceOf(Reference.class));
+        assertThat(toCollectSymbols).hasSize(1);
+        assertThat(toCollectSymbols.get(0)).isInstanceOf(Reference.class);
         Reference refToCollect = (Reference) toCollectSymbols.get(0);
-        assertThat(refToCollect.column().fqn(), is("_raw"));
+        assertThat(refToCollect.column().fqn()).isEqualTo("_raw");
     }
 
     @Test
     public void testCopyFromPlanWithInvalidParameters() {
-        expectedException.expect(IllegalArgumentException.class);
-        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
+        assertThatThrownBy(() -> plan("copy users from '/path/to/file.ext' with (bulk_size=-28)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"bulk_size\" must be greater than 0.");
     }
 
     @Test
@@ -161,6 +159,6 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNodeFiltersNoMatch() {
         Collect cm = plan("copy users from '/path' with (node_filters={name='foobar'})");
-        assertThat(cm.collectPhase().nodeIds().size(), is(0));
+        assertThat(cm.collectPhase().nodeIds()).isEmpty();
     }
 }

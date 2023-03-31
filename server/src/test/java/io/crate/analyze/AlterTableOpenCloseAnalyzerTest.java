@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.io.IOException;
 
 import org.junit.Before;
@@ -41,10 +43,9 @@ public class AlterTableOpenCloseAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testCloseSystemTableIsNotAllowed() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow " +
-                                        "ALTER CLOSE operations, as it is read-only.");
-        e.analyze("alter table sys.shards close");
+        assertThatThrownBy(() -> e.analyze("alter table sys.shards close"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.shards\" doesn't support or allow " +
+                        "ALTER CLOSE operations, as it is read-only.");
     }
-
 }

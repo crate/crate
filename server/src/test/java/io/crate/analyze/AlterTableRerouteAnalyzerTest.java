@@ -21,14 +21,13 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -88,36 +87,35 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testRerouteOnSystemTableIsNotAllowed() {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage(
-            "The relation \"sys.cluster\" doesn't support or" +
-            " allow ALTER REROUTE operations, as it is read-only.");
-        analyze("ALTER TABLE sys.cluster REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
+        assertThatThrownBy(() -> analyze("ALTER TABLE sys.cluster REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.cluster\" doesn't support or" +
+                        " allow ALTER REROUTE operations, as it is read-only.");
     }
 
     @Test
     public void testRerouteMoveShardWithLiterals() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD 0 FROM 'n2' TO 'n1'");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.fromNode(), is("n2"));
-        assertThat(command.toNode(), is("n1"));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.fromNode()).isEqualTo("n2");
+        assertThat(command.toNode()).isEqualTo("n1");
     }
 
     @Test
     public void testRerouteMoveShardWithParameters() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD 0 FROM ? TO ?", "n2", "n1");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.fromNode(), is("n2"));
-        assertThat(command.toNode(), is("n1"));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.fromNode()).isEqualTo("n2");
+        assertThat(command.toNode()).isEqualTo("n1");
     }
 
     @Test
     public void testRerouteMoveShardWithNullShardId() {
-        Assertions.assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE MOVE SHARD null FROM 'n2' TO 'n1'"))
+        assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE MOVE SHARD null FROM 'n2' TO 'n1'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Shard Id cannot be [null]");
     }
@@ -126,40 +124,40 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteMoveShardPartitionedTable() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE parted PARTITION (date = 1395874800000) REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
-        assertThat(command.index(), is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.fromNode(), is("n1"));
-        assertThat(command.toNode(), is("n2"));
+        assertThat(command.index()).isEqualTo(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.fromNode()).isEqualTo("n1");
+        assertThat(command.toNode()).isEqualTo("n2");
     }
 
     @Test
     public void testRerouteOnBlobTable() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE blob.blobs REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
-        assertThat(command.index(), is(".blob_blobs"));
+        assertThat(command.index()).isEqualTo(".blob_blobs");
     }
 
     @Test
     public void testRerouteAllocateReplicaShardWithLiterals() {
         AllocateReplicaAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON 'n1'");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n1"));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n1");
     }
 
     @Test
     public void testRerouteAllocateReplicaShardWithParameters() {
         AllocateReplicaAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON ?", "n1");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n1"));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n1");
     }
 
     @Test
     public void testRerouteAllocateReplicaShardWithNullShardId() {
-        Assertions.assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD null ON 'n1'"))
+        assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD null ON 'n1'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Shard Id cannot be [null]");
     }
@@ -168,25 +166,25 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteCancelShardWithLiterals() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n2'");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n2"));
-        assertThat(command.allowPrimary(), is(false));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n2");
+        assertThat(command.allowPrimary()).isFalse();
     }
 
     @Test
     public void testRerouteCancelShardWithParameters() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON ?", "n2");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n2"));
-        assertThat(command.allowPrimary(), is(false));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n2");
+        assertThat(command.allowPrimary()).isFalse();
     }
 
     @Test
     public void testRerouteCancelShardWithNullShardId() {
-        Assertions.assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE CANCEL SHARD null ON 'n2'"))
+        assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE CANCEL SHARD null ON 'n2'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Shard Id cannot be [null]");
     }
@@ -195,55 +193,58 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteCancelShardWithOptions() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n1' WITH (allow_primary = TRUE)");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n1"));
-        assertThat(command.allowPrimary(), is(true));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n1");
+        assertThat(command.allowPrimary()).isTrue();
 
         command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n2' WITH (allow_primary = FALSE)");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(0));
-        assertThat(command.node(), is("n2"));
-        assertThat(command.allowPrimary(), is(false));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n2");
+        assertThat(command.allowPrimary()).isFalse();
     }
 
     @Test
     public void test_promote_replica_shard_with_literals() {
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON 'n1' WITH (accept_data_loss = true)");
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(2));
-        assertThat(command.node(), is("n1"));
-        assertThat(command.acceptDataLoss(), is(true));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(2);
+        assertThat(command.node()).isEqualTo("n1");
+        assertThat(command.acceptDataLoss()).isTrue();
     }
 
     @Test
     public void test_promote_replica_shard_with_parameters() {
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON ? WITH (accept_data_loss = ?)", "n1", true);
-        assertThat(command.index(), is("users"));
-        assertThat(command.shardId(), is(2));
-        assertThat(command.node(), is("n1"));
-        assertThat(command.acceptDataLoss(), is(true));
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(2);
+        assertThat(command.node()).isEqualTo("n1");
+        assertThat(command.acceptDataLoss()).isTrue();
     }
 
     public void test_promote_replica_shard_with_null_shardId() {
-        Assertions.assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD null ON 'n1'"))
+        assertThatThrownBy(() -> analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD null ON 'n1'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Shard Id cannot be [null]");
     }
 
     @Test
     public void test_promote_replica_fails_if_unsupported_option_is_provided() {
-        expectedException.expectMessage("Unsupported options provided to REROUTE PROMOTE REPLICA: [foobar]");
-        analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD ? ON ? WITH (foobar = true)");
+        assertThatThrownBy(() ->
+            analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD ? ON ? WITH (foobar = true)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unsupported options provided to REROUTE PROMOTE REPLICA: [foobar]");
+
     }
 
     @Test
     public void test_accept_data_loss_defaults_to_false_if_not_provided() {
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 0 ON 'n1'");
-        assertThat(command.acceptDataLoss(), is(false));
+        assertThat(command.acceptDataLoss()).isFalse();
     }
 }

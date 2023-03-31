@@ -96,9 +96,16 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testObjectConstructionFailsOnDuplicateKeys() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Object literal cannot contain duplicate keys (`a`)");
-        analyzeExpression("{a=1, a=2}");
+        assertThatThrownBy(() -> analyzeExpression("{a=1, a=2}"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Object literal cannot contain duplicate keys (`a`)");
+    }
+
+    @Test
+    public void testArrayConstructionWithParameterExpression() throws Exception {
+        Symbol array = expressions.asSymbol("[1, ?]");
+        assertThat(array).isFunction("_array");
+        assertThat(((io.crate.expression.symbol.Function) array).arguments()).hasSize(2);
     }
 
     @SuppressWarnings("unchecked")
@@ -115,13 +122,6 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         Literal<?> multiArray = (Literal<?>) analyzeExpression("[1, 2, 3]");
         assertThat(multiArray.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
         assertThat(((List<Integer>) multiArray.value())).containsExactly(1, 2, 3);
-    }
-
-    @Test
-    public void testArrayConstructionWithParameterExpression() throws Exception {
-        Symbol array = expressions.asSymbol("[1, ?]");
-        assertThat(array).isFunction("_array");
-        assertThat(((io.crate.expression.symbol.Function) array).arguments()).hasSize(2);
     }
 
     @Test
