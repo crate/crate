@@ -25,10 +25,8 @@ import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
 import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
 import static io.crate.user.User.CRATE_USER;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -45,8 +43,6 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ClusterServiceUtils;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -166,7 +162,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .build();
     }
 
-    private TestingRowConsumer executePlan(Plan plan) {
+    private void executePlan(Plan plan) {
         TestingRowConsumer consumer = new TestingRowConsumer(true);
         plan.execute(
             mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
@@ -175,7 +171,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             Row.EMPTY,
             SubQueryResults.EMPTY
         );
-        return consumer;
     }
 
     private void analyze(String stmt) {
@@ -191,52 +186,48 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             SqlParser.createStatement(stmt), new CoordinatorSessionSettings(user), ParamTypeHints.EMPTY, e.cursors);
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedForCluster(Privilege.Type type) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.CLUSTER, null, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).anySatisfy(
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.CLUSTER, null, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedForSchema(Privilege.Type type, String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.SCHEMA, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).anySatisfy(
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.SCHEMA, ident, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedForTable(Privilege.Type type, String ident) {
         assertAskedForTable(type, ident, user);
     }
 
     private void assertAskedForTable(Privilege.Type type, String ident, User user) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.TABLE, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).anySatisfy(
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.TABLE, ident, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedForView(Privilege.Type type, String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.VIEW, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).anySatisfy(
+            s -> assertThat(s).containsExactly(type, Privilege.Clazz.VIEW, ident, user.name()));
     }
 
     @Test
     public void testSuperUserByPassesValidation() throws Exception {
         analyzeAsSuperUser("select * from sys.cluster");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
     public void testAlterOtherUsersNotAllowedAsNormalUser() {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("A regular user can use ALTER USER only on himself. " +
-                                        "To modify other users superuser permissions are required");
-        analyze("alter user ford set (password = 'pass')");
+        assertThatThrownBy(() -> analyze("alter user ford set (password = 'pass')"))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessage("A regular user can use ALTER USER only on himself. " +
+                        "To modify other users superuser permissions are required.");
     }
 
     @Test
     public void testAlterOwnUserIsAllowed() {
         analyze("alter user normal set (password = 'pass')");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -255,7 +246,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_kill_is_allowed_for_any_user() throws Exception {
         // Only kills their own statements
         analyze("kill all");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -365,7 +356,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     /**
      * Union with order by (and/or limit) results
-     * in a {@link io.crate.analyze.relations.OrderedLimitedRelation}
+     * in a {@link io.crate.analyze.relation.OrderedLimitedRelation}
      * which wraps the {@link io.crate.analyze.relations.UnionSelect}
      */
     @Test
@@ -438,7 +429,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void testSetSessionRequiresNoPermissions() throws Exception {
         // allowed without any permissions as it affects only the user session;
         analyze("set session foo = 'bar'");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -464,7 +455,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         // Begin is currently ignored; In other RDMS it's used to start transactions with contain
         // other statements; these other statements need to be validated
         analyze("begin");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -502,7 +493,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testFunctionsUnboundToSchemaDoNotRequireAnyPermissions() {
         analyze("select 1");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -519,9 +510,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testDecommissionRequiresSuperUserPrivileges() {
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
-        analyze("alter cluster decommission 'n1'");
+        assertThatThrownBy(() -> analyze("alter cluster decommission 'n1'"))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessage("User \"normal\" is not authorized to execute the statement. " +
+                        "Superuser permissions are required");
     }
 
     @Test
@@ -550,11 +542,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident, String defaultSchema) {
                 validationCallArguments.add(CollectionUtils.arrayAsArrayList(type, clazz, ident, user.name()));
-                if (Privilege.Type.DDL == type) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return Privilege.Type.DDL == type;
             }
         };
         analyze("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)", customUser);
@@ -591,39 +579,38 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_any_user_can_execute_discard() throws Exception {
         analyze("discard all");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
     public void test_any_user_can_execute_set_transaction() throws Exception {
         analyze("SET TRANSACTION READ ONLY");
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
     public void test_set_session_user_from_superuser_to_normal_user_succeeds() {
         analyze("SET SESSION AUTHORIZATION " + user.name(), superUser);
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
     public void test_set_session_user_from_normal_user_fails() {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(
-            "User \"normal\" is not authorized to execute the statement. " +
-            "Superuser permissions are required or you can set the session " +
-            "authorization back to the authenticated user.");
-        analyze("SET SESSION AUTHORIZATION 'someuser'", user);
+        assertThatThrownBy(() -> analyze("SET SESSION AUTHORIZATION 'someuser'", user))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessage("User \"normal\" is not authorized to execute the statement. " +
+                        "Superuser permissions are required or you can set the session " +
+                        "authorization back to the authenticated user.");
     }
 
     @Test
     public void test_set_session_user_from_normal_user_to_superuser_fails() {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(
-            "User \"normal\" is not authorized to execute the statement. " +
-            "Superuser permissions are required or you can set the session " +
-            "authorization back to the authenticated user.");
-        analyze("SET SESSION AUTHORIZATION " + superUser.name(), user);
+        String stmt = "SET SESSION AUTHORIZATION " + superUser.name();
+        assertThatThrownBy(() -> analyze(stmt, user))
+            .isExactlyInstanceOf(UnauthorizedException.class)
+            .hasMessage("User \"normal\" is not authorized to execute the statement. " +
+                        "Superuser permissions are required or you can set the session " +
+                        "authorization back to the authenticated user.");
     }
 
     @Test
@@ -634,7 +621,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             ParamTypeHints.EMPTY,
             e.cursors
         );
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -644,7 +631,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             new CoordinatorSessionSettings(superUser, user),
             ParamTypeHints.EMPTY,
             e.cursors);
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -655,7 +642,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             ParamTypeHints.EMPTY,
             e.cursors
         );
-        assertThat(validationCallArguments.size(), is(0));
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test
@@ -674,7 +661,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_show_transaction_isolation_does_not_require_privileges() throws Exception {
         analyze("show transaction_isolation");
-        assertThat(validationCallArguments, Matchers.empty());
+        assertThat(validationCallArguments).isEmpty();
     }
 
     @Test

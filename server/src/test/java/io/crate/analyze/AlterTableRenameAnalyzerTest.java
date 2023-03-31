@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Arrays;
 import java.util.Map;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,33 +46,33 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testRenamePartitionThrowsException() throws Exception {
         var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
 
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Renaming a single partition is not supported");
-        e.analyze("alter table t1 partition (i=1) rename to t2");
+        assertThatThrownBy(() -> e.analyze("alter table t1 partition (i=1) rename to t2"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Renaming a single partition is not supported");
     }
 
     @Test
     public void testRenameToUsingSchemaThrowsException() throws Exception {
         var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Target table name must not include a schema");
-        e.analyze("alter table t1 rename to my_schema.t1");
+        assertThatThrownBy(() -> e.analyze("alter table t1 rename to my_schema.t1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Target table name must not include a schema");
     }
 
     @Test
     public void testRenameToInvalidName() throws Exception {
         var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-
-        expectedException.expect(InvalidRelationName.class);
-        e.analyze("alter table t1 rename to \"foo.bar\"");
+        assertThatThrownBy(() -> e.analyze("alter table t1 rename to \"foo.bar\""))
+            .isExactlyInstanceOf(InvalidRelationName.class)
+            .hasMessageContaining("Relation name \"doc.foo.bar\" is invalid.");
     }
 
     @Test
     public void test_rename_is_not_allowed_when_table_is_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
         var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-        Assertions.assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
+        assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessageContaining(
                     "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication.");
@@ -82,7 +83,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void test_rename_is_not_allowed_when_all_tables_are_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(true);
         var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-        Assertions.assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
+        assertThatThrownBy(() -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessageContaining(
                     "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication.");

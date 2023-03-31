@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.fetch;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
@@ -47,7 +47,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -81,8 +80,9 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             relationName -> null,
             Collections.emptyList());
 
-        expectedException.expect(IllegalArgumentException.class);
-        context.indexService(10);
+        assertThatThrownBy(() -> context.indexService(10))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Reader with id 10 not found");
     }
 
     @Test
@@ -97,17 +97,19 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("i1")
-                .settings(Settings.builder()
-                    .put(SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(SETTING_VERSION_CREATED, Version.CURRENT))
-                .build(), true)
+                     .settings(Settings.builder()
+                                   .put(SETTING_NUMBER_OF_SHARDS, 1)
+                                   .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                                   .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                     .build(), true)
             .build();
         IndicesService indicesService = mock(IndicesService.class, RETURNS_MOCKS);
         AtomicBoolean calledRefreshReaders = new AtomicBoolean(false);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, UnaryOperator.identity()) {
             @Override
-            public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata, Map<String, IntIndexedContainer> shardsByIndex, Map<String, Integer> bases) {
+            public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
+                                                               Map<String, IntIndexedContainer> shardsByIndex,
+                                                               Map<String, Integer> bases) {
                 calledRefreshReaders.set(true);
                 return CompletableFuture.completedFuture(null);
             }
@@ -127,9 +129,9 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             List.of(routing));
 
         context.start().get(5, TimeUnit.SECONDS);
-        assertThat(calledRefreshReaders.get(), is(true));
+        assertThat(calledRefreshReaders.get()).isTrue();
 
-        assertThat(context.searcher(1), Matchers.notNullValue());
-        assertThat(context.searcher(2), Matchers.notNullValue());
+        assertThat(context.searcher(1)).isNotNull();
+        assertThat(context.searcher(2)).isNotNull();
     }
 }

@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml.upsert;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +47,7 @@ import io.crate.testing.SQLExecutor;
  */
 public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
 
-    private CheckConstraints checkConstraints;
+    private CheckConstraints<Map<String, Object>, ?> checkConstraints;
 
     @Before
     public void setUpExecutor() throws Exception {
@@ -58,7 +60,7 @@ public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo docTableInfo = sqlExecutor.resolveTableInfo("t");
         TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        checkConstraints = new CheckConstraints(
+        checkConstraints = new CheckConstraints<>(
             txnCtx,
             new InputFactory(sqlExecutor.nodeCtx),
             FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS,
@@ -67,12 +69,12 @@ public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_validate_fails_when_check_expr_is_false() throws Exception {
-        expectedException.expectMessage(
-            "Failed CONSTRAINT sentinel CHECK (\"sentinel\") and values {id=280278, qty=42, sentinel=false}");
-        checkConstraints.validate(mapOf(
+        assertThatThrownBy(() -> checkConstraints.validate(mapOf(
             "id", 280278,
             "qty", 42,
-            "sentinel", false));
+            "sentinel", false)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed CONSTRAINT sentinel CHECK (\"sentinel\") and values {id=280278, qty=42, sentinel=false}");
     }
 
     @Test
@@ -93,14 +95,14 @@ public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_have_two_check_constraints_of_same_name() throws Exception {
-        expectedException.expectMessage(
-            "a check constraint of the same name is already declared [id_is_even]");
-        SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t (" +
-                      "    id int CONSTRAINT id_is_even CHECK(id % 2 = 0)," +
-                      "    qty int," +
-                      "    CONSTRAINT id_is_even CHECK(id % 2 = 0))")
-            .build();
+        assertThatThrownBy(() -> SQLExecutor.builder(clusterService)
+                .addTable("""
+                              CREATE TABLE t (
+                              id int CONSTRAINT id_is_even CHECK(id % 2 = 0),
+                              qty int,
+                              CONSTRAINT id_is_even CHECK(id % 2 = 0))"""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("a check constraint of the same name is already declared [id_is_even]");
     }
 
     private static Map<String, Object> mapOf(Object... items) {

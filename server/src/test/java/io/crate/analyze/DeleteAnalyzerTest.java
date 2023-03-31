@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -72,17 +73,17 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteSystemTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
-                                        "operations, as it is read-only.");
-        e.analyze("delete from sys.nodes where name='Trillian'");
+        assertThatThrownBy(() -> e.analyze("delete from sys.nodes where name='Trillian'"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
+                        "operations, as it is read-only.");
     }
 
     @Test
     public void testDeleteWhereSysColumn() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'sys.nodes' unknown");
-        e.analyze("delete from users where sys.nodes.id = 'node_1'");
+        assertThatThrownBy(() -> e.analyze("delete from users where sys.nodes.id = 'node_1'"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'sys.nodes' unknown");
     }
 
     @Test
@@ -102,10 +103,10 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereClauseObjectArrayField() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
-                                        " no overload found for matching argument types: (bigint_array, integer).");
-        e.analyze("delete from users where friends['id'] = 5");
+        assertThatThrownBy(() -> e.analyze("delete from users where friends['id'] = 5"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5)," +
+                                    " no overload found for matching argument types: (bigint_array, integer).");
     }
 
     @Test
@@ -119,8 +120,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSensibleErrorOnDeleteComplexRelation() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot delete from relations other than base tables");
-        e.analyze("delete from (select * from users) u");
+        assertThatThrownBy(() -> e.analyze("delete from (select * from users) u"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot delete from relations other than base tables");
     }
 }
