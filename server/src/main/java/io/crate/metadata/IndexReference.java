@@ -127,18 +127,6 @@ public class IndexReference extends SimpleReference {
         this.analyzer = analyzer;
     }
 
-    public IndexReference(int position,
-                          boolean nullable,
-                          boolean hasDocValues,
-                          ReferenceIdent ident,
-                          IndexType indexType,
-                          List<Reference> columns,
-                          @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, nullable, hasDocValues, position, null);
-        this.columns = columns;
-        this.analyzer = analyzer;
-    }
-
     public IndexReference(ReferenceIdent ident,
                           RowGranularity granularity,
                           DataType<?> type,
@@ -231,8 +219,8 @@ public class IndexReference extends SimpleReference {
         Map<String, Object> mapping = super.toMapping();
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
-            mapping.put("type", "text");
         }
+        mapping.put("type", "text");
 
         if (columns.isEmpty() == false) {
             mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).collect(Collectors.toList()));

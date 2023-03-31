@@ -21,14 +21,22 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import com.carrotsearch.hppc.IntArrayList;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -51,24 +59,46 @@ public class TableCreator {
         this.transportCreateTableAction = transportCreateIndexAction;
     }
 
-    public CompletableFuture<Long> create(BoundCreateTable createTable) {
+    public CompletableFuture<Long> create(BoundCreateTable createTable, Version minNodeVersion) {
         var templateName = createTable.templateName();
         var relationName = createTable.tableIdent();
-        var createTableRequest = templateName == null
-            ? new CreateTableRequest(
-                new CreateIndexRequest(
-                    relationName.indexNameOrAlias(),
-                    createTable.tableParameter().settings()
-                ).mapping(createTable.mapping())
+        CreateTableRequest createTableRequest;
+
+        if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
+            LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+            IntArrayList pKeysIndices = new IntArrayList();
+            createTable.analyzedTableElements().collectReferences(relationName, references, pKeysIndices, true);
+            var policy = (String) createTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
+            createTableRequest = new CreateTableRequest(
+                relationName,
+                new ArrayList<>(references.values()),
+                pKeysIndices,
+                createTable.analyzedTableElements().getCheckConstraints(),
+                createTable.tableParameter().settings(),
+                createTable.routingColumn(),
+                policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT,
+                createTable.partitionedBy(),
+                createTable.analyzedTableElements().indicesMap()
+            );
+
+        } else {
+            // TODO: Remove in 5.5.
+            createTableRequest = templateName == null
+                ? new CreateTableRequest(
+                    new CreateIndexRequest(
+                        relationName.indexNameOrAlias(),
+                        createTable.tableParameter().settings()
+                    ).mapping(createTable.mapping())
             )
-            : new CreateTableRequest(
-                new PutIndexTemplateRequest(templateName)
-                    .mapping(createTable.mapping())
-                    .create(true)
-                    .settings(createTable.tableParameter().settings())
-                    .patterns(Collections.singletonList(createTable.templatePrefix()))
-                    .alias(new Alias(relationName.indexNameOrAlias()))
-        );
+                : new CreateTableRequest(
+                    new PutIndexTemplateRequest(templateName)
+                        .mapping(createTable.mapping())
+                        .create(true)
+                        .settings(createTable.tableParameter().settings())
+                        .patterns(Collections.singletonList(createTable.templatePrefix()))
+                        .alias(new Alias(relationName.indexNameOrAlias()))
+            );
+        }
         return transportCreateTableAction.execute(createTableRequest, resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());

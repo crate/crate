@@ -21,13 +21,17 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -37,6 +41,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,6 +50,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -63,6 +69,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
@@ -92,28 +99,49 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     @Override
     protected ClusterBlockException checkBlock(CreateTableRequest request, ClusterState state) {
-        if (request.getCreateIndexRequest() != null) {
-            CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
-            return transportCreateIndexAction.checkBlock(createIndexRequest, state);
-        } else if (request.getPutIndexTemplateRequest() != null) {
-            PutIndexTemplateRequest putIndexTemplateRequest = request.getPutIndexTemplateRequest();
-            return transportPutIndexTemplateAction.checkBlock(putIndexTemplateRequest, state);
+        var relationName = request.getTableName();
+        assert relationName != null : "relationName must not be null";
+
+        var isPartitioned = request.getPutIndexTemplateRequest() != null || request.partitionedBy().isEmpty() == false;
+        if (isPartitioned) {
+            return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         } else {
-            throw new IllegalStateException("Unknown table request");
+            return state.blocks().indexBlockedException(
+                ClusterBlockLevel.METADATA_WRITE,
+                relationName.indexNameOrAlias()
+            );
         }
     }
 
     @Override
-    protected void masterOperation(final CreateTableRequest request,
+    protected void masterOperation(final CreateTableRequest createTableRequest,
                                    final ClusterState state,
                                    final ActionListener<CreateTableResponse> listener) {
-        final RelationName relationName = request.getTableName();
+        final RelationName relationName = createTableRequest.getTableName();
         if (viewsExists(relationName, state)) {
             listener.onFailure(new RelationAlreadyExists(relationName));
             return;
         }
-        if (request.getCreateIndexRequest() != null) {
-            CreateIndexRequest createIndexRequest = request.getCreateIndexRequest();
+
+        CreateIndexRequest createIndexRequest = null;
+        PutIndexTemplateRequest putIndexTemplateRequest = null;
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_4_0)) {
+            if (createTableRequest.partitionedBy().isEmpty()) {
+                createIndexRequest = toCreateIndexRequest(createTableRequest);
+            } else {
+                putIndexTemplateRequest = toPutIndexTemplateRequest(createTableRequest);
+            }
+        } else {
+            if (createTableRequest.getCreateIndexRequest() != null) {
+                createIndexRequest = createTableRequest.getCreateIndexRequest();
+            } else if (createTableRequest.getPutIndexTemplateRequest() != null) {
+                putIndexTemplateRequest = createTableRequest.getPutIndexTemplateRequest();
+            }
+        }
+
+        assert createIndexRequest != null || putIndexTemplateRequest != null : "Unknown request type";
+
+        if (createIndexRequest != null) {
             validateSettings(createIndexRequest.settings(), state);
 
             ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
@@ -121,8 +149,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 listener::onFailure
             );
             transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
-        } else if (request.getPutIndexTemplateRequest() != null) {
-            PutIndexTemplateRequest putIndexTemplateRequest = request.getPutIndexTemplateRequest();
+        } else {
             validateSettings(putIndexTemplateRequest.settings(), state);
 
             ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
@@ -130,9 +157,43 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 listener::onFailure
             );
             transportPutIndexTemplateAction.masterOperation(putIndexTemplateRequest, state, wrappedListener);
-        } else {
-            throw new IllegalStateException("Unknown table request");
         }
+    }
+
+
+    private static PutIndexTemplateRequest toPutIndexTemplateRequest(CreateTableRequest request) {
+        var relationName = request.getTableName();
+        var mapping = createMapping(
+            request.references(),
+            request.pKeyIndices(),
+            request.checkConstraints(),
+            request.indices(),
+            request.partitionedBy(),
+            request.tableColumnPolicy(),
+            request.routingColumn()
+        );
+        return new PutIndexTemplateRequest(PartitionName.templateName(relationName.schema(), relationName.name()))
+            .mapping(mapping)
+            .create(true)
+            .settings(request.settings())
+            .patterns(Collections.singletonList(PartitionName.templatePrefix(relationName.schema(), relationName.name())))
+            .alias(new Alias(relationName.indexNameOrAlias()));
+    }
+
+    private static CreateIndexRequest toCreateIndexRequest(CreateTableRequest request) {
+        var mapping = createMapping(
+            request.references(),
+            request.pKeyIndices(),
+            request.checkConstraints(),
+            request.indices(),
+            request.partitionedBy(),
+            request.tableColumnPolicy(),
+            request.routingColumn()
+        );
+        return new CreateIndexRequest(
+            request.getTableName().indexNameOrAlias(),
+            request.settings()
+        ).mapping(mapping);
     }
 
     private static boolean viewsExists(RelationName relationName, ClusterState state) {

@@ -30,7 +30,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -321,6 +320,15 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='stop')) with (number_of_replicas = 0)");
+
+        String expectedMapping = "{\"default\":{" +
+            "\"dynamic\":\"strict\",\"" +
+            "_meta\":{\"indices\":{\"title_desc_fulltext\":{}}}," +
+            "\"properties\":{" +
+            "\"description\":{\"type\":\"keyword\",\"position\":2}," +
+            "\"title\":{\"type\":\"keyword\",\"position\":1}," +
+            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"analyzer\":\"stop\",\"sources\":[\"title\",\"description\"]}}}}";
+        assertEquals(expectedMapping, getIndexMapping("novels"));
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +
@@ -1105,8 +1113,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                       analyzer = 'simple'
                    ),
                    PRIMARY KEY ("id", "int_col"),
-                   CONSTRAINT int_check CHECK("int_col" > 20),
-                   CONSTRAINT leaf_check CHECK("o1"['a1']['c1'] > 10)
+                   CONSTRAINT leaf_check CHECK("o1"['a1']['c1'] > 10),
+                   CONSTRAINT int_check CHECK("int_col" > 20)
                 )""".stripIndent()
         );
 

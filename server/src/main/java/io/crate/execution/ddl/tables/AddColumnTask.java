@@ -21,20 +21,17 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.metadata.Reference.buildTree;
+import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+import static io.crate.execution.ddl.tables.MappingUtil.mergeConstraints;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -47,14 +44,11 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -62,9 +56,6 @@ import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
 
 public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
 
@@ -77,6 +68,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
@@ -100,21 +92,24 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         }
 
         request = addMissingParentColumns(request, currentTable);
-        HashMap<ColumnIdent, List<Reference>> tree = buildTree(request.references());
-        Map<String, Map<String, Object>> propertiesMap = buildMapping(null, tree);
-        assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
+
+        Map<String, Object> mapping = createMapping(
+            request.references(),
+            request.pKeyIndices(),
+            request.checkConstraints(),
+            Map.of(),
+            List.of(),
+            null,
+            null
+        );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
-
         if (indexTemplateMetadata != null) {
             // Partitioned table
-
-            Map<String, Object> newMapping = new HashMap<>();
-            mergeDeltaIntoExistingMapping(newMapping, request, propertiesMap);
             IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
                 indexTemplateMetadata,
-                newMapping,
+                mapping,
                 Collections.emptyMap(),
                 Settings.EMPTY,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
@@ -122,7 +117,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             metadataBuilder.put(newIndexTemplateMetadata);
         }
 
-        currentState = updateMapping(currentState, metadataBuilder, request, propertiesMap);
+        currentState = updateMapping(currentState, metadataBuilder, request, (Map<String, Map<String, Object>>) mapping.get("properties"));
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
         docTableInfoFactory.create(request.relationName(), currentState);
         return currentState;
@@ -155,66 +150,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             );
         } else {
             return request;
-        }
-    }
-
-    /**
-     * Returns properties map including all nested sub-columns if there any.
-     * Format of the top level properties field:
-     * {
-     *     col1: {
-     *        position: some_position
-     *        type: some_type
-     *        ...
-     *
-     *        * optional, only for nested objects *
-     *        properties: {
-     *            nested_col1: {...},
-     *            nested_col2: {...},
-     *        }
-     *     },
-     *     col2: {...}
-     * }
-
-     */
-    @Nullable
-    private Map<String, Map<String, Object>> buildMapping(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
-        List<Reference> children = tree.get(currentNode);
-        if (children == null) {
-            return null;
-        }
-        HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
-        for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
-        }
-        return allColumnsMap;
-    }
-
-    /**
-     * Aligned with AnalyzedColumnDefinition.toMapping()
-     */
-    private Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
-
-        Map<String, Object> columnProperties = reference.toMapping();
-        if (reference.valueType().id() == ArrayType.ID) {
-            HashMap<String, Object> outerMapping = new HashMap<>();
-            outerMapping.put("type", "array");
-            if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
-                objectMapping(columnProperties, reference, tree);
-            }
-            outerMapping.put("inner", columnProperties);
-            return outerMapping;
-        } else if (reference.valueType().id() == ObjectType.ID) {
-            objectMapping(columnProperties, reference, tree);
-        }
-        return columnProperties;
-    }
-
-    private void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = buildMapping(reference.column(), tree);
-        if (nestedObjectMap != null) {
-            propertiesMap.put("properties", nestedObjectMap);
         }
     }
 
@@ -269,67 +204,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         );
     }
 
-    @SuppressWarnings("unchecked")
-    private static void mergeConstraints(Map<String, Object> meta,
-                                         List<Reference> references,
-                                         IntArrayList pKeyIndices,
-                                         Map<String, String> checkConstraints) {
 
-        // CHECK
-        if (checkConstraints.isEmpty() == false) {
-            Map<String, String> existingCheckConstraints = (Map<String, String>) meta.get("check_constraints");
-            if (existingCheckConstraints == null) {
-                existingCheckConstraints = new HashMap<>();
-                meta.put("check_constraints", existingCheckConstraints);
-            }
-            for (var entry : checkConstraints.entrySet()) {
-                String name = entry.getKey();
-                String expression = entry.getValue();
-                existingCheckConstraints.put(name, expression);
-            }
-        }
-
-        // PK
-        if (pKeyIndices.isEmpty() == false) {
-            List<String> primaryKeys = (List<String>) meta.get("primary_keys");
-            if (primaryKeys == null) {
-                primaryKeys = new ArrayList<>();
-                meta.put("primary_keys", primaryKeys);
-            }
-            for (int i = 0; i < pKeyIndices.size(); i ++) {
-                primaryKeys.add(references.get(pKeyIndices.get(i)).column().fqn());
-            }
-        }
-
-        // Not nulls
-        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).collect(Collectors.toList());
-        if (newNotNulls.isEmpty() == false) {
-            Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
-            List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
-            if (notNulls == null) {
-                notNulls = new ArrayList<>();
-                var map = new HashMap<>();
-                map.put("not_null", notNulls);
-                meta.put("constraints", map);
-            }
-            notNulls.addAll(newNotNulls);
-        }
-
-        // Generated expressions
-        List<GeneratedReference> newGenExpressions = references.stream()
-            .filter(ref -> ref instanceof GeneratedReference)
-            .map(ref -> (GeneratedReference) ref)
-            .collect(Collectors.toList());
-        if (newGenExpressions.isEmpty() == false) {
-            Map<String, String> generatedColumns = (Map<String, String>) meta.get("generated_columns");
-            if (generatedColumns == null) {
-                generatedColumns = new HashMap<>();
-                meta.put("generated_columns", generatedColumns);
-            }
-            for (GeneratedReference genRef: newGenExpressions) {
-                generatedColumns.put(genRef.column().fqn(), genRef.formattedGeneratedExpression());
-            }
-        }
-    }
 
 }

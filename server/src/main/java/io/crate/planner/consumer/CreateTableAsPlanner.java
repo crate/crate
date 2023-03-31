@@ -100,7 +100,7 @@ public final class CreateTableAsPlanner {
                 schemas,
                 dependencies.fulltextAnalyzerResolver());
 
-            tableCreator.create(boundCreateTable)
+            tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
                 .thenRun(() -> postponedInsertPlan.get().execute(dependencies,
                                                                  plannerContext,
                                                                  consumer,

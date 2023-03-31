@@ -27,6 +27,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
@@ -78,6 +79,7 @@ public class BoundCreateTable {
         return ifNotExists;
     }
 
+    @Nonnull
     public List<List<String>> partitionedBy() {
         return analyzedTableElements().partitionedBy();
     }
@@ -139,6 +141,11 @@ public class BoundCreateTable {
         return relationName;
     }
 
+    @Nullable
+    public String routingColumn() {
+        return routingColumn != null ? routingColumn.fqn() : null;
+    }
+
     /**
      * return true if a columnDefinition with name <code>columnIdent</code> exists
      */
@@ -147,7 +154,7 @@ public class BoundCreateTable {
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    AnalyzedTableElements<Object> analyzedTableElements() {
+    public AnalyzedTableElements<Object> analyzedTableElements() {
         return analyzedTableElements;
     }
 
