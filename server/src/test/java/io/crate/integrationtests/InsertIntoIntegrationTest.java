@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.in;
 import static org.assertj.core.data.Offset.offset;
 
 import java.util.HashMap;
@@ -53,6 +54,44 @@ import io.crate.testing.UseJdbc;
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
+
+    @Test
+    public void test_insert_many_multi_values() throws Exception {
+        StringBuilder createTable = new StringBuilder("create table test (");
+        for (int i = 1; i <= 100; i++) {
+            createTable.append("c").append(i).append(" text");
+            if (i < 100) {
+                createTable.append(", ");
+            } else {
+                createTable.append(")");
+            }
+        }
+        execute(createTable.toString());
+
+        StringBuilder insertInto = new StringBuilder("insert into test values ");
+
+        for (int i = 1; i <= 10000; i++) {
+            insertInto.append("(");
+
+            for (int j = 1; j <= 100; j++) {
+                insertInto.append("'dummy").append(i).append("'");
+                if (j < 100) {
+                    insertInto.append(",");
+                }
+            }
+
+            insertInto.append(")");
+            if (i < 10000) {
+                insertInto.append(",");
+            }
+
+        }
+
+        String query = insertInto.toString();
+        logger.info("------------------ heap space didn't happen because of query construction, test is still alive here -------------------------------------");
+        execute(query);
+    }
+
 
     @Test
     public void testInsertWithColumnNames() throws Exception {
