@@ -33,7 +33,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.crate.common.collections.Lists2;
@@ -82,6 +84,7 @@ public class AnalyzedTableElements<T> {
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
     private Map<String, String> checkConstraints = new LinkedHashMap<>();
+    private Map<String, Object> indicesMap = new HashMap<>();
     private List<List<String>> partitionedBy;
     private int numGeneratedColumns = 0;
 
@@ -120,26 +123,24 @@ public class AnalyzedTableElements<T> {
         this.ftSourcesMap = ftSourcesMap;
     }
 
+
     public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
         final Map<String, Object> mapping = new HashMap<>();
         final Map<String, Object> meta = new HashMap<>();
         final Map<String, Object> properties = new HashMap<>(elements.columns.size());
 
         Map<String, String> generatedColumns = new HashMap<>();
-        Map<String, Object> indicesMap = new HashMap<>();
+
         for (AnalyzedColumnDefinition<Object> column : elements.columns) {
             properties.put(column.name(), AnalyzedColumnDefinition.toMapping(column));
-            if (column.isIndexColumn()) {
-                indicesMap.put(column.name(), column.toMetaIndicesMapping());
-            }
             addToGeneratedColumns("", column, generatedColumns);
         }
 
         if (!elements.partitionedByColumns.isEmpty()) {
             meta.put("partitioned_by", elements.partitionedBy());
         }
-        if (!indicesMap.isEmpty()) {
-            meta.put("indices", indicesMap);
+        if (!elements.indicesMap.isEmpty()) {
+            meta.put("indices", elements.indicesMap());
         }
         if (!primaryKeys(elements).isEmpty()) {
             meta.put("primary_keys", primaryKeys(elements));
@@ -342,6 +343,10 @@ public class AnalyzedTableElements<T> {
         return builder.build();
     }
 
+    /**
+     * Validates ADD COLUMN/CREATE TABLE column, index, primary key, constraint definitions.
+     * Enriches AnalyzedColumnDefinition with resolved generated and default expressions.
+     */
     public static void finalizeAndValidate(RelationName relationName,
                                            AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
                                            AnalyzedTableElements<Object> tableElementsEvaluated) {
@@ -354,10 +359,11 @@ public class AnalyzedTableElements<T> {
         validateIndexDefinitions(relationName, tableElementsEvaluated);
         validatePrimaryKeys(relationName, tableElementsEvaluated);
 
-        // finalizeAndValidate used to compute mapping which implicitly validated storage settings.
-        // Since toMapping call is removed from finalizeAndValidate we are triggering this check explicitly
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns()) {
             AnalyzedColumnDefinition.validateAndComputeDocValues(column);
+            if (column.isIndexColumn()) {
+                tableElementsEvaluated.indicesMap().put(column.name(), column.toMetaIndicesMapping());
+            }
         }
     }
 
@@ -377,10 +383,35 @@ public class AnalyzedTableElements<T> {
         return new TableReferenceResolver(tableReferences.values(), relationName);
     }
 
-    public void collectReferences(RelationName relationName, LinkedHashMap<ColumnIdent, Reference> target, IntArrayList pKeysIndices, boolean isAddColumn) {
+    /**
+     * @param bound indicates whether symbols (geo properties, analyzer) in AnalyzedColumnDefinition-s are resolved.
+     * If it's false, we are creating TableReferenceResolver when analyzing CREATE STATEMENT, we don't need geo/index reference.
+     * If it's true, we are re-using underlying buildReference to transform AnalyzedColumnDefinition -> Reference.
+     *
+     * We can create multiple object columns at once.
+     * Those columns can have overlapping paths, for example we can add columns o['a']['b'] and o['a']['c'].
+     * For every added column AnalyzedColumnDefinition provides not only leaf but also path to the root.
+     * For o['a']['b'] and o['a']['c'] we can end up having Ref(Ident(o)) and Ref(Ident(a)) twice.
+     *
+     * @param target has to be a Map to compare References by FQN.
+     * Regular Set cannot be used as it would use Reference.position along with other fields when calling equals() and
+     * position is resolved to -1 and -2 for all parts of the path in the case above so overlapping parts will be "different".
+     *
+     */
+    public void collectReferences(RelationName relationName,
+                                  LinkedHashMap<ColumnIdent, Reference> target,
+                                  IntArrayList pKeysIndices,
+                                  boolean bound) {
+        // Collect references for regular columns
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
-            buildReference(relationName, columnDefinition, target, pKeysIndices, isAddColumn);
+            buildReference(relationName, columnDefinition, target, this.primaryKeys, pKeysIndices, bound);
         }
+
+        // Collect references for dedicated index definitions
+        for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
+            buildDedicatedIndexReference(relationName, columnDefinition, target);
+        }
+
     }
 
     private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
@@ -391,7 +422,9 @@ public class AnalyzedTableElements<T> {
                 generatedExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
-                columnDefinitionEvaluated::formattedGeneratedExpression);
+                columnDefinitionEvaluated::formattedGeneratedExpression,
+                null
+            );
         }
         Symbol defaultExpression = columnDefinitionWithExpressionSymbols.defaultExpression();
         if (defaultExpression != null) {
@@ -404,7 +437,9 @@ public class AnalyzedTableElements<T> {
                 defaultExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
-                columnDefinitionEvaluated::formattedDefaultExpression);
+                columnDefinitionEvaluated::formattedDefaultExpression,
+                columnDefinitionEvaluated::defaultExpression
+            );
         }
         for (int i = 0; i < columnDefinitionWithExpressionSymbols.children().size(); i++) {
             processExpressions(
@@ -417,7 +452,8 @@ public class AnalyzedTableElements<T> {
     private static void validateAndFormatExpression(Symbol function,
                                                     AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
                                                     AnalyzedColumnDefinition<Object> columnDefinitionEvaluated,
-                                                    Consumer<String> formattedExpressionConsumer) {
+                                                    Consumer<String> formattedExpressionConsumer,
+                                                    @Nullable Consumer<Symbol> expressionConsumer) {
         String formattedExpression;
         DataType<?> valueType = function.valueType();
         DataType<?> definedType = columnDefinitionWithExpressionSymbols.dataType();
@@ -442,6 +478,7 @@ public class AnalyzedTableElements<T> {
             }
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType);
+            function = castFunction;
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {
@@ -453,13 +490,26 @@ public class AnalyzedTableElements<T> {
             formattedExpression = function.toString(Style.UNQUALIFIED);
         }
         formattedExpressionConsumer.accept(formattedExpression);
+        if (expressionConsumer != null) {
+            expressionConsumer.accept(function);
+        }
     }
 
+    /**
+     * Handles only regular columns.
+     * Dedicated index columns are handled by {@link #buildDedicatedIndexReference}.
+     */
     public static <T> void buildReference(RelationName relationName,
                                           AnalyzedColumnDefinition<T> columnDefinition,
                                           LinkedHashMap<ColumnIdent, Reference> references,
+                                          Set<String> primaryKeys,
                                           IntArrayList pKeysIndices,
-                                          boolean isAddColumn) {
+                                          boolean bound) {
+
+        if (columnDefinition.sources().isEmpty() == false) {
+            // Skip dedicated index columns so that they are not added to references map here
+            return;
+        }
 
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
@@ -468,41 +518,43 @@ public class AnalyzedTableElements<T> {
 
         Reference ref;
         boolean isNullable = !columnDefinition.hasNotNullConstraint();
-        if (isAddColumn && type.id() == GeoShapeType.ID) {
+        if (bound && type.id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
-                // applySettings validates geo properties.
-                // If this method called from CreateTablePlan geoProperties are not yet resolved, they are still Literals. No need to validate, it will be done later.
-                // In case of ADD COLUMN we have to validate geo properties.
                 GeoSettingsApplier.applySettings(geoMap, (GenericProperties<Object>) columnDefinition.geoProperties(), columnDefinition.geoTree());
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
+            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new GeoReference(
-                columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                isNullable,
+                RowGranularity.DOC,
                 realType,
+                ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
+                IndexType.PLAIN,
+                isNullable,
+                columnDefinition.docValues(),
+                columnDefinition.position,
+                (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
                 (Integer) geoMap.get("tree_levels"),
                 distError != null ? distError.doubleValue() : null
             );
-        } else if (isAddColumn && columnDefinition.analyzer() != null) {
-            // We are sending IndexReference since it's the only Reference implementation having 'analyzer'.
-            // However, IndexReference is dedicated to reflect index declaration like 'INDEX some_index using fulltext(some_col) with (analyzer = 'english')'
-            // Hence, we ignore copyTo which is irrelevant for ADD COLUMN.
-            // columnDefinition.isIndexColumn() cannot be used here, it's always false for ADD COLUMN.
+        } else if (bound && columnDefinition.analyzer() != null) {
+            // If analyzer is not null, it's a column definition with inlined INDEX definition.
+            // Dedicated indices are collected separately after regular references collection.
+            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new IndexReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 realType,
-                ColumnPolicy.DYNAMIC,
-                columnDefinition.indexConstraint(),
+                ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
+                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
-                null, //default expression is irrelevant for ADD COLUMN
-                List.of(), //copyTo is irrelevant for ADD COLUMN
+                (Symbol) columnDefinition.defaultExpression(),
+                List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
             );
         } else {
@@ -515,7 +567,7 @@ public class AnalyzedTableElements<T> {
                 isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
-                null // not required in this context
+                (Symbol) columnDefinition.defaultExpression()
             );
         }
 
@@ -525,13 +577,58 @@ public class AnalyzedTableElements<T> {
 
         references.putIfAbsent(ref.column(), ref);
 
-        if (columnDefinition.hasPrimaryKeyConstraint()) {
+        if (columnDefinition.hasPrimaryKeyConstraint() || (primaryKeys != null && primaryKeys.contains(columnDefinition.ident().fqn()))) {
             // 'references' is a LinkedHashMap, current size <==> last inserted index.
+            // Need 2 different checks for column level and table level PRIMARY KEY declarations.
             pKeysIndices.add(references.size() - 1);
         }
 
         for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
-            buildReference(relationName, childDefinition, references, pKeysIndices, isAddColumn);
+            buildReference(relationName, childDefinition, references, primaryKeys, pKeysIndices, bound);
+        }
+    }
+
+    /**
+     * Handles only dedicated index columns.
+     * Regular columns are handled by {@link #buildReference}.
+     *
+     * Must be called only after regular columns collection
+     * since we resolve source columns by name from regular references
+     * and index can be defined before regular columns.
+     */
+    private static <T> void buildDedicatedIndexReference(RelationName relationName,
+                                                         AnalyzedColumnDefinition<T> columnDefinition,
+                                                         LinkedHashMap<ColumnIdent, Reference> references) {
+
+        if (columnDefinition.sources().isEmpty() == false) {
+
+            List<Reference> sources =
+                columnDefinition.sources()
+                .stream()
+                .map(src -> references.get(ColumnIdent.fromPath(src)))
+                .collect(Collectors.toList());
+
+            Reference ref = new IndexReference(
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
+                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN,
+                !columnDefinition.hasNotNullConstraint(),
+                columnDefinition.docValues(),
+                columnDefinition.position,
+                null, // default expression is irrelevant for INDEX definition
+                sources,
+                columnDefinition.analyzer()
+            );
+
+
+            references.put(columnDefinition.ident(), ref);
+
+            for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
+                buildDedicatedIndexReference(relationName, childDefinition, references);
+            }
+
         }
     }
 
@@ -721,7 +818,12 @@ public class AnalyzedTableElements<T> {
 
     @VisibleForTesting
     public Map<String, String> getCheckConstraints() {
-        return Map.copyOf(checkConstraints);
+        return checkConstraints;
+    }
+
+    @Nonnull
+    public Map<String, Object> indicesMap() {
+        return indicesMap;
     }
 
     public boolean hasGeneratedColumns() {

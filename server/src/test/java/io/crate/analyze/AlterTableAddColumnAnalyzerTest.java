@@ -155,15 +155,16 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
 
-        var request = AlterTableAddColumnPlan.createRequest(
+        var tableElements = validate(
             analyzedAlterTableAddColumn,
+            plannerContext.transactionContext(),
             plannerContext.nodeContext(),
-            plannerContext,
             Row.EMPTY,
             SubQueryResults.EMPTY,
             e.fulltextAnalyzerResolver()
         );
 
+        var request = AlterTableAddColumnPlan.createRequest(tableElements, analyzedAlterTableAddColumn.tableInfo().ident());
 
         assertThat(request.pKeyIndices()).hasSize(2);
         assertThat(request.references()).hasSize(4); // 2 leaves (b, c) and their common parents (o, a).

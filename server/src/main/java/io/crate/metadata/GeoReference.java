@@ -98,7 +98,7 @@ public class GeoReference extends SimpleReference {
             position,
             defaultExpression
         );
-        this.geoTree = geoTree;
+        this.geoTree = Objects.requireNonNullElse(geoTree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;

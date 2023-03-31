@@ -108,7 +108,7 @@ public class CreateTablePlan implements Plan {
             return;
         }
 
-        tableCreator.create(boundCreateTable)
+        tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 

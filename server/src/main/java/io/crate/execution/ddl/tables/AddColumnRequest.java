@@ -23,7 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,34 +61,45 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
-        relationName = new RelationName(in);
+        this.relationName = new RelationName(in);
+        ReferencesAndConstraints referencesAndConstraints = ReferencesAndConstraints.read(in);
+        this.colsToAdd = referencesAndConstraints.colsToAdd();
+        this.checkConstraints = referencesAndConstraints.checkConstraints();
+        this.pKeyIndices = referencesAndConstraints.pKeyIndices();
+    }
 
-        int numConstraints = in.readVInt();
-        checkConstraints = new HashMap<>();
-        for (int i = 0; i < numConstraints; i++) {
-            String name = in.readString();
-            String expression = in.readString();
-            checkConstraints.put(name, expression);
-        }
+    public record ReferencesAndConstraints(ArrayList<Reference> colsToAdd,
+                                    Map<String, String> checkConstraints,
+                                    IntArrayList pKeyIndices) {
 
-        int numColumns = in.readVInt();
-        colsToAdd = new ArrayList<>(numColumns);
-        for (int i = 0; i < numColumns; i++) {
-            colsToAdd.add(Reference.fromStream(in));
-        }
+        public static ReferencesAndConstraints read(StreamInput in) throws IOException {
+            int numConstraints = in.readVInt();
+            Map<String, String> checkConstraints = new LinkedHashMap<>();
+            for (int i = 0; i < numConstraints; i++) {
+                String name = in.readString();
+                String expression = in.readString();
+                checkConstraints.put(name, expression);
+            }
 
-        int numPKIndices = in.readVInt();
-        pKeyIndices = new IntArrayList(numPKIndices);
-        for (int i = 0; i < numPKIndices; i++) {
-            pKeyIndices.add(in.readVInt());
+            int numColumns = in.readVInt();
+            ArrayList<Reference> colsToAdd = new ArrayList<>(numColumns);
+            for (int i = 0; i < numColumns; i++) {
+                colsToAdd.add(Reference.fromStream(in));
+            }
+
+            int numPKIndices = in.readVInt();
+            IntArrayList pKeyIndices = new IntArrayList(numPKIndices);
+            for (int i = 0; i < numPKIndices; i++) {
+                pKeyIndices.add(in.readVInt());
+            }
+            return new ReferencesAndConstraints(colsToAdd, checkConstraints, pKeyIndices);
         }
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        relationName.writeTo(out);
-
+    public static void writeReferencesAndConstraints(StreamOutput out,
+                                                     Map<String, String> checkConstraints,
+                                                     List<Reference> colsToAdd,
+                                                     IntArrayList pKeyIndices) throws IOException {
         out.writeVInt(checkConstraints.size());
         for (var entry : checkConstraints.entrySet()) {
             out.writeString(entry.getKey());
@@ -106,6 +117,12 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         }
     }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        relationName.writeTo(out);
+        writeReferencesAndConstraints(out, checkConstraints, colsToAdd, pKeyIndices);
+    }
 
     @Nonnull
     public RelationName relationName() {
