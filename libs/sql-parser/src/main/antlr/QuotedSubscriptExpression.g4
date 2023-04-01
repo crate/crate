@@ -21,8 +21,8 @@
 
 grammar QuotedSubscriptExpression;
 
-quotedSubscriptExpression
-    : baseColumn subscript
+subscriptExpression
+    : baseColumn subscript+
     ;
 
 subscript

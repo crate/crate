@@ -67,14 +67,14 @@ public class QuotedSubscriptExpressionParser {
             try {
                 // first, try parsing with potentially faster SLL mode
                 parser.getInterpreter().setPredictionMode(PredictionMode.SLL);
-                tree = parser.quotedSubscriptExpression();
+                tree = parser.subscriptExpression();
             } catch (ParseCancellationException ex) {
                 // if we fail, parse with LL mode
                 tokenStream.seek(0); // rewind input stream
                 parser.reset();
 
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
-                tree = parser.quotedSubscriptExpression();
+                tree = parser.subscript();
             }
 
             return new QuotedSubscriptExpressionASTBuilder().visit(tree);

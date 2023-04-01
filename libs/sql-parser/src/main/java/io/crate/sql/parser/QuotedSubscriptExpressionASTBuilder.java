@@ -34,11 +34,12 @@ import io.crate.sql.tree.SubscriptExpression;
 
 public class QuotedSubscriptExpressionASTBuilder extends QuotedSubscriptExpressionBaseVisitor<Node> {
     @Override
-    public Node visitQuotedSubscriptExpression(QuotedSubscriptExpressionParser.QuotedSubscriptExpressionContext ctx) {
-        return new SubscriptExpression(
-            new QualifiedNameReference(new QualifiedName(ctx.baseColumn().getText())),
-            (Expression) visitSubscript(ctx.subscript())
-        );
+    public Node visitSubscriptExpression(QuotedSubscriptExpressionParser.SubscriptExpressionContext ctx) {
+        Expression baseExpression = new QualifiedNameReference(new QualifiedName(ctx.baseColumn().getText()));
+        for (var subscript : ctx.subscript()) {
+            baseExpression = new SubscriptExpression(baseExpression, (Expression) visitSubscript(subscript));
+        }
+        return baseExpression;
     }
 
     @Override
@@ -59,4 +60,6 @@ public class QuotedSubscriptExpressionASTBuilder extends QuotedSubscriptExpressi
     public Node visitBaseColumn(QuotedSubscriptExpressionParser.BaseColumnContext ctx) {
         return new StringLiteral(ctx.getText());
     }
+
+
 }
