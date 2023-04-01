@@ -1961,7 +1961,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-        return new QualifiedNameReference(QualifiedName.of(getIdentText(context.ident())));
+        String processedIdent = getIdentText(context.ident());
+        Node subscriptExpression = detectQuotedSubscriptExpression(processedIdent);
+        if (subscriptExpression != null) {
+            return subscriptExpression;
+        }
+        return new QualifiedNameReference(QualifiedName.of(processedIdent));
     }
 
     @Override
@@ -2487,5 +2492,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             default:
                 throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
         }
+    }
+
+    private static Node detectQuotedSubscriptExpression(String expression) {
+        return QuotedSubscriptExpressionParser.detectQuotedSubscriptExpressions(expression);
     }
 }

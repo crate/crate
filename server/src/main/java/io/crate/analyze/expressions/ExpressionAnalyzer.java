@@ -1263,10 +1263,10 @@ public class ExpressionAnalyzer {
 
     @Nullable
     private static String detectAndSanitizeQuotedSubscript(String columnName) {
-        var openSubscriptPos = columnName.indexOf("[");
-        if (openSubscriptPos > -1) {
-            return "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
-        }
+//        var openSubscriptPos = columnName.indexOf("[");
+//        if (openSubscriptPos > -1) {
+//            return "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+//        }
         return null;
     }
 
