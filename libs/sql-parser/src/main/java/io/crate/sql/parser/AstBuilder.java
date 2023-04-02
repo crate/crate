@@ -1946,9 +1946,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-        return new QualifiedNameReference(
-            QualifiedName.of(identsToStrings(context.ident()))
-        );
+        List<String> identStrings = identsToStrings(context.ident());
+        String columnName = identStrings.get(identStrings.size() - 1);
+        Node subscriptExpression = detectQuotedSubscriptExpression(columnName);
+        if (subscriptExpression != null) {
+            return subscriptExpression;
+        }
+        return new QualifiedNameReference(QualifiedName.of(identStrings));
     }
 
     @Override

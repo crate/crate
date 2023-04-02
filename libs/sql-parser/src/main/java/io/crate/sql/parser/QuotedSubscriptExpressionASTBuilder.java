@@ -60,6 +60,4 @@ public class QuotedSubscriptExpressionASTBuilder extends QuotedSubscriptExpressi
     public Node visitBaseColumn(QuotedSubscriptExpressionParser.BaseColumnContext ctx) {
         return new StringLiteral(ctx.getText());
     }
-
-
 }

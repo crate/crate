@@ -33,6 +33,7 @@ import java.util.stream.StreamSupport;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+// TODO: here or some other class should also check for invalid column name: subscript pattern?
 public class QualifiedName {
 
     private final List<String> parts;
