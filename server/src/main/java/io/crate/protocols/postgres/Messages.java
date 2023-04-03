@@ -499,8 +499,9 @@ public class Messages {
 
     /**
      * Send a message that just contains the msgType and the msg length
+     * @return
      */
-    private static void sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
+    private static ChannelFuture sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
         ByteBuf buffer = channel.alloc().buffer(5);
         buffer.writeByte(msgType);
         buffer.writeInt(4);
@@ -509,10 +510,11 @@ public class Messages {
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
         }
+        return channelFuture;
     }
 
-    static void sendPortalSuspended(Channel channel) {
-        sendShortMsg(channel, 's', "sentPortalSuspended");
+    static ChannelFuture sendPortalSuspended(Channel channel) {
+        return sendShortMsg(channel, 's', "sentPortalSuspended");
     }
 
     /**
