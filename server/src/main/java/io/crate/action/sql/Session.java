@@ -356,7 +356,6 @@ public class Session implements AutoCloseable {
             portalName,
             preparedStmt,
             params,
-            preparedStmt.analyzedStatement(),
             resultFormatCodes);
         Portal oldPortal = portals.put(portalName, portal);
         if (oldPortal != null) {
@@ -384,7 +383,6 @@ public class Session implements AutoCloseable {
                     cursorName,
                     preparedQuery,
                     List.of(),
-                    preparedQuery.analyzedStatement(),
                     resultFormatCodes
                 );
                 portals.put(cursorName, queryPortal);
