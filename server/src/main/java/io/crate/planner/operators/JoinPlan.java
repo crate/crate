@@ -23,18 +23,81 @@ package io.crate.planner.operators;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.JoinType;
 
-public interface JoinPlan extends LogicalPlan {
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
-    LogicalPlan lhs();
+public abstract class JoinPlan implements LogicalPlan {
 
-    LogicalPlan rhs();
+    protected final LogicalPlan lhs;
+    protected final LogicalPlan rhs;
+    @Nullable
+    protected final Symbol joinCondition;
+    protected final JoinType joinType;
 
-    JoinType joinType();
+
+    protected JoinPlan(LogicalPlan lhs, LogicalPlan rhs, @Nullable Symbol joinCondition, JoinType joinType) {
+        this.lhs = lhs;
+        this.rhs = rhs;
+        this.joinCondition = joinCondition;
+        this.joinType = joinType;
+    }
+
+    public LogicalPlan lhs() {
+        return lhs;
+    }
+
+    public LogicalPlan rhs() {
+        return rhs;
+    }
 
     @Nullable
-    Symbol joinCondition();
+    public Symbol joinCondition() {
+        return joinCondition;
+    }
 
+    public JoinType joinType() {
+        return joinType;
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
+    }
+
+    protected static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
+                                             ResultDescription resultDescription,
+                                             Collection<String> executionNodes) {
+        List<Projection> projections = Collections.emptyList();
+        if (resultDescription.hasRemainingLimitOrOffset()) {
+            projections = Collections.singletonList(ProjectionBuilder.limitAndOffsetOrEvalIfNeeded(
+                resultDescription.limit(),
+                resultDescription.offset(),
+                resultDescription.numOutputs(),
+                resultDescription.streamOutputs()
+            ));
+        }
+
+        return new MergePhase(
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            "join-merge",
+            resultDescription.nodeIds().size(),
+            1,
+            executionNodes,
+            resultDescription.streamOutputs(),
+            projections,
+            DistributionInfo.DEFAULT_SAME_NODE,
+            resultDescription.orderBy()
+        );
+    }
 }
