@@ -23,6 +23,7 @@ package io.crate.testing;
 
 import static io.crate.testing.SQLTransportExecutor.buildRandomizedRuleSessionSettings;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Random;
@@ -57,8 +58,8 @@ public class SqlTransportExecutorTest {
             MoveFilterBeneathGroupBy.class
         );
 
-        assertThat(buildRandomizedRuleSessionSettings(new Random(1L), 0.0, allRules, List.of()))
-            .isEmpty();
+        assertThatThrownBy(() -> buildRandomizedRuleSessionSettings(new Random(1L), 0.0, allRules, List.of()))
+            .isInstanceOf(AssertionError.class).hasMessage("Percentage of rules to disable for Rule Randomization must greater than 0 and equal or less than 1");
 
         assertThat(buildRandomizedRuleSessionSettings(new Random(1L), 0.3, allRules, List.of()))
             .hasSize(3)
@@ -82,6 +83,9 @@ public class SqlTransportExecutorTest {
                 "set optimizer_move_filter_beneath_order=false",
                 "set optimizer_rewrite_to_query_then_fetch=false"
             );
+
+        assertThatThrownBy(() -> buildRandomizedRuleSessionSettings(new Random(1L), 1.1, allRules, List.of()))
+            .isInstanceOf(AssertionError.class).hasMessage("Percentage of rules to disable for Rule Randomization must greater than 0 and equal or less than 1");
     }
 
     @Test

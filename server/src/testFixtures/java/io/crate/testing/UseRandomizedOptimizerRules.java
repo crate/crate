@@ -51,5 +51,10 @@ public @interface UseRandomizedOptimizerRules {
     // close to 0 -> mostly disabled
     double value() default 0.5;
 
+    // -1  -> disable random number of optimizer rules
+    // 0.1 -> disable randomly 10 % of the optimizer rules
+    // 1   -> disable all the optimizer rules
+    double disablePercentage() default -1;
+
     Class<? extends Rule<?>>[] alwaysKeep() default {};
 }

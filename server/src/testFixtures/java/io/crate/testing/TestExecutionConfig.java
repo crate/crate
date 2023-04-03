@@ -31,6 +31,7 @@ import io.crate.planner.optimizer.Rule;
 public record TestExecutionConfig(boolean isJdbcEnabled,
                                   boolean isHashJoinEnabled,
                                   boolean isRuleRandomizationEnabled,
+                                  double amountOfRulesToDisable,
                                   List<Class<? extends Rule<?>>> rulesToKeep) {
 }
 
