@@ -431,17 +431,24 @@ public class Session implements AutoCloseable {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
         Portal portal = getSafePortal(portalName);
+        var activeConsumer = portal.activeConsumer();
+        if (activeConsumer != null && activeConsumer.suspended()) {
+            activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
+            activeConsumer.resume();
+            return resultReceiver.completionFuture();
+        }
+
         var analyzedStmt = portal.analyzedStatement();
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
         if (analyzedStmt instanceof AnalyzedBegin) {
             currentTransactionState = TransactionState.IN_TRANSACTION;
-            resultReceiver.allFinished(false);
+            resultReceiver.allFinished();
         } else if (analyzedStmt instanceof AnalyzedCommit) {
             currentTransactionState = TransactionState.IDLE;
             cursors.close(cursor -> cursor.hold() == Hold.WITHOUT);
-            resultReceiver.allFinished(false);
+            resultReceiver.allFinished();
             return resultReceiver.completionFuture();
         } else if (analyzedStmt instanceof AnalyzedDeallocate) {
             String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
@@ -453,7 +460,7 @@ public class Session implements AutoCloseable {
                 }
                 preparedStatements.clear();
             }
-            resultReceiver.allFinished(false);
+            resultReceiver.allFinished();
         } else if (analyzedStmt instanceof AnalyzedDiscard) {
             AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
             // We don't cache plans, don't have sequences or temporary tables
@@ -461,7 +468,7 @@ public class Session implements AutoCloseable {
             if (discard.target() == Target.ALL) {
                 close();
             }
-            resultReceiver.allFinished(false);
+            resultReceiver.allFinished();
         } else if (analyzedStmt.isWriteOperation()) {
             /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
              * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
@@ -642,18 +649,17 @@ public class Session implements AutoCloseable {
                 cells[0] = Row1.ERROR;
             }
             resultReceiver.setNextRow(row);
-            resultReceiver.allFinished(false);
+            resultReceiver.allFinished();
         }
         jobsLogs.logExecutionEnd(jobId, null);
     }
 
     @VisibleForTesting
     CompletableFuture<?> singleExec(Portal portal, ResultReceiver<?> resultReceiver, int maxRows) {
-        var activeConsumer = portal.activeConsumer();
-        if (activeConsumer != null && activeConsumer.suspended()) {
-            activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
-            activeConsumer.resume();
-            return resultReceiver.completionFuture();
+        RowConsumerToResultReceiver activeConsumer = portal.activeConsumer();
+        if (activeConsumer != null) {
+            activeConsumer.closeAndFinishIfSuspended();
+            return activeConsumer.completionFuture();
         }
 
         mostRecentJobID = UUIDs.dirtyUUID();
