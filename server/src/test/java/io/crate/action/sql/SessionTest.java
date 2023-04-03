@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
@@ -426,6 +427,28 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.close((byte) 'S', "S_1");
         assertThat(session.portals.entrySet(), Matchers.empty());
         assertThat(session.preparedStatements.entrySet(), Matchers.empty());
+    }
+
+    @Test
+    public void test_can_describe_cursor_created_using_declare() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        Session session = sqlExecutor.createSession();
+        session.parse("", "DECLARE c1 NO SCROLL CURSOR FOR select 1", List.of());
+        session.bind("", "", List.of(), null);
+        session.execute("", 0, new BaseResultReceiver());
+
+        DescribeResult describe = session.describe('P', "c1");
+        assertThat(describe.getFields()).satisfiesExactly(
+            x -> assertThat(x).isLiteral(1, DataTypes.INTEGER)
+        );
+
+        assertThat(session.portals).containsOnlyKeys("", "c1");
+
+        session.parse("", "CLOSE c1", List.of());
+        session.bind("", "", List.of(), null);
+        session.execute("", 0, new BaseResultReceiver());
+
+        assertThat(session.portals).containsOnlyKeys("");
     }
 
     @Test

@@ -41,8 +41,10 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedClose;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
@@ -81,10 +83,12 @@ import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Declare;
+import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
-import io.crate.sql.tree.Declare.Hold;
 import io.crate.types.DataType;
 
 /**
@@ -369,6 +373,31 @@ public class Session implements AutoCloseable {
             // We don't comply with the spec because we allow batching of statements, see #execute
             oldPortal.closeActiveConsumer();
         }
+
+        // Clients might try to describe a declared query, need to store a portal to allow that.
+        if (preparedStmt.analyzedStatement() instanceof AnalyzedDeclare analyzedDeclare) {
+            Declare declare = analyzedDeclare.declare();
+            String cursorName = declare.cursorName();
+            if (!cursorName.equals(portalName)) {
+                var parameterTypes = parameterTypeExtractor.getParameterTypes(
+                    x -> Relations.traverseDeepSymbols(analyzedDeclare.query(), x)
+                );
+                PreparedStmt preparedQuery = new PreparedStmt(
+                    declare.query(),
+                    analyzedDeclare.query(),
+                    SqlFormatter.formatSql(declare.query()),
+                    parameterTypes
+                );
+                Portal queryPortal = new Portal(
+                    cursorName,
+                    preparedQuery,
+                    List.of(),
+                    preparedQuery.analyzedStatement(),
+                    resultFormatCodes
+                );
+                portals.put(cursorName, queryPortal);
+            }
+        }
     }
 
     public DescribeResult describe(char type, String portalOrStatement) {
@@ -506,6 +535,15 @@ public class Session implements AutoCloseable {
             );
             return resultReceiver.completionFuture();
         } else {
+            if (analyzedStmt instanceof AnalyzedClose close) {
+                String cursorName = close.cursorName();
+                if (cursorName != null) {
+                    Portal removedPortal = portals.remove(cursorName);
+                    if (removedPortal != null) {
+                        removedPortal.closeActiveConsumer();
+                    }
+                }
+            }
             if (!deferredExecutionsByStmt.isEmpty()) {
                 throw new UnsupportedOperationException(
                     "Only write operations are allowed in Batch statements");
