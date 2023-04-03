@@ -2025,9 +2025,11 @@ public abstract class IntegTestCase extends ESTestCase {
     private TestExecutionConfig testExecutionConfig() {
         var randomizedRulesConfig = randomizedRulesConfig();
         return new TestExecutionConfig(isJdbcEnabled(),
-                                       isHashJoinEnabled(),
-                                       randomizedRulesConfig.enabled,
-                                       randomizedRulesConfig.rulesToKeep);
+            isHashJoinEnabled(),
+            randomizedRulesConfig.enabled,
+            randomizedRulesConfig.percentageOfRulesToDisable,
+            randomizedRulesConfig.rulesToKeep
+        );
     }
 
     /**
@@ -2063,17 +2065,26 @@ public abstract class IntegTestCase extends ESTestCase {
     private RandomizedRulesConfig randomizedRulesConfig() {
         var useRandomizedOptimizerRules = getTestAnnotation(UseRandomizedOptimizerRules.class);
         var enabled = false;
+        double percentageOfRulesToDisable = 0.0d;
         List<Class<? extends io.crate.planner.optimizer.Rule<?>>> rulesToKeep = List.of();
         if (useRandomizedOptimizerRules != null) {
             enabled = isFeatureEnabled(useRandomizedOptimizerRules.value());
             if (enabled) {
                 rulesToKeep = Arrays.asList(useRandomizedOptimizerRules.alwaysKeep());
+                if (useRandomizedOptimizerRules.disablePercentage() == -1) {
+                    percentageOfRulesToDisable = RandomizedContext.current().getRandom().nextDouble(0.1, 1.0);
+                } else {
+                    double disablePercentage = useRandomizedOptimizerRules.disablePercentage();
+                    assert disablePercentage > 0 && disablePercentage <= 1 :
+                        "Percentage of rules to disable for Rule Randomization must greater than 0 and equal or less than 1";
+                    percentageOfRulesToDisable = disablePercentage;
+                }
             }
         }
-        return new RandomizedRulesConfig(enabled, rulesToKeep);
+        return new RandomizedRulesConfig(enabled, percentageOfRulesToDisable, rulesToKeep);
     }
 
-    private record RandomizedRulesConfig(boolean enabled, List<Class<? extends io.crate.planner.optimizer.Rule<?>>> rulesToKeep) {}
+    private record RandomizedRulesConfig(boolean enabled, double percentageOfRulesToDisable, List<Class<? extends io.crate.planner.optimizer.Rule<?>>> rulesToKeep) {}
 
 
     /**

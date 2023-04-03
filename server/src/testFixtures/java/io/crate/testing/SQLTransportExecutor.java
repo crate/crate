@@ -116,7 +116,7 @@ public class SQLTransportExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
-    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false, List.of());
+    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false, 0, List.of());
 
     private final ClientProvider clientProvider;
 
@@ -160,10 +160,11 @@ public class SQLTransportExecutor {
 
     @VisibleForTesting
     static List<String> buildRandomizedRuleSessionSettings(Random random,
-                                                           double factor,
+                                                           double percentageOfRulesToDisable,
                                                            List<Class<? extends Rule<?>>> allRules,
                                                            List<Class<? extends Rule<?>>> rulesToKeep) {
-        assert factor >= 0 && factor <= 1 : "Factor for Rule Randomization must between 0 and 1";
+        assert percentageOfRulesToDisable > 0 && percentageOfRulesToDisable <= 1 :
+            "Percentage of rules to disable for Rule Randomization must greater than 0 and equal or less than 1";
 
         var ruleToKeepNames = new HashSet<>(rulesToKeep);
 
@@ -175,7 +176,7 @@ public class SQLTransportExecutor {
         }
 
         Collections.shuffle(ruleCandidates, random);
-        int numberOfRulesToPick = (int) Math.ceil(ruleCandidates.size() * factor);
+        int numberOfRulesToPick = (int) Math.ceil(ruleCandidates.size() * percentageOfRulesToDisable);
 
         var result = new ArrayList<String>(numberOfRulesToPick);
         for (int i = 0; i < numberOfRulesToPick; i++) {
@@ -210,11 +211,11 @@ public class SQLTransportExecutor {
         }
 
         if (config.isRuleRandomizationEnabled()) {
-            sessionList.addAll(buildRandomizedRuleSessionSettings(random,
-                                                                  // disable randomly optimizer rules between 10 % and 100 %
-                                                                  random.nextDouble(0.1, 1.0),
-                                                                  LoadedRules.RULES,
-                                                                  config.rulesToKeep()));
+            sessionList.addAll(buildRandomizedRuleSessionSettings(
+                random,
+                config.amountOfRulesToDisable(),
+                LoadedRules.RULES,
+                config.rulesToKeep()));
         }
 
         if (pgUrl != null && config.isJdbcEnabled()) {
