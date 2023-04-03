@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  prevent protocol level fetch from working correctly with some clients. An
+  example client is `pg-cursor <https://www.npmjs.com/package/pg-cursor>`_.
+
 - Fixed a performance regression for queries that used a scalar sub-query in the
   ``WHERE`` which itself also filtered on columns in a ``WHERE`` without
   selecting those columns. An example::
