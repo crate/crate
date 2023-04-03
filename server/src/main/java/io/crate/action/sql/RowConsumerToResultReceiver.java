@@ -21,21 +21,27 @@
 
 package io.crate.action.sql;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
-
-import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import io.crate.protocols.postgres.ClientInterrupted;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
-    private long rowCount = 0;
+
+    /**
+     * Reset per suspend/execute
+     */
+    private int rowCount = 0;
     private BatchIterator<Row> activeIt;
 
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
@@ -80,7 +86,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                 if (iterator.allLoaded()) {
                     completionFuture.complete(null);
                     iterator.close();
-                    resultReceiver.allFinished(false);
+                    resultReceiver.allFinished();
                     return;
                 } else {
                     var nextBatch = iterator.loadNextBatch().toCompletableFuture();
@@ -114,13 +120,13 @@ public class RowConsumerToResultReceiver implements RowConsumer {
 
     /**
      * If this consumer suspended itself (due to {@code maxRows} being > 0, it will close the BatchIterator
-     * and finish the ResultReceiver with interrupted=true.
+     * and finish the ResultReceiver
      */
     public void closeAndFinishIfSuspended() {
         if (activeIt != null) {
             activeIt.close();
             completionFuture.complete(null);
-            resultReceiver.allFinished(true);
+            resultReceiver.allFinished();
         }
     }
 
@@ -131,8 +137,9 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
         if (!this.resultReceiver.completionFuture().isDone()) {
             // interrupt previous resultReceiver before replacing it, to ensure future triggers
-            this.resultReceiver.allFinished(true);
+            this.resultReceiver.fail(new ClientInterrupted());
         }
+        this.rowCount = 0;
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
