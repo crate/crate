@@ -266,11 +266,7 @@ public class PostgresWireProtocol {
 
         @Override
         public void accept(Object result, Throwable t) {
-            boolean clientInterrupted = t instanceof ClientInterrupted
-                                        || (t != null && t.getCause() instanceof ClientInterrupted);
-            if (!clientInterrupted) {
-                sendReadyForQuery(channel, transactionState);
-            }
+            sendReadyForQuery(channel, transactionState);
         }
     }
 

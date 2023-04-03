@@ -21,25 +21,26 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.Constants;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.apache.logging.log4j.LogManager;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
+import io.crate.Constants;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Row;
+import io.crate.exceptions.SQLExceptions;
 
 public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
@@ -78,8 +79,8 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
-        delegate.allFinished(interrupted);
+    public void allFinished() {
+        delegate.allFinished();
     }
 
     @Override

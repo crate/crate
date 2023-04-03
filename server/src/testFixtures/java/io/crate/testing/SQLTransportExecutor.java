@@ -86,7 +86,6 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.common.annotations.VisibleForTesting;
-
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -665,14 +664,14 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished(boolean interrupted) {
+        public void allFinished() {
             try {
                 SQLResponse response = createSqlResponse();
                 listener.onResponse(response);
             } catch (Exception e) {
                 listener.onFailure(e);
             }
-            super.allFinished(interrupted);
+            super.allFinished();
         }
 
         @Override
@@ -721,7 +720,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished(boolean interrupted) {
+        public void allFinished() {
             SQLResponse sqlResponse = new SQLResponse(
                 EMPTY_NAMES,
                 EMPTY_ROWS,
@@ -729,7 +728,7 @@ public class SQLTransportExecutor {
                 rowCount
             );
             listener.onResponse(sqlResponse);
-            super.allFinished(interrupted);
+            super.allFinished();
 
         }
 
@@ -761,9 +760,9 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished(boolean interrupted) {
+        public void allFinished() {
             rowCounts[resultIdx] = rowCount;
-            super.allFinished(interrupted);
+            super.allFinished();
         }
 
         @Override

@@ -93,6 +93,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  prevent protocol level fetch from working correctly with some clients. An
+  example client is `pg-cursor <https://www.npmjs.com/package/pg-cursor>`_.
+
 - Fixed an issue that a wrong HTTP response was sent, when trying to ``POST`` to
   an invalid URL, causing the HTTP client to stall.
 
