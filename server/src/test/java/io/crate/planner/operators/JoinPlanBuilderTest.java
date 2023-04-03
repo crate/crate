@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.join;
+package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 
@@ -37,12 +37,13 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.planner.operators.JoinPlanBuilder;
 import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
+public class JoinPlanBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions expressions;
 
@@ -62,7 +63,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> joinPairs = new ArrayList<>();
         joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, Collections.emptyMap());
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, Collections.emptyMap());
 
         assertThat(newJoinPairs).containsExactly(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
     }
@@ -74,7 +75,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2, T3.T3), asSymbol("t1.x = t2.y + t3.z"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -90,7 +91,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -106,7 +107,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -120,7 +121,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(Collections.emptyList(), remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(Collections.emptyList(), remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -136,7 +137,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -152,7 +153,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
 
-        List<JoinPair> newJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+        List<JoinPair> newJoinPairs = JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
@@ -169,7 +170,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
         remainingQueries.put(Set.of(T3.T2, T3.T3), asSymbol("t2.b = t3.c"));
         List<JoinPair> newJoinPairs =
-            JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
+            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
         for (int i = 0; i < joinPairs.size(); i++) {
             JoinPair oldPairAtPos = joinPairs.get(i);

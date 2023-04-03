@@ -41,7 +41,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
-import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
@@ -71,7 +70,7 @@ public class JoinPlanBuilder {
             return Filter.create(source, whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
-        List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
+        List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
         boolean optimizeOrder = true;
         for (var joinPair : allJoinPairs) {
             if (hasAdditionalDependencies(joinPair)) {
@@ -79,7 +78,7 @@ public class JoinPlanBuilder {
                 break;
             }
         }
-        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(allJoinPairs);
+        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = buildRelationsToJoinPairsMap(allJoinPairs);
         Iterator<RelationName> it;
         if (optimizeOrder) {
             Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
@@ -255,6 +254,93 @@ public class JoinPlanBuilder {
             }
         }
         return null;
+    }
+
+    /**
+     * Converts any implicit join conditions of the WHERE clause to explicit {@link JoinPair}.
+     * Every join condition that gets to be converted is removed from the {@code splitQueries}
+     *
+     * @param explicitJoinPairs The explicitJoinPairs as originally written in the query
+     * @param splitQueries      The remaining queries of the WHERE clause split by involved relations
+     * @return the new list of {@link JoinPair}
+     */
+    static List<JoinPair> convertImplicitJoinConditionsToJoinPairs(List<JoinPair> explicitJoinPairs,
+                                                                          Map<Set<RelationName>, Symbol> splitQueries) {
+        Iterator<Map.Entry<Set<RelationName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
+        ArrayList<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
+        newJoinPairs.addAll(explicitJoinPairs);
+
+        while (queryIterator.hasNext()) {
+            Map.Entry<Set<RelationName>, Symbol> queryEntry = queryIterator.next();
+            Set<RelationName> relations = queryEntry.getKey();
+
+            if (relations.size() == 2) { // If more than 2 relations are involved it cannot be converted to a JoinPair
+                Symbol implicitJoinCondition = queryEntry.getValue();
+                JoinPair newJoinPair = null;
+                int existingJoinPairIdx = -1;
+                for (int i = 0; i < explicitJoinPairs.size(); i++) {
+                    JoinPair joinPair = explicitJoinPairs.get(i);
+                    if (relations.contains(joinPair.left()) && relations.contains(joinPair.right())) {
+                        existingJoinPairIdx = i;
+                        // If a JoinPair with the involved relations already exists then depending on the JoinType:
+                        //  - INNER JOIN:  the implicit join condition can be "AND joined" with
+                        //                 the existing explicit condition of the JoinPair.
+                        //
+                        //  - CROSS JOIN:  the implicit join condition becomes explicit and set on the JoinPair
+                        //                 which becomes an INNER JOIN
+                        //
+                        //  - Outer Joins: Queries in the WHERE clause must be semantically applied after the outer join
+                        //                 and cannot be merged with the conditions of the ON clause.
+                        //
+                        //  - SEMI/ANTI:   Queries in the WHERE clause must be semantically applied after the SEMI/ANTI
+                        //                 join and cannot be merged with the generated SEMI/ANTI condition.
+                        //
+                        if (joinPair.joinType() == JoinType.INNER || joinPair.joinType() == JoinType.CROSS) {
+                            newJoinPair = JoinPair.of(
+                                joinPair.left(),
+                                joinPair.right(),
+                                JoinType.INNER,
+                                mergeJoinConditions(joinPair.condition(), implicitJoinCondition));
+                            queryIterator.remove();
+                        } else {
+                            newJoinPair = joinPair;
+                        }
+                    }
+                }
+                if (newJoinPair == null) {
+                    Iterator<RelationName> namesIter = relations.iterator();
+                    newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
+                    queryIterator.remove();
+                    newJoinPairs.add(newJoinPair);
+                } else {
+                    newJoinPairs.set(existingJoinPairIdx, newJoinPair);
+                }
+            }
+        }
+        return newJoinPairs;
+    }
+
+    private static Symbol mergeJoinConditions(@Nullable Symbol condition1, Symbol condition2) {
+        if (condition1 == null) {
+            return condition2;
+        } else {
+            return AndOperator.join(List.of(condition1, condition2));
+        }
+    }
+
+    private static LinkedHashMap<Set<RelationName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
+        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.condition() == null) {
+                continue;
+            }
+            // Left/right sides of a join pair have to be consistent with the key set, we ensure that left side is always first in the set.
+            JoinPair prevPair = joinPairsMap.put(new LinkedHashSet<>(List.of(joinPair.left(), joinPair.right())), joinPair);
+            if (prevPair != null) {
+                throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
+            }
+        }
+        return joinPairsMap;
     }
 
     /**

@@ -22,6 +22,8 @@
 package io.crate.planner.operators;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
+import static io.crate.planner.operators.NestedLoopJoin.buildMergePhaseForJoin;
+import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,7 +47,6 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -61,36 +62,15 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 
-public class HashJoin implements JoinPlan {
+public class HashJoin extends JoinPlan {
 
-    private final Symbol joinCondition;
     private final List<Symbol> outputs;
-    final LogicalPlan rhs;
-    final LogicalPlan lhs;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
+        super(lhs, rhs, joinCondition, JoinType.INNER);
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
-        this.lhs = lhs;
-        this.rhs = rhs;
-        this.joinCondition = joinCondition;
-    }
-
-    public JoinType joinType() {
-        return JoinType.INNER;
-    }
-
-    public Symbol joinCondition() {
-        return joinCondition;
-    }
-
-    public LogicalPlan lhs() {
-        return lhs;
-    }
-
-    public LogicalPlan rhs() {
-        return rhs;
     }
 
     @Override
@@ -196,8 +176,8 @@ public class HashJoin implements JoinPlan {
                 leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
                 rightExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
-            leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, joinExecutionNodes);
-            rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
+            leftMerge = buildMergePhaseForJoin(plannerContext, leftResultDesc, joinExecutionNodes);
+            rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
@@ -205,7 +185,7 @@ public class HashJoin implements JoinPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "hash-join",
-            Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
+            Collections.singletonList(createJoinProjection(outputs, joinOutputs)),
             leftMerge,
             rightMerge,
             leftOutputs.size(),
@@ -308,8 +288,7 @@ public class HashJoin implements JoinPlan {
             )
         );
     }
-
-
+    
     @Override
     public long numExpectedRows() {
         if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
@@ -317,11 +296,6 @@ public class HashJoin implements JoinPlan {
         }
         // We don't have any cardinality estimates, so just take the bigger table
         return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
     }
 
     @Override
