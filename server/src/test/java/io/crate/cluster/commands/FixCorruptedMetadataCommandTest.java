@@ -297,7 +297,7 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(afterFix).isNotNull();
         assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
         assertThat(afterFix.getSettings().getAsStructuredMap())
-            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=8030099}}}");
+            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=8040099}}}");
 
         // indexMetadata named 'm7.s7' and indexTemplateMetadata 'm7..partitioned.s7.' cannot co-exist.
         IndexTemplateMetadata existingTemplate = fixedMetadata.getTemplate(invalidTemplateName);
