@@ -477,6 +477,9 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
             repository = factory.create(repositoryMetadata);
             repository.start();
             return repository;
+        } catch (RepositoryException e) {
+            IOUtils.closeWhileHandlingException(repository);
+            throw e;
         } catch (Exception e) {
             IOUtils.closeWhileHandlingException(repository);
             LOGGER.warn(new ParameterizedMessage("failed to create repository [{}][{}]",

@@ -20,22 +20,18 @@
 package org.elasticsearch.action.support;
 
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringArrayValue;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
  * Controls how to deal with unavailable concrete indices (closed or missing), how wildcard expressions are expanded
@@ -48,31 +44,6 @@ public class IndicesOptions implements ToXContentFragment {
         CLOSED;
 
         public static final EnumSet<WildcardStates> NONE = EnumSet.noneOf(WildcardStates.class);
-
-        public static EnumSet<WildcardStates> parseParameter(Object value, EnumSet<WildcardStates> defaultStates) {
-            if (value == null) {
-                return defaultStates;
-            }
-
-            Set<WildcardStates> states = new HashSet<>();
-            String[] wildcards = nodeStringArrayValue(value);
-            for (String wildcard : wildcards) {
-                if ("open".equals(wildcard)) {
-                    states.add(OPEN);
-                } else if ("closed".equals(wildcard)) {
-                    states.add(CLOSED);
-                } else if ("none".equals(wildcard)) {
-                    states.clear();
-                } else if ("all".equals(wildcard)) {
-                    states.add(OPEN);
-                    states.add(CLOSED);
-                } else {
-                    throw new IllegalArgumentException("No valid expand wildcard value [" + wildcard + "]");
-                }
-            }
-
-            return states.isEmpty() ? NONE : EnumSet.copyOf(states);
-        }
     }
 
     public enum Option {
@@ -112,42 +83,6 @@ public class IndicesOptions implements ToXContentFragment {
     private IndicesOptions(Collection<Option> options, Collection<WildcardStates> expandWildcards) {
         this(options.isEmpty() ? Option.NONE : EnumSet.copyOf(options),
             expandWildcards.isEmpty() ? WildcardStates.NONE : EnumSet.copyOf(expandWildcards));
-    }
-
-    // Package visible for testing
-    static IndicesOptions fromByte(final byte id) {
-        // IGNORE_UNAVAILABLE = 1;
-        // ALLOW_NO_INDICES = 2;
-        // EXPAND_WILDCARDS_OPEN = 4;
-        // EXPAND_WILDCARDS_CLOSED = 8;
-        // FORBID_ALIASES_TO_MULTIPLE_INDICES = 16;
-        // FORBID_CLOSED_INDICES = 32;
-        // IGNORE_ALIASES = 64;
-
-        Set<Option> opts = new HashSet<>();
-        Set<WildcardStates> wildcards = new HashSet<>();
-        if ((id & 1) != 0) {
-            opts.add(Option.IGNORE_UNAVAILABLE);
-        }
-        if ((id & 2) != 0) {
-            opts.add(Option.ALLOW_NO_INDICES);
-        }
-        if ((id & 4) != 0) {
-            wildcards.add(WildcardStates.OPEN);
-        }
-        if ((id & 8) != 0) {
-            wildcards.add(WildcardStates.CLOSED);
-        }
-        if ((id & 16) != 0) {
-            opts.add(Option.FORBID_ALIASES_TO_MULTIPLE_INDICES);
-        }
-        if ((id & 32) != 0) {
-            opts.add(Option.FORBID_CLOSED_INDICES);
-        }
-        if ((id & 64) != 0) {
-            opts.add(Option.IGNORE_ALIASES);
-        }
-        return new IndicesOptions(opts, wildcards);
     }
 
     /**
@@ -213,16 +148,44 @@ public class IndicesOptions implements ToXContentFragment {
         return new IndicesOptions(in.readEnumSet(Option.class), in.readEnumSet(WildcardStates.class));
     }
 
-    public static IndicesOptions fromOptions(boolean ignoreUnavailable, boolean allowNoIndices, boolean expandToOpenIndices, boolean expandToClosedIndices) {
-        return fromOptions(ignoreUnavailable, allowNoIndices, expandToOpenIndices, expandToClosedIndices, true, false, false);
+    public static IndicesOptions fromOptions(boolean ignoreUnavailable,
+                                             boolean allowNoIndices,
+                                             boolean expandToOpenIndices,
+                                             boolean expandToClosedIndices) {
+        return fromOptions(
+            ignoreUnavailable,
+            allowNoIndices,
+            expandToOpenIndices,
+            expandToClosedIndices,
+            true,
+            false,
+            false
+        );
     }
 
-    public static IndicesOptions fromOptions(boolean ignoreUnavailable, boolean allowNoIndices, boolean expandToOpenIndices, boolean expandToClosedIndices, IndicesOptions defaultOptions) {
-        return fromOptions(ignoreUnavailable, allowNoIndices, expandToOpenIndices, expandToClosedIndices, defaultOptions.allowAliasesToMultipleIndices(), defaultOptions.forbidClosedIndices(), defaultOptions.ignoreAliases());
+    public static IndicesOptions fromOptions(boolean ignoreUnavailable,
+                                             boolean allowNoIndices,
+                                             boolean expandToOpenIndices,
+                                             boolean expandToClosedIndices,
+                                             IndicesOptions defaultOptions) {
+        return fromOptions(
+            ignoreUnavailable,
+            allowNoIndices,
+            expandToOpenIndices,
+            expandToClosedIndices,
+            defaultOptions.allowAliasesToMultipleIndices(),
+            defaultOptions.forbidClosedIndices(),
+            defaultOptions.ignoreAliases()
+        );
     }
 
-    public static IndicesOptions fromOptions(boolean ignoreUnavailable, boolean allowNoIndices, boolean expandToOpenIndices,
-            boolean expandToClosedIndices, boolean allowAliasesToMultipleIndices, boolean forbidClosedIndices, boolean ignoreAliases) {
+    public static IndicesOptions fromOptions(boolean ignoreUnavailable,
+                                             boolean allowNoIndices,
+                                             boolean expandToOpenIndices,
+                                             boolean expandToClosedIndices,
+                                             boolean allowAliasesToMultipleIndices,
+                                             boolean forbidClosedIndices,
+                                             boolean ignoreAliases) {
         final Set<Option> opts = new HashSet<>();
         final Set<WildcardStates> wildcards = new HashSet<>();
 
@@ -249,43 +212,6 @@ public class IndicesOptions implements ToXContentFragment {
         }
 
         return new IndicesOptions(opts, wildcards);
-    }
-
-    public static IndicesOptions fromMap(Map<String, Object> map, IndicesOptions defaultSettings) {
-        return fromParameters(
-                map.containsKey("expand_wildcards") ? map.get("expand_wildcards") : map.get("expandWildcards"),
-                map.containsKey("ignore_unavailable") ? map.get("ignore_unavailable") : map.get("ignoreUnavailable"),
-                map.containsKey("allow_no_indices") ? map.get("allow_no_indices") : map.get("allowNoIndices"),
-                defaultSettings);
-    }
-
-    /**
-     * Returns true if the name represents a valid name for one of the indices option
-     * false otherwise
-     */
-    public static boolean isIndicesOptions(String name) {
-        return "expand_wildcards".equals(name) || "expandWildcards".equals(name) ||
-                "ignore_unavailable".equals(name) || "ignoreUnavailable".equals(name) ||
-                "allow_no_indices".equals(name) || "allowNoIndices".equals(name);
-    }
-
-    public static IndicesOptions fromParameters(Object wildcardsString, Object ignoreUnavailableString, Object allowNoIndicesString, IndicesOptions defaultSettings) {
-        if (wildcardsString == null && ignoreUnavailableString == null && allowNoIndicesString == null) {
-            return defaultSettings;
-        }
-
-        EnumSet<WildcardStates> wildcards = WildcardStates.parseParameter(wildcardsString, defaultSettings.expandWildcards);
-
-        // note that allowAliasesToMultipleIndices is not exposed, always true (only for internal use)
-        return fromOptions(
-                nodeBooleanValue(ignoreUnavailableString, "ignore_unavailable", defaultSettings.ignoreUnavailable()),
-                nodeBooleanValue(allowNoIndicesString, "allow_no_indices", defaultSettings.allowNoIndices()),
-                wildcards.contains(WildcardStates.OPEN),
-                wildcards.contains(WildcardStates.CLOSED),
-                defaultSettings.allowAliasesToMultipleIndices(),
-                defaultSettings.forbidClosedIndices(),
-                defaultSettings.ignoreAliases()
-        );
     }
 
     @Override

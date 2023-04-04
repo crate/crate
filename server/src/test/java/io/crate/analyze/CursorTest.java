@@ -61,6 +61,16 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_scroll_and_no_scroll() {
+        AnalyzedDeclare declare = executor.analyze("DECLARE c1 CURSOR FOR SELECT 1");
+        assertThat(declare.declare().scroll()).isFalse();
+        declare = executor.analyze("DECLARE c1 NO SCROLL CURSOR FOR SELECT 1");
+        assertThat(declare.declare().scroll()).isFalse();
+        declare = executor.analyze("DECLARE c1 SCROLL CURSOR FOR SELECT 1");
+        assertThat(declare.declare().scroll()).isTrue();
+    }
+
+    @Test
     public void test_explicit_binary_mode_is_not_supported() {
         // binary mode from pg-wire is possible, but not via HTTP; so we forbid it on a statement level
         assertThatThrownBy(() -> executor.analyze("declare c1 binary cursor for select 1"))

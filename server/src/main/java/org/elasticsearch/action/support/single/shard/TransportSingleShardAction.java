@@ -19,6 +19,12 @@
 
 package org.elasticsearch.action.support.single.shard;
 
+import static org.elasticsearch.action.support.TransportActions.isShardNotAvailableException;
+
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -48,11 +54,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-
-import static org.elasticsearch.action.support.TransportActions.isShardNotAvailableException;
 
 /**
  * A base class for operations that need to perform a read operation on a single shard copy. If the operation fails,
@@ -287,7 +288,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         @Override
         public void messageReceived(Request request, final TransportChannel channel) throws Exception {
             // if we have a local operation, execute it on a thread since we don't spawn
-            execute(request, new ChannelActionListener<>(channel, actionName, request));
+            execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
         }
     }
 

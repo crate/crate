@@ -21,17 +21,16 @@
 
 package io.crate.action.sql.parser;
 
-import io.crate.exceptions.SQLParseException;
+import java.io.IOException;
+import java.util.Map;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
-import java.util.Map;
+import io.crate.exceptions.SQLParseException;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
@@ -72,7 +71,7 @@ public final class SQLRequestParser {
         XContentParser parser = null;
         try {
             SQLRequestParseContext parseContext = new SQLRequestParseContext();
-            parser = XContentFactory.xContent(XContentType.JSON).createParser(
+            parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, source.streamInput());
             parse(parseContext, parser);
             validate(parseContext);
@@ -80,7 +79,7 @@ public final class SQLRequestParser {
         } catch (Exception e) {
             String sSource = "_na_";
             try {
-                sSource = XContentHelper.convertToJson(source, XContentType.JSON);
+                sSource = source.utf8ToString();
             } catch (Throwable e1) {
                 // ignore
             }

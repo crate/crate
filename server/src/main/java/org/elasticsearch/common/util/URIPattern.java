@@ -19,10 +19,10 @@
 
 package org.elasticsearch.common.util;
 
-import org.elasticsearch.common.regex.Regex;
-
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import org.elasticsearch.common.regex.Regex;
 
 /**
  * URI Pattern matcher
@@ -44,13 +44,6 @@ public class URIPattern {
         } catch (URISyntaxException ex) {
             throw new IllegalArgumentException("cannot parse URI pattern [" + pattern + "]");
         }
-    }
-
-    /**
-     * Returns true if the given uri matches the pattern
-     */
-    public boolean match(URI uri) {
-        return matchNormalized(uri.normalize());
     }
 
     public static boolean match(URIPattern[] patterns, URI uri) {

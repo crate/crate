@@ -19,13 +19,11 @@
 
 package org.elasticsearch.common.xcontent;
 
-import io.crate.common.Booleans;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.util.Set;
+
+import io.crate.common.Booleans;
 
 /**
  * A generic abstraction on top of handling content, inspired by JSON and pull parsing.
@@ -61,15 +59,11 @@ public interface XContent {
     byte streamSeparator();
 
     /**
-     * Creates a new generator using the provided output stream and some inclusive and/or exclusive filters. When both exclusive and
-     * inclusive filters are provided, the underlying generator will first use exclusion filters to remove fields and then will check the
-     * remaining fields against the inclusive filters.
+     * Creates a new generator using the provided output stream.
      *
      * @param os       the output stream
-     * @param includes the inclusive filters: only fields and objects that match the inclusive filters will be written to the output.
-     * @param excludes the exclusive filters: only fields and objects that don't match the exclusive filters will be written to the output.
      */
-    XContentGenerator createGenerator(OutputStream os, Set<String> includes, Set<String> excludes) throws IOException;
+    XContentGenerator createGenerator(OutputStream os) throws IOException;
 
     /**
      * Creates a parser over the provided string content.
@@ -94,10 +88,4 @@ public interface XContent {
      */
     XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data, int offset, int length) throws IOException;
-
-    /**
-     * Creates a parser over the provided reader.
-     */
-    XContentParser createParser(NamedXContentRegistry xContentRegistry,
-            DeprecationHandler deprecationHandler, Reader reader) throws IOException;
 }

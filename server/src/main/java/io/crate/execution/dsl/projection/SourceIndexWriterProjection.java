@@ -21,22 +21,24 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * IndexWriterProjector that gets its values from a source input
@@ -55,11 +57,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final InputColumn rawSourceSymbol;
     private final List<? extends Symbol> outputs;
 
-    @Nullable
-    private String[] includes;
 
     @Nullable
-    private String[] excludes;
+    private final String[] excludes;
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
@@ -69,7 +69,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
                                        Settings settings,
-                                       @Nullable String[] includes,
                                        @Nullable String[] excludes,
                                        List<Symbol> idSymbols,
                                        @Nullable Symbol clusteredBySymbol,
@@ -77,7 +76,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
-        this.includes = includes;
         this.excludes = excludes;
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
@@ -99,11 +97,13 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
 
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            includes = new String[length];
-            for (int i = 0; i < length; i++) {
-                includes[i] = in.readString();
+        if (in.getVersion().before(Version.V_5_3_0)) {
+            if (in.readBoolean()) {
+                // includes
+                int length = in.readVInt();
+                for (int i = 0; i < length; i++) {
+                    in.readString();
+                }
             }
         }
         if (in.readBoolean()) {
@@ -112,12 +112,44 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < length; i++) {
                 excludes[i] = in.readString();
             }
+        } else {
+            excludes = null;
         }
         outputs = Symbols.listFromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
             validation = in.readBoolean();
         } else {
             validation = true;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+
+        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
+            out.writeBoolean(failFast);
+        }
+        out.writeBoolean(overwriteDuplicates);
+        Reference.toStream(rawSourceReference, out);
+        Symbols.toStream(rawSourceSymbol, out);
+
+        if (out.getVersion().before(Version.V_5_3_0)) {
+            // no includes
+            out.writeBoolean(false);
+        }
+        if (excludes == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(excludes.length);
+            for (String exclude : excludes) {
+                out.writeString(exclude);
+            }
+        }
+        Symbols.toStream(outputs, out);
+        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
+            out.writeBoolean(validation);
         }
     }
 
@@ -132,11 +164,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public Reference rawSourceReference() {
         return rawSourceReference;
-    }
-
-    @Nullable
-    public String[] includes() {
-        return includes;
     }
 
     @Nullable
@@ -163,7 +190,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         return Objects.equals(overwriteDuplicates, that.overwriteDuplicates) &&
                Objects.equals(rawSourceReference, that.rawSourceReference) &&
                Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
-               Arrays.equals(includes, that.includes) &&
                Arrays.equals(excludes, that.excludes) &&
                failFast == that.failFast &&
                validation == that.validation;
@@ -177,44 +203,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                   rawSourceSymbol,
                                   failFast,
                                   validation);
-        result = 31 * result + Arrays.hashCode(includes);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-
-        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeBoolean(failFast);
-        }
-        out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(rawSourceReference, out);
-        Symbols.toStream(rawSourceSymbol, out);
-
-        if (includes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(includes.length);
-            for (String include : includes) {
-                out.writeString(include);
-            }
-        }
-        if (excludes == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(excludes.length);
-            for (String exclude : excludes) {
-                out.writeString(exclude);
-            }
-        }
-        Symbols.toStream(outputs, out);
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeBoolean(validation);
-        }
     }
 
     public boolean overwriteDuplicates() {

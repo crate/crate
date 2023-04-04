@@ -19,30 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine;
+package io.crate.common.collections;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.JobKilledException;
-
-public class FailureOnlyResponseListenerTest extends ESTestCase {
+public class RefCountedItemTest {
 
     @Test
-    public void testFailureOnResponseIsPropagatedToInitializationTracker() {
-        InitializationTracker tracker = new InitializationTracker(1);
-        FailureOnlyResponseListener listener = new FailureOnlyResponseListener(Collections.emptyList(), tracker);
-        listener.onFailure(JobKilledException.of("because reasons"));
+    public void test_failing_factory_does_not_increment_ref_count() throws Exception {
+        AtomicInteger count = new AtomicInteger(0);
+        AtomicBoolean closeCalled = new AtomicBoolean(false);
+        Function<String, Integer> failOnFirst = source -> {
+            if (count.incrementAndGet() == 1) {
+                throw new IllegalArgumentException("dummy");
+            }
+            return 1;
+        };
+        RefCountedItem<Integer> item = new RefCountedItem<>(failOnFirst, x -> closeCalled.set(true));
+        assertThatThrownBy(() -> item.markAcquired("dummy1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
 
-        assertThat(tracker.future.isCompletedExceptionally()).isTrue();
-
-        assertThatThrownBy(() -> tracker.future.get(1, TimeUnit.SECONDS))
-            .hasMessageEndingWith("Job killed. because reasons");
+        item.markAcquired("dummy2");
+        item.close();
+        assertThat(closeCalled.get())
+            .as("Close must have been called because ref-count was only incremented once")
+            .isTrue();
     }
 }

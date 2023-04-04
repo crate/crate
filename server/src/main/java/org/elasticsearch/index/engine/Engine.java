@@ -303,7 +303,6 @@ public abstract class Engine implements Closeable {
      * for an executed write {@link Operation}
      **/
     public abstract static class Result {
-        private final Operation.TYPE operationType;
         private final Result.Type resultType;
         private final long version;
         private final long term;
@@ -312,10 +311,8 @@ public abstract class Engine implements Closeable {
         private final SetOnce<Boolean> freeze = new SetOnce<>();
         private final Mapping requiredMappingUpdate;
         private Translog.Location translogLocation;
-        private long took;
 
-        protected Result(Operation.TYPE operationType, Exception failure, long version, long term, long seqNo) {
-            this.operationType = operationType;
+        protected Result(Exception failure, long version, long term, long seqNo) {
             this.failure = Objects.requireNonNull(failure);
             this.version = version;
             this.term = term;
@@ -324,8 +321,7 @@ public abstract class Engine implements Closeable {
             this.resultType = Type.FAILURE;
         }
 
-        protected Result(Operation.TYPE operationType, long version, long term, long seqNo) {
-            this.operationType = operationType;
+        protected Result(long version, long term, long seqNo) {
             this.version = version;
             this.seqNo = seqNo;
             this.term = term;
@@ -334,8 +330,7 @@ public abstract class Engine implements Closeable {
             this.resultType = Type.SUCCESS;
         }
 
-        protected Result(Operation.TYPE operationType, Mapping requiredMappingUpdate) {
-            this.operationType = operationType;
+        protected Result(Mapping requiredMappingUpdate) {
             this.version = Versions.NOT_FOUND;
             this.seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
             this.term = 0L;
@@ -393,14 +388,6 @@ public abstract class Engine implements Closeable {
             }
         }
 
-        void setTook(long took) {
-            if (freeze.get() == null) {
-                this.took = took;
-            } else {
-                throw new IllegalStateException("result is already frozen");
-            }
-        }
-
         void freeze() {
             freeze.set(true);
         }
@@ -417,7 +404,7 @@ public abstract class Engine implements Closeable {
         private final boolean created;
 
         public IndexResult(long version, long term, long seqNo, boolean created) {
-            super(Operation.TYPE.INDEX, version, term, seqNo);
+            super(version, term, seqNo);
             this.created = created;
         }
 
@@ -429,12 +416,12 @@ public abstract class Engine implements Closeable {
         }
 
         public IndexResult(Exception failure, long version, long term, long seqNo) {
-            super(Operation.TYPE.INDEX, failure, version, term, seqNo);
+            super(failure, version, term, seqNo);
             this.created = false;
         }
 
         public IndexResult(Mapping requiredMappingUpdate) {
-            super(Operation.TYPE.INDEX, requiredMappingUpdate);
+            super(requiredMappingUpdate);
             this.created = false;
         }
 
@@ -449,7 +436,7 @@ public abstract class Engine implements Closeable {
         private final boolean found;
 
         public DeleteResult(long version, long term, long seqNo, boolean found) {
-            super(Operation.TYPE.DELETE, version, term, seqNo);
+            super(version, term, seqNo);
             this.found = found;
         }
 
@@ -461,13 +448,8 @@ public abstract class Engine implements Closeable {
         }
 
         public DeleteResult(Exception failure, long version, long term, long seqNo, boolean found) {
-            super(Operation.TYPE.DELETE, failure, version, term, seqNo);
+            super(failure, version, term, seqNo);
             this.found = found;
-        }
-
-        public DeleteResult(Mapping requiredMappingUpdate) {
-            super(Operation.TYPE.DELETE, requiredMappingUpdate);
-            this.found = false;
         }
 
         public boolean isFound() {
@@ -479,11 +461,11 @@ public abstract class Engine implements Closeable {
     public static class NoOpResult extends Result {
 
         NoOpResult(long term, long seqNo) {
-            super(Operation.TYPE.NO_OP, 0, term, seqNo);
+            super(0, term, seqNo);
         }
 
         NoOpResult(long term, long seqNo, Exception failure) {
-            super(Operation.TYPE.NO_OP, failure, 0, term, seqNo);
+            super(failure, 0, term, seqNo);
         }
 
     }

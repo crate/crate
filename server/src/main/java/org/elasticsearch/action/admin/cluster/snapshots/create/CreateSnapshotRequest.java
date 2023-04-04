@@ -19,6 +19,17 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
+import static org.elasticsearch.common.Strings.EMPTY_ARRAY;
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
@@ -30,21 +41,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.elasticsearch.common.Strings.EMPTY_ARRAY;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Create snapshot request
@@ -328,7 +326,7 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      */
     public CreateSnapshotRequest settings(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             settings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {
@@ -364,39 +362,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      */
     public boolean includeGlobalState() {
         return includeGlobalState;
-    }
-
-    /**
-     * Parses snapshot definition.
-     *
-     * @param source snapshot definition
-     * @return this request
-     */
-    @SuppressWarnings("unchecked")
-    public CreateSnapshotRequest source(Map<String, Object> source) {
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            String name = entry.getKey();
-            if (name.equals("indices")) {
-                if (entry.getValue() instanceof String) {
-                    indices(Strings.splitStringByCommaToArray((String) entry.getValue()));
-                } else if (entry.getValue() instanceof ArrayList) {
-                    indices((ArrayList<String>) entry.getValue());
-                } else {
-                    throw new IllegalArgumentException("malformed indices section, should be an array of strings");
-                }
-            } else if (name.equals("partial")) {
-                partial(nodeBooleanValue(entry.getValue(), "partial"));
-            } else if (name.equals("settings")) {
-                if (!(entry.getValue() instanceof Map)) {
-                    throw new IllegalArgumentException("malformed settings section, should indices an inner object");
-                }
-                settings((Map<String, Object>) entry.getValue());
-            } else if (name.equals("include_global_state")) {
-                includeGlobalState = nodeBooleanValue(entry.getValue(), "include_global_state");
-            }
-        }
-        indicesOptions(IndicesOptions.fromMap(source, indicesOptions));
-        return this;
     }
 
     @Override

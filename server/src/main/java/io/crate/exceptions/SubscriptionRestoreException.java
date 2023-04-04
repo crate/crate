@@ -23,11 +23,7 @@ package io.crate.exceptions;
 
 public class SubscriptionRestoreException extends RuntimeException {
 
-    private final String subscriptionName;
-
-    public SubscriptionRestoreException(String subscriptionName, String message) {
+    public SubscriptionRestoreException(String message) {
         super(message);
-        this.subscriptionName = subscriptionName;
     }
-
 }

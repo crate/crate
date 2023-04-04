@@ -1536,4 +1536,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid STORAGE WITH option `foobar`");
     }
+
+    @Test
+    public void test_create_table_validates_null_property() {
+        assertThatThrownBy(() -> analyze("CREATE TABLE tbl (name text) WITH (number_of_replicas = NULL)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot set NULL to property number_of_replicas.");
+    }
+
+    @Test
+    public void test_alter_table_set_mapping_validates_null_property() {
+        // column_policy on table is the only property which is handled not like a setting but like mapping, needs separate test.
+        assertThatThrownBy(() -> analyze("ALTER TABLE users SET (column_policy = null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot set NULL to property column_policy.");
+    }
+
+    @Test
+    public void test_alter_table_set_setting_validates_null_property() {
+        assertThatThrownBy(() -> analyze("ALTER TABLE users SET (refresh_interval = null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot set NULL to property refresh_interval.");
+    }
 }

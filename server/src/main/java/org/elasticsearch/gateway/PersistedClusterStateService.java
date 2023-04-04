@@ -37,8 +37,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -53,6 +51,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -94,6 +93,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.index.Index;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -388,7 +389,7 @@ public class PersistedClusterStateService {
 
         final SetOnce<Metadata.Builder> builderReference = new SetOnce<>();
         consumeFromType(searcher, GLOBAL_TYPE_NAME, bytes -> {
-            final Metadata metadata = Metadata.Builder.fromXContent(XContentFactory.xContent(XContentType.SMILE)
+            final Metadata metadata = Metadata.Builder.fromXContent(XContentType.SMILE.xContent()
                                                                         .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, bytes.bytes, bytes.offset, bytes.length),
                                                                     preserveUnknownCustoms);
             LOGGER.trace("found global metadata with last-accepted term [{}]", metadata.coordinationMetadata().term());
@@ -407,7 +408,7 @@ public class PersistedClusterStateService {
 
         final Set<String> indexUUIDs = new HashSet<>();
         consumeFromType(searcher, INDEX_TYPE_NAME, bytes -> {
-            final IndexMetadata indexMetadata = IndexMetadata.fromXContent(XContentFactory.xContent(XContentType.SMILE)
+            final IndexMetadata indexMetadata = IndexMetadata.fromXContent(XContentType.SMILE.xContent()
                                                                                .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, bytes.bytes, bytes.offset, bytes.length));
             LOGGER.trace("found index metadata for {}", indexMetadata.getIndex());
             if (indexUUIDs.add(indexMetadata.getIndexUUID()) == false) {
@@ -441,11 +442,13 @@ public class PersistedClusterStateService {
                 final Bits liveDocs = leafReaderContext.reader().getLiveDocs();
                 final IntPredicate isLiveDoc = liveDocs == null ? i -> true : liveDocs::get;
                 final DocIdSetIterator docIdSetIterator = scorer.iterator();
+
+                StoredFields storedFields = leafReaderContext.reader().storedFields();
                 while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                     if (isLiveDoc.test(docIdSetIterator.docID())) {
                         LOGGER.trace("processing doc {}", docIdSetIterator.docID());
                         bytesRefConsumer.accept(
-                            leafReaderContext.reader().document(docIdSetIterator.docID()).getBinaryValue(DATA_FIELD_NAME));
+                            storedFields.document(docIdSetIterator.docID()).getBinaryValue(DATA_FIELD_NAME));
                     }
                 }
             }
@@ -824,7 +827,7 @@ public class PersistedClusterStateService {
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
             try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
-                try (XContentBuilder xContentBuilder = XContentFactory.contentBuilder(XContentType.SMILE,
+                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
                         Streams.flushOnCloseStream(streamOutput))) {
                     xContentBuilder.startObject();
                     metadata.toXContent(xContentBuilder, FORMAT_PARAMS);

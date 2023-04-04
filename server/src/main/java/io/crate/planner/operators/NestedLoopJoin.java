@@ -46,9 +46,10 @@ import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -64,15 +65,10 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 
-public class NestedLoopJoin implements JoinPlan {
+public class NestedLoopJoin extends JoinPlan {
 
-    @Nullable
-    private final Symbol joinCondition;
     private final AnalyzedRelation topMostLeftRelation;
-    private final JoinType joinType;
     private final boolean isFiltered;
-    final LogicalPlan lhs;
-    final LogicalPlan rhs;
     private final List<Symbol> outputs;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -86,17 +82,14 @@ public class NestedLoopJoin implements JoinPlan {
                    boolean isFiltered,
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised) {
-        this.joinType = joinType;
+        super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered || joinCondition != null;
-        this.lhs = lhs;
-        this.rhs = rhs;
         if (joinType == JoinType.SEMI) {
             this.outputs = lhs.outputs();
         } else {
             this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
         this.topMostLeftRelation = topMostLeftRelation;
-        this.joinCondition = joinCondition;
         this.joinConditionOptimised = joinConditionOptimised;
     }
 
@@ -121,14 +114,6 @@ public class NestedLoopJoin implements JoinPlan {
         return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
-    public LogicalPlan lhs() {
-        return lhs;
-    }
-
-    public LogicalPlan rhs() {
-        return rhs;
-    }
-
     public boolean isRewriteNestedLoopJoinToHashJoinDone() {
         return rewriteNestedLoopJoinToHashJoinDone;
     }
@@ -147,15 +132,6 @@ public class NestedLoopJoin implements JoinPlan {
 
     public AnalyzedRelation topMostLeftRelation() {
         return topMostLeftRelation;
-    }
-
-    public JoinType joinType() {
-        return joinType;
-    }
-
-    @Nullable
-    public Symbol joinCondition() {
-        return joinCondition;
     }
 
     @Override
@@ -236,7 +212,7 @@ public class NestedLoopJoin implements JoinPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             isDistributed ? "distributed-nested-loop" : "nested-loop",
-            Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
+            Collections.singletonList(createJoinProjection(outputs, joinOutputs)),
             joinExecutionNodesAndMergePhases.v2().get(0),
             joinExecutionNodesAndMergePhases.v2().get(1),
             leftLogicalPlan.outputs().size(),
@@ -395,19 +371,34 @@ public class NestedLoopJoin implements JoinPlan {
             nlExecutionNodes = leftResultDesc.nodeIds();
             left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
         } else {
             // run join phase non-distributed on the handler
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
-                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
+            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                leftMerge = buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
             }
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
-                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
+                rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
             }
         }
         return new Tuple<>(nlExecutionNodes, Arrays.asList(leftMerge, rightMerge));
+    }
+
+    /**
+     * Creates an {@link EvalProjection} to ensure that the join output symbols are emitted in the original order as
+     * a possible outer operator (e.g. GROUP BY) is relying on the order.
+     * The order could have been changed due to the switch-table optimizations
+     *
+     * @param outputs       List of join output symbols in their original order.
+     * @param joinOutputs   List of join output symbols after possible re-ordering due optimizations.
+     */
+    static Projection createJoinProjection(List<Symbol> outputs, List<Symbol> joinOutputs) {
+        List<Symbol> projectionOutputs = InputColumns.create(
+            outputs,
+            new InputColumns.SourceSymbols(joinOutputs));
+        return new EvalProjection(projectionOutputs);
     }
 
     @Override
@@ -421,11 +412,6 @@ public class NestedLoopJoin implements JoinPlan {
             // We don't have any cardinality estimates, so just take the bigger table
             return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
         }
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
     }
 
     @Override
@@ -456,6 +442,14 @@ public class NestedLoopJoin implements JoinPlan {
         printContext
             .text("]")
             .nest(Lists2.map(sources(), x -> x::print));
+    }
+
+    private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
+                                             ResultDescription resultDescription,
+                                             boolean isDistributed) {
+        return isDistributed ||
+               resultDescription.hasRemainingLimitOrOffset() ||
+               !Lists2.equals(resultDescription.nodeIds(), executionNodes);
     }
 
     @Override

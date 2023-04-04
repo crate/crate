@@ -36,7 +36,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -122,7 +121,7 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
                 BytesReference originalXContent = toXContent.apply(testInstance, xContentType);
                 BytesReference shuffledContent = insertRandomFieldsAndShuffle(originalXContent, xContentType, supportsUnknownFields,
                         shuffleFieldsExceptions, randomFieldsExcludeFilter, createParser);
-                XContentParser parser = createParser.apply(XContentFactory.xContent(xContentType), shuffledContent);
+                XContentParser parser = createParser.apply(xContentType.xContent(), shuffledContent);
                 T parsed = fromXContent.apply(parser);
                 assertEqualsConsumer.accept(testInstance, parsed);
                 if (assertToXContentEquivalence) {
@@ -261,7 +260,7 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
         } else {
             withRandomFields = xContent;
         }
-        XContentParser parserWithRandonFields = createParserFunction.apply(XContentFactory.xContent(xContentType), withRandomFields);
+        XContentParser parserWithRandonFields = createParserFunction.apply(xContentType.xContent(), withRandomFields);
         return BytesReference.bytes(ESTestCase.shuffleXContent(parserWithRandonFields, false, shuffleFieldsExceptions));
     }
 

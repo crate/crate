@@ -3377,6 +3377,12 @@ Returns: same type as arguments
     +--------------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    If the data types of the arguments are not of the same type, ``coalesce``
+    will try to cast them to a common type, and if it fails to do so, an error
+    is thrown.
+
 
 .. _scalar-greatest:
 
@@ -3399,6 +3405,12 @@ Returns: same type as arguments
     |        2 |
     +----------+
     SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    If the data types of the arguments are not of the same type, ``greatest``
+    will try to cast them to a common type, and if it fails to do so, an error
+    is thrown.
 
 
 .. _scalar-least:
@@ -3423,6 +3435,12 @@ Returns: same type as arguments
     +-------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    If the data types of the arguments are not of the same type, ``least`` will
+    try to cast them to a common type, and if it fails to do so, an error is
+    thrown.
+
 
 .. _scalar-nullif:
 
@@ -3446,6 +3464,11 @@ Returns: same type as arguments
     +--------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    If the data types of the arguments are not of the same type, ``nullif`` will
+    try to cast them to a common type, and if it fails to do so, an error is
+    thrown.
 
 .. _scalar-sysinfo:
 

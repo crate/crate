@@ -24,12 +24,10 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,10 +46,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import io.crate.Constants;
@@ -160,7 +158,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
      */
     public PutIndexTemplateRequest settings(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             settings(Strings.toString(builder), XContentType.JSON);
         } catch (IOException e) {
@@ -185,16 +183,10 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
             source = Map.of(Constants.DEFAULT_MAPPING_TYPE, source);
         }
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
-            XContentType xContentType = builder.contentType();
-            Objects.requireNonNull(xContentType);
-            try {
-                mapping = XContentHelper.convertToJson(BytesReference.bytes(builder), xContentType);
-                return this;
-            } catch (IOException e) {
-                throw new UncheckedIOException("failed to convert source to json", e);
-            }
+            mapping = BytesReference.bytes(builder).utf8ToString();
+            return this;
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
@@ -208,8 +200,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
      * The template source definition.
      */
     @SuppressWarnings("unchecked")
-    public PutIndexTemplateRequest source(Map templateSource) {
-        Map<String, Object> source = templateSource;
+    public PutIndexTemplateRequest source(Map<String, Object> source) {
         for (Map.Entry<String, Object> entry : source.entrySet()) {
             String name = entry.getKey();
             if (name.equals("index_patterns")) {
@@ -266,32 +257,24 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     /**
      * Sets the aliases that will be associated with the index when it gets created
      */
-    @SuppressWarnings("unchecked")
-    public PutIndexTemplateRequest aliases(Map source) {
+    public PutIndexTemplateRequest aliases(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
-            return aliases(BytesReference.bytes(builder));
+            // EMPTY is safe here because we never call namedObject
+            try (XContentParser parser = XContentHelper
+                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, BytesReference.bytes(builder), XContentType.JSON)) {
+                //move to the first alias
+                parser.nextToken();
+                while ((parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                    alias(Alias.fromXContent(parser));
+                }
+                return this;
+            } catch (IOException e) {
+                throw new ElasticsearchParseException("Failed to parse aliases", e);
+            }
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public PutIndexTemplateRequest aliases(BytesReference source) {
-        // EMPTY is safe here because we never call namedObject
-        try (XContentParser parser = XContentHelper
-                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, source)) {
-            //move to the first alias
-            parser.nextToken();
-            while ((parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                alias(Alias.fromXContent(parser));
-            }
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchParseException("Failed to parse aliases", e);
         }
     }
 

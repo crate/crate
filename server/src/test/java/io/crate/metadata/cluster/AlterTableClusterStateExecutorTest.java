@@ -97,7 +97,7 @@ public class AlterTableClusterStateExecutorTest {
         Settings settingToFilter = Settings.builder()
             .put(fullName , "node1").build();
 
-        List<Setting> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+        List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
             .supportedSettings()
             .values()
             .stream()

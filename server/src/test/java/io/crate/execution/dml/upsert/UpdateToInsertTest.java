@@ -23,6 +23,7 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.execution.dml.IndexItem;
@@ -48,7 +49,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
     private static Doc doc(String index, Map<String, Object> source) {
         Supplier<String> rawSource = () -> {
             try {
-                return Strings.toString(XContentFactory.jsonBuilder().map(source));
+                return Strings.toString(JsonXContent.builder().map(source));
             } catch (IOException e1) {
                 throw new RuntimeException(e1);
             }

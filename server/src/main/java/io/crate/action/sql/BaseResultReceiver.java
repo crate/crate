@@ -21,11 +21,11 @@
 
 package io.crate.action.sql;
 
-import io.crate.data.Row;
-import io.crate.protocols.postgres.ClientInterrupted;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.OverridingMethodsMustInvokeSuper;
-import java.util.concurrent.CompletableFuture;
+
+import io.crate.data.Row;
 
 public class BaseResultReceiver implements ResultReceiver<Void> {
 
@@ -41,12 +41,8 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
 
     @Override
     @OverridingMethodsMustInvokeSuper
-    public void allFinished(boolean interrupted) {
-        if (interrupted) {
-            completionFuture.completeExceptionally(new ClientInterrupted());
-        } else {
-            completionFuture.complete(null);
-        }
+    public void allFinished() {
+        completionFuture.complete(null);
     }
 
     @Override

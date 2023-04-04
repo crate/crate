@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -886,6 +887,50 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "1626188198073| 1625097600000\n"
         ));
+    }
+
+    @Test
+    public void test_copy_excludes_partitioned_values_from_source() throws Exception {
+        execute("create table tbl (x int, p int) partitioned by (p)");
+
+        {
+            List<String> lines = List.of(
+                """
+                {"x": 10, "p": 1}
+                """
+            );
+            File file = folder.newFile(UUID.randomUUID().toString());
+            Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+            execute(
+                "copy tbl from ? with (wait_for_completion = true, shared = true)",
+                new Object[] { file.toPath().toUri().toString() }
+            );
+            execute("refresh table tbl");
+            execute("SELECT _raw, * FROM tbl");
+            assertThat(response).hasRows(
+                "{\"x\":10}| 10| 1"
+            );
+        }
+
+        {
+            execute("create table tbl2 (x int, o object as (p int)) partitioned by (o['p'])");
+            List<String> lines = List.of(
+                """
+                {"x": 10, "o": {"p": 1}}
+                """
+            );
+            File file = folder.newFile(UUID.randomUUID().toString());
+            Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+            execute(
+                "copy tbl2 from ? with (wait_for_completion = true, shared = true)",
+                new Object[] { file.toPath().toUri().toString() }
+            );
+            execute("refresh table tbl2");
+            execute("SELECT _raw, * FROM tbl2");
+            assertThat(response).hasRows(
+                "{\"x\":10,\"o\":{}}| 10| {p=1}"
+            );
+        }
     }
 
     @Test

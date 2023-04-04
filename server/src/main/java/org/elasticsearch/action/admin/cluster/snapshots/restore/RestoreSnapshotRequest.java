@@ -19,6 +19,17 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -28,19 +39,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Restore snapshot request
@@ -328,7 +328,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
      */
     public RestoreSnapshotRequest settings(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             settings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {
@@ -418,7 +418,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
      */
     public RestoreSnapshotRequest indexSettings(Map<String, Object> source) {
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
             indexSettings(Strings.toString(builder), builder.contentType());
         } catch (IOException e) {

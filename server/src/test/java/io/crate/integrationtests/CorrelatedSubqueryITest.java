@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -38,16 +39,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
+@UseHashJoins(0)
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
     private Properties properties;
-
-    @Override
-    protected boolean isHashJoinEnabled() {
-        return false;
-    }
 
     @Before
     public void setup() {
@@ -319,8 +317,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "            └ Eval[oid]\n" +
             "              └ Limit[2::bigint;0::bigint]\n" +
             "                └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
-            "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
-            "                  └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n"
+            "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
+            "                  └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -372,8 +370,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "              └ Eval[oid]\n" +
             "                └ Limit[2::bigint;0::bigint]\n" +
             "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
-            "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
-            "                    └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n" +
+            "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
+            "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +
             "            └ Eval[attrelid]\n" +
             "              └ Limit[2::bigint;0::bigint]\n" +
@@ -405,7 +403,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ SubPlan",
             "        └ Eval[1]",
             "          └ Limit[1;0]",
-            "            └ Collect[doc.b | [1, f1, f2, f3] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
+            "            └ Collect[doc.b | [1] | (((f1 = f1) AND (f2 = f2)) AND (f3 = 'c'))]"
         );
         assertThat(execute(stmt)).hasRows(
             "1"

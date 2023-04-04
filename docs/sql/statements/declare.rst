@@ -71,6 +71,7 @@ Closing a connection closes all cursors created within that connection.
 This clause has no effect in CrateDB
 Cursors in CrateDB are always insensitive.
 
+.. _sql-declare-scroll:
 
 ``[ NO ] SCROLL``
 .................

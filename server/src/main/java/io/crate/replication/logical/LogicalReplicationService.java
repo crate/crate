@@ -371,7 +371,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                         restoreInfo.failedShards(),
                                         restoreInfo.totalShards());
                 }
-                throw new SubscriptionRestoreException(subscriptionName, msg);
+                throw new SubscriptionRestoreException(msg);
             }
         });
     }

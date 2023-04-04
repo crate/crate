@@ -19,16 +19,12 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.apache.lucene.util.SetOnce;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
-import io.crate.common.collections.Tuple;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import io.crate.common.collections.Tuple;
 
 /**
  * Encapsulates the  {@link IndexMetadata} instances of a concrete index or indices an alias is pointing to.
@@ -82,7 +78,6 @@ public interface AliasOrIndex {
 
         private final String aliasName;
         private final List<IndexMetadata> referenceIndexMetadatas;
-        private SetOnce<IndexMetadata> writeIndex = new SetOnce<>();
 
         public Alias(AliasMetadata aliasMetadata, IndexMetadata indexMetadata) {
             this.aliasName = aliasMetadata.getAlias();
@@ -102,12 +97,6 @@ public interface AliasOrIndex {
         @Override
         public List<IndexMetadata> getIndices() {
             return referenceIndexMetadatas;
-        }
-
-
-        @Nullable
-        public IndexMetadata getWriteIndex() {
-            return writeIndex.get();
         }
 
         /**
@@ -151,26 +140,6 @@ public interface AliasOrIndex {
 
         void addIndex(IndexMetadata indexMetadata) {
             this.referenceIndexMetadatas.add(indexMetadata);
-        }
-
-        public void computeAndValidateWriteIndex() {
-            List<IndexMetadata> writeIndices = referenceIndexMetadatas.stream()
-                .filter(idxMeta -> Boolean.TRUE.equals(idxMeta.getAliases().get(aliasName).writeIndex()))
-                .collect(Collectors.toList());
-
-            if (writeIndices.isEmpty() && referenceIndexMetadatas.size() == 1
-                    && referenceIndexMetadatas.get(0).getAliases().get(aliasName).writeIndex() == null) {
-                writeIndices.add(referenceIndexMetadatas.get(0));
-            }
-
-            if (writeIndices.size() == 1) {
-                writeIndex.set(writeIndices.get(0));
-            } else if (writeIndices.size() > 1) {
-                List<String> writeIndicesStrings = writeIndices.stream()
-                    .map(i -> i.getIndex().getName()).collect(Collectors.toList());
-                throw new IllegalStateException("alias [" + aliasName + "] has more than one write index [" +
-                    Strings.collectionToCommaDelimitedString(writeIndicesStrings) + "]");
-            }
         }
     }
 }

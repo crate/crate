@@ -66,7 +66,6 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -190,8 +189,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
      */
     private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
         List<String> indicesToCreate = new ArrayList<>(request.indices().size());
-        List<String> removalReasons = new ArrayList<>(request.indices().size());
-        List<Index> createdIndices = new ArrayList<>(request.indices().size());
+        String removalReason = null;
+        Index testIndex = null;
         try {
             validateAndFilterExistingIndices(currentState, indicesToCreate, request);
             if (indicesToCreate.isEmpty()) {
@@ -205,43 +204,51 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             List<IndexTemplateMetadata> templates = findTemplates(request, currentState);
             applyTemplates(mapping, templatesAliases, templateNames, templates);
 
+            // Use only first index to validate that index can be created.
+            // All indices share same template/settings so no need to repeat validation for each index.
+            String testIndexName = indicesToCreate.get(0);
+            Settings commonIndexSettings = createCommonIndexSettings(currentState, templates);
+            shardLimitValidator.validateShardLimit(commonIndexSettings, currentState);
+            int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(commonIndexSettings);
+
+
+            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(testIndexName)
+                .setRoutingNumShards(routingNumShards);
+
+            // Set up everything, now locally create the index to see that things are ok, and apply
+            final IndexMetadata tmpImd = tmpImdBuilder.settings(Settings.builder()
+                    .put(commonIndexSettings)
+                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())).build();
+            ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
+            if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
+                throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
+                    "]: cannot be greater than number of shard copies [" +
+                    (tmpImd.getNumberOfReplicas() + 1) + "]");
+            }
+            // create the index here (on the master) to validate it can be created, as well as adding the mapping
+            IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList(), false);
+            testIndex = indexService.index();
+
+            // now add the mappings
+            MapperService mapperService = indexService.mapperService();
+            if (!mapping.isEmpty()) {
+                try {
+                    mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
+                } catch (MapperParsingException mpe) {
+                    removalReason = "failed on parsing default mapping on index creation";
+                    throw mpe;
+                }
+            }
+
+            // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
             for (String index : indicesToCreate) {
-                Settings indexSettings = createIndexSettings(currentState, templates);
-                shardLimitValidator.validateShardLimit(indexSettings, currentState);
-                int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(indexSettings);
-
-                String testIndex = indicesToCreate.get(0);
-                IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(testIndex)
-                    .setRoutingNumShards(routingNumShards);
-
-                // Set up everything, now locally create the index to see that things are ok, and apply
-                final IndexMetadata tmpImd = tmpImdBuilder.settings(indexSettings).build();
-                ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
-                if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
-                    throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
-                                                       "]: cannot be greater than number of shard copies [" +
-                                                       (tmpImd.getNumberOfReplicas() + 1) + "]");
-                }
-                // create the index here (on the master) to validate it can be created, as well as adding the mapping
-                IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList(), false);
-                createdIndices.add(indexService.index());
-
-                // now add the mappings
-                MapperService mapperService = indexService.mapperService();
-                if (!mapping.isEmpty()) {
-                    try {
-                        mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
-                    } catch (MapperParsingException mpe) {
-                        removalReasons.add("failed on parsing mappings on index creation");
-                        throw mpe;
-                    }
-                }
-
-                // now, update the mappings with the actual source
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
-                    .settings(indexSettings);
+                    .settings(Settings.builder()
+                        .put(commonIndexSettings)
+                        .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                    );
 
                 DocumentMapper mapper = mapperService.documentMapper();
                 if (mapper != null) {
@@ -257,10 +264,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 try {
                     indexMetadata = indexMetadataBuilder.build();
                 } catch (Exception e) {
-                    removalReasons.add("failed to build index metadata");
+                    removalReason = "failed to build index metadata";
                     throw e;
                 }
-
 
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}]",
                     index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
@@ -268,7 +274,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
                 newMetadataBuilder.put(indexMetadata, false);
-                removalReasons.add("cleaning up after validating index on master");
             }
 
             Metadata newMetadata = newMetadataBuilder.build();
@@ -281,13 +286,13 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             return allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
         } finally {
-            for (int i = 0; i < createdIndices.size(); i++) {
-                // Index was already partially created - need to clean up
-                String removalReason = removalReasons.size() > i ? removalReasons.get(i) : "failed to create index";
+            if (testIndex != null) {
+                // "probe" index used for validation was partially created - need to clean up
                 indicesService.removeIndex(
-                    createdIndices.get(i),
+                    testIndex,
                     IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED,
-                    removalReason);
+                    removalReason != null ? removalReason : "failed to create index"
+                );
             }
         }
     }
@@ -327,7 +332,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         }
     }
 
-    private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetadata> templates) {
+    private Settings createCommonIndexSettings(ClusterState currentState, List<IndexTemplateMetadata> templates) {
         Settings.Builder indexSettingsBuilder = Settings.builder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
@@ -340,8 +345,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         if (indexSettingsBuilder.get(IndexMetadata.SETTING_CREATION_DATE) == null) {
             indexSettingsBuilder.put(IndexMetadata.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
         }
-        indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
-
         return indexSettingsBuilder.build();
     }
 
@@ -382,7 +385,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
+        try (XContentParser parser = XContentType.JSON.xContent()
             .createParser(xContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
             return parser.map();
         } catch (IOException e) {

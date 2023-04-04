@@ -60,7 +60,7 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
+    public void allFinished() {
         result.complete(finisher.apply(state));
     }
 

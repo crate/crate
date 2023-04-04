@@ -19,31 +19,6 @@
 
 package org.elasticsearch.gateway;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.backward_codecs.store.EndiannessReverserUtil;
-import org.apache.lucene.codecs.CodecUtil;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.IndexFormatTooNewException;
-import org.apache.lucene.index.IndexFormatTooOldException;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
-import org.apache.lucene.store.IndexOutput;
-import org.apache.lucene.store.NIOFSDirectory;
-import org.elasticsearch.ExceptionsHelper;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
-import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import io.crate.common.io.IOUtils;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -58,6 +33,32 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.backward_codecs.store.EndiannessReverserUtil;
+import org.apache.lucene.codecs.CodecUtil;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexFormatTooNewException;
+import org.apache.lucene.index.IndexFormatTooOldException;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.NIOFSDirectory;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
+import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
+import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
 
 /**
  * MetadataStateFormat is a base class to write checksummed
@@ -266,7 +267,7 @@ public abstract class MetadataStateFormat<T> {
     }
 
     protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-        return XContentFactory.contentBuilder(type, stream);
+        return XContentFactory.builder(type, stream);
     }
 
     /**
@@ -299,7 +300,7 @@ public abstract class MetadataStateFormat<T> {
                 long contentSize = indexInput.length() - CodecUtil.footerLength() - filePointer;
                 try (IndexInput slice = indexInput.slice("state_xcontent", filePointer, contentSize)) {
                     try (InputStreamIndexInput in = new InputStreamIndexInput(slice, contentSize)) {
-                        try (XContentParser parser = XContentFactory.xContent(FORMAT)
+                        try (XContentParser parser = FORMAT.xContent()
                                 .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE,
                                     in)) {
                             return fromXContent(parser);

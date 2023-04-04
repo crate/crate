@@ -72,7 +72,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
-import org.elasticsearch.cluster.metadata.AliasValidator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -511,14 +510,12 @@ public class Node implements Closeable {
                 engineFactoryProviders,
                 indexStoreFactories);
 
-            final AliasValidator aliasValidator = new AliasValidator();
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
                 settings,
                 clusterService,
                 indicesService,
                 clusterModule.getAllocationService(),
-                aliasValidator,
                 shardLimitValidator,
                 environment,
                 settingsModule.getIndexScopedSettings(),
@@ -728,7 +725,6 @@ public class Node implements Closeable {
                     b.bind(MetaStateService.class).toInstance(metaStateService);
                     b.bind(PersistedClusterStateService.class).toInstance(persistedClusterStateService);
                     b.bind(IndicesService.class).toInstance(indicesService);
-                    b.bind(AliasValidator.class).toInstance(aliasValidator);
                     b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
                     b.bind(Transport.class).toInstance(transport);
                     b.bind(Netty4Transport.class).toInstance(transport);
@@ -979,7 +975,6 @@ public class Node implements Closeable {
         configureNodeAndClusterIdStateListener(clusterService);
 
         if (initialStateTimeout.millis() > 0) {
-            final ThreadPool thread = injector.getInstance(ThreadPool.class);
             ClusterState clusterState = clusterService.state();
             ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger);
 

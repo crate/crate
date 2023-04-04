@@ -51,10 +51,10 @@ public final class DiffableUtils {
     }
 
     /**
-     * Returns a map key serializer for Integer keys. Encodes as VInt.
+     * Returns a map key serializer for Integer keys.
      */
-    public static KeySerializer<Integer> getVIntKeySerializer() {
-        return VIntKeySerializer.INSTANCE;
+    public static KeySerializer<Integer> getIntKeySerializer() {
+        return IntKeySerializer.INSTANCE;
     }
 
     /**
@@ -365,6 +365,8 @@ public final class DiffableUtils {
      */
     private static final class IntKeySerializer implements KeySerializer<Integer> {
 
+        private static final IntKeySerializer INSTANCE = new IntKeySerializer();
+
         @Override
         public void writeKey(Integer key, StreamOutput out) throws IOException {
             out.writeInt(key);
@@ -373,26 +375,6 @@ public final class DiffableUtils {
         @Override
         public Integer readKey(StreamInput in) throws IOException {
             return in.readInt();
-        }
-    }
-
-    /**
-     * Serializes Integer keys of a map as a VInt. Requires keys to be positive.
-     */
-    private static final class VIntKeySerializer implements KeySerializer<Integer> {
-        public static final IntKeySerializer INSTANCE = new IntKeySerializer();
-
-        @Override
-        public void writeKey(Integer key, StreamOutput out) throws IOException {
-            if (key < 0) {
-                throw new IllegalArgumentException("Map key [" + key + "] must be positive");
-            }
-            out.writeVInt(key);
-        }
-
-        @Override
-        public Integer readKey(StreamInput in) throws IOException {
-            return in.readVInt();
         }
     }
 

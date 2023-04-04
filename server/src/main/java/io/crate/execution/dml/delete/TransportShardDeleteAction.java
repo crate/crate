@@ -21,11 +21,11 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.exceptions.JobKilledException;
-import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.TransportShardAction;
-import io.crate.execution.jobs.TasksService;
+import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
+
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -42,10 +42,11 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.jobs.TasksService;
 
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
@@ -169,7 +170,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 }
             }
         }
-        return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
+        return new WriteReplicaResult<>(translogLocation, null, indexShard);
     }
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {

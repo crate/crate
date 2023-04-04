@@ -24,10 +24,8 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -38,15 +36,12 @@ import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Constants;
 
@@ -142,30 +137,13 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      * Sets the mapping that will be used when the index gets created.
      *
      * @param source The mapping source
-     * @param xContentType The content type of the source
      */
-    public CreateIndexRequest mapping(String source, XContentType xContentType) {
-        return mapping(new BytesArray(source), xContentType);
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     * @param xContentType the content type of the mapping source
-     */
-    private CreateIndexRequest mapping(BytesReference source, XContentType xContentType) {
+    public CreateIndexRequest mapping(String source) {
         if (this.mapping != null) {
             throw new IllegalStateException("mapping already defined");
         }
-        Objects.requireNonNull(xContentType);
-        try {
-            mapping = XContentHelper.convertToJson(source, xContentType);
-            return this;
-        } catch (IOException e) {
-            throw new UncheckedIOException("failed to convert to json", e);
-        }
+        mapping = source;
+        return this;
     }
 
     /**
@@ -186,9 +164,10 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
             throw new IllegalStateException("mapping already defined");
         }
         try {
-            XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+            XContentBuilder builder = JsonXContent.builder();
             builder.map(source);
-            return mapping(BytesReference.bytes(builder), builder.contentType());
+            mapping = BytesReference.bytes(builder).utf8ToString();
+            return this;
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }

@@ -77,24 +77,22 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void batchFinished() {
-        Messages.sendPortalSuspended(directChannel);
-        Messages.sendReadyForQuery(directChannel, transactionState);
+        ChannelFuture sendPortalSuspended = Messages.sendPortalSuspended(directChannel);
         channel.writePendingMessages(delayedWrites);
         channel.flush();
-        super.allFinished(true);
+
+        // Trigger the completion future but by-pass `sendCompleteComplete`
+        // This resultReceiver shouldn't be used anymore. The next `execute` message
+        // from the client will create a new one.
+        sendPortalSuspended.addListener(f -> super.allFinished());
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
-        if (interrupted) {
-            channel.writePendingMessages(delayedWrites);
-            super.allFinished(true);
-        } else {
-            ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
-            channel.writePendingMessages(delayedWrites);
-            channel.flush();
-            sendCommandComplete.addListener(f -> super.allFinished(false));
-        }
+    public void allFinished() {
+        ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
+        channel.writePendingMessages(delayedWrites);
+        channel.flush();
+        sendCommandComplete.addListener(f -> super.allFinished());
     }
 
     @Override

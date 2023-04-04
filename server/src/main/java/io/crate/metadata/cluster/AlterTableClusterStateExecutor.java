@@ -45,9 +45,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataMappingService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -58,7 +56,6 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
-import org.elasticsearch.indices.ShardLimitValidator;
 
 import io.crate.analyze.TableParameters;
 import io.crate.common.annotations.VisibleForTesting;
@@ -73,29 +70,20 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
         true, true, true, true);
 
-    private final MetadataMappingService metadataMappingService;
     private final IndicesService indicesService;
-    private final AllocationService allocationService;
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
-    private final ShardLimitValidator shardLimitValidator;
     private final NodeContext nodeContext;
     private final MetadataUpdateSettingsService updateSettingsService;
 
-    public AlterTableClusterStateExecutor(MetadataMappingService metadataMappingService,
-                                          IndicesService indicesService,
-                                          AllocationService allocationService,
+    public AlterTableClusterStateExecutor(IndicesService indicesService,
                                           IndexScopedSettings indexScopedSettings,
                                           MetadataCreateIndexService metadataCreateIndexService,
                                           MetadataUpdateSettingsService updateSettingsService,
-                                          ShardLimitValidator shardLimitValidator,
                                           NodeContext nodeContext) {
-        this.metadataMappingService = metadataMappingService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
-        this.allocationService = allocationService;
         this.metadataCreateIndexService = metadataCreateIndexService;
-        this.shardLimitValidator = shardLimitValidator;
         this.nodeContext = nodeContext;
         this.updateSettingsService = updateSettingsService;
     }
@@ -125,7 +113,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
 
                     // These settings only apply for already existing partitions
-                    List<Setting> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                    List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
                         .supportedSettings()
                         .values()
                         .stream()
@@ -274,9 +262,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     @VisibleForTesting
-    static Settings filterSettings(Settings settings, List<Setting> settingsFilter) {
+    static Settings filterSettings(Settings settings, List<Setting<?>> settingsFilter) {
         Settings.Builder settingsBuilder = Settings.builder();
-        for (Setting setting : settingsFilter) {
+        for (Setting<?> setting : settingsFilter) {
             if (setting.isGroupSetting()) {
                 String prefix = setting.getKey(); // getKey() returns prefix for a group setting
                 var settingsGroup = settings.getByPrefix(prefix);

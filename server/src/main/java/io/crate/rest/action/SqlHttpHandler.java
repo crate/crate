@@ -239,14 +239,14 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         List<Symbol> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;
         if (resultFields == null) {
-            resultReceiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), startTimeInNs, includeTypes);
+            resultReceiver = new RestRowCountReceiver(JsonXContent.builder(), startTimeInNs, includeTypes);
         } else {
             CircuitBreaker breaker = circuitBreakerProvider.apply(HierarchyCircuitBreakerService.QUERY);
             RamAccounting ramAccounting = new BlockBasedRamAccounting(
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);
             resultReceiver = new RestResultSetReceiver(
-                JsonXContent.contentBuilder(),
+                JsonXContent.builder(),
                 resultFields,
                 startTimeInNs,
                 new RowAccountingWithEstimators(
@@ -283,7 +283,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         return session.sync()
             .thenApply(ignored -> {
                 try {
-                    return ResultToXContentBuilder.builder(JsonXContent.contentBuilder())
+                    return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())
                         .duration(startTimeInNs)
                         .bulkRows(results)

@@ -60,11 +60,11 @@ class RowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
+    public void allFinished() {
         ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel.bypassDelay(), query, rowCount);
         channel.writePendingMessages(delayedWrites);
         channel.flush();
-        sendCommandComplete.addListener(f -> super.allFinished(interrupted));
+        sendCommandComplete.addListener(f -> super.allFinished());
     }
 
     @Override
