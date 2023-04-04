@@ -104,6 +104,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparison;
@@ -696,10 +697,9 @@ public class ExpressionAnalyzer {
             } else {
                 // Detect and process partial quoted subscript expression
                 var columnName = qualifiedName.getSuffix();
-                var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+                var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
                 if (maybeQuotedSubscript != null) {
-                    var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
-                    return visitSubscriptExpression(new SubscriptExpression(subscript, node.index()), context);
+                    return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()), context);
                 }
 
                 // Ideally the above base+index + subscriptFunction case would be enough
@@ -940,10 +940,9 @@ public class ExpressionAnalyzer {
             var columnName = parts.get(parts.size() - 1);
 
             // Detect and process quoted subscript expressions
-            var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
+            var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
             if (maybeQuotedSubscript != null) {
-                var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
-                return visitSubscriptExpression(subscript, context);
+                return visitSubscriptExpression(maybeQuotedSubscript, context);
             }
 
             return fieldProvider.resolveField(node.getName(), null, operation, context.errorOnUnknownObjectKey());
@@ -1277,10 +1276,14 @@ public class ExpressionAnalyzer {
     }
 
     @Nullable
-    private static String detectAndSanitizeQuotedSubscript(String columnName) {
+    private static SubscriptExpression detectAndGenerateSubscriptExpressions(String columnName) {
         var openSubscriptPos = columnName.indexOf("[");
         if (openSubscriptPos > -1) {
-            return "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+            var sanitizedName = "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+            try {
+                return (SubscriptExpression) SqlParser.createExpression(sanitizedName);
+            } catch (ParsingException ignored) {
+            }
         }
         return null;
     }
