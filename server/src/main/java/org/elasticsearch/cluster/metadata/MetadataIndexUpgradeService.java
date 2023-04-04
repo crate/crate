@@ -19,6 +19,13 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -33,13 +40,6 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
-
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -166,9 +166,14 @@ public class MetadataIndexUpgradeService {
                 }
             };
             try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, fakeDefault, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
-                MapperService mapperService = new MapperService(indexSettings, fakeIndexAnalzyers, xContentRegistry,
-                        mapperRegistry, () -> null);
-                mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+                try (var mapperService = new MapperService(
+                        indexSettings,
+                        fakeIndexAnalzyers,
+                        xContentRegistry,
+                        mapperRegistry,
+                        () -> null)) {
+                    mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+                }
             }
         } catch (Exception ex) {
             // Wrap the inner exception so we have the index name in the exception message

@@ -527,106 +527,107 @@ public class Indexer {
             expression.setNextRow(item);
         }
         stream.reset();
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder(stream);
-        xContentBuilder.startObject();
-        Object[] values = item.insertValues();
-        for (int i = 0; i < values.length; i++) {
-            Reference reference = columns.get(i);
-            Object value = reference.valueType().valueForInsert(values[i]);
-            ColumnConstraint check = columnConstraints.get(reference.column());
-            if (check != null) {
-                check.verify(value);
-            }
-            if (reference.granularity() == RowGranularity.PARTITION) {
-                continue;
-            }
-            if (value == null) {
-                continue;
-            }
-            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            xContentBuilder.field(reference.column().leafName());
-            valueIndexer.indexValue(
-                value,
-                xContentBuilder,
-                addField,
-                onDynamicColumn,
-                synthetics,
-                columnConstraints
-            );
-        }
-        for (var entry : synthetics.entrySet()) {
-            ColumnIdent column = entry.getKey();
-            if (!column.isTopLevel()) {
-                continue;
-            }
-            Synthetic synthetic = entry.getValue();
-            ValueIndexer<Object> indexer = synthetic.indexer();
-            Object value = synthetic.input().value();
-            if (value == null) {
-                continue;
-            }
-            xContentBuilder.field(column.leafName());
-            indexer.indexValue(
-                value,
-                xContentBuilder,
-                addField,
-                onDynamicColumn,
-                synthetics,
-                columnConstraints
-            );
-        }
-        xContentBuilder.endObject();
-
-        for (var indexColumn : indexColumns) {
-            String fqn = indexColumn.name.fqn();
-            for (var input : indexColumn.inputs) {
-                Object value = input.value();
+        try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
+            xContentBuilder.startObject();
+            Object[] values = item.insertValues();
+            for (int i = 0; i < values.length; i++) {
+                Reference reference = columns.get(i);
+                Object value = reference.valueType().valueForInsert(values[i]);
+                ColumnConstraint check = columnConstraints.get(reference.column());
+                if (check != null) {
+                    check.verify(value);
+                }
+                if (reference.granularity() == RowGranularity.PARTITION) {
+                    continue;
+                }
                 if (value == null) {
                     continue;
                 }
-                if (value instanceof Iterable<?> it) {
-                    for (Object val : it) {
-                        if (val == null) {
-                            continue;
+                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+                xContentBuilder.field(reference.column().leafName());
+                valueIndexer.indexValue(
+                    value,
+                    xContentBuilder,
+                    addField,
+                    onDynamicColumn,
+                    synthetics,
+                    columnConstraints
+                );
+            }
+            for (var entry : synthetics.entrySet()) {
+                ColumnIdent column = entry.getKey();
+                if (!column.isTopLevel()) {
+                    continue;
+                }
+                Synthetic synthetic = entry.getValue();
+                ValueIndexer<Object> indexer = synthetic.indexer();
+                Object value = synthetic.input().value();
+                if (value == null) {
+                    continue;
+                }
+                xContentBuilder.field(column.leafName());
+                indexer.indexValue(
+                    value,
+                    xContentBuilder,
+                    addField,
+                    onDynamicColumn,
+                    synthetics,
+                    columnConstraints
+                );
+            }
+            xContentBuilder.endObject();
+
+            for (var indexColumn : indexColumns) {
+                String fqn = indexColumn.name.fqn();
+                for (var input : indexColumn.inputs) {
+                    Object value = input.value();
+                    if (value == null) {
+                        continue;
+                    }
+                    if (value instanceof Iterable<?> it) {
+                        for (Object val : it) {
+                            if (val == null) {
+                                continue;
+                            }
+                            Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
+                            doc.add(field);
                         }
-                        Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
+                    } else {
+                        Field field = new Field(fqn, value.toString(), indexColumn.fieldType);
                         doc.add(field);
                     }
-                } else {
-                    Field field = new Field(fqn, value.toString(), indexColumn.fieldType);
-                    doc.add(field);
                 }
             }
+
+            for (var constraint : tableConstraints) {
+                constraint.verify(item.insertValues());
+            }
+
+            NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
+            doc.add(version);
+
+            BytesReference source = BytesReference.bytes(xContentBuilder);
+            BytesRef sourceRef = source.toBytesRef();
+            doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
+
+            BytesRef idBytes = Uid.encodeId(item.id());
+            doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+
+            SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+            // Actual values are set via ParsedDocument.updateSeqID
+            doc.add(seqID.seqNo);
+            doc.add(seqID.seqNoDocValue);
+            doc.add(seqID.primaryTerm);
+            return new ParsedDocument(
+                version,
+                seqID,
+                item.id(),
+                doc,
+                source,
+                null,
+                newColumns
+            );
         }
-
-        for (var constraint : tableConstraints) {
-            constraint.verify(item.insertValues());
-        }
-
-        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
-        doc.add(version);
-
-        BytesReference source = BytesReference.bytes(xContentBuilder);
-        BytesRef sourceRef = source.toBytesRef();
-        doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
-
-        BytesRef idBytes = Uid.encodeId(item.id());
-        doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
-
-        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
-        // Actual values are set via ParsedDocument.updateSeqID
-        doc.add(seqID.seqNo);
-        doc.add(seqID.seqNoDocValue);
-        doc.add(seqID.primaryTerm);
-        return new ParsedDocument(
-            version,
-            seqID,
-            item.id(),
-            doc,
-            source,
-            null,
-            newColumns
-        );
     }
 
     @Nullable

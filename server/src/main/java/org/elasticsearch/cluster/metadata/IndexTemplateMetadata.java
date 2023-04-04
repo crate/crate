@@ -40,9 +40,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -347,7 +348,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
             if (params.paramAsBoolean("reduce_mappings", false)) {
                 builder.startObject("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true).map();
+                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true, XContentType.JSON).map();
                 if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
                     // the type name is the root value, reduce it
                     mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -357,7 +358,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 builder.endObject();
             } else {
                 builder.startArray("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true).map();
+                Map<String, Object> mapping = XContentHelper.convertToMap(indexTemplateMetadata.mapping().uncompressed(), true, XContentType.JSON).map();
                 builder.map(mapping);
                 builder.endArray();
             }
@@ -391,7 +392,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                                 String mappingType = currentFieldName;
                                 Map<String, Object> mappingSource =
                                     MapBuilder.<String, Object>newMapBuilder().put(mappingType, parser.mapOrdered()).map();
-                                builder.putMapping(Strings.toString(XContentFactory.jsonBuilder().map(mappingSource)));
+                                builder.putMapping(Strings.toString(JsonXContent.builder().map(mappingSource)));
                             }
                         }
                     } else if ("aliases".equals(currentFieldName)) {
@@ -406,7 +407,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             Map<String, Object> mapping = parser.mapOrdered();
                             if (mapping.size() == 1) {
-                                String mappingSource = Strings.toString(XContentFactory.jsonBuilder().map(mapping));
+                                String mappingSource = Strings.toString(JsonXContent.builder().map(mapping));
                                 if (mappingSource == null) {
                                     // crap, no mapping source, warn?
                                 } else {

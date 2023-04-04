@@ -1380,13 +1380,14 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             final String corruptionMarkerName = CORRUPTED_MARKER_NAME_PREFIX + UUIDs.randomBase64UUID();
             try (IndexOutput output = this.directory().createOutput(corruptionMarkerName, IOContext.DEFAULT)) {
                 CodecUtil.writeHeader(output, CODEC, CORRUPTED_MARKER_CODEC_VERSION);
-                BytesStreamOutput out = new BytesStreamOutput();
-                out.writeException(exception);
-                BytesReference bytes = out.bytes();
-                output.writeVInt(bytes.length());
-                BytesRef ref = bytes.toBytesRef();
-                output.writeBytes(ref.bytes, ref.offset, ref.length);
-                CodecUtil.writeFooter(output);
+                try (BytesStreamOutput out = new BytesStreamOutput()) {
+                    out.writeException(exception);
+                    BytesReference bytes = out.bytes();
+                    output.writeVInt(bytes.length());
+                    BytesRef ref = bytes.toBytesRef();
+                    output.writeBytes(ref.bytes, ref.offset, ref.length);
+                    CodecUtil.writeFooter(output);
+                }
             } catch (IOException ex) {
                 logger.warn("Can't mark store as corrupted", ex);
             }

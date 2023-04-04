@@ -22,6 +22,7 @@
 package io.crate.execution.engine.indexing;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +46,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Maps;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -89,7 +90,6 @@ public class IndexWriterProjector implements Projector {
                                 Input<?> sourceInput,
                                 List<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int bulkActions,
-                                @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
@@ -98,12 +98,12 @@ public class IndexWriterProjector implements Projector {
                                 boolean failFast,
                                 boolean validation) {
         Input<String> source;
-        if (includes == null && excludes == null) {
+        if (excludes == null) {
             //noinspection unchecked
             source = (Input<String>) sourceInput;
         } else {
             //noinspection unchecked
-            source = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+            source = new MapInput((Input<Map<String, Object>>) sourceInput, excludes);
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
@@ -168,14 +168,12 @@ public class IndexWriterProjector implements Projector {
     private static class MapInput implements Input<String> {
 
         private final Input<Map<String, Object>> sourceInput;
-        private final String[] includes;
         private final String[] excludes;
         private static final Logger LOGGER = LogManager.getLogger(MapInput.class);
         private int lastSourceSize;
 
-        private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {
+        private MapInput(Input<Map<String, Object>> sourceInput, String[] excludes) {
             this.sourceInput = sourceInput;
-            this.includes = includes;
             this.excludes = excludes;
             this.lastSourceSize = PageCacheRecycler.BYTE_PAGE_SIZE;
         }
@@ -187,10 +185,14 @@ public class IndexWriterProjector implements Projector {
                 return null;
             }
             assert value instanceof LinkedHashMap<String, Object> : "the raw source order should be preserved";
-            Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
-            try {
-                BytesReference bytes = BytesReference.bytes(new XContentBuilder(XContentType.JSON.xContent(),
-                    new BytesStreamOutput(lastSourceSize)).map(filteredMap));
+            if (excludes != null) {
+                for (String exclude : excludes) {
+                    String[] path = exclude.split("\\.");
+                    Maps.removeByPath(value, Arrays.asList(path));
+                }
+            }
+            try (XContentBuilder xContentBuilder = new XContentBuilder(XContentType.JSON.xContent(), new BytesStreamOutput(lastSourceSize))) {
+                BytesReference bytes = BytesReference.bytes(xContentBuilder.map(value));
                 lastSourceSize = bytes.length();
                 return bytes.utf8ToString();
             } catch (IOException ex) {

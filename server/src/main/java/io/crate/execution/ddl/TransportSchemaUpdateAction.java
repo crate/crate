@@ -58,7 +58,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.ContentPath;
@@ -138,7 +137,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         PutMappingRequest putMappingRequest = new PutMappingRequest()
             .indices(new String[0])
             .setConcreteIndex(index)
-            .source(mappingSource, XContentType.JSON)
+            .source(mappingSource)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
         nodeClient.execute(PutMappingAction.INSTANCE, putMappingRequest).whenComplete(putMappingListener);
@@ -207,7 +206,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         mergeIntoSource(source, newMapping);
         Map<String, Object> defaultMap = Maps.get(source, Constants.DEFAULT_MAPPING_TYPE);
         populateColumnPositions(defaultMap);
-        try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
+        try (XContentBuilder xContentBuilder = JsonXContent.builder()) {
             templateBuilder.putMapping(Strings.toString(xContentBuilder.map(source)));
         }
         Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(templateBuilder);

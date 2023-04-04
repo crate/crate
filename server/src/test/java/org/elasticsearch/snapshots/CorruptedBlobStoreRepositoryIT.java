@@ -19,7 +19,6 @@
 package org.elasticsearch.snapshots;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -51,7 +50,6 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
@@ -66,7 +64,6 @@ import org.junit.Test;
 
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
-import io.crate.testing.SQLErrorMatcher;
 import io.crate.testing.TestingHelpers;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -240,7 +237,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY, IndexMetaDataGenerations.EMPTY);
 
         Files.write(repo.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + withoutVersions.getGenId()),
-            BytesReference.toBytes(BytesReference.bytes(withoutVersions.snapshotsToXContent(XContentFactory.jsonBuilder(),
+            BytesReference.toBytes(BytesReference.bytes(withoutVersions.snapshotsToXContent(JsonXContent.builder(),
                 Version.CURRENT))), StandardOpenOption.TRUNCATE_EXISTING);
 
         logger.info("--> verify that repo is assumed in old metadata format");
@@ -359,7 +356,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> writing downgraded RepositoryData");
         final RepositoryData repositoryData = getRepositoryData(repoName);
-        final XContentBuilder jsonBuilder = JsonXContent.contentBuilder();
+        final XContentBuilder jsonBuilder = JsonXContent.builder();
         repositoryData.snapshotsToXContent(jsonBuilder, Version.V_4_1_0);
         final RepositoryData downgradedRepoData = RepositoryData.snapshotsFromXContent(JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY,
@@ -368,7 +365,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 repositoryData.getGenId(), randomBoolean());
         Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData.getGenId()),
                 BytesReference.toBytes(BytesReference.bytes(
-                        downgradedRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), Version.V_4_1_0))),
+                        downgradedRepoData.snapshotsToXContent(JsonXContent.builder(), Version.V_4_1_0))),
                 StandardOpenOption.TRUNCATE_EXISTING);
 
         logger.info("--> recreating repository to clear caches");
@@ -413,7 +410,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> writing downgraded RepositoryData");
         final RepositoryData repositoryData = getRepositoryData(repoName);
-        final XContentBuilder jsonBuilder = JsonXContent.contentBuilder();
+        final XContentBuilder jsonBuilder = JsonXContent.builder();
         repositoryData.snapshotsToXContent(jsonBuilder, Version.V_4_1_0);
         final RepositoryData downgradedRepoData = RepositoryData.snapshotsFromXContent(JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY,
@@ -422,7 +419,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 repositoryData.getGenId(), randomBoolean());
         Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData.getGenId()),
                 BytesReference.toBytes(BytesReference.bytes(
-                        downgradedRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), Version.V_4_1_0))),
+                        downgradedRepoData.snapshotsToXContent(JsonXContent.builder(), Version.V_4_1_0))),
                 StandardOpenOption.TRUNCATE_EXISTING);
 
         logger.info("--> recreating repository to clear caches");
@@ -460,7 +457,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         );
         Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData1.getGenId()),
                 BytesReference.toBytes(BytesReference.bytes(
-                        brokenRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), Version.CURRENT))),
+                        brokenRepoData.snapshotsToXContent(JsonXContent.builder(), Version.CURRENT))),
                 StandardOpenOption.TRUNCATE_EXISTING);
 
         logger.info("--> recreating repository to clear caches");

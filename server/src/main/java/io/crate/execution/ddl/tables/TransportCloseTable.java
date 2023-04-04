@@ -609,22 +609,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 true,
                 closingBlock
             );
-            verifyShardBeforeClose.execute(shardRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(ReplicationResponse replicationResponse) {
-                    var shardRequest = new TransportVerifyShardBeforeCloseAction.ShardRequest(
-                        shardId,
-                        false,
-                        closingBlock
-                    );
-                    verifyShardBeforeClose.execute(shardRequest, listener);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            });
+            verifyShardBeforeClose.execute(shardRequest)
+                .thenCompose(response -> verifyShardBeforeClose.execute(
+                    new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, closingBlock)))
+                .whenComplete(listener);
         }
     }
 }

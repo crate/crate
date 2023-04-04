@@ -30,7 +30,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
 import io.crate.metadata.settings.SessionSettings;
@@ -90,7 +90,7 @@ public final class JsonType extends DataType<String> implements Streamer<String>
     public String explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value instanceof Map<?, ?> map) {
             try {
-                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) map));
+                return Strings.toString(JsonXContent.builder().map((Map<String, ?>) map));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

@@ -46,6 +46,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -281,7 +282,7 @@ public class MetadataMappingService {
                 if (IndexParts.isPartitioned(index.getName())) {
                     String partitionName = PartitionName.templateName(index.getName());
                     IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(partitionName);
-                    updatedSourceMap = XContentHelper.convertToMap(mappingUpdateSource.compressedReference(), true).map();
+                    updatedSourceMap = XContentHelper.convertToMap(mappingUpdateSource.compressedReference(), true, XContentType.JSON).map();
                     // if partitioned, template-mapping should contain the latest column positions
                     populateColumnPositions(updatedSourceMap, indexTemplateMetadata.mapping());
                 }
@@ -386,7 +387,7 @@ public class MetadataMappingService {
     }
 
     public static void populateColumnPositions(Map<String, Object> mapping, CompressedXContent mappingToReference) {
-        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true).map();
+        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true, XContentType.JSON).map();
         populateColumnPositionsImpl(
             Maps.getOrDefault(mapping, "default", mapping),
             Maps.getOrDefault(parsedTemplateMapping, "default", parsedTemplateMapping)

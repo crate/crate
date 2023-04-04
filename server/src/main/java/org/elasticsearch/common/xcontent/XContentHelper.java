@@ -29,11 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
-
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.Compressor;
 import org.elasticsearch.common.compress.CompressorFactory;
@@ -41,26 +37,6 @@ import org.elasticsearch.common.xcontent.ToXContent.Params;
 
 @SuppressWarnings("unchecked")
 public class XContentHelper {
-
-    /**
-     * Creates a parser based on the bytes provided
-     * @deprecated use {@link #createParser(NamedXContentRegistry, DeprecationHandler, BytesReference, XContentType)} to avoid content type auto-detection
-     */
-    @Deprecated
-    public static XContentParser createParser(NamedXContentRegistry xContentRegistry, DeprecationHandler deprecationHandler,
-                                              BytesReference bytes) throws IOException {
-        Compressor compressor = CompressorFactory.compressor(bytes);
-        if (compressor != null) {
-            InputStream compressedInput = compressor.threadLocalInputStream(bytes.streamInput());
-            if (compressedInput.markSupported() == false) {
-                compressedInput = new BufferedInputStream(compressedInput);
-            }
-            final XContentType contentType = XContentFactory.xContentType(compressedInput);
-            return XContentFactory.xContent(contentType).createParser(xContentRegistry, deprecationHandler, compressedInput);
-        } else {
-            return XContentFactory.xContent(xContentType(bytes)).createParser(xContentRegistry, deprecationHandler, bytes.streamInput());
-        }
-    }
 
     /**
      * Creates a parser for the bytes using the supplied content-type
@@ -74,20 +50,10 @@ public class XContentHelper {
             if (compressedInput.markSupported() == false) {
                 compressedInput = new BufferedInputStream(compressedInput);
             }
-            return XContentFactory.xContent(xContentType).createParser(xContentRegistry, deprecationHandler, compressedInput);
+            return xContentType.xContent().createParser(xContentRegistry, deprecationHandler, compressedInput);
         } else {
             return xContentType.xContent().createParser(xContentRegistry, deprecationHandler, bytes.streamInput());
         }
-    }
-
-    /**
-     * Converts the given bytes into a map that is optionally ordered.
-     * @deprecated this method relies on auto-detection of content type. Use {@link #convertToMap(BytesReference, boolean, XContentType)}
-     *             instead with the proper {@link XContentType}
-     */
-    @Deprecated
-    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered) throws ElasticsearchParseException {
-        return convertToMap(bytes, ordered, null);
     }
 
     public static Map<String, Object> toMap(BytesReference bytes, XContentType xContentType) {
@@ -119,13 +85,13 @@ public class XContentHelper {
     /**
      * Converts the given bytes into a map that is optionally ordered.
      */
-    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, @Nullable XContentType xContentType)
+    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, XContentType xContentType)
         throws ElasticsearchParseException {
         try {
-            final XContentType contentType;
             try (InputStream input = getUncompressedInputStream(bytes)) {
-                contentType = xContentType != null ? xContentType : XContentFactory.xContentType(input);
-                return new ParsedXContent(Objects.requireNonNull(contentType), convertToMap(XContentFactory.xContent(contentType), input, ordered));
+                return new ParsedXContent(
+                    xContentType,
+                    convertToMap(xContentType.xContent(), input, ordered));
             }
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);
@@ -148,7 +114,7 @@ public class XContentHelper {
 
     /**
      * Convert a string in some {@link XContent} format to a {@link Map}. Throws an {@link ElasticsearchParseException} if there is any
-     * error. Note that unlike {@link #convertToMap(BytesReference, boolean)}, this doesn't automatically uncompress the input.
+     * error. This doesn't automatically uncompress the input.
      */
     public static Map<String, Object> convertToMap(XContent xContent, InputStream input, boolean ordered)
             throws ElasticsearchParseException {
@@ -158,25 +124,6 @@ public class XContentHelper {
             return ordered ? parser.mapOrdered() : parser.map();
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);
-        }
-    }
-
-
-    public static String convertToJson(BytesReference bytes, XContentType xContentType) throws IOException {
-        Objects.requireNonNull(xContentType);
-        if (xContentType == XContentType.JSON) {
-            return bytes.utf8ToString();
-        }
-        // It is safe to use EMPTY here because this never uses namedObject
-        try (InputStream stream = bytes.streamInput();
-             XContentParser parser = XContentFactory.xContent(xContentType).createParser(
-                 NamedXContentRegistry.EMPTY,
-                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                 stream)) {
-            parser.nextToken();
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.copyCurrentStructure(parser);
-            return Strings.toString(builder);
         }
     }
 
@@ -279,7 +226,7 @@ public class XContentHelper {
             if (!(o instanceof Map)) {
                 return false;
             }
-            if (((Map) o).size() != 1) {
+            if (((Map<?, ?>) o).size() != 1) {
                 return false;
             }
         }
@@ -303,18 +250,5 @@ public class XContentHelper {
             }
             return BytesReference.bytes(builder);
         }
-    }
-
-    /**
-     * Guesses the content type based on the provided bytes.
-     *
-     * @deprecated the content type should not be guessed except for few cases where we effectively don't know the content type.
-     * The REST layer should move to reading the Content-Type header instead. There are other places where auto-detection may be needed.
-     * This method is deprecated to prevent usages of it from spreading further without specific reasons.
-     */
-    @Deprecated
-    public static XContentType xContentType(BytesReference bytes) {
-        BytesRef br = bytes.toBytesRef();
-        return XContentFactory.xContentType(br.bytes, br.offset, br.length);
     }
 }

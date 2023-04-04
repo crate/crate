@@ -54,25 +54,7 @@ None
 Changes
 =======
 
-- Changed the behavior of ``SHOW search_path`` to omit the implicit
-  ``pg_catalog`` schema, unless the user set it explicitly. This matches the
-  PostgreSQL behavior.
-
-- Optimized the evaluation of ``CASE`` expressions to prevent stack overflows
-  for very large expressions.
-
-- Allowed schema and table names to contain upper case letters. This can be
-  achieved by quoting the names. Unquoted names with upper case letters are
-  converted to lower cases which has been the existing behaviour.
-
-- Allowed schema and table names to start with ``_``.
-
-- Improved the performance of queries using a correlated sub-query inside the
-  ``WHERE`` clause in conjunction with a non-correlated filter clause.
-
-- Added the :ref:`col_description(integer, integer) <scalar-col_description>` scalar
-  function for improved PostgreSQL compatibility. CrateDB does not support
-  comments for columns, so this function always returns ``NULL``.
+None
 
 Fixes
 =====
@@ -81,5 +63,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed a race condition that could lead to a ``ShardNotFoundException`` when
-  executing ``UPDATE`` statements.
+None

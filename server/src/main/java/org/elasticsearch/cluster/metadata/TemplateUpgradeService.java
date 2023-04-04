@@ -56,7 +56,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 
@@ -123,15 +122,18 @@ public class TemplateUpgradeService implements ClusterStateListener {
         }
 
         lastTemplateMetadata = templates;
-        Optional<Tuple<Map<String, BytesReference>, Set<String>>> changes = calculateTemplateChanges(templates);
-        if (changes.isPresent()) {
-            if (upgradesInProgress.compareAndSet(0, changes.get().v1().size() + changes.get().v2().size() + 1)) {
+        Optional<TemplateDelta> optDelta = calculateTemplateChanges(templates);
+        if (optDelta.isPresent()) {
+            TemplateDelta templateDelta = optDelta.get();
+            Map<String, BytesReference> changes = templateDelta.changes();
+            Set<String> deletes = templateDelta.deletes();
+            if (upgradesInProgress.compareAndSet(0, changes.size() + changes.size() + 1)) {
                 LOGGER.info("Starting template upgrade to version {}, {} templates will be updated and {} will be removed",
                     Version.CURRENT,
-                    changes.get().v1().size(),
-                    changes.get().v2().size());
+                    changes.size(),
+                    deletes.size());
 
-                threadPool.generic().execute(() -> upgradeTemplates(changes.get().v1(), changes.get().v2()));
+                threadPool.generic().execute(() -> upgradeTemplates(changes, deletes));
             }
         }
     }
@@ -205,7 +207,9 @@ public class TemplateUpgradeService implements ClusterStateListener {
         }
     }
 
-    Optional<Tuple<Map<String, BytesReference>, Set<String>>> calculateTemplateChanges(
+    record TemplateDelta(Map<String, BytesReference> changes, Set<String> deletes) {}
+
+    Optional<TemplateDelta> calculateTemplateChanges(
         ImmutableOpenMap<String, IndexTemplateMetadata> templates) {
         // collect current templates
         Map<String, IndexTemplateMetadata> existingMap = new HashMap<>();
@@ -228,7 +232,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                     changes.put(key, toBytesReference(value));
                 }
             });
-            return Optional.of(new Tuple<>(changes, deletes));
+            return Optional.of(new TemplateDelta(changes, deletes));
         }
         return Optional.empty();
     }

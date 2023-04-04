@@ -21,15 +21,7 @@
 
 package io.crate.protocols.http;
 
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.common.io.FileSystemUtils;
+import static java.nio.file.Files.readAttributes;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,7 +30,14 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.Map;
 
-import static java.nio.file.Files.readAttributes;
+import org.elasticsearch.common.io.FileSystemUtils;
+
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public final class StaticSite {
 
@@ -46,7 +45,8 @@ public final class StaticSite {
                                              FullHttpRequest request,
                                              ByteBufAllocator alloc) throws IOException {
         if (request.method() != HttpMethod.GET) {
-            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN);
+            return Responses.contentResponse(HttpResponseStatus.FORBIDDEN, alloc,
+                                             "POST method is not allowed for [" + request.uri() + "]");
         }
         String sitePath = request.uri();
         while (sitePath.length() > 0 && sitePath.charAt(0) == '/') {
@@ -69,7 +69,7 @@ public final class StaticSite {
             !file.toAbsolutePath().normalize().startsWith(siteDirectory.toAbsolutePath().normalize())) {
 
             return Responses.contentResponse(
-                HttpResponseStatus.NOT_FOUND, alloc, "Requested file [" + file + "] was not found");
+                HttpResponseStatus.NOT_FOUND, alloc, "Requested file [" + sitePath + "] was not found");
         }
 
         BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);

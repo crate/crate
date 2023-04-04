@@ -38,6 +38,7 @@ import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
+import io.crate.common.collections.Lists2;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.DataTypes;
@@ -90,10 +91,12 @@ public class NodeStatsContext implements Writeable {
             osName = Constants.OS_NAME;
             osArch = Constants.OS_ARCH;
             osVersion = Constants.OS_VERSION;
-            javaVersion = Constants.JAVA_VERSION;
             jvmName = Constants.JVM_NAME;
             jvmVendor = Constants.JVM_VENDOR;
-            jvmVersion = Constants.JVM_VERSION;
+
+            java.lang.Runtime.Version runtimeVersion = Runtime.version();
+            javaVersion = Lists2.joinOn(".", runtimeVersion.version(), num -> Integer.toString(num));
+            jvmVersion = runtimeVersion.toString();
         }
     }
 

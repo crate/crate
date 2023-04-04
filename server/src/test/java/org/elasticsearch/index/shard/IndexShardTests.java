@@ -129,8 +129,8 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.CommitStats;
@@ -1080,8 +1080,7 @@ public class IndexShardTests extends IndexShardTestCase {
             int numDoc = randomIntBetween(100, 200);
             for (int i = 0; i < numDoc; i++) {
                 String doc = Strings.toString(
-                    XContentFactory
-                        .jsonBuilder()
+                    JsonXContent.builder()
                         .startObject()
                         .field("count", randomInt())
                         .field("point", randomFloat())

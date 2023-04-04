@@ -21,9 +21,9 @@
 
 package io.crate.execution.jobs.transport;
 
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.assertThatThrownBy;
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -76,9 +76,8 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             new DiscoveryNode(NODE_ID, buildNewFakeTransportAddress(), Version.CURRENT),
             mock(Transport.Connection.class)
         );
-
-        expectedException.expect(TaskMissing.class);
-        tasksService.getTask(context.jobId());
+        assertThatThrownBy(() -> tasksService.getTask(context.jobId()))
+            .isExactlyInstanceOf(TaskMissing.class);
         monitorService.close();
     }
 
@@ -122,7 +121,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         monitorService.onNodeDisconnected(dataNode, mock(Transport.Connection.class));
 
-        assertThat(broadcasts.get(), is(1));
+        assertThat(broadcasts.get()).isEqualTo(1);
         monitorService.close();
     }
 }

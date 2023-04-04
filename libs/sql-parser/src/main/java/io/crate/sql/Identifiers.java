@@ -85,70 +85,41 @@ public class Identifiers {
         return identifier;
     }
 
-    /**
-     * Similar to {@link Identifiers#quoteIfNeeded}
-     */
-    public static String maybeQuoteExpression(String expression) {
-        int length = expression.length();
-        if (length == 0) {
-            return "\"\"";
-        }
-        if (isKeyWord(expression)) {
-            return '"' + expression + '"';
-        }
-        StringBuilder sb = new StringBuilder();
-        boolean addQuotes = false;
-        int subscriptStartPos = -1;
-        for (int i = 0; i < length; i++) {
-            char c = expression.charAt(i);
-            if (c == '"') {
-                sb.append('"');
-            }
-            sb.append(c);
-            if (subscriptStartPos == -1) {
-                if (c == '[' && i + 1 < length && expression.charAt(i + 1) == '\'') {
-                    subscriptStartPos = i;
-                } else {
-                    addQuotes = addQuotes || charIsOutsideSafeRange(i, c);
-                }
-            }
-        }
-        if (addQuotes) {
-            sb.insert(0, '"');
-            if (subscriptStartPos == -1) {
-                sb.append('"');
-            } else {
-                sb.insert(subscriptStartPos + 1, '"');
-            }
-        }
-        return sb.toString();
-    }
-
-    private static boolean charIsOutsideSafeRange(int i, char c) {
-        if (i == 0) {
-            return c != '_' && (c < 'a' || c > 'z');
-        }
-        return c != '_' && (c < 'a' || c > 'z') && (c < '0' || c > '9');
-    }
-
     private static boolean quotesRequired(String identifier) {
-        return isKeyWord(identifier) ||
-               // schema names like s, S, "s" are resolved to s (lower case), while "S" (quoted, mixed case) is resolved to S (upper case).
-               // Therefore, mixed case schema names should be quoted whenever necessary. (i.e. printed as a string and to be re-parsed)
-               !IDENTIFIER.matcher(identifier).matches() || isMixedCase(identifier);
+        return isKeyWord(identifier) || !quotesNotRequired(identifier);
     }
 
     public static boolean isKeyWord(String identifier) {
         return RESERVED_KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
     }
 
-    private static boolean isMixedCase(String identifier) {
-        for (char c : identifier.toCharArray()) {
-            if (c >= 'A' && c <= 'Z') {
-                return true;
+    /**
+     * Quotes are not required only if:
+     *   1) the first char is a lower case or '_' and
+     *   2) the remaining chars are lower cases, digits, or '_'.
+     */
+    private static boolean quotesNotRequired(String identifier) {
+        assert identifier != null && identifier.length() > 0 : "null or empty idents should not be possible";
+
+        char c = identifier.charAt(0);
+        if (c != '_' && !isLowerCase(c)) {
+            return false;
+        }
+        for (int i = 1; i < identifier.length(); i++) {
+            c = identifier.charAt(i);
+            if (c != '_' && !isLowerCase(c) && !isDigit(c)) {
+                return false;
             }
         }
-        return false;
+        return true;
+    }
+
+    private static boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private static boolean isLowerCase(char c) {
+        return c >= 'a' && c <= 'z';
     }
 
     private static boolean reserved(String expression) {

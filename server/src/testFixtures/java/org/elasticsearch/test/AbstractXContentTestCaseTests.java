@@ -27,16 +27,16 @@ import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 public class AbstractXContentTestCaseTests extends ESTestCase {
 
     public void testInsertRandomFieldsAndShuffle() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         {
             builder.field("field", 1);

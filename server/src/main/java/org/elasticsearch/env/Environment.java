@@ -19,19 +19,8 @@
 
 package org.elasticsearch.env;
 
-import io.crate.common.SuppressForbidden;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -44,12 +33,20 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.types.DataTypes;
+
 /**
  * The environment of where things exists.
  */
 @SuppressForbidden(reason = "configures paths for the system")
-// TODO: move PathUtils to be package-private here instead of
-// public+forbidden api!
 public class Environment {
 
     private static final Path[] EMPTY_PATH_ARRAY = new Path[0];
@@ -202,17 +199,6 @@ public class Environment {
     }
 
     /**
-     * The data location with the cluster name as a sub directory.
-     *
-     * @deprecated Used to upgrade old data paths to new ones that do not include the cluster name, should not be used to write files to and
-     * will be removed in ES 6.0
-     */
-    @Deprecated
-    public Path[] dataWithClusterFiles() {
-        return dataWithClusterFiles;
-    }
-
-    /**
      * The shared filesystem repo locations.
      */
     public Path[] repoFiles() {
@@ -314,16 +300,6 @@ public class Environment {
         return tmpFile;
     }
 
-    /** Ensure the configured temp directory is a valid directory */
-    public void validateTmpFile() throws IOException {
-        if (Files.exists(tmpFile) == false) {
-            throw new FileNotFoundException("Temporary file directory [" + tmpFile + "] does not exist or is not accessible");
-        }
-        if (Files.isDirectory(tmpFile) == false) {
-            throw new IOException("Configured temporary file directory [" + tmpFile + "] is not a directory");
-        }
-    }
-
     public static FileStore getFileStore(final Path path) throws IOException {
         return new ESFileStore(Files.getFileStore(path));
     }
@@ -333,7 +309,6 @@ public class Environment {
      * object which may contain different setting)
      */
     public static void assertEquivalent(Environment actual, Environment expected) {
-        assertEquals(actual.dataWithClusterFiles(), expected.dataWithClusterFiles(), "dataWithClusterFiles");
         assertEquals(actual.repoFiles(), expected.repoFiles(), "repoFiles");
         assertEquals(actual.configFile(), expected.configFile(), "configFile");
         assertEquals(actual.pluginsFile(), expected.pluginsFile(), "pluginsFile");

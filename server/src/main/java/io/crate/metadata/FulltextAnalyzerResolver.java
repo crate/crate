@@ -21,17 +21,11 @@
 
 package io.crate.metadata;
 
-import io.crate.exceptions.AnalyzerInvalidException;
-import io.crate.exceptions.AnalyzerUnknownException;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -42,11 +36,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+
+import io.crate.exceptions.AnalyzerInvalidException;
+import io.crate.exceptions.AnalyzerUnknownException;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
@@ -224,7 +225,7 @@ public class FulltextAnalyzerResolver {
 
     public static BytesReference encodeSettings(Settings settings) {
         try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
+            XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
             settings.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
             builder.endObject();

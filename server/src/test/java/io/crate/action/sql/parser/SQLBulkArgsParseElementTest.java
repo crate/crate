@@ -28,7 +28,6 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESTestCase;
@@ -39,7 +38,7 @@ public class SQLBulkArgsParseElementTest extends ESTestCase {
     private List<List<Object>> parse(String bulkArgs) throws Exception {
         SQLRequestParseContext context = new SQLRequestParseContext();
         String json = "{\"bulk_args\":" + bulkArgs + "}";
-        XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
+        XContentParser parser = XContentType.JSON.xContent().createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json);
         parser.nextToken();
         parser.nextToken();

@@ -29,9 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.analyze.QueriedSelectRelation;
@@ -64,7 +64,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             table.generatedColumns()
         );
 
-        BytesReference bytes = BytesReference.bytes(XContentFactory.jsonBuilder()
+        BytesReference bytes = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startObject("obj")
                 .startArray("arr")

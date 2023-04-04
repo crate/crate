@@ -21,9 +21,8 @@
 
 package io.crate.common.collections;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,9 +34,9 @@ public class MapComparatorTest extends ESTestCase {
 
     @Test
     public void testCompareNullMaps() {
-        expectedException.expect(NullPointerException.class);
-        expectedException.expectMessage("map is null");
-        MapComparator.compareMaps(null, null);
+        assertThatThrownBy(() -> MapComparator.compareMaps(null, null))
+            .isExactlyInstanceOf(NullPointerException.class)
+            .hasMessage("map is null");
     }
 
     @Test
@@ -52,11 +51,11 @@ public class MapComparatorTest extends ESTestCase {
                 put("str2", 2);
                 put("str3", 3);
             }};
-        assertThat(MapComparator.compareMaps(map1, map2), is(1));
-        assertThat(MapComparator.compareMaps(map2, map1), is(-1));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
 
         map2.put("str2", null);
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
     }
 
     @Test
@@ -71,12 +70,12 @@ public class MapComparatorTest extends ESTestCase {
                 put("str2", 2);
                 put("str3", 3);
             }};
-        assertThat(MapComparator.compareMaps(map1, map2), is(0));
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
         map1.put("str2", 5);
-        assertThat(MapComparator.compareMaps(map1, map2), is(1));
-        assertThat(MapComparator.compareMaps(map2, map1), is(-1));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
     }
 
     public void testCompareMapsWithValuesOfDifferentClass() {
@@ -90,12 +89,12 @@ public class MapComparatorTest extends ESTestCase {
                 put("str2", 2L);
                 put("str3", 3);
             }};
-        assertThat(MapComparator.compareMaps(map1, map2), is(0));
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
         map1.put("str2", 5.0);
-        assertThat(MapComparator.compareMaps(map1, map2), is(1));
-        assertThat(MapComparator.compareMaps(map2, map1), is(-1));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(1);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(-1);
     }
 
     public void testCompareMapsWithValuesOfDifferentClassNested() {
@@ -107,16 +106,16 @@ public class MapComparatorTest extends ESTestCase {
                 put("str1", 1);
                 put("str2", Map.of("str3", Short.valueOf("1234")));
             }};
-        assertThat(MapComparator.compareMaps(map1, map2), is(0));
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
         map1.put("str2", Map.of("str3", Long.valueOf("1234")));
-        assertThat(MapComparator.compareMaps(map1, map2), is(0));
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
 
         map1.put("str2", Map.of("str3", 123.45));
-        assertThat(MapComparator.compareMaps(map1, map2), is(-1));
-        assertThat(MapComparator.compareMaps(map2, map1), greaterThan(1));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(-1);
+        assertThat(MapComparator.compareMaps(map2, map1)).isGreaterThan(1);
     }
 
     public void testCompareMapsWithStringAndBytesRef() {
@@ -132,7 +131,7 @@ public class MapComparatorTest extends ESTestCase {
                 put("str1", "a");
                 put("str3", 3);
             }};
-        assertThat(MapComparator.compareMaps(map1, map2), is(0));
-        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
+        assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
     }
 }

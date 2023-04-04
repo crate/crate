@@ -19,6 +19,13 @@
 
 package org.elasticsearch.common.compress;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.zip.CRC32;
+import java.util.zip.CheckedOutputStream;
+
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
@@ -29,13 +36,6 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.zip.CRC32;
-import java.util.zip.CheckedOutputStream;
 
 /**
  * Similar class to the {@link String} class except that it internally stores
@@ -74,7 +74,7 @@ public final class CompressedXContent {
         OutputStream compressedStream = CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream);
         CRC32 crc32 = new CRC32();
         try (OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
-            try (XContentBuilder builder = XContentFactory.contentBuilder(type, checkedStream)) {
+            try (XContentBuilder builder = XContentFactory.builder(type, checkedStream)) {
                 builder.startObject();
                 xcontent.toXContent(builder, params);
                 builder.endObject();

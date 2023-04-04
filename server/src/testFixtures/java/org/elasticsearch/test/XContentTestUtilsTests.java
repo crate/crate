@@ -38,7 +38,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -47,7 +46,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 public class XContentTestUtilsTests extends ESTestCase {
 
     public void testGetInsertPaths() throws IOException {
-        XContentBuilder builder = JsonXContent.contentBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         {
             builder.field("field1", "value");
@@ -90,7 +89,7 @@ public class XContentTestUtilsTests extends ESTestCase {
 
     @SuppressWarnings("unchecked")
     public void testInsertIntoXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.contentBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         builder.endObject();
         builder = XContentTestUtils.insertIntoXContent(XContentType.JSON.xContent(), BytesReference.bytes(builder),
@@ -118,7 +117,7 @@ public class XContentTestUtilsTests extends ESTestCase {
 
     @SuppressWarnings("unchecked")
     public void testInsertRandomXContent() throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         {
             builder.startObject("foo");

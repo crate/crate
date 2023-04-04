@@ -21,6 +21,8 @@
 
 package io.crate.user;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -29,41 +31,43 @@ import io.crate.metadata.Schemas;
 
 public class PrivilegesTest extends ESTestCase {
 
-    private static User user = User.of("ford");
+    private static final User USER = User.of("ford");
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
-        expectedException.expect(MissingPrivilegeException.class);
-        expectedException.expectMessage("Missing 'DQL' privilege for user 'ford'");
-        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, user, Schemas.DOC_SCHEMA_NAME);
+        assertThatThrownBy(() ->
+            Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, USER, Schemas.DOC_SCHEMA_NAME))
+            .isExactlyInstanceOf(MissingPrivilegeException.class)
+            .hasMessage("Missing 'DQL' privilege for user 'ford'");
     }
 
     @Test
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema", user, Schemas.DOC_SCHEMA_NAME);
+        Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema",
+                                          USER, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
     public void testExceptionIsThrownIfUserHasNotAnyPrivilege() throws Exception {
-        expectedException.expect(MissingPrivilegeException.class);
-        expectedException.expectMessage("Missing privilege for user 'ford'");
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, user);
+        assertThatThrownBy(() -> Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, USER))
+            .isExactlyInstanceOf(MissingPrivilegeException.class)
+            .hasMessage("Missing privilege for user 'ford'");
     }
 
     @Test
     public void testUserWithNoPrivilegeCanAccessInformationSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "information_schema", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.views", user);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "information_schema", USER);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table", USER);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.views", USER);
     }
 
     @Test
     public void testUserWithNoPrivilegesCanAccessPgCatalogSchema() throws Exception {
         //ensureUserHasPrivilege will not throw an exception if the schema is `pg_catalog`
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "pg_catalog", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_am", user);
-        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_database", user);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "pg_catalog", USER);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_am", USER);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "pg_catalog.pg_database", USER);
     }
 }

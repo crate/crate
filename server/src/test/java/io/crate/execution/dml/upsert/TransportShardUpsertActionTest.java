@@ -21,10 +21,9 @@
 
 package io.crate.execution.dml.upsert;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -35,7 +34,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -98,8 +96,7 @@ import io.crate.types.DataTypes;
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
-    private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT,
-                                                                    Arrays.asList("1395874800000")).asIndexName();
+    private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, List.of("1395874800000")).asIndexName();
     private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, 0, null);
 
@@ -206,7 +203,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(VersionConflictEngineException.class));
+        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
     }
 
     @Test
@@ -229,30 +226,30 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.finalResponseIfSuccessful;
-        assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(),
-            is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
+        assertThat(response.failures()).satisfiesExactly(
+            f -> assertThat(f.message()).isEqualTo(
+                "[1]: version conflict, document with id: 1 already exists in 'characters'"));
     }
 
     @Test
     public void testValidateMapping() throws Exception {
         // Create valid nested mapping with underscore.
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
-        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(settings, new ContentPath());
-        ObjectMapper.Builder outerBuilder = new ObjectMapper.Builder("valid");
-        ObjectMapper.Builder innerBuilder = new ObjectMapper.Builder("_invalid");
+        var builderContext = new Mapper.BuilderContext(settings, new ContentPath());
+        var outerBuilder = new ObjectMapper.Builder<>("valid");
+        var innerBuilder = new ObjectMapper.Builder<>("_invalid");
         outerBuilder.position(1);
         innerBuilder.position(2);
         Mapper outerMapper = outerBuilder.build(builderContext);
-        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
+        TransportShardUpsertAction.validateMapping(Collections.singletonList(outerMapper).iterator(), false);
 
         // Create invalid mapping
-        expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("system column pattern");
-        outerBuilder = new ObjectMapper.Builder("_invalid");
+        outerBuilder = new ObjectMapper.Builder<>("_invalid");
         outerBuilder.position(1);
-        outerMapper = outerBuilder.build(builderContext);
-        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
+        Mapper mapper = outerBuilder.build(builderContext);
+        assertThatThrownBy(() -> transportShardUpsertAction.validateMapping(Collections.singletonList(mapper).iterator(), false))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage("\"_invalid\" conflicts with system column pattern");
     }
 
     @Test
@@ -274,7 +271,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test

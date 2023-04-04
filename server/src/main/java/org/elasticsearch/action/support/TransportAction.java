@@ -50,17 +50,5 @@ public abstract class TransportAction<Request extends TransportRequest, Response
         return listener;
     }
 
-    /**
-     * @deprecated use {@link #execute(Request)} instead
-     **/
-    @Deprecated
-    public final void execute(Request request, ActionListener<Response> listener) {
-        try {
-            doExecute(request, listener);
-        } catch (Exception e) {
-            listener.onFailure(e);
-        }
-    }
-
     protected abstract void doExecute(Request request, ActionListener<Response> listener);
 }

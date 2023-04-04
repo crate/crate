@@ -21,15 +21,16 @@
 
 package io.crate.rest.action;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.common.xcontent.XContentBuilder;
+
 import io.crate.action.sql.ResultReceiver;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
 
@@ -74,7 +75,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     }
 
     @Override
-    public void allFinished(boolean interrupted) {
+    public void allFinished() {
         try {
             result.complete(finishBuilder());
         } catch (IOException e) {

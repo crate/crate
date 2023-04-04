@@ -21,19 +21,19 @@
 
 package io.crate.protocols.postgres;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.PreparedStmt;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.AnalyzedStatement;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 public final class Portal {
 
     private String portalName;
     private final PreparedStmt preparedStmt;
     private final List<Object> params;
-    private final AnalyzedStatement analyzedStatement;
 
     @Nullable
     private final FormatCodes.FormatCode[] resultFormatCodes;
@@ -43,12 +43,10 @@ public final class Portal {
     public Portal(String portalName,
                   PreparedStmt preparedStmt,
                   List<Object> params,
-                  AnalyzedStatement analyzedStatement,
                   @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         this.portalName = portalName;
         this.preparedStmt = preparedStmt;
         this.params = params;
-        this.analyzedStatement = analyzedStatement;
         this.resultFormatCodes = resultFormatCodes;
     }
 
@@ -70,7 +68,7 @@ public final class Portal {
     }
 
     public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
+        return preparedStmt.analyzedStatement();
     }
 
     public void setActiveConsumer(RowConsumerToResultReceiver consumer) {

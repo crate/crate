@@ -21,24 +21,18 @@
 
 package io.crate.testing;
 
+import java.util.List;
+
+import io.crate.planner.optimizer.Rule;
+
 /**
  * Encapsulates the parameters that configure test executions.
  */
-public class TestExecutionConfig {
-
-    private final boolean isJdbcEnabled;
-    private final boolean isHashJoinEnabled;
-
-    public TestExecutionConfig(boolean isJdbcEnabled, boolean isHashJoinEnabled) {
-        this.isJdbcEnabled = isJdbcEnabled;
-        this.isHashJoinEnabled = isHashJoinEnabled;
-    }
-
-    public boolean isJdbcEnabled() {
-        return isJdbcEnabled;
-    }
-
-    public boolean isHashJoinEnabled() {
-        return isHashJoinEnabled;
-    }
+public record TestExecutionConfig(boolean isJdbcEnabled,
+                                  boolean isHashJoinEnabled,
+                                  boolean isRuleRandomizationEnabled,
+                                  double amountOfRulesToDisable,
+                                  List<Class<? extends Rule<?>>> rulesToKeep) {
 }
+
+

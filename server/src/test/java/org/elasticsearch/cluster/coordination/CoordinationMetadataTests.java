@@ -109,7 +109,7 @@ public class CoordinationMetadataTests extends ESTestCase {
     public void testVotingTombstoneXContent() throws IOException {
         VotingConfigExclusion originalTombstone = new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10));
 
-        final XContentBuilder builder = JsonXContent.contentBuilder();
+        final XContentBuilder builder = JsonXContent.builder();
         originalTombstone.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
@@ -186,7 +186,7 @@ public class CoordinationMetadataTests extends ESTestCase {
         CoordinationMetadata originalMeta = new CoordinationMetadata(randomNonNegativeLong(), randomVotingConfig(), randomVotingConfig(),
                 randomVotingTombstones());
 
-        final XContentBuilder builder = JsonXContent.contentBuilder();
+        final XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
         originalMeta.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();

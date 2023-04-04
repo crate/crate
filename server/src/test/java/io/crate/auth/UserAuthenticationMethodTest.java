@@ -21,8 +21,8 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -39,7 +39,7 @@ import io.crate.user.UserLookup;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
-    class CrateOrNullUserLookup implements UserLookup {
+    private static class CrateOrNullUserLookup implements UserLookup {
 
         @Override
         public Iterable<User> users() {
@@ -56,12 +56,11 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     @Test
     public void testTrustAuthentication() throws Exception {
         TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullUserLookup());
-        assertThat(trustAuth.name(), is("trust"));
+        assertThat(trustAuth.name()).isEqualTo("trust");
+        assertThat(trustAuth.authenticate("crate", null, null).name()).isEqualTo("crate");
 
-        assertThat(trustAuth.authenticate("crate", null, null).name(), is("crate"));
-
-        expectedException.expectMessage("trust authentication failed for user \"cr8\"");
-        trustAuth.authenticate("cr8", null, null);
+        assertThatThrownBy(() -> trustAuth.authenticate("cr8", null, null))
+            .hasMessage("trust authentication failed for user \"cr8\"");
     }
 
     @Test
@@ -69,33 +68,34 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(new CrateOrNullUserLookup());
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
-        assertThat(alwaysOkAuthMethod.name(), is("trust"));
-        assertThat(alwaysOkAuthMethod.authenticate("crate", null, null).name(), is("crate"));
+        assertThat(alwaysOkAuthMethod.name()).isEqualTo("trust");
+        assertThat(alwaysOkAuthMethod.authenticate("crate", null, null).name()).isEqualTo("crate");
 
-        expectedException.expectMessage("authentication failed for user \"cr8\"");
-        alwaysOkAuthMethod.authenticate("cr8", null, null);
+        assertThatThrownBy(() -> alwaysOkAuthMethod.authenticate("cr8", null, null))
+            .hasMessage("trust authentication failed for user \"cr8\"");
     }
 
     public void testPasswordAuthentication() throws Exception {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
-        assertThat(pwAuth.name(), is("password"));
+        assertThat(pwAuth.name()).isEqualTo("password");
 
-        assertThat(pwAuth.authenticate("crate", new SecureString("pw".toCharArray()), null).name(), is("crate"));
+        assertThat(pwAuth.authenticate("crate", new SecureString("pw".toCharArray()), null).name()).isEqualTo("crate");
     }
 
     @Test
     public void testPasswordAuthenticationWrongPassword() throws Exception {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
-        assertThat(pwAuth.name(), is("password"));
+        assertThat(pwAuth.name()).isEqualTo("password");
 
-        expectedException.expectMessage("password authentication failed for user \"crate\"");
-        pwAuth.authenticate("crate", new SecureString("wrong".toCharArray()), null);
+        assertThatThrownBy(() -> pwAuth.authenticate("crate", new SecureString("wrong".toCharArray()), null))
+            .hasMessage("password authentication failed for user \"crate\"");
+
     }
 
     @Test
     public void testPasswordAuthenticationForNonExistingUser() throws Exception {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
-        expectedException.expectMessage("password authentication failed for user \"cr8\"");
-        pwAuth.authenticate("cr8", new SecureString("pw".toCharArray()), null);
+        assertThatThrownBy(() -> pwAuth.authenticate("cr8", new SecureString("pw".toCharArray()), null))
+            .hasMessage("password authentication failed for user \"cr8\"");
     }
 }

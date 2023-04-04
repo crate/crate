@@ -34,7 +34,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
 import org.hamcrest.Matchers;
@@ -99,7 +99,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
         // @formatter:off
-        XContentBuilder builder = XContentFactory.jsonBuilder()
+        XContentBuilder builder = JsonXContent.builder()
             .startObject()
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
                 .startArray("dynamic_templates")

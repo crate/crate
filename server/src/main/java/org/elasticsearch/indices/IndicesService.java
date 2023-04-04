@@ -80,7 +80,6 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -489,7 +488,7 @@ public class IndicesService extends AbstractLifecycleComponent
                 var request = new PutMappingRequest()
                     .indices(new String[0])
                     .setConcreteIndex(shardRouting.index()) // concrete index - no name clash, it uses uuid
-                    .source(mapping.source().string(), XContentType.JSON);
+                    .source(mapping.source().string());
                 FutureUtils.get(client.admin().indices().putMapping(request));
             }, this);
         return indexShard;

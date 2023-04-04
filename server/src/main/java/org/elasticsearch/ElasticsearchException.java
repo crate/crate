@@ -20,11 +20,9 @@
 package org.elasticsearch;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
 import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureFieldName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -48,7 +44,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParseException;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
@@ -520,121 +515,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         } else {
             innerToXContent(builder, params, t, getExceptionName(t), t.getMessage(), emptyMap(), emptyMap(), t.getCause());
         }
-    }
-
-    /**
-     * Render any exception as a xcontent, encapsulated within a field or object named "error". The level of details that are rendered
-     * depends on the value of the "detailed" parameter: when it's false only a simple message based on the type and message of the
-     * exception is rendered. When it's true all detail are provided including guesses root causes, cause and potentially stack
-     * trace.
-     *
-     * This method is usually used when the {@link Exception} is rendered as a full XContent object, and its output can be parsed
-     * by the {@link #failureFromXContent(XContentParser)} method.
-     */
-    public static void generateFailureXContent(XContentBuilder builder, Params params, @Nullable Exception e, boolean detailed)
-            throws IOException {
-        // No exception to render as an error
-        if (e == null) {
-            builder.field(ERROR, "unknown");
-            return;
-        }
-
-        // Render the exception with a simple message
-        if (detailed == false) {
-            String message = "No ElasticsearchException found";
-            Throwable t = e;
-            for (int counter = 0; counter < 10 && t != null; counter++) {
-                if (t instanceof ElasticsearchException) {
-                    message = t.getClass().getSimpleName() + "[" + t.getMessage() + "]";
-                    break;
-                }
-                t = t.getCause();
-            }
-            builder.field(ERROR, message);
-            return;
-        }
-
-        // Render the exception with all details
-        final ElasticsearchException[] rootCauses = ElasticsearchException.guessRootCauses(e);
-        builder.startObject(ERROR);
-        {
-            builder.startArray(ROOT_CAUSE);
-            for (ElasticsearchException rootCause : rootCauses) {
-                builder.startObject();
-                rootCause.toXContent(builder, new DelegatingMapParams(singletonMap(REST_EXCEPTION_SKIP_CAUSE, "true"), params));
-                builder.endObject();
-            }
-            builder.endArray();
-        }
-        generateThrowableXContent(builder, params, e);
-        builder.endObject();
-    }
-
-    /**
-     * Parses the output of {@link #generateFailureXContent(XContentBuilder, Params, Exception, boolean)}
-     */
-    public static ElasticsearchException failureFromXContent(XContentParser parser) throws IOException {
-        XContentParser.Token token = parser.currentToken();
-        ensureFieldName(parser, token, ERROR);
-
-        token = parser.nextToken();
-        if (token.isValue()) {
-            return new ElasticsearchException(buildMessage("exception", parser.text(), null));
-        }
-
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser);
-        token = parser.nextToken();
-
-        // Root causes are parsed in the innerFromXContent() and are added as suppressed exceptions.
-        return innerFromXContent(parser, true);
-    }
-
-    /**
-     * Returns the root cause of this exception or multiple if different shards caused different exceptions
-     */
-    public ElasticsearchException[] guessRootCauses() {
-        final Throwable cause = getCause();
-        if (cause instanceof ElasticsearchException) {
-            return ((ElasticsearchException) cause).guessRootCauses();
-        }
-        return new ElasticsearchException[]{this};
-    }
-
-    /**
-     * Returns the root cause of this exception or multiple if different shards caused different exceptions.
-     * If the given exception is not an instance of {@link org.elasticsearch.ElasticsearchException} an empty array
-     * is returned.
-     */
-    public static ElasticsearchException[] guessRootCauses(Throwable t) {
-        Throwable ex = SQLExceptions.unwrap(t);
-        if (ex instanceof ElasticsearchException) {
-            // ElasticsearchException knows how to guess its own root cause
-            return ((ElasticsearchException) ex).guessRootCauses();
-        }
-        if (ex instanceof XContentParseException) {
-            /*
-             * We'd like to unwrap parsing exceptions to the inner-most
-             * parsing exception because that is generally the most interesting
-             * exception to return to the user. If that exception is caused by
-             * an ElasticsearchException we'd like to keep unwrapping because
-             * ElasticserachExceptions tend to contain useful information for
-             * the user.
-             */
-            Throwable cause = ex.getCause();
-            if (cause != null) {
-                if (cause instanceof XContentParseException || cause instanceof ElasticsearchException) {
-                    return guessRootCauses(ex.getCause());
-                }
-            }
-        }
-        return new ElasticsearchException[] {
-            new ElasticsearchException(t.getMessage(), t) {
-                @Override
-                protected String getExceptionName() {
-                    return getExceptionName(getCause());
-                }
-            }
-        };
     }
 
     protected String getExceptionName() {

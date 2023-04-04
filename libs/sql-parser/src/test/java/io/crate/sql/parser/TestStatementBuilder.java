@@ -588,55 +588,6 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseStmtBuilder() {
-        printStatement("set license 'LICENSE_KEY'");
-    }
-
-    @Test
-    public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
-        assertThatThrownBy(
-            () -> printStatement("set license LICENSE_KEY"))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:13: no viable alternative at input 'set license LICENSE_KEY'");
-    }
-
-    @Test
-    public void testSetLicenseWithoutParamThrowsParsingException() {
-        assertThatThrownBy(
-            () -> printStatement("set license"))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:12: no viable alternative at input 'set license'");
-    }
-
-    @Test
-    public void testSetLicenseLikeAnExpressionThrowsParsingException() {
-        assertThatThrownBy(
-            () -> printStatement("set license key='LICENSE_KEY'"))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:13: no viable alternative at input 'set license key'");
-    }
-
-    @Test
-    public void testSetLicenseMultipleInputThrowsParsingException() {
-        assertThatThrownBy(
-            () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
-    }
-
-    @Test
-    public void testSetLicense() {
-        SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("set license 'LICENSE_KEY'");
-        assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.LICENSE);
-        assertThat(stmt.settingType()).isEqualTo(SetStatement.SettingType.PERSISTENT);
-        assertThat(stmt.assignments()).hasSize(1);
-
-        Assignment<?> assignment = stmt.assignments().get(0);
-        assertThat(assignment.expressions()).hasSize(1);
-        assertThat(assignment.expressions().get(0)).hasToString("'LICENSE_KEY'");
-    }
-
-    @Test
     public void test_set_timezone_value() {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE 'Europe/Vienna'");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);

@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.JobKilledException;
@@ -35,15 +35,14 @@ import io.crate.exceptions.JobKilledException;
 public class FailureOnlyResponseListenerTest extends ESTestCase {
 
     @Test
-    public void testFailureOnResponseIsPropagatedToInitializationTracker() throws Exception {
+    public void testFailureOnResponseIsPropagatedToInitializationTracker() {
         InitializationTracker tracker = new InitializationTracker(1);
         FailureOnlyResponseListener listener = new FailureOnlyResponseListener(Collections.emptyList(), tracker);
-
         listener.onFailure(JobKilledException.of("because reasons"));
 
-        assertThat(tracker.future.isCompletedExceptionally(), Matchers.is(true));
+        assertThat(tracker.future.isCompletedExceptionally()).isTrue();
 
-        expectedException.expectMessage("Job killed. because reasons");
-        tracker.future.get(1, TimeUnit.SECONDS);
+        assertThatThrownBy(() -> tracker.future.get(1, TimeUnit.SECONDS))
+            .hasMessageEndingWith("Job killed. because reasons");
     }
 }

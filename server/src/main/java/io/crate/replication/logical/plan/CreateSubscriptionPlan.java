@@ -21,6 +21,11 @@
 
 package io.crate.replication.logical.plan;
 
+import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
+
+import java.util.Locale;
+import java.util.function.Function;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -36,11 +41,6 @@ import io.crate.replication.logical.action.CreateSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
-import java.util.function.Function;
-
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 public class CreateSubscriptionPlan implements Plan {
 
@@ -93,11 +93,8 @@ public class CreateSubscriptionPlan implements Plan {
             settings
         );
 
-        dependencies.createSubscriptionAction()
-            .execute(
-                request,
-                new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L))
-            );
+        dependencies.createSubscriptionAction().execute(request)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 
     private static String validateAndConvertToString(Object uri) {

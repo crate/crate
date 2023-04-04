@@ -112,7 +112,6 @@ public class MetadataCreateIndexService {
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
-    private final AliasValidator aliasValidator;
     private final Environment env;
     private final IndexScopedSettings indexScopedSettings;
     private final ActiveShardsObserver activeShardsObserver;
@@ -126,7 +125,6 @@ public class MetadataCreateIndexService {
             final ClusterService clusterService,
             final IndicesService indicesService,
             final AllocationService allocationService,
-            final AliasValidator aliasValidator,
             final ShardLimitValidator shardLimitValidator,
             final Environment env,
             final IndexScopedSettings indexScopedSettings,
@@ -137,7 +135,6 @@ public class MetadataCreateIndexService {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.allocationService = allocationService;
-        this.aliasValidator = aliasValidator;
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
@@ -243,7 +240,6 @@ public class MetadataCreateIndexService {
                     request,
                     listener,
                     indicesService,
-                    aliasValidator,
                     xContentRegistry,
                     settings,
                     this::validate,
@@ -258,7 +254,6 @@ public class MetadataCreateIndexService {
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
 
         private final IndicesService indicesService;
-        private final AliasValidator aliasValidator;
         private final NamedXContentRegistry xContentRegistry;
         private final CreateIndexClusterStateUpdateRequest request;
         private final Logger logger;
@@ -273,7 +268,6 @@ public class MetadataCreateIndexService {
                           CreateIndexClusterStateUpdateRequest request,
                           ActionListener<ClusterStateUpdateResponse> listener,
                           IndicesService indicesService,
-                          AliasValidator aliasValidator,
                           NamedXContentRegistry xContentRegistry,
                           Settings settings,
                           IndexValidator validator,
@@ -284,7 +278,6 @@ public class MetadataCreateIndexService {
             this.logger = logger;
             this.allocationService = allocationService;
             this.indicesService = indicesService;
-            this.aliasValidator = aliasValidator;
             this.xContentRegistry = xContentRegistry;
             this.settings = settings;
             this.validator = validator;
@@ -306,7 +299,7 @@ public class MetadataCreateIndexService {
                 validator.validate(request, currentState);
 
                 for (Alias alias : request.aliases()) {
-                    aliasValidator.validateAlias(alias, request.index(), currentState.metadata());
+                    AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
                 }
 
                 // we only find a template when its an API call (a new index)
@@ -352,10 +345,10 @@ public class MetadataCreateIndexService {
                             //Allow templatesAliases to be templated by replacing a token with the name of the index that we are applying it to
                             if (aliasMetadata.alias().contains("{index}")) {
                                 String templatedAlias = aliasMetadata.alias().replace("{index}", request.index());
-                                aliasMetadata = AliasMetadata.newAliasMetadata(aliasMetadata, templatedAlias);
+                                aliasMetadata = new AliasMetadata(templatedAlias);
                             }
 
-                            aliasValidator.validateAliasMetadata(aliasMetadata, request.index(), currentState.metadata());
+                            AliasValidator.validateAliasMetadata(aliasMetadata, request.index(), currentState.metadata());
                             templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
                         }
                     }
@@ -476,8 +469,7 @@ public class MetadataCreateIndexService {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
                 for (Alias alias : request.aliases()) {
-                    AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
-                        .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).writeIndex(alias.writeIndex()).build();
+                    AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 

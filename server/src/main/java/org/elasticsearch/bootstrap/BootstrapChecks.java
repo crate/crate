@@ -19,12 +19,24 @@
 
 package org.elasticsearch.bootstrap;
 
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.io.PathUtils;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.lang.Runtime.Version;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -35,16 +47,7 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.NodeValidationException;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Predicate;
+import io.crate.common.SuppressForbidden;
 
 /**
  * We enforce bootstrap checks once a node has the transport protocol bound to a non-loopback interface or if the system property {@code
@@ -586,25 +589,17 @@ final class BootstrapChecks {
 
         @Override
         public BootstrapCheckResult check(Settings settings) {
-            final String javaVersion = javaVersion();
-            if ("Oracle Corporation".equals(jvmVendor()) && javaVersion.endsWith("-ea")) {
+            Version version = Runtime.version();
+            Optional<String> pre = version.pre();
+            if (pre.isPresent()) {
                 final String message = String.format(
                         Locale.ROOT,
                         "Java version [%s] is an early-access build, only use release builds",
-                        javaVersion);
+                        version);
                 return BootstrapCheckResult.failure(message);
             } else {
                 return BootstrapCheckResult.success();
             }
         }
-
-        String jvmVendor() {
-            return Constants.JVM_VENDOR;
-        }
-
-        String javaVersion() {
-            return Constants.JAVA_VERSION;
-        }
-
     }
 }

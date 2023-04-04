@@ -58,6 +58,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.discovery.Discovery;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -419,7 +420,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 builder.endObject();
 
                 builder.startObject("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(templateMetadata.mapping().uncompressed(), false).map();
+                Map<String, Object> mapping = XContentHelper.convertToMap(templateMetadata.mapping().uncompressed(), false, XContentType.JSON).map();
                 if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
                     // the type name is the root value, reduce it
                     mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -448,7 +449,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 MappingMetadata mmd = indexMetadata.mapping();
                 if (mmd != null) {
                     Map<String, Object> mapping = XContentHelper
-                            .convertToMap(mmd.source().uncompressed(), false).map();
+                            .convertToMap(mmd.source().uncompressed(), false, XContentType.JSON).map();
                     if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
                         // the type name is the root value, reduce it
                         mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);

@@ -82,7 +82,7 @@ public class RepositoryDataTests extends ESTestCase {
 
     public void testXContent() throws IOException {
         RepositoryData repositoryData = generateRandomRepoData();
-        XContentBuilder builder = JsonXContent.contentBuilder();
+        XContentBuilder builder = JsonXContent.builder();
         repositoryData.snapshotsToXContent(builder, Version.CURRENT);
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             long gen = (long) randomIntBetween(0, 500);

@@ -46,7 +46,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.VersionType;
@@ -570,7 +569,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
             } else {
                 source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues(), item.pkValues());
-                rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source, SOURCE_WRITERS));
+                rawSource = BytesReference.bytes(JsonXContent.builder().map(source, SOURCE_WRITERS));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
