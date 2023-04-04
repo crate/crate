@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -47,6 +48,13 @@ public class RepositoryIntegrationTest extends IntegTestCase {
         return Settings.builder().put(super.nodeSettings(nodeOrdinal))
             .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
             .build();
+    }
+
+    @Test
+    public void test_create_repo_in_invalid_path() throws Exception {
+        String stmt = "CREATE REPOSITORY repo1 TYPE \"fs\" WITH (location = '/invalid/location')";
+        assertThatThrownBy(() -> execute(stmt)).hasMessageContaining(
+            "[repo1] location [/invalid/location] doesn't match any of the locations specified by path.repo");
     }
 
     @Test
