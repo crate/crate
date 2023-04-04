@@ -79,7 +79,6 @@ import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedRerouteRetryFailed;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
-import io.crate.analyze.AnalyzedSetLicenseStatement;
 import io.crate.analyze.AnalyzedSetSessionAuthorizationStatement;
 import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedSetTransaction;
@@ -134,7 +133,6 @@ import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
-import io.crate.planner.statement.SetLicensePlan;
 import io.crate.planner.statement.SetSessionAuthorizationPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
@@ -445,9 +443,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     LOGGER.warn("SET TIME ZONE `{}` statement will be ignored. ", settings);
                 }
                 return NoopPlan.INSTANCE;
-            case LICENSE:
-                throw new AssertionError(
-                    "`AnalyzedSetStatement` with scope `LICENSE` should have been converted to `AnalyzedSetLicenseStatement` by the analyzer");
             case LOCAL:
                 LOGGER.info(
                     "SET LOCAL `{}` statement will be ignored. " +
@@ -478,11 +473,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitSetTransaction(AnalyzedSetTransaction setTransaction, PlannerContext context) {
         LOGGER.info("'SET TRANSACTION' statement is ignored. CrateDB doesn't support transactions");
         return NoopPlan.INSTANCE;
-    }
-
-    @Override
-    public Plan visitSetLicenseStatement(AnalyzedSetLicenseStatement setLicenseAnalyzedStatement, PlannerContext context) {
-        return new SetLicensePlan();
     }
 
     @Override
