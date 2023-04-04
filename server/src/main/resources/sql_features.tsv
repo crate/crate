@@ -257,13 +257,13 @@ F402	Named column joins for LOBs, arrays, and multisets			NO
 F403	Partitioned joined tables			NO		
 F411	Time zone specification			NO		
 F421	National character			NO		
-F431	Read-only scrollable cursors			NO		
-F431	Read-only scrollable cursors	1	FETCH with explicit NEXT	NO		
-F431	Read-only scrollable cursors	2	FETCH FIRST	NO		
-F431	Read-only scrollable cursors	3	FETCH LAST	NO		
-F431	Read-only scrollable cursors	4	FETCH PRIOR	NO		
-F431	Read-only scrollable cursors	5	FETCH ABSOLUTE	NO		
-F431	Read-only scrollable cursors	6	FETCH RELATIVE	NO		
+F431	Read-only scrollable cursors			YES		
+F431	Read-only scrollable cursors	1	FETCH with explicit NEXT	YES		
+F431	Read-only scrollable cursors	2	FETCH FIRST	YES		
+F431	Read-only scrollable cursors	3	FETCH LAST	YES		
+F431	Read-only scrollable cursors	4	FETCH PRIOR	YES		
+F431	Read-only scrollable cursors	5	FETCH ABSOLUTE	YES		
+F431	Read-only scrollable cursors	6	FETCH RELATIVE	YES		
 F441	Extended set function support			NO		
 F442	Mixed column references in set functions			NO		
 F451	Character set definition			NO		
