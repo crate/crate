@@ -64,4 +64,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that allowed creating columns with names conflicting with
+  subscript pattern, such as ``"a[1]"``, a subscript expression enclosed in
+  double quotes.
