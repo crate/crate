@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -100,11 +101,10 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
     @UseJdbc(0)
     @Test
     public void testCreateTableAsColumnNamesInSubscriptNotation() {
-        expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("\"col['nested_col']\" conflicts with subscript pattern");
-
         execute("create table tbl (col object(strict) as (nested_col text))");
-        execute("create table cpy as select col['nested_col'] from tbl");
+        assertThatThrownBy(() -> execute("create table cpy as select col['nested_col'] from tbl"))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage("\"col['nested_col']\" conflicts with subscript pattern, square brackets are not allowed");
     }
 
     @UseJdbc(0)
