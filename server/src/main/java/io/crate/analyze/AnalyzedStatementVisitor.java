@@ -115,10 +115,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitSetLicenseStatement(AnalyzedSetLicenseStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     public R visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
                                                    C context) {
         return visitAnalyzedStatement(analysis, context);

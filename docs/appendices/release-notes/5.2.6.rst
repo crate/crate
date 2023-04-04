@@ -1,0 +1,99 @@
+.. _version_5.2.6:
+
+=============
+Version 5.2.6
+=============
+
+Released on 2023-04-04.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.2.6.
+
+    We recommend that you upgrade to the latest 5.1 release before moving to
+    5.2.6.
+
+    A rolling upgrade from 5.1.x to 5.2.6 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.2.0` release notes for a full list of changes in the
+5.2 series.
+
+Fixes
+=====
+
+- Fixed an issue that prevented PostgreSQL wire protocol clients from being able
+  to ``describe`` the query of a cursor created using ``DECLARE``. An example of
+  a client that uses the functionality is ``psycopg3``. A snippet like the
+  following failed::
+
+    import psycopg
+    conn = psycopg.connect("host=localhost port=5432 user=crate")
+    cur = conn.cursor(name="foo")
+    cur.execute("select 1")
+    for row in cur.fetchall():
+        print(row)
+
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  prevent protocol level fetch from working correctly with some clients. An
+  example client is `pg-cursor <https://www.npmjs.com/package/pg-cursor>`_.
+
+- Fixed a performance regression for queries that used a scalar sub-query in the
+  ``WHERE`` which itself also filtered on columns in a ``WHERE`` without
+  selecting those columns. An example::
+
+    SELECT name FROM users
+      WHERE id IN (SELECT user_id FROM hits WHERE ts > '2023-01-01')
+
+- Fixed an issue that a wrong HTTP response was sent, when trying to ``POST`` to
+  an invalid URL, causing the HTTP client to stall.
+
+- Fixed response for HTTP ``GET`` request to not expose internal paths when the
+  requested URL doesn't exist.
+
+- Fixed default behaviour for :ref:`CURSOR <sql-declare>`'s
+  :ref:`SCROLL <sql-declare-scroll>`. When neither ``SCROLL`` nor ``NO SCROLL``
+  is provided in the statement, ``NO SCROLL`` is now assumed.
+
+- Fixed a race condition that could lead to a ``ShardNotFoundException`` when
+  executing ``UPDATE`` statements.
+
+- Fixed an issue that caused a subset of a ``WHERE`` clause to be lost from a
+  ``JOIN`` statement. The first trigger condition was using a column by itself
+  as a boolean expression. For example from ``WHERE NOT b AND c`` the column
+  ``c`` representing a boolean expression ``c = TRUE`` overrode ``NOT b``. The
+  second trigger condition was :ref:`MATCH predicate <predicates_match>`
+  which also overrode preceding ``WHERE`` conditions.
+
+- Fixed an issue that caused a ``ColumnUnknownException`` when creating a table
+  with a ``generated column`` involving a subscript expression with a root
+  column name containing upper cases.
+  An example::
+
+    CREATE TABLE t ("OBJ" OBJECT AS (intarray int[]), firstElement AS "OBJ"['intarray'][1]);
+    ColumnUnknownException[Column obj['intarray'] unknown]
+
+- Fixed a ``NullPointerException`` which occurs when using NULL as a setting
+  value.
+
+- Fixed a resource leak that could happen when inserting data which causes
+  constraints violation or parsing errors.

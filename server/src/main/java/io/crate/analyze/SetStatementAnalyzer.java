@@ -50,14 +50,6 @@ class SetStatementAnalyzer {
             null
         );
         SetStatement<Symbol> statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext(txnCtx.sessionSettings())));
-
-        if (node.scope() == SetStatement.Scope.LICENSE) {
-            if (node.assignments().size() != AnalyzedSetLicenseStatement.LICENSE_TOKEN_NUM) {
-                throw new IllegalArgumentException("Invalid number of arguments for SET LICENSE. " +
-                                                   "Please provide only the license key");
-            }
-            return new AnalyzedSetLicenseStatement(statement.assignments().get(0).expression());
-        }
         return new AnalyzedSetStatement(node.scope(), statement.assignments(), isPersistent);
     }
 }

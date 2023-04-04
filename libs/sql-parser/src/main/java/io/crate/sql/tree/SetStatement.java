@@ -21,17 +21,17 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import io.crate.common.collections.Lists2;
+
 public class SetStatement<T> extends Statement {
 
     public enum Scope {
-        GLOBAL, SESSION, LOCAL, LICENSE, TIME_ZONE
+        GLOBAL, SESSION, LOCAL, TIME_ZONE
     }
 
     public enum SettingType {

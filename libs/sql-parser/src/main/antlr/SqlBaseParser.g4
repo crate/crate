@@ -67,7 +67,6 @@ statement
         (EQ | TO) (DEFAULT | setExpr (COMMA setExpr)*)                               #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
         setGlobalAssignment (COMMA setGlobalAssignment)*                             #setGlobal
-    | SET LICENSE stringLiteral                                                      #setLicense
     | SET TIME ZONE (LOCAL | DEFAULT | stringLiteral)                                #setTimeZone
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table
@@ -797,7 +796,7 @@ nonReserved
     : ALIAS | ANALYZE | ANALYZER | AT | AUTHORIZATION | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CHECK | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FETCH | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | IGNORE | RESPECT | ILIKE | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL
+    | GRAPHVIZ | HOUR | IGNORED | IGNORE | RESPECT | ILIKE | INTERVAL | KEY | KILL | LOGICAL | LOCAL
     | MATERIALIZED | MINUTE | MONTH | NEXT | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED
     | PARTITIONS | PLAIN | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT

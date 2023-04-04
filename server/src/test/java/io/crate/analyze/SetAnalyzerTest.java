@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -175,11 +176,5 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.settings().get(0)).isEqualTo(
             new Assignment<>(Literal.of("logger.action"), List.of(Literal.of("INFo"))));
-    }
-
-    @Test
-    public void testSetLicense() throws Exception {
-        AnalyzedSetLicenseStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
-        assertThat(analysis.licenseKey()).isLiteral("ThisShouldBeAnEncryptedLicenseKey");
     }
 }
