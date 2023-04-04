@@ -42,8 +42,7 @@ Unreleased Changes
 Breaking Changes
 ================
 
-- Removed support for ``SET LICENSE``. The statement had no effect since CrateDB
-  4.5 and was only kept for backward compatibility.
+None
 
 
 Deprecations
@@ -55,37 +54,7 @@ None
 Changes
 =======
 
-SQL Standard And PostgreSQL Schema Compatibility
-------------------------------------------------
-
-- Changed the behavior of ``SHOW search_path`` to omit the implicit
-  ``pg_catalog`` schema, unless the user set it explicitly. This matches the
-  PostgreSQL behavior.
-
-- Allowed schema and table names to contain upper case letters. This can be
-  achieved by quoting the names. Unquoted names with upper case letters are
-  converted to lower cases which has been the existing behaviour.
-
-- Allowed schema and table names to start with ``_``.
-
-- Added the :ref:`col_description(integer, integer) <scalar-col_description>` scalar
-  function for improved PostgreSQL compatibility. CrateDB does not support
-  comments for columns, so this function always returns ``NULL``.
-
-Performance Improvements
-------------------------
-
-- Optimized the evaluation of ``CASE`` expressions to prevent stack overflows
-  for very large expressions.
-
-- Improved the performance of queries using a correlated sub-query inside the
-  ``WHERE`` clause in conjunction with a non-correlated filter clause.
-
-- Improved performance of statements that create multiple partitions at once,
-  which can occur during ``COPY FROM`` or INSERTS with multi-values into
-  partitioned tables.
-
-- Improved ingestion performance by up to 30%.
+None
 
 Fixes
 =====
