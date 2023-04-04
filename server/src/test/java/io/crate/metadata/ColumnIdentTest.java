@@ -95,11 +95,8 @@ public class ColumnIdentTest {
         ColumnIdent.validateColumnName("_name_");
         ColumnIdent.validateColumnName("__name");
         ColumnIdent.validateColumnName("_name1");
-        ColumnIdent.validateColumnName("['index']");
-        ColumnIdent.validateColumnName("[0]");
-        ColumnIdent.validateColumnName("[]i");
-        ColumnIdent.validateColumnName("ident['index");
-        ColumnIdent.validateColumnName("i][[");
+        ColumnIdent.validateColumnName("'index'");
+        ColumnIdent.validateColumnName("ident'index");
         ColumnIdent.validateColumnName("1'");
     }
 
@@ -114,6 +111,9 @@ public class ColumnIdentTest {
         assertExceptionIsThrownOnValidation("ident['index']", "subscript");
         assertExceptionIsThrownOnValidation("ident['index]", "subscript");
         assertExceptionIsThrownOnValidation("ident[0]", "subscript");
+        assertExceptionIsThrownOnValidation("\"a[1]\"", "subscript");
+        assertExceptionIsThrownOnValidation("\"fda_32$@%^nf[ffDA&^\"", "subscript");
+        assertExceptionIsThrownOnValidation("[", "subscript");
     }
 
     /**
