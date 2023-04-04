@@ -25,12 +25,21 @@ Versions
 5.x
 ---
 
+5.3.x
+.....
+
+.. toctree::
+    :maxdepth: 1
+
+    5.3.0
+
 5.2.x
 .....
 
 .. toctree::
     :maxdepth: 1
 
+    5.2.6
     5.2.5
     5.2.4
     5.2.3
