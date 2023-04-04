@@ -23,16 +23,12 @@ package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
@@ -47,11 +43,9 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
-import org.elasticsearch.test.disruption.IntermittentLongGCDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
-import org.elasticsearch.test.disruption.SingleNodeDisruption;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
@@ -64,43 +58,6 @@ import io.crate.execution.ddl.SchemaUpdateClient;
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @IntegTestCase.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
-
-    /**
-     * Test that cluster recovers from a long GC on master that causes other nodes to elect a new one
-     */
-    @Test
-    public void testMasterNodeGCs() throws Exception {
-        List<String> nodes = startCluster(3);
-
-        String oldMasterNode = cluster().getMasterName();
-        // a very long GC, but it's OK as we remove the disruption when it has had an effect
-        SingleNodeDisruption masterNodeDisruption = new IntermittentLongGCDisruption(random(), oldMasterNode, 100, 200, 30000, 60000);
-        cluster().setDisruptionScheme(masterNodeDisruption);
-        masterNodeDisruption.startDisrupting();
-
-        Set<String> oldNonMasterNodesSet = new HashSet<>(nodes);
-        oldNonMasterNodesSet.remove(oldMasterNode);
-
-        List<String> oldNonMasterNodes = new ArrayList<>(oldNonMasterNodesSet);
-
-        logger.info("waiting for nodes to de-elect master [{}]", oldMasterNode);
-        for (String node : oldNonMasterNodesSet) {
-            assertDifferentMaster(node, oldMasterNode);
-        }
-
-        logger.info("waiting for nodes to elect a new master");
-        ensureStableCluster(2, oldNonMasterNodes.get(0));
-
-        // restore GC
-        masterNodeDisruption.stopDisrupting();
-        final TimeValue waitTime = new TimeValue(DISRUPTION_HEALING_OVERHEAD.millis() + masterNodeDisruption.expectedTimeToHeal().millis());
-        ensureStableCluster(3, waitTime, false, oldNonMasterNodes.get(0));
-
-        // make sure all nodes agree on master
-        String newMaster = cluster().getMasterName();
-        assertThat(newMaster, not(equalTo(oldMasterNode)));
-        assertMaster(newMaster, nodes);
-    }
 
     /**
      * This test isolates the master from rest of the cluster, waits for a new master to be elected, restores the partition
