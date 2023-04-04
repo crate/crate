@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.types.BitStringType;
 
@@ -367,6 +368,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
         assertThat(symbol).isReference("myObj['x']['AbC']");
+    }
+
+    /**
+     * bug: https://github.com/crate/crate/issues/13845
+     */
+    @Test
+    public void test_invalid_quoted_subscript() {
+        assertThatThrownBy(() -> executor.asSymbol("\"\"\"a[1]\"\"\""))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column \"a[1]\" unknown");
     }
 
     @Test
