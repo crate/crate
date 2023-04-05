@@ -21,10 +21,12 @@
 
 package io.crate.bootstrap;
 
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import joptsimple.OptionSpecBuilder;
-import joptsimple.util.PathConverter;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Map;
+
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.BootstrapProxy;
@@ -41,11 +43,10 @@ import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.NodeNames;
 import org.elasticsearch.node.NodeValidationException;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Map;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import joptsimple.OptionSpecBuilder;
+import joptsimple.util.PathConverter;
 
 /**
  * A main entry point when starting from the command line.
@@ -80,15 +81,12 @@ public class CrateDB extends EnvironmentAwareCommand {
      */
     public static void main(final String[] args) throws Exception {
         LogConfigurator.registerErrorListener();
-        final CrateDB crate = new CrateDB();
-        int status = main(args, crate, Terminal.DEFAULT);
-        if (status != ExitCodes.OK) {
-            exit(status);
+        try (CrateDB crate = new CrateDB()) {
+            int status = crate.main(args, Terminal.DEFAULT);
+            if (status != ExitCodes.OK) {
+                exit(status);
+            }
         }
-    }
-
-    private static int main(final String[] args, final CrateDB crateDb, final Terminal terminal) throws Exception {
-        return crateDb.main(args, terminal);
     }
 
     @Override
