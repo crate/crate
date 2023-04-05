@@ -51,7 +51,6 @@ import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
-@UseRandomizedOptimizerRules(1)
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends IntegTestCase {
 

@@ -77,6 +77,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
@@ -272,6 +274,7 @@ import io.crate.user.UserLookup;
 @UseJdbc
 @UseHashJoins
 @UseRandomizedSchema
+@UseRandomizedOptimizerRules(value = 1, disablePercentage = 1, alwaysKeep = {RemoveRedundantFetchOrEval.class, MergeFilterAndCollect.class})
 public abstract class IntegTestCase extends ESTestCase {
 
     private static final Logger LOGGER = LogManager.getLogger(IntegTestCase.class);

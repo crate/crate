@@ -53,6 +53,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -373,6 +375,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void testSqlRequestWithFilter() throws Exception {
         execute("create table test (id string primary key)");
         execute("insert into test (id) values ('id1'), ('id2')");
@@ -605,6 +608,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void testSelectToRoutedRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
@@ -1509,6 +1513,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void testInsertAndCopyHaveSameIdGeneration() throws Exception {
         execute("create table t (" +
                 "id1 long primary key," +
@@ -1742,6 +1747,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void test_subscript_on_ignored_object_does_not_raise_missing_key_error() throws Exception {
         execute("create table tbl (obj object (ignored))");
         execute("insert into tbl (obj) values ({a = 10})");
@@ -1756,6 +1762,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void test_primary_key_lookup_on_multiple_columns() throws Exception {
         execute(
             "CREATE TABLE doc.test (" +
@@ -1779,6 +1786,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void test_primary_key_lookup_with_param_that_requires_cast_to_column_type() throws Exception {
         execute("create table tbl (ts timestamp with time zone primary key, path text primary key)");
         execute("INSERT INTO tbl (ts, path) VALUES ('2017-06-21T00:00:00.000000Z', 'c1')");
@@ -1794,6 +1802,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
     public void test_primary_key_lookups_returns_inserted_records() throws Exception {
         int numKeys = randomIntBetween(1, 3);
         Random random = RandomizedContext.current().getRandom();
