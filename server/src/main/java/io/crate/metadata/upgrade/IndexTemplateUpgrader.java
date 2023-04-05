@@ -91,7 +91,6 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
 
             IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(templateName)
                 .patterns(templateMetadata.patterns())
-                .order(templateMetadata.order())
                 .settings(settings);
             try {
                 var mappingSource = XContentHelper.toMap(templateMetadata.mapping().compressedReference(), XContentType.JSON);

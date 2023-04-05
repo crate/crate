@@ -328,12 +328,22 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 try {
                     SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    orderedDocCollectors.add(shardCollectorProvider.getFutureOrderedCollector(
-                        collectPhase,
-                        context,
-                        collectTask,
-                        supportMoveToStart)
-                    );
+                    CompletableFuture<OrderedDocCollector> collector = shardCollectorProvider
+                        .awaitShardSearchActive()
+                        .thenApply(biFactory -> biFactory.getOrderedCollector(
+                            collectPhase,
+                            context,
+                            collectTask,
+                            supportMoveToStart
+                        )).exceptionally(err -> {
+                            err = SQLExceptions.unwrap(err);
+                            if (err instanceof IndexNotFoundException notFound
+                                    && IndexParts.isPartitioned(notFound.getIndex().getName())) {
+                                return OrderedDocCollector.empty(notFound.getShardId());
+                            }
+                            throw Exceptions.toRuntimeException(err);
+                        });
+                    orderedDocCollectors.add(collector);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -375,6 +385,35 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         return shardCollectorProvider;
     }
 
+    private CompletableFuture<BatchIterator<Row>> shardFailureFallbackOrRaise(Throwable err,
+                                                                              ShardId shardId,
+                                                                              RoutedCollectPhase collectPhase,
+                                                                              CollectTask collectTask,
+                                                                              boolean requiresScroll) {
+        err = SQLExceptions.unwrap(err);
+        if (err instanceof IndexNotFoundException) {
+            if (IndexParts.isPartitioned(shardId.getIndexName())) {
+                return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
+            }
+            throw Exceptions.toRuntimeException(err);
+        } else if (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException e) {
+            // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
+            // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
+            // and the reader required in the fetchPhase would be missing.
+            if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+                throw Exceptions.toRuntimeException(err);
+            }
+            return remoteCollectorFactory.createCollector(
+                shardId,
+                collectPhase,
+                collectTask,
+                shardCollectorProviderFactory,
+                requiresScroll
+            );
+        }
+        throw Exceptions.toRuntimeException(err);
+    }
+
     private List<CompletableFuture<BatchIterator<Row>>> getIterators(CollectTask collectTask,
                                                                      RoutedCollectPhase collectPhase,
                                                                      boolean requiresScroll,
@@ -392,56 +431,21 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 throw new IndexNotFoundException(indexName);
             }
             Index index = indexMD.getIndex();
-            try {
-                indicesService.indexServiceSafe(index);
-            } catch (IndexNotFoundException e) {
-                if (IndexParts.isPartitioned(indexName)) {
-                    continue;
-                }
-                throw e;
-            }
-            // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
-            // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
-            // and the reader required in the fetchPhase would be missing.
-            boolean containsFetch = Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID);
             for (IntCursor shardCursor: entry.getValue()) {
                 ShardId shardId = new ShardId(index, shardCursor.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    CompletableFuture<BatchIterator<Row>> iterator = shardCollectorProvider.getFutureIterator(
-                        collectPhase,
-                        requiresScroll,
-                        collectTask
-                    );
-                    iterators.add(iterator.exceptionallyCompose(err -> {
-                        err = SQLExceptions.unwrap(err);
-                        if (!containsFetch && (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException)) {
-                            return remoteCollectorFactory.createCollector(
-                                shardId,
-                                collectPhase,
-                                collectTask,
-                                shardCollectorProviderFactory,
-                                requiresScroll
-                            );
-                        }
-                        throw Exceptions.toRuntimeException(err);
-                    }));
-                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    if (containsFetch) {
-                        throw e;
-                    }
-                    iterators.add(remoteCollectorFactory.createCollector(
-                        shardId,
-                        collectPhase,
-                        collectTask,
-                        shardCollectorProviderFactory,
-                        requiresScroll
-                    ));
-                } catch (IndexNotFoundException e) {
-                    // Prevent wrapping this to not break retry-detection
-                    throw e;
-                } catch (Throwable t) {
-                    Exceptions.rethrowRuntimeException(t);
+                    CompletableFuture<BatchIterator<Row>> iterator = shardCollectorProvider
+                        .awaitShardSearchActive()
+                        .thenApply(batchIteratorFactory -> batchIteratorFactory.getIterator(
+                            collectPhase,
+                            requiresScroll,
+                            collectTask
+                        ))
+                        .exceptionallyCompose(err -> shardFailureFallbackOrRaise(err, shardId, collectPhase, collectTask, requiresScroll));
+                    iterators.add(iterator);
+                } catch (Throwable e) {
+                    iterators.add(shardFailureFallbackOrRaise(e, shardId, collectPhase, collectTask, requiresScroll));
                 }
             }
         }

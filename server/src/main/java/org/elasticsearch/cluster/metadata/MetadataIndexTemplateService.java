@@ -24,14 +24,12 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
@@ -196,23 +194,6 @@ public class MetadataIndexTemplateService {
         );
     }
 
-    /**
-     * Finds index templates whose index pattern matched with the given index name.
-     * The result is sorted by {@link IndexTemplateMetadata#order} descending.
-     */
-    public static List<IndexTemplateMetadata> findTemplates(Metadata metadata, String indexName) {
-        final List<IndexTemplateMetadata> matchedTemplates = new ArrayList<>();
-        for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
-            final IndexTemplateMetadata template = cursor.value;
-            final boolean matched = template.patterns().stream().anyMatch(pattern -> Regex.simpleMatch(pattern, indexName));
-            if (matched) {
-                matchedTemplates.add(template);
-            }
-        }
-        CollectionUtil.timSort(matchedTemplates, Comparator.comparingInt(IndexTemplateMetadata::order).reversed());
-        return matchedTemplates;
-    }
-
     private static void validateAndAddTemplate(final PutRequest request,
                                                IndexTemplateMetadata.Builder templateBuilder,
                                                IndicesService indicesService,
@@ -239,7 +220,6 @@ public class MetadataIndexTemplateService {
             IndexService dummyIndexService = indicesService.createIndex(tmpIndexMetadata, Collections.emptyList(), false);
             createdIndex = dummyIndexService.index();
 
-            templateBuilder.order(request.order);
             templateBuilder.version(request.version);
             templateBuilder.patterns(request.indexPatterns);
 
@@ -327,7 +307,6 @@ public class MetadataIndexTemplateService {
         final String name;
         final String cause;
         boolean create;
-        int order;
         Integer version;
         List<String> indexPatterns;
         Settings settings = Settings.Builder.EMPTY_SETTINGS;
@@ -339,11 +318,6 @@ public class MetadataIndexTemplateService {
         public PutRequest(String cause, String name) {
             this.cause = cause;
             this.name = name;
-        }
-
-        public PutRequest order(int order) {
-            this.order = order;
-            return this;
         }
 
         public PutRequest patterns(List<String> indexPatterns) {

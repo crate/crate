@@ -1750,8 +1750,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map().get(DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
-        // template order must not be touched
-        assertThat(metadata.order(), is(100));
     }
 
     @Test

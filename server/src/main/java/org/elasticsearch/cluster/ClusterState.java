@@ -412,7 +412,6 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 builder.startObject(templateMetadata.name());
 
                 builder.field("index_patterns", templateMetadata.patterns());
-                builder.field("order", templateMetadata.order());
 
                 builder.startObject("settings");
                 Settings settings = templateMetadata.settings();
