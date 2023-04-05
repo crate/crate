@@ -70,3 +70,7 @@ Fixes
 - Fixed an issue that allowed creating columns with names conflicting with
   subscript pattern, such as ``"a[1]"``, a subscript expression enclosed in
   double quotes.
+
+- Fixed an issue that caused ``SQLParseException`` when quoted subscript
+  expressions contained quotes. An example would be querying an array with the
+  name containing quotes like ``SELECT "arr""[1]";``.

@@ -104,6 +104,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.ParsingException;
+import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparison;
@@ -1264,7 +1265,8 @@ public class ExpressionAnalyzer {
     private static SubscriptExpression detectAndGenerateSubscriptExpressions(String columnName) {
         var openSubscriptPos = columnName.indexOf("[");
         if (openSubscriptPos > -1) {
-            var sanitizedName = "\"" + columnName.substring(0, openSubscriptPos) + "\"" + columnName.substring(openSubscriptPos);
+            var sanitizedName = Identifiers.quote(columnName.substring(0, openSubscriptPos)) +
+                                columnName.substring(openSubscriptPos);
             try {
                 return (SubscriptExpression) SqlParser.createExpression(sanitizedName);
             } catch (ParsingException ignored) {
