@@ -95,6 +95,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T5_DEFINITION)
             .addTable("create table tarr (xs array(integer))")
+            .addTable("create table quoted_subscript (\"a\"\"\" int[])")
             .addTable("create table nested_obj (" +
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
@@ -359,6 +360,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> expressions.asSymbol("INTERVAL '1' MONTH TO YEAR"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Startfield must be less significant than Endfield");
+    }
+
+    @Test
+    public void test_quoted_subscript_expression_with_base_column_name_containing_quotes() {
+        var symbol = executor.asSymbol("quoted_subscript.\"a\"\"[1]\"");
+        assertThat(symbol).isFunction(
+            "subscript",
+            isReference("a\""),
+            isLiteral(1));
     }
 
     @Test
