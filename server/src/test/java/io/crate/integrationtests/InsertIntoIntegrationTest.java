@@ -36,6 +36,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.testing.UseRandomizedOptimizerRules;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -50,6 +55,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
+@UseRandomizedOptimizerRules(value = 1, disablePercentage = 1, alwaysKeep = RewriteInsertFromSubQueryToInsertFromValues.class)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
