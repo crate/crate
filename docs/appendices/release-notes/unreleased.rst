@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  lead to ``ClientInterrupted`` errors with some clients. An
+  example client is `pg-cursor <https://www.npmjs.com/package/pg-cursor>`_.
+
 - Fixed an issue that allowed creating columns with names conflicting with
   subscript pattern, such as ``"a[1]"``, a subscript expression enclosed in
   double quotes.
