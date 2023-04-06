@@ -38,19 +38,19 @@ public abstract class Literal
         Literal literal = null;
         if (value == null) {
             literal = NullLiteral.INSTANCE;
-        } else if (value instanceof Number) {
+        } else if (value instanceof Number n) {
             if (value instanceof Float || value instanceof Double) {
                 literal = new DoubleLiteral(value.toString());
             } else if (value instanceof Short || value instanceof Integer) {
-                literal = new IntegerLiteral(((Number) value).intValue());
-            } else if (value instanceof Long) {
-                literal = new LongLiteral((Long) value);
+                literal = new IntegerLiteral(n.intValue());
+            } else if (value instanceof Long l) {
+                literal = new LongLiteral(l);
             }
-        } else if (value instanceof Boolean) {
-            literal = (Boolean) value ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
-        } else if (value instanceof Object[]) {
+        } else if (value instanceof Boolean b) {
+            literal = b ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
+        } else if (value instanceof Object[] oArray) {
             List<Expression> expressions = new ArrayList<>();
-            for (Object o : (Object[]) value) {
+            for (Object o : oArray) {
                 expressions.add(fromObject(o));
             }
             literal = new ArrayLiteral(expressions);
