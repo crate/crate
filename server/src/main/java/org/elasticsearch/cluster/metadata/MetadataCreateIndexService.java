@@ -56,7 +56,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
-import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
@@ -461,11 +460,6 @@ public class MetadataCreateIndexService {
                     indexMetadata.getNumberOfReplicas());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
-                if (!request.blocks().isEmpty()) {
-                    for (ClusterBlock block : request.blocks()) {
-                        blocks.addIndexBlock(request.index(), block);
-                    }
-                }
                 blocks.updateBlocks(indexMetadata);
 
                 ClusterState updatedState = ClusterState.builder(currentState).blocks(blocks).metadata(newMetadata).build();
