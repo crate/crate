@@ -26,7 +26,6 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
-import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -48,8 +47,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
     private String mapping = null;
 
     private final Set<Alias> aliases = new HashSet<>();
-
-    private final Set<ClusterBlock> blocks = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
 
@@ -112,10 +109,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     public Set<Alias> aliases() {
         return aliases;
-    }
-
-    public Set<ClusterBlock> blocks() {
-        return blocks;
     }
 
     public Index recoverFrom() {
