@@ -27,13 +27,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
+import java.io.IOException;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.QueryTester;
-
-import java.util.Map;
 
 public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -42,18 +43,22 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     private static final Object[] OBJECT_VALUES = new Object[] {Map.of(), null};
 
-    private void assertMatches(String createStatement, boolean isNull, Object[] values) throws Exception {
-        String expression = isNull ? "xs is null" : "xs is not null";
-        // ensure the test is operating on a fresh, empty cluster state (no tables)
-        resetClusterService();
-
-        QueryTester.Builder builder = new QueryTester.Builder(
+    private QueryTester.Builder getBuilder(String createStatement) throws IOException {
+        return new QueryTester.Builder(
             createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
             createStatement
         );
+    }
+
+    private void assertMatches(String createStatement, boolean isNull, Object[] values) throws Exception {
+        String expression = isNull ? "xs is null" : "xs is not null";
+        // ensure the test is operating on a fresh, empty cluster state (no tables)
+        resetClusterService();
+
+        QueryTester.Builder builder = getBuilder(createStatement);
         builder.indexValues("xs", values);
         try (var queryTester = builder.build()) {
             var results = queryTester.runQuery("xs", expression);
@@ -62,11 +67,33 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(results.get(0)).isNull();
             } else {
                 // can be array (list) or object (map)
-                if (results.get(0) instanceof Map map) {
+                if (results.get(0) instanceof Map<?, ?> map) {
                     assertThat(map).isEmpty();
                 } else {
                     assertThat(results.get(0)).asList().isEmpty();
                 }
+            }
+        }
+    }
+
+    private void assertNotFunction(String createStatement, Object[] values) throws Exception {
+        String expression = "NOT xs::text = 'value'";
+        // ensure the test is operating on a fresh, empty cluster state (no tables)
+        resetClusterService();
+
+        QueryTester.Builder builder = getBuilder(createStatement);
+        if (values != null) {
+            builder.indexValues("xs", OBJECT_VALUES);
+        }
+        try (var queryTester = builder.build()) {
+            var results = queryTester.runQuery("xs", expression);
+            if (values == null) {
+                assertThat(results).isEmpty();
+            } else {
+                assertThat(results).hasSize(2);
+                assertThat(results.get(0)).isInstanceOf(Map.class);
+                assertThat((Map<?, ?>) results.get(0)).isEmpty();
+                assertThat(results.get(1)).isNull();
             }
         }
     }
@@ -109,6 +136,12 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_not_null_matches_empty_objects() throws Exception {
         assertMatches("create table t (xs OBJECT as (x int))", false, OBJECT_VALUES);
+    }
+
+    @Test
+    public void test_not_function_does_not_match_empty_objects() throws Exception {
+        assertNotFunction("create table t (xs OBJECT)", null);
+        assertNotFunction("create table t (xs OBJECT)", OBJECT_VALUES);
     }
 
     @Test

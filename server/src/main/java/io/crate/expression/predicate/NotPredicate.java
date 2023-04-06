@@ -208,8 +208,11 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         arg.accept(INNER_VISITOR, ctx);
         for (Reference reference : ctx.references()) {
             if (reference.isNullable()) {
-                // we don't count empty arrays here as we count them below explicitly if 3Vl logic is needed.
-                builder.add(IsNullPredicate.refExistsQuery(reference, context, false), BooleanClause.Occur.MUST);
+                var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
+                if (refExistsQuery != null) {
+                    // we don't count empty arrays here as we count them below explicitly if 3Vl logic is needed.
+                    builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                }
             }
         }
         if (ctx.hasStrictThreeValuedLogicFunction) {
