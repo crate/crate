@@ -439,7 +439,7 @@ public class MetadataCreateIndexService {
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 
-                indexMetadataBuilder.state(request.state());
+                indexMetadataBuilder.state(State.OPEN);
 
                 final IndexMetadata indexMetadata;
                 try {
@@ -470,13 +470,11 @@ public class MetadataCreateIndexService {
 
                 ClusterState updatedState = ClusterState.builder(currentState).blocks(blocks).metadata(newMetadata).build();
 
-                if (request.state() == State.OPEN) {
-                    RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable())
-                        .addAsNew(updatedState.metadata().index(request.index()));
-                    updatedState = allocationService.reroute(
-                        ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(),
-                        "index [" + request.index() + "] created");
-                }
+                RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable())
+                    .addAsNew(updatedState.metadata().index(request.index()));
+                updatedState = allocationService.reroute(
+                    ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(),
+                    "index [" + request.index() + "] created");
                 removalExtraInfo = "cleaning up after validating index on master";
                 removalReason = IndexRemovalReason.NO_LONGER_ASSIGNED;
 
@@ -513,12 +511,11 @@ public class MetadataCreateIndexService {
 
     private void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state) {
         validateIndexName(request.index(), state);
-        validateIndexSettings(request.index(), request.settings(), state, forbidPrivateIndexSettings);
+        validateIndexSettings(request.index(), request.settings(), forbidPrivateIndexSettings);
         shardLimitValidator.validateShardLimit(request.settings(), state);
     }
 
-    public void validateIndexSettings(String indexName, final Settings settings, final ClusterState clusterState,
-                                      final boolean forbidPrivateIndexSettings) throws IndexCreationException {
+    public void validateIndexSettings(String indexName, final Settings settings, final boolean forbidPrivateIndexSettings) throws IndexCreationException {
         List<String> validationErrors = getIndexSettingsValidationErrors(settings, forbidPrivateIndexSettings);
         if (validationErrors.isEmpty() == false) {
             ValidationException validationException = new ValidationException();

@@ -43,8 +43,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
     private ResizeType resizeType;
     private boolean copySettings;
 
-    private IndexMetadata.State state = IndexMetadata.State.OPEN;
-
     private Settings settings = Settings.Builder.EMPTY_SETTINGS;
 
     private String mapping = null;
@@ -102,10 +100,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     public String index() {
         return index;
-    }
-
-    public IndexMetadata.State state() {
-        return state;
     }
 
     public Settings settings() {
