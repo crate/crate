@@ -22,7 +22,6 @@
 package io.crate.sql.parser;
 
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -76,6 +75,7 @@ import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
+import io.crate.sql.tree.ArrayComparison.Quantifier;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
@@ -166,6 +166,7 @@ import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LikePredicate;
+import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.LogicalBinaryExpression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
@@ -242,6 +243,7 @@ import io.crate.sql.tree.WithQuery;
 
 class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
+    public static final String UNSUPPORTED_OP_STR = "Unsupported operator: ";
     private int parameterPosition = 1;
     private static final String CLUSTER = "CLUSTER";
     private static final String SCHEMA = "SCHEMA";
@@ -376,10 +378,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             endField = getIntervalFieldType(token);
         }
 
-        if (endField != null) {
-            if (startField.compareTo(endField) > 0) {
-                throw new IllegalArgumentException("Startfield must be less significant than Endfield");
-            }
+        if (endField != null && (startField.compareTo(endField) > 0)) {
+            throw new IllegalArgumentException("Startfield must be less significant than Endfield");
         }
 
         IntervalLiteral.Sign sign = IntervalLiteral.Sign.PLUS;
@@ -395,33 +395,23 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     private static IntervalLiteral.Sign getIntervalSign(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.MINUS:
-                return IntervalLiteral.Sign.MINUS;
-            case SqlBaseLexer.PLUS:
-                return IntervalLiteral.Sign.PLUS;
-            default:
-                throw new IllegalArgumentException("Unsupported sign: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.MINUS -> IntervalLiteral.Sign.MINUS;
+            case SqlBaseLexer.PLUS -> IntervalLiteral.Sign.PLUS;
+            default -> throw new IllegalArgumentException("Unsupported sign: " + token.getText());
+        };
     }
 
     private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.YEAR:
-                return IntervalLiteral.IntervalField.YEAR;
-            case SqlBaseLexer.MONTH:
-                return IntervalLiteral.IntervalField.MONTH;
-            case SqlBaseLexer.DAY:
-                return IntervalLiteral.IntervalField.DAY;
-            case SqlBaseLexer.HOUR:
-                return IntervalLiteral.IntervalField.HOUR;
-            case SqlBaseLexer.MINUTE:
-                return IntervalLiteral.IntervalField.MINUTE;
-            case SqlBaseLexer.SECOND:
-                return IntervalLiteral.IntervalField.SECOND;
-            default:
-                throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.YEAR -> IntervalLiteral.IntervalField.YEAR;
+            case SqlBaseLexer.MONTH -> IntervalLiteral.IntervalField.MONTH;
+            case SqlBaseLexer.DAY -> IntervalLiteral.IntervalField.DAY;
+            case SqlBaseLexer.HOUR -> IntervalLiteral.IntervalField.HOUR;
+            case SqlBaseLexer.MINUTE -> IntervalLiteral.IntervalField.MINUTE;
+            case SqlBaseLexer.SECOND -> IntervalLiteral.IntervalField.SECOND;
+            default -> throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
+        };
     }
 
     @Override
@@ -429,6 +419,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new CommitStatement();
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitOptimize(SqlBaseParser.OptimizeContext context) {
         return new OptimizeStatement(
@@ -436,6 +427,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             extractGenericProperties(context.withProperties()));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
         boolean notExists = context.EXISTS() != null;
@@ -444,7 +436,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         Optional<PartitionedBy> partitionedBy = visitIfPresent(tableOptsCtx.partitionedBy(), PartitionedBy.class);
         var tableElements = Lists2.map(context.tableElement(), x -> (TableElement<Expression>) visit(x));
         return new CreateTable(
-            (Table) visit(context.table()),
+            (Table<?>) visit(context.table()),
             tableElements,
             partitionedBy,
             clusteredBy,
@@ -454,8 +446,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitCreateTableAs(SqlBaseParser.CreateTableAsContext context) {
-        return new CreateTableAs(
-            (Table) visit(context.table()),
+        return new CreateTableAs<>(
+            (Table<?>) visit(context.table()),
             (Query) visit(context.insertSource().query())
         );
     }
@@ -502,26 +494,28 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new DropView(getQualifiedNames(ctx.qnames()), ctx.EXISTS() != null);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitCreateBlobTable(SqlBaseParser.CreateBlobTableContext context) {
         return new CreateBlobTable(
-            (Table) visit(context.table()),
+            (Table<?>) visit(context.table()),
             visitIfPresent(context.numShards, ClusteredBy.class),
             extractGenericProperties(context.withProperties()));
     }
 
     @Override
     public Node visitCreateRepository(SqlBaseParser.CreateRepositoryContext context) {
-        return new CreateRepository(
+        return new CreateRepository<>(
             getIdentText(context.name),
             getIdentText(context.type),
             extractGenericProperties(context.withProperties()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCreateSnapshot(SqlBaseParser.CreateSnapshotContext context) {
         if (context.ALL() != null) {
-            return new CreateSnapshot(
+            return new CreateSnapshot<>(
                 getQualifiedName(context.qname()),
                 extractGenericProperties(context.withProperties()));
         }
@@ -531,6 +525,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             extractGenericProperties(context.withProperties()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCreateAnalyzer(SqlBaseParser.CreateAnalyzerContext context) {
         return new CreateAnalyzer(
@@ -547,7 +542,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitCreateUser(SqlBaseParser.CreateUserContext context) {
-        return new CreateUser(
+        return new CreateUser<>(
             getIdentText(context.name),
             extractGenericProperties(context.withProperties()));
     }
@@ -605,16 +600,19 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         }
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCharFilters(SqlBaseParser.CharFiltersContext context) {
         return new CharFilters(visitCollection(context.namedProperties(), NamedProperties.class));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitTokenFilters(SqlBaseParser.TokenFiltersContext context) {
         return new TokenFilters(visitCollection(context.namedProperties(), NamedProperties.class));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Node visitTokenizer(SqlBaseParser.TokenizerContext context) {
         return new Tokenizer<>((NamedProperties<Expression>) visit(context.namedProperties()));
@@ -627,6 +625,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             extractGenericProperties(context.withProperties()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitRestore(SqlBaseParser.RestoreContext context) {
         if (context.ALL() != null) {
@@ -660,7 +659,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitShowCreateTable(SqlBaseParser.ShowCreateTableContext context) {
-        return new ShowCreateTable((Table) visit(context.table()));
+        return new ShowCreateTable<>((Table<?>) visit(context.table()));
     }
 
     @Override
@@ -679,7 +678,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-        return new DropTable((Table) visit(context.table()), context.EXISTS() != null);
+        return new DropTable<>((Table<?>) visit(context.table()), context.EXISTS() != null);
     }
 
     @Override
@@ -689,7 +688,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDropBlobTable(SqlBaseParser.DropBlobTableContext context) {
-        return new DropBlobTable((Table) visit(context.table()), context.EXISTS() != null);
+        return new DropBlobTable<>((Table<?>) visit(context.table()), context.EXISTS() != null);
     }
 
     @Override
@@ -697,21 +696,23 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new DropSnapshot(getQualifiedName(context.qname()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCopyFrom(SqlBaseParser.CopyFromContext context) {
         boolean returnSummary = context.SUMMARY() != null;
         return new CopyFrom(
-            (Table) visit(context.tableWithPartition()),
+            (Table<?>) visit(context.tableWithPartition()),
             context.ident() == null ? emptyList() : identsToStrings(context.ident()),
             visit(context.path),
             extractGenericProperties(context.withProperties()),
             returnSummary);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCopyTo(SqlBaseParser.CopyToContext context) {
         return new CopyTo(
-            (Table) visit(context.tableWithPartition()),
+            (Table<?>) visit(context.tableWithPartition()),
             context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
@@ -719,14 +720,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             extractGenericProperties(context.withProperties()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public Node visitInsert(SqlBaseParser.InsertContext context) {
+    public Node visitInsert(SqlBaseParser.InsertContext context) throws IllegalArgumentException {
         List<String> columns = identsToStrings(context.ident());
 
-        Table table;
+        Table<?> table;
         Node node = visit(context.table());
         try {
-            table = (Table) node;
+            table = (Table<?>) node;
         } catch (ClassCastException e) {
             TableFunction tf = (TableFunction) node;
             for (Expression ex : tf.functionCall().getArguments()) {
@@ -734,13 +736,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                     throw new IllegalArgumentException(
                         "Column references used in INSERT INTO <tbl> (...) must use the column name. " +
                         "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
+                } else {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                     "Invalid column reference %s used in INSERT INTO statement",
+                                                                     ex.toString()));
                 }
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Invalid column reference %s used in INSERT INTO statement", ex.toString()));
             }
             throw e;
         }
-        return new Insert<>(
+        return new Insert(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
@@ -752,7 +756,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     /**
      * Creates a {@link io.crate.sql.tree.Insert.DuplicateKeyContext} based on the Insert
      */
-    private Insert.DuplicateKeyContext createDuplicateKeyContext(SqlBaseParser.InsertContext context) {
+    @SuppressWarnings("unchecked")
+    private Insert.DuplicateKeyContext<?> createDuplicateKeyContext(SqlBaseParser.InsertContext context) {
         if (context.onConflict() != null) {
             SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
             ConflictTargetContext conflictTarget = onConflictContext.conflictTarget();
@@ -794,6 +799,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             visitIfPresent(context.where(), Expression.class));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Node visitUpdate(SqlBaseParser.UpdateContext context) {
         var assignments = Lists2.map(context.assignment(), x -> (Assignment<Expression>) visit(x));
@@ -822,6 +828,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new Assignment<>(settingName, visitCollection(context.setExpr(), Expression.class));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
         var assignments = Lists2.map(context.setGlobalAssignment(), x -> (Assignment<Expression>) visit(x));
@@ -952,6 +959,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             getUnquotedText(context.pattern));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitRefreshTable(SqlBaseParser.RefreshTableContext context) {
         return new RefreshStatement(visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class));
@@ -959,14 +967,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitTableOnly(SqlBaseParser.TableOnlyContext context) {
-        return new Table(getQualifiedName(context.qname()));
+        return new Table<>(getQualifiedName(context.qname()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitTableWithPartition(SqlBaseParser.TableWithPartitionContext context) {
         return new Table(getQualifiedName(context.qname()), visitCollection(context.assignment(), Assignment.class));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitCreateFunction(SqlBaseParser.CreateFunctionContext context) {
         QualifiedName functionName = getQualifiedName(context.name);
@@ -975,9 +985,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             functionName,
             context.REPLACE() != null,
             visitCollection(context.functionArgument(), FunctionArgument.class),
-            (ColumnType) visit(context.returnType),
-            (Expression) visit(context.language),
-            (Expression) visit(context.body));
+            (ColumnType<?>) visit(context.returnType),
+            visit(context.language),
+            visit(context.body));
     }
 
     @Override
@@ -994,8 +1004,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitCreatePublication(SqlBaseParser.CreatePublicationContext ctx) {
         List<QualifiedName> tables = ctx.qname().stream()
-            .map(n -> getQualifiedName(n))
-            .collect(toList());
+            .map(this::getQualifiedName)
+            .toList();
         return new CreatePublication(getIdentText(ctx.name), ctx.ALL() != null, tables);
     }
 
@@ -1015,12 +1025,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             op = AlterPublication.Operation.DROP;
         }
         List<QualifiedName> tables = ctx.qname().stream()
-            .map(n -> getQualifiedName(n))
-            .collect(toList());
+            .map(this::getQualifiedName)
+            .toList();
 
         return new AlterPublication(getIdentText(ctx.name), op, tables);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitCreateSubscription(SqlBaseParser.CreateSubscriptionContext ctx) {
         return new CreateSubscription(
@@ -1063,6 +1074,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     // Column / Table definition
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
         return new ColumnDefinition(
@@ -1075,12 +1087,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitColumnConstraintPrimaryKey(SqlBaseParser.ColumnConstraintPrimaryKeyContext context) {
-        return new PrimaryKeyColumnConstraint();
+        return new PrimaryKeyColumnConstraint<>();
     }
 
     @Override
     public Node visitColumnConstraintNotNull(SqlBaseParser.ColumnConstraintNotNullContext context) {
-        return new NotNullColumnConstraint();
+        return new NotNullColumnConstraint<>();
     }
 
     @Override
@@ -1158,7 +1170,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitFunctionArgument(SqlBaseParser.FunctionArgumentContext context) {
-        return new FunctionArgument(getIdentText(context.ident()), (ColumnType) visit(context.dataType()));
+        return new FunctionArgument(getIdentText(context.ident()), (ColumnType<?>) visit(context.dataType()));
     }
 
     @Override
@@ -1169,6 +1181,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             visit(context.toNodeId));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitReroutePromoteReplica(SqlBaseParser.ReroutePromoteReplicaContext ctx) {
         return new PromoteReplica(
@@ -1184,6 +1197,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             visit(context.nodeId));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitRerouteCancelShard(SqlBaseParser.RerouteCancelShardContext context) {
         return new RerouteCancelShard(
@@ -1194,6 +1208,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     // Properties
 
+    @SuppressWarnings({"unchecked"})
     private GenericProperties<Expression> extractGenericProperties(ParserRuleContext context) {
         return visitIfPresent(context, GenericProperties.class).orElse(GenericProperties.empty());
     }
@@ -1221,34 +1236,38 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     // Amending tables
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitAlterTableProperties(SqlBaseParser.AlterTablePropertiesContext context) {
-        Table name = (Table) visit(context.alterTableDefinition());
+        Table<?> name = (Table<?>) visit(context.alterTableDefinition());
         if (context.SET() != null) {
             return new AlterTable(name, extractGenericProperties(context.genericProperties()));
         }
         return new AlterTable(name, identsToStrings(context.ident()));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitAlterBlobTableProperties(SqlBaseParser.AlterBlobTablePropertiesContext context) {
-        Table name = (Table) visit(context.alterTableDefinition());
+        Table<?> name = (Table<?>) visit(context.alterTableDefinition());
         if (context.SET() != null) {
             return new AlterBlobTable(name, extractGenericProperties(context.genericProperties()));
         }
         return new AlterBlobTable(name, identsToStrings(context.ident()));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitAddColumn(SqlBaseParser.AddColumnContext context) {
         var columnDefinitions = Lists2.map(context.addColumnDefinition(), x -> (TableElement<Expression>) visit(x));
-        return new AlterTableAddColumn((Table) visit(context.alterTableDefinition()), columnDefinitions);
+        return new AlterTableAddColumn((Table<?>) visit(context.alterTableDefinition()), columnDefinitions);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Node visitAddColumnDefinition(SqlBaseParser.AddColumnDefinitionContext context) {
         return new AddColumnDefinition(
-            (Expression) visit(context.subscriptSafe()),
+            visit(context.subscriptSafe()),
             visitOptionalContext(context.expr(), Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
@@ -1256,8 +1275,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitAlterTableOpenClose(SqlBaseParser.AlterTableOpenCloseContext context) {
-        return new AlterTableOpenClose(
-            (Table) visit(context.alterTableDefinition()),
+        return new AlterTableOpenClose<>(
+            (Table<?>) visit(context.alterTableDefinition()),
             context.BLOB() != null,
             context.OPEN() != null
         );
@@ -1265,17 +1284,18 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitAlterTableRename(SqlBaseParser.AlterTableRenameContext context) {
-        return new AlterTableRename(
-            (Table) visit(context.alterTableDefinition()),
+        return new AlterTableRename<>(
+            (Table<?>) visit(context.alterTableDefinition()),
             context.BLOB() != null,
             getQualifiedName(context.qname())
         );
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
         return new AlterTableReroute<>(
-            (Table) visit(context.alterTableDefinition()),
+            (Table<?>) visit(context.alterTableDefinition()),
             context.BLOB() != null,
             (RerouteOption) visit(context.rerouteOption()));
     }
@@ -1287,7 +1307,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitAlterUser(SqlBaseParser.AlterUserContext context) {
-        return new AlterUser(
+        return new AlterUser<>(
             getIdentText(context.name),
             extractGenericProperties(context.genericProperties())
         );
@@ -1295,7 +1315,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitSetGlobalAssignment(SqlBaseParser.SetGlobalAssignmentContext context) {
-        return new Assignment((Expression) visit(context.primaryExpression()), (Expression) visit(context.expr()));
+        return new Assignment<>(visit(context.primaryExpression()), visit(context.expr()));
     }
 
     @Override
@@ -1331,13 +1351,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitQueryNoWith(SqlBaseParser.QueryNoWithContext context) {
         QueryBody term = (QueryBody) visit(context.queryTerm());
-        if (term instanceof QuerySpecification) {
+        if (term instanceof QuerySpecification query) {
             // When we have a simple query specification
             // followed by order by limit, fold the order by and limit
             // clauses into the query specification (analyzer/planner
             // expects this structure to resolve references with respect
             // to columns defined in the query specification)
-            QuerySpecification query = (QuerySpecification) term;
 
             return new Query(
                 Optional.empty(),
@@ -1440,13 +1459,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 boolean isDistinct = context.setQuant() == null || context.setQuant().ALL() == null;
                 return new Union(left, right, isDistinct);
             case SqlBaseLexer.INTERSECT:
-                QuerySpecification first = (QuerySpecification) visit(context.first);
-                QuerySpecification second = (QuerySpecification) visit(context.second);
-                return new Intersect(first, second);
+                var firstIntersect = (QuerySpecification) visit(context.first);
+                var secondIntersect = (QuerySpecification) visit(context.second);
+                return new Intersect(firstIntersect, secondIntersect);
             case SqlBaseLexer.EXCEPT:
-                first = (QuerySpecification) visit(context.first);
-                second = (QuerySpecification) visit(context.second);
-                return new Except(first, second);
+                var firstExcept = (QuerySpecification) visit(context.first);
+                var secondExcept = (QuerySpecification) visit(context.second);
+                return new Except(firstExcept, secondExcept);
             default:
                 throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
         }
@@ -1744,14 +1763,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitArithmeticUnary(SqlBaseParser.ArithmeticUnaryContext context) {
-        switch (context.operator.getType()) {
-            case SqlBaseLexer.MINUS:
-                return new NegativeExpression((Expression) visit(context.valueExpression()));
-            case SqlBaseLexer.PLUS:
-                return visit(context.valueExpression());
-            default:
-                throw new UnsupportedOperationException("Unsupported sign: " + context.operator.getText());
-        }
+        return switch (context.operator.getType()) {
+            case SqlBaseLexer.MINUS -> new NegativeExpression((Expression) visit(context.valueExpression()));
+            case SqlBaseLexer.PLUS -> visit(context.valueExpression());
+            default -> throw new UnsupportedOperationException("Unsupported sign: " + context.operator.getText());
+        };
     }
 
     @Override
@@ -1817,12 +1833,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDoubleColonCast(SqlBaseParser.DoubleColonCastContext context) {
-        return new Cast((Expression) visit(context.primaryExpression()), (ColumnType) visit(context.dataType()));
+        return new Cast((Expression) visit(context.primaryExpression()), (ColumnType<?>) visit(context.dataType()));
     }
 
     @Override
     public Node visitFromStringLiteralCast(SqlBaseParser.FromStringLiteralCastContext context) {
-        ColumnType targetType = (ColumnType) visit(context.dataType());
+        ColumnType<?> targetType = (ColumnType<?>) visit(context.dataType());
 
         if (targetType instanceof CollectionColumnType || targetType instanceof ObjectColumnType) {
             throw new UnsupportedOperationException("type 'string' cast notation only supports primitive types. " +
@@ -1836,9 +1852,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitCast(SqlBaseParser.CastContext context) {
         if (context.TRY_CAST() != null) {
-            return new TryCast((Expression) visit(context.expr()), (ColumnType) visit(context.dataType()));
+            return new TryCast((Expression) visit(context.expr()), (ColumnType<?>) visit(context.dataType()));
         } else {
-            return new Cast((Expression) visit(context.expr()), (ColumnType) visit(context.dataType()));
+            return new Cast((Expression) visit(context.expr()), (ColumnType<?>) visit(context.dataType()));
         }
     }
 
@@ -2110,6 +2126,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new CollectionColumnType<>((ColumnType<?>) visit(ctx.dataType()));
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Node visitObjectTypeDefinition(SqlBaseParser.ObjectTypeDefinitionContext context) {
         return new ObjectColumnType(
@@ -2124,8 +2141,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         for (var param : context.integerLiteral()) {
             var literal = visit(param);
             int val;
-            if (literal instanceof LongLiteral) {
-                val = Math.toIntExact(((LongLiteral) literal).getValue());
+            if (literal instanceof LongLiteral l) {
+                val = Math.toIntExact(l.getValue());
             } else {
                 val = ((IntegerLiteral) literal).getValue();
             }
@@ -2136,12 +2153,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitIdentDataType(SqlBaseParser.IdentDataTypeContext context) {
-        return StringLiteral.fromObject(getIdentText(context.ident()));
+        return Literal.fromObject(getIdentText(context.ident()));
     }
 
     @Override
     public Node visitDefinedDataType(SqlBaseParser.DefinedDataTypeContext context) {
-        return StringLiteral.fromObject(
+        return Literal.fromObject(
             context.children.stream()
                 .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
                 .collect(Collectors.joining(" "))
@@ -2150,24 +2167,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     private static String getObjectType(Token type) {
         if (type == null) return null;
-        switch (type.getType()) {
-            case SqlBaseLexer.DYNAMIC:
-                return type.getText().toLowerCase(Locale.ENGLISH);
-            case SqlBaseLexer.STRICT:
-                return type.getText().toLowerCase(Locale.ENGLISH);
-            case SqlBaseLexer.IGNORED:
-                return type.getText().toLowerCase(Locale.ENGLISH);
-            default:
-                throw new UnsupportedOperationException("Unsupported object type: " + type.getText());
-        }
+        return switch (type.getType()) {
+            case SqlBaseLexer.DYNAMIC, SqlBaseLexer.STRICT, SqlBaseLexer.IGNORED ->
+                type.getText().toLowerCase(Locale.ENGLISH);
+            default -> throw new UnsupportedOperationException("Unsupported object type: " + type.getText());
+        };
     }
 
     // Helpers
-
-    @Override
-    protected Node defaultResult() {
-        return null;
-    }
 
     @Override
     protected Node aggregateResult(Node aggregate, Node nextResult) {
@@ -2232,10 +2239,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return QualifiedName.of(identsToStrings(context.ident()));
     }
 
-    private QualifiedName getQualifiedName(SqlBaseParser.IdentContext context) {
-        return QualifiedName.of(getIdentText(context));
-    }
-
     private List<QualifiedName> getQualifiedNames(SqlBaseParser.QnamesContext context) {
         ArrayList<QualifiedName> names = new ArrayList<>(context.qname().size());
         for (SqlBaseParser.QnameContext qnameContext : context.qname()) {
@@ -2265,155 +2268,107 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     private static ArithmeticExpression.Type getArithmeticBinaryOperator(Token operator) {
-        switch (operator.getType()) {
-            case SqlBaseLexer.PLUS:
-                return ArithmeticExpression.Type.ADD;
-            case SqlBaseLexer.MINUS:
-                return ArithmeticExpression.Type.SUBTRACT;
-            case SqlBaseLexer.ASTERISK:
-                return ArithmeticExpression.Type.MULTIPLY;
-            case SqlBaseLexer.SLASH:
-                return ArithmeticExpression.Type.DIVIDE;
-            case SqlBaseLexer.PERCENT:
-                return ArithmeticExpression.Type.MODULUS;
-            default:
-                throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
-        }
+        return switch (operator.getType()) {
+            case SqlBaseLexer.PLUS -> ArithmeticExpression.Type.ADD;
+            case SqlBaseLexer.MINUS -> ArithmeticExpression.Type.SUBTRACT;
+            case SqlBaseLexer.ASTERISK -> ArithmeticExpression.Type.MULTIPLY;
+            case SqlBaseLexer.SLASH -> ArithmeticExpression.Type.DIVIDE;
+            case SqlBaseLexer.PERCENT -> ArithmeticExpression.Type.MODULUS;
+            default -> throw new UnsupportedOperationException(UNSUPPORTED_OP_STR + operator.getText());
+        };
     }
 
     private TrimMode getTrimMode(Token type) {
         if (type == null) {
             return TrimMode.BOTH;
         }
-        switch (type.getType()) {
-            case SqlBaseLexer.BOTH:
-                return TrimMode.BOTH;
-            case SqlBaseLexer.LEADING:
-                return TrimMode.LEADING;
-            case SqlBaseLexer.TRAILING:
-                return TrimMode.TRAILING;
-            default:
-                throw new UnsupportedOperationException("Unsupported trim mode: " + type.getText());
-        }
+        return switch (type.getType()) {
+            case SqlBaseLexer.BOTH -> TrimMode.BOTH;
+            case SqlBaseLexer.LEADING -> TrimMode.LEADING;
+            case SqlBaseLexer.TRAILING -> TrimMode.TRAILING;
+            default -> throw new UnsupportedOperationException("Unsupported trim mode: " + type.getText());
+        };
     }
 
     private static ComparisonExpression.Type getComparisonOperator(Token symbol) {
-        switch (symbol.getType()) {
-            case SqlBaseLexer.EQ:
-                return ComparisonExpression.Type.EQUAL;
-            case SqlBaseLexer.NEQ:
-                return ComparisonExpression.Type.NOT_EQUAL;
-            case SqlBaseLexer.LT:
-                return ComparisonExpression.Type.LESS_THAN;
-            case SqlBaseLexer.LTE:
-                return ComparisonExpression.Type.LESS_THAN_OR_EQUAL;
-            case SqlBaseLexer.GT:
-                return ComparisonExpression.Type.GREATER_THAN;
-            case SqlBaseLexer.GTE:
-                return ComparisonExpression.Type.GREATER_THAN_OR_EQUAL;
-            case SqlBaseLexer.LLT:
-                return ComparisonExpression.Type.CONTAINED_WITHIN;
-            case SqlBaseLexer.REGEX_MATCH:
-                return ComparisonExpression.Type.REGEX_MATCH;
-            case SqlBaseLexer.REGEX_NO_MATCH:
-                return ComparisonExpression.Type.REGEX_NO_MATCH;
-            case SqlBaseLexer.REGEX_MATCH_CI:
-                return ComparisonExpression.Type.REGEX_MATCH_CI;
-            case SqlBaseLexer.REGEX_NO_MATCH_CI:
-                return ComparisonExpression.Type.REGEX_NO_MATCH_CI;
-            default:
-                throw new UnsupportedOperationException("Unsupported operator: " + symbol.getText());
-        }
+        return switch (symbol.getType()) {
+            case SqlBaseLexer.EQ -> ComparisonExpression.Type.EQUAL;
+            case SqlBaseLexer.NEQ -> ComparisonExpression.Type.NOT_EQUAL;
+            case SqlBaseLexer.LT -> ComparisonExpression.Type.LESS_THAN;
+            case SqlBaseLexer.LTE -> ComparisonExpression.Type.LESS_THAN_OR_EQUAL;
+            case SqlBaseLexer.GT -> ComparisonExpression.Type.GREATER_THAN;
+            case SqlBaseLexer.GTE -> ComparisonExpression.Type.GREATER_THAN_OR_EQUAL;
+            case SqlBaseLexer.LLT -> ComparisonExpression.Type.CONTAINED_WITHIN;
+            case SqlBaseLexer.REGEX_MATCH -> ComparisonExpression.Type.REGEX_MATCH;
+            case SqlBaseLexer.REGEX_NO_MATCH -> ComparisonExpression.Type.REGEX_NO_MATCH;
+            case SqlBaseLexer.REGEX_MATCH_CI -> ComparisonExpression.Type.REGEX_MATCH_CI;
+            case SqlBaseLexer.REGEX_NO_MATCH_CI -> ComparisonExpression.Type.REGEX_NO_MATCH_CI;
+            default -> throw new UnsupportedOperationException(UNSUPPORTED_OP_STR + symbol.getText());
+        };
     }
 
     private static CurrentTime.Type getDateTimeFunctionType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.CURRENT_DATE:
-                return CurrentTime.Type.DATE;
-            case SqlBaseLexer.CURRENT_TIME:
-                return CurrentTime.Type.TIME;
-            case SqlBaseLexer.CURRENT_TIMESTAMP:
-                return CurrentTime.Type.TIMESTAMP;
-            default:
-                throw new UnsupportedOperationException("Unsupported special function: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.CURRENT_DATE -> CurrentTime.Type.DATE;
+            case SqlBaseLexer.CURRENT_TIME -> CurrentTime.Type.TIME;
+            case SqlBaseLexer.CURRENT_TIMESTAMP -> CurrentTime.Type.TIMESTAMP;
+            default -> throw new UnsupportedOperationException("Unsupported special function: " + token.getText());
+        };
     }
 
     private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.AND:
-                return LogicalBinaryExpression.Type.AND;
-            case SqlBaseLexer.OR:
-                return LogicalBinaryExpression.Type.OR;
-            default:
-                throw new IllegalArgumentException("Unsupported operator: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.AND -> LogicalBinaryExpression.Type.AND;
+            case SqlBaseLexer.OR -> LogicalBinaryExpression.Type.OR;
+            default -> throw new IllegalArgumentException(UNSUPPORTED_OP_STR + token.getText());
+        };
     }
 
     private static BitwiseExpression.Type getBitwiseOperator(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.BITWISE_AND:
-                return BitwiseExpression.Type.AND;
-            case SqlBaseLexer.BITWISE_OR:
-                return BitwiseExpression.Type.OR;
-            case SqlBaseLexer.BITWISE_XOR:
-                return BitwiseExpression.Type.XOR;
-            default:
-                throw new IllegalArgumentException("Unsupported operator: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.BITWISE_AND -> BitwiseExpression.Type.AND;
+            case SqlBaseLexer.BITWISE_OR -> BitwiseExpression.Type.OR;
+            case SqlBaseLexer.BITWISE_XOR -> BitwiseExpression.Type.XOR;
+            default -> throw new IllegalArgumentException(UNSUPPORTED_OP_STR + token.getText());
+        };
     }
 
     private static SortItem.NullOrdering getNullOrderingType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.FIRST:
-                return SortItem.NullOrdering.FIRST;
-            case SqlBaseLexer.LAST:
-                return SortItem.NullOrdering.LAST;
-            default:
-                throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.FIRST -> SortItem.NullOrdering.FIRST;
+            case SqlBaseLexer.LAST -> SortItem.NullOrdering.LAST;
+            default -> throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
+        };
     }
 
     private static SortItem.Ordering getOrderingType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.ASC:
-                return SortItem.Ordering.ASCENDING;
-            case SqlBaseLexer.DESC:
-                return SortItem.Ordering.DESCENDING;
-            default:
-                throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.ASC -> SortItem.Ordering.ASCENDING;
+            case SqlBaseLexer.DESC -> SortItem.Ordering.DESCENDING;
+            default -> throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
+        };
     }
 
     private static String getClazz(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.SCHEMA:
-                return SCHEMA;
-            case SqlBaseLexer.TABLE:
-                return TABLE;
-            case SqlBaseLexer.VIEW:
-                return VIEW;
-            default:
-                throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
-
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.SCHEMA -> SCHEMA;
+            case SqlBaseLexer.TABLE -> TABLE;
+            case SqlBaseLexer.VIEW -> VIEW;
+            default -> throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
+        };
     }
 
-    private static ArrayComparisonExpression.Quantifier getComparisonQuantifier(Token symbol) {
-        switch (symbol.getType()) {
-            case SqlBaseLexer.ALL:
-                return ArrayComparisonExpression.Quantifier.ALL;
-            case SqlBaseLexer.ANY:
-                return ArrayComparisonExpression.Quantifier.ANY;
-            case SqlBaseLexer.SOME:
-                return ArrayComparisonExpression.Quantifier.ANY;
-            default:
-                throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
-        }
+    private static Quantifier getComparisonQuantifier(Token symbol) {
+        return switch (symbol.getType()) {
+            case SqlBaseLexer.ALL -> Quantifier.ALL;
+            case SqlBaseLexer.ANY -> Quantifier.ANY;
+            case SqlBaseLexer.SOME -> Quantifier.ANY;
+            default -> throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
+        };
     }
 
     private List<QualifiedName> getIdents(List<SqlBaseParser.QnameContext> qnames) {
-        return qnames.stream().map(this::getQualifiedName).collect(toList());
+        return qnames.stream().map(this::getQualifiedName).toList();
     }
 
     private static void validateFunctionName(QualifiedName functionName) {
@@ -2446,36 +2401,26 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     private static WindowFrame.Mode getFrameType(Token type) {
-        switch (type.getType()) {
-            case SqlBaseLexer.RANGE:
-                return WindowFrame.Mode.RANGE;
-            case SqlBaseLexer.ROWS:
-                return WindowFrame.Mode.ROWS;
-            default:
-                throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
-        }
+        return switch (type.getType()) {
+            case SqlBaseLexer.RANGE -> WindowFrame.Mode.RANGE;
+            case SqlBaseLexer.ROWS -> WindowFrame.Mode.ROWS;
+            default -> throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
+        };
     }
 
     private static FrameBound.Type getBoundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.FOLLOWING;
-            default:
-                throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.PRECEDING -> FrameBound.Type.PRECEDING;
+            case SqlBaseLexer.FOLLOWING -> FrameBound.Type.FOLLOWING;
+            default -> throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
+        };
     }
 
     private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.UNBOUNDED_PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.UNBOUNDED_FOLLOWING;
-
-            default:
-                throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-        }
+        return switch (token.getType()) {
+            case SqlBaseLexer.PRECEDING -> FrameBound.Type.UNBOUNDED_PRECEDING;
+            case SqlBaseLexer.FOLLOWING -> FrameBound.Type.UNBOUNDED_FOLLOWING;
+            default -> throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
+        };
     }
 }
