@@ -30,7 +30,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.protocols.postgres.ClientInterrupted;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
@@ -136,8 +135,8 @@ public class RowConsumerToResultReceiver implements RowConsumer {
 
     public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
         if (!this.resultReceiver.completionFuture().isDone()) {
-            // interrupt previous resultReceiver before replacing it, to ensure future triggers
-            this.resultReceiver.fail(new ClientInterrupted());
+            // finish previous resultReceiver before replacing it, to ensure future triggers
+            this.resultReceiver.allFinished();
         }
         this.rowCount = 0;
         this.resultReceiver = resultReceiver;
