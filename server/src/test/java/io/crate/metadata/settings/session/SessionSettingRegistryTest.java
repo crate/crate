@@ -55,11 +55,27 @@ public class SessionSettingRegistryTest {
     );
 
     @Test
-    public void testMaxIndexKeysSessionSettingCannotBeChanged() {
+    public void test_max_index_keys_session_setting_cannot_be_changed() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
-        assertThrows(UnsupportedOperationException.class,
-                     () -> setting.apply(sessionSettings, generateInput("32"), eval),
-                     "\"max_index_keys\" cannot be changed.");
+        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("32"), eval))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("\"max_index_keys\" cannot be changed.");
+    }
+
+    @Test
+    public void test_server_version_num_session_setting_cannot_be_changed() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION_NUM);
+        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("100000"), eval))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("\"server_version_num\" cannot be changed.");
+    }
+
+    @Test
+    public void test_server_version_session_setting_cannot_be_changed() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION);
+        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("10.0"), eval))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("\"server_version\" cannot be changed.");
     }
 
     @Test
