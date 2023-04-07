@@ -21,6 +21,7 @@
 
 package io.crate.metadata.settings.session;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -59,6 +60,14 @@ public class SessionSettingRegistryTest {
         assertThrows(UnsupportedOperationException.class,
                      () -> setting.apply(sessionSettings, generateInput("32"), eval),
                      "\"max_index_keys\" cannot be changed.");
+    }
+
+    @Test
+    public void test_standard_confirming_strings_session_setting_cannot_be_changed() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
+        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("no"), eval))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("\"standard_conforming_strings\" cannot be changed.");
     }
 
     @Test
