@@ -54,7 +54,8 @@ None
 Changes
 =======
 
-None
+- Added the :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>` 
+  read-only session setting for improved compatibility with PostgreSQL clients.
 
 Fixes
 =====

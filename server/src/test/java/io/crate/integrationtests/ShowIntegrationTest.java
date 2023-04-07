@@ -429,7 +429,8 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.",
             "search_path| doc| Sets the schema search order.",
             "server_version| 11.0| Reports the emulated PostgreSQL version number",
-            "server_version_num| 110000| Reports the emulated PostgreSQL version number"
+            "server_version_num| 110000| Reports the emulated PostgreSQL version number",
+            "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally."
         );
     }
 
