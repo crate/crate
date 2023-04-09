@@ -54,7 +54,8 @@ None
 Changes
 =======
 
-None
+- Added the :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>` 
+  read-only session setting for improved compatibility with PostgreSQL clients.
 
 Fixes
 =====
@@ -62,6 +63,12 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue that led to ``NullPointerException`` when trying to query an
+  ``OBJECT`` field with no values, using the ``NOT`` operator, e.g.::
+
+     CREATE TABLE test (obj OBJECT(DYNAMIC)); -- no data
+     SELECT myobj FROM test WHERE (obj::TEXT) NOT LIKE '%value%';
 
 - Fixed an issue in the PostgreSQL wire protocol implementation that could
   lead to ``ClientInterrupted`` errors with some clients. An
