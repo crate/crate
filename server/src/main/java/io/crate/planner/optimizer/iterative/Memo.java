@@ -29,11 +29,14 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.statistics.Stats;
 
 /**
  * Memo is used as part of an iterative Optimizer as an in-place
@@ -111,6 +114,15 @@ public class Memo {
      */
     public LogicalPlan extract() {
         return extract(resolve(rootGroup));
+    }
+
+    public void storeStats(int groupId, PlanNodeStatsEstimate stats)
+    {
+        Group group = getGroup(groupId);
+        if (group.stats != null) {
+            evictStatisticsAndCost(groupId); // cost is derived from stats, also needs eviction
+        }
+        group.stats = requireNonNull(stats, "stats is null");
     }
 
     private LogicalPlan extract(LogicalPlan node) {
@@ -217,6 +229,8 @@ public class Memo {
 
         private LogicalPlan membership;
         private final List<Integer> incomingReferences = new ArrayList<>();
+        @Nullable
+        private Stats stats;
 
         private Group(LogicalPlan member) {
             this.membership = requireNonNull(member, "member is null");
