@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -491,57 +492,55 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         try (Session testUserSession = testUserSession()) {
             execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
         }
-        assertThat(response.rowCount(), is(46L));
-        assertThat(printedTable(response.rows()), is(
-            """
-                character_sets
-                columns
-                columns_pkey
-                key_column_usage
-                key_column_usage_pkey
-                pg_am
-                pg_attrdef
-                pg_attribute
-                pg_class
-                pg_constraint
-                pg_database
-                pg_description
-                pg_enum
-                pg_index
-                pg_indexes
-                pg_locks
-                pg_namespace
-                pg_proc
-                pg_publication
-                pg_publication_tables
-                pg_range
-                pg_roles
-                pg_settings
-                pg_shdescription
-                pg_stats
-                pg_subscription
-                pg_subscription_rel
-                pg_tables
-                pg_tablespace
-                pg_type
-                pg_views
-                referential_constraints
-                referential_constraints_pkey
-                routines
-                schemata
-                schemata_pkey
-                sql_features
-                sql_features_pkey
-                table_constraints
-                table_constraints_pkey
-                table_partitions
-                table_partitions_pkey
-                tables
-                tables_pkey
-                views
-                views_pkey
-                """
-        ));
+        assertThat(response).hasRows(
+            "character_sets",
+            "columns",
+            "columns_pkey",
+            "key_column_usage",
+            "key_column_usage_pkey",
+            "pg_am",
+            "pg_attrdef",
+            "pg_attribute",
+            "pg_class",
+            "pg_constraint",
+            "pg_cursors",
+            "pg_database",
+            "pg_description",
+            "pg_enum",
+            "pg_index",
+            "pg_indexes",
+            "pg_locks",
+            "pg_namespace",
+            "pg_proc",
+            "pg_publication",
+            "pg_publication_tables",
+            "pg_range",
+            "pg_roles",
+            "pg_settings",
+            "pg_shdescription",
+            "pg_stats",
+            "pg_subscription",
+            "pg_subscription_rel",
+            "pg_tables",
+            "pg_tablespace",
+            "pg_type",
+            "pg_views",
+            "referential_constraints",
+            "referential_constraints_pkey",
+            "routines",
+            "schemata",
+            "schemata_pkey",
+            "sql_features",
+            "sql_features_pkey",
+            "table_constraints",
+            "table_constraints_pkey",
+            "table_partitions",
+            "table_partitions_pkey",
+            "tables",
+            "tables_pkey",
+            "views",
+            "views_pkey"
+        );
 
         //create table that a new user is not privileged to access
         executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -637,7 +636,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession);
-            assertThat(response.rowCount(), is(503L));
+            assertThat(response.rowCount(), is(509L));
 
             //create a table with an attribute that a new user is not privileged to access
             executeAsSuperuser("create table test_schema.my_table (my_col int)");

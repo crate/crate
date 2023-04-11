@@ -34,6 +34,8 @@ A cursor is used to retrieve a small number of rows at a time from a query with
 a larger result set. After creating a cursor, rows are fetched using :ref:`FETCH
 <sql-fetch>`.
 
+Declared cursors are visible in the ``pg_catalog.pg_cursors`` table.
+
 
 .. SEEALSO::
 

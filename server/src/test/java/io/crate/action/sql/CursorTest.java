@@ -79,6 +79,8 @@ public class CursorTest extends ESTestCase {
         queryIterator.completeExceptionally(failure);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             false,
             Hold.WITHOUT,
             queryIterator,
@@ -101,6 +103,8 @@ public class CursorTest extends ESTestCase {
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             false,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
@@ -150,6 +154,8 @@ public class CursorTest extends ESTestCase {
 
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             false,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(batchIterator),
@@ -190,6 +196,8 @@ public class CursorTest extends ESTestCase {
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
@@ -224,6 +232,8 @@ public class CursorTest extends ESTestCase {
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
@@ -256,12 +266,14 @@ public class CursorTest extends ESTestCase {
         CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
-                new NoopCircuitBreaker("dummy"),
-                true,
-                Hold.WITHOUT,
-                CompletableFuture.completedFuture(rows),
-                result,
-                List.of(new InputColumn(0, DataTypes.INTEGER))
+            new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
+            true,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(rows),
+            result,
+            List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
         final TestingRowConsumer errorConsumer = new TestingRowConsumer();
@@ -285,6 +297,8 @@ public class CursorTest extends ESTestCase {
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
@@ -320,12 +334,14 @@ public class CursorTest extends ESTestCase {
         CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
-                new NoopCircuitBreaker("dummy"),
-                true,
-                Hold.WITHOUT,
-                CompletableFuture.completedFuture(rows),
-                result,
-                List.of(new InputColumn(0, DataTypes.INTEGER))
+            new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
+            true,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(rows),
+            result,
+            List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
         // Move forward to last row
@@ -394,6 +410,8 @@ public class CursorTest extends ESTestCase {
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
@@ -431,12 +449,14 @@ public class CursorTest extends ESTestCase {
         CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = rows(1, 5);
         Cursor cursor = new Cursor(
-                new NoopCircuitBreaker("dummy"),
-                true,
-                Hold.WITHOUT,
-                CompletableFuture.completedFuture(rows),
-                result,
-                List.of(new InputColumn(0, DataTypes.INTEGER))
+            new NoopCircuitBreaker("dummy"),
+            "c1",
+            "declare c1 ... select * from dummy",
+            true,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(rows),
+            result,
+            List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
