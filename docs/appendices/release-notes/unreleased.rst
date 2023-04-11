@@ -54,9 +54,16 @@ None
 Changes
 =======
 
+- Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
+  ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
+  e.g.::
+
+    SELECT * FROM test OFFSET CAST(? AS long) LIMIT '20'::int
+
 - Added the ``pg_catalog.pg_cursors`` table to expose open cursors.
 
-- Added the :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>` 
+- Added the
+  :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
   read-only session setting for improved compatibility with PostgreSQL clients.
 
 Fixes

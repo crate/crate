@@ -826,6 +826,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze(
             "create table t (id int primary key) clustered into ? shards", 2);
         assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("2"));
+        analysis = analyze(
+            "create table t (id int primary key) clustered into ?::int shards", "21");
+        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("21"));
     }
 
     @Test

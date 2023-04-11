@@ -36,6 +36,24 @@ Different types have different notations. The simplest forms are:
     - :ref:`data-types`
 
 
+.. _sql-integer-literal-value:
+
+Integer literal value
+---------------------
+
+Integer literals are a subcategory of :ref:`literal values <sql-literal-value>`
+and can be on of the: numeric literals, ``null``,
+a :ref:`parameter reference <sql-parameter-reference>`, or a
+:ref:`CAST/TRY CAST <sql-type-cast>` expression, for which the resulting
+datatype can be converted to an :ref:`integer <type-integer>`, e.g.::
+
+  123
+  null
+  '10'::int
+  CAST(? AS long)
+  TRY_CAST(? AS short)
+
+
 .. _sql-column-reference:
 
 Column reference

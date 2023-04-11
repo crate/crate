@@ -665,9 +665,11 @@ public class TestStatementBuilder {
         printStatement("create table t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
         printStatement("create table t (id integer primary key, name string) clustered into ? shards");
+        printStatement("create table t (id integer primary key, name string) clustered into CAST('123' AS int) shards");
         printStatement("create table t (id integer primary key, name string) clustered by (id)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into ? shards");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into ?::int shards");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=?)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
@@ -989,6 +991,8 @@ public class TestStatementBuilder {
         printStatement("select * from foo order by 1, 2 fetch first ? row only offset null rows");
         printStatement("select * from foo order by 1, 2 offset 10 rows limit all");
         printStatement("select * from foo order by 1, 2 offset 10 limit 5");
+        printStatement("select * from foo order by 1, 2 offset '120'::int limit ?::short");
+        printStatement("select * from foo order by 1, 2 offset CAST(? AS long) limit '15'::int");
         printStatement("select * from foo a (x, y, z)");
         printStatement("select *, 123, * from foo");
         printStatement("select show from foo");
@@ -1734,12 +1738,18 @@ public class TestStatementBuilder {
     @Test
     public void testAlterTableReroute() {
         printStatement("alter table t reroute move shard 1 from 'node1' to 'node2'");
+        printStatement("alter table t reroute move shard '2'::short from 'node1' to 'node2'");
+        printStatement("alter table t reroute move shard CAST(? AS long) from 'node1' to 'node2'");
         printStatement("alter table t partition (parted_col = ?) reroute move shard ? from ? to ?");
         printStatement("alter table t reroute allocate replica shard 1 on 'node1'");
+        printStatement("alter table t reroute allocate replica shard '12'::int on 'node1'");
         printStatement("alter table t reroute cancel shard 1 on 'node1'");
+        printStatement("alter table t reroute cancel shard CAST('12' AS int) on 'node1'");
+        printStatement("alter table t reroute cancel shard ?::long on 'node1'");
         printStatement("alter table t reroute cancel shard 1 on 'node1' with (allow_primary = true)");
         printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD 1 ON 'node1' WITH (accept_data_loss = true, foo = ?)");
         printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD ? ON ? ");
+        printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD '12'::short ON ? ");
     }
 
     @Test

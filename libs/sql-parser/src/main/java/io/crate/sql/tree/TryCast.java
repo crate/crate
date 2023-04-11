@@ -21,45 +21,18 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+public class TryCast extends AbstractCast {
 
-public class TryCast extends Expression {
-    private final Expression expression;
-    private final ColumnType type;
-
-    public TryCast(Expression expression, ColumnType type) {
-        this.expression = expression;
-        this.type = type;
+    public TryCast(Expression expression, ColumnType<?> type) {
+        super(expression, type);
     }
 
-    public Expression getExpression() {
-        return expression;
-    }
-
-    public ColumnType getType() {
-        return type;
+    public TryCast(Expression expression, ColumnType<?> type, boolean isIntegerOnly) {
+        super(expression, type, isIntegerOnly);
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitTryCast(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        TryCast tryCast = (TryCast) o;
-        return Objects.equals(expression, tryCast.expression) &&
-               Objects.equals(type, tryCast.type);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(expression, type);
     }
 }
