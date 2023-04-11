@@ -38,6 +38,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.testing.UseRandomizedOptimizerRules;
+
 public class MaxDocsLimitIT extends IntegTestCase {
 
     private static final AtomicInteger maxDocs = new AtomicInteger();
@@ -105,6 +107,7 @@ public class MaxDocsLimitIT extends IntegTestCase {
             .hasMessageContaining("Number of documents in the index can't exceed [" + maxDocs.get() + "]");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testMaxDocsLimitConcurrently() throws Exception {
         cluster().ensureAtLeastNumDataNodes(1);

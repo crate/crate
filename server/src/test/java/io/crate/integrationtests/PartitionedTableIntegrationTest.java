@@ -92,6 +92,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
+@UseRandomizedOptimizerRules(0)
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 

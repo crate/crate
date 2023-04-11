@@ -183,6 +183,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_correlated_subquery_used_in_virtual_table_with_union() {
         String stmt = """

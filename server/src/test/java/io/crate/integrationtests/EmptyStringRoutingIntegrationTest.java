@@ -32,6 +32,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 /**
  * In ElasticSearch a routing value of '' is treated as if there is no routing
@@ -92,6 +93,7 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         assertThat((long) response.rows()[0][1], is(2L));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertEmtpyStringRoutingIsRealtime() throws Exception {
         execute("create table t (i int primary key, c string primary key, a int)" +

@@ -68,6 +68,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
@@ -355,6 +356,7 @@ public class DiskUsagesITest extends IntegTestCase {
         });
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     @UseRandomizedSchema(random = false)
     @UseJdbc(0) // need execute to throw ClusterBlockException instead of PGException

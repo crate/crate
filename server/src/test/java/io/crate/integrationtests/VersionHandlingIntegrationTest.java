@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class VersionHandlingIntegrationTest extends IntegTestCase {
 
@@ -177,6 +178,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows()), is("1\n"));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSelectGroupByVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");

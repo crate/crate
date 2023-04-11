@@ -53,6 +53,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
@@ -245,6 +246,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         assertThat(getByPath(sourceMap, "properties.my_object.properties.b.inner.type")).isEqualTo("keyword");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testAddColumnToStrictObject() throws Exception {
         execute("create table books(" +

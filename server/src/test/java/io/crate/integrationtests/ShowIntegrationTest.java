@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -388,6 +389,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             .hasMessageContaining("Unknown session setting name 'foo'.");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
     @UseJdbc(1)
     @Test

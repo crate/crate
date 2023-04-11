@@ -30,8 +30,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
+@UseRandomizedOptimizerRules(0)
 public class SwapTableITest extends IntegTestCase {
 
     @Test
