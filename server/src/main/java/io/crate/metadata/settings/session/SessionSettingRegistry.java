@@ -35,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
@@ -183,6 +184,12 @@ public class SessionSettingRegistry {
 
     public Map<String, SessionSetting<?>> settings() {
         return settings;
+    }
+
+    public Iterable<NamedSessionSetting> namedSessionSettings(TransactionContext txnCtx) {
+        return () -> settings.entrySet().stream()
+            .map(x -> new NamedSessionSetting(x.getKey(), x.getValue(), txnCtx))
+            .iterator();
     }
 
     private static String[] objectsToStringArray(Object[] objects) {

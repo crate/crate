@@ -37,7 +37,6 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.settings.session.NamedSessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -147,16 +146,11 @@ public class PgCatalogTableDefinitions {
             PgTablespaceTable.create().expressions(),
             false
         ));
-        Iterable<NamedSessionSetting> sessionSettings =
-            () -> sessionSettingRegistry.settings().entrySet().stream()
-                .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))
-                .iterator();
         tableDefinitions.put(PgSettingsTable.IDENT, new StaticTableDefinition<>(
-            () -> sessionSettings,
+            (txnCtx, user) -> completedFuture(sessionSettingRegistry.namedSessionSettings(txnCtx)),
             PgSettingsTable.create().expressions(),
-            (txnCtx, settingInfo) -> settingInfo.resolveValue(txnCtx)
-            )
-        );
+            false
+        ));
         tableDefinitions.put(PgIndexesTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
             PgIndexesTable.create().expressions(),
