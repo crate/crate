@@ -29,16 +29,14 @@ public class NamedSessionSetting {
     private final SessionSetting<?> sessionSetting;
 
     private final String name;
-    private String currentValue;
+    private final String currentValue;
 
-    public NamedSessionSetting(String name, SessionSetting<?> sessionSetting) {
+    public NamedSessionSetting(String name,
+                               SessionSetting<?> sessionSetting,
+                               TransactionContext txnCtx) {
         this.name = name;
         this.sessionSetting = sessionSetting;
-    }
-
-    public NamedSessionSetting resolveValue(TransactionContext txnCtx) {
         this.currentValue = sessionSetting.getValue(txnCtx.sessionSettings());
-        return this;
     }
 
     public String name() {

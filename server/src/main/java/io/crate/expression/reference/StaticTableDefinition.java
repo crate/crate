@@ -25,7 +25,6 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
@@ -55,17 +54,6 @@ public class StaticTableDefinition<T> {
         this.getRecords = (t, u) -> iterable.get();
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
         this.involvesIO = involvesIO;
-    }
-
-    public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
-                                 BiFunction<TransactionContext, T, T> applyContext) {
-        this.getRecords = (txnCtx, u) -> completedFuture(() ->
-            StreamSupport.stream(iterable.get().spliterator(), false)
-                .map(record -> applyContext.apply(txnCtx, record))
-                .iterator());
-        this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
-        this.involvesIO = true;
     }
 
     public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
