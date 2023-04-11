@@ -457,4 +457,20 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(result).isEqualTo(function);
     }
+
+    @Test
+    public void limit_and_offset_only_accept_integer_types_for_cast() {
+        assertThatThrownBy(() -> executor.analyze("SELECT 1 LIMIT '127.0.0.1'::ip"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot cast to a datatype that is not convertable to `integer`");
+        assertThatThrownBy(() -> executor.analyze("SELECT 1 LIMIT TRY_CAST('{\"name\"=\"Arthur\"}' AS object)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot cast to a datatype that is not convertable to `integer`");
+        assertThatThrownBy(() -> executor.analyze("SELECT 1 OFFSET CAST(? AS ip)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot cast to a datatype that is not convertable to `integer`");
+        assertThatThrownBy(() -> executor.analyze("SELECT 1 OFFSET TRY_CAST('{\"name\"=\"Arthur\"}' AS object)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot cast to a datatype that is not convertable to `integer`");
+    }
 }

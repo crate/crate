@@ -336,6 +336,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.limit()).isEqualTo(Literal.of(10L));
         relation = executor.analyze("select * from sys.nodes fetch first 10 rows only");
         assertThat(relation.limit()).isEqualTo(Literal.of(10L));
+        relation = executor.analyze("select * from sys.nodes fetch first '20'::long rows only");
+        assertThat(relation.limit()).isEqualTo(Literal.of(20L));
+        relation = executor.analyze("select * from sys.nodes limit CAST(? AS int)");
+        assertThat(relation.limit()).isExactlyInstanceOf(ParameterSymbol.class);
+        assertThat(relation.limit()).hasDataType(DataTypes.LONG);
+        relation = executor.analyze("select * from sys.nodes limit CAST(null AS int)");
+        assertThat(relation.limit()).isLiteral(null);
 
         relation = executor.analyze("select * from sys.nodes limit all offset 3");
         assertThat(relation.limit()).isNull();
@@ -363,6 +370,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = executor.analyze("select * from sys.nodes limit 1 offset 3 rows");
         assertThat(relation.offset()).isEqualTo(Literal.of(3L));
         relation = executor.analyze("select * from sys.nodes limit 1 offset null");
+        assertThat(relation.offset()).isLiteral(null);
+        relation = executor.analyze("select * from sys.nodes offset '20'::long rows");
+        assertThat(relation.offset()).isEqualTo(Literal.of(20L));
+        relation = executor.analyze("select * from sys.nodes offset CAST(? AS int)");
+        assertThat(relation.offset()).isExactlyInstanceOf(ParameterSymbol.class);
+        assertThat(relation.offset()).hasDataType(DataTypes.LONG);
+        relation = executor.analyze("select * from sys.nodes offset CAST(null AS int)");
         assertThat(relation.offset()).isLiteral(null);
     }
 

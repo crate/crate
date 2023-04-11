@@ -324,7 +324,7 @@ primaryExpression
     | ident (DOT ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
-    | ARRAY? EMPTY_SQUARE_BRACKET                                                  #emptyArray
+    | ARRAY? EMPTY_SQUARE_BRACKET                                                    #emptyArray
     ;
 
 explicitFunction
@@ -376,9 +376,12 @@ parameterOrSimpleLiteral
     ;
 
 parameterOrInteger
-    : parameterExpr
-    | integerLiteral
-    | nullLiteral
+    : parameterExpr                                                                  #parameterExpression
+    | integerLiteral                                                                 #intAsLiteral
+    | nullLiteral                                                                    #nullAsLiteral
+    | parameterOrLiteral CAST_OPERATOR dataType                                      #integerParamOrLiteralDoubleColonCast
+    | CAST OPEN_ROUND_BRACKET expr AS dataType CLOSE_ROUND_BRACKET                   #integerParamOrLiteralCast
+    | TRY_CAST OPEN_ROUND_BRACKET expr AS dataType CLOSE_ROUND_BRACKET               #integerParamOrLiteralCast
     ;
 
 parameterOrIdent

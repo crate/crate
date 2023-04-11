@@ -450,7 +450,7 @@ rows::
 
 :number_of_results:
   Specifies the maximum number of result rows to return. Must be a non-negative
-  long or ``null``.
+  :ref:`integer literal <sql-integer-literal-value>`.
 
 .. NOTE::
 
@@ -480,7 +480,7 @@ rows, and is an alternative to the :ref:`LIMIT <sql-select-limit>` clause::
 
 :number_of_results:
   Specifies the maximum number of result rows to return. Must be a non-negative
-  long or ``null``.
+  :ref:`integer literal <sql-integer-literal-value>`.
 
 .. NOTE::
 
@@ -509,7 +509,7 @@ The optional ``OFFSET`` clause allows to skip result rows at the beginning::
 
 :start:
   Specifies the number of rows to skip before starting to return rows. Must be a
-  non-negative long or null.
+  non-negative :ref:`integer literal <sql-integer-literal-value>`.
 
 .. NOTE::
 

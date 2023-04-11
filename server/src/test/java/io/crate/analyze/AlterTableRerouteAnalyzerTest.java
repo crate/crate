@@ -101,6 +101,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
+
+        command = analyze(
+            "ALTER TABLE users REROUTE MOVE SHARD CAST('11' AS int) FROM 'n2' TO 'n1'");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(11);
+        assertThat(command.fromNode()).isEqualTo("n2");
+        assertThat(command.toNode()).isEqualTo("n1");
     }
 
     @Test
@@ -109,6 +116,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
             "ALTER TABLE users REROUTE MOVE SHARD 0 FROM ? TO ?", "n2", "n1");
         assertThat(command.index()).isEqualTo("users");
         assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.fromNode()).isEqualTo("n2");
+        assertThat(command.toNode()).isEqualTo("n1");
+
+        command = analyze(
+            "ALTER TABLE users REROUTE MOVE SHARD ?::long FROM ? TO ?", "12", "n2", "n1");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(12);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
     }
@@ -144,6 +158,12 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(command.index()).isEqualTo("users");
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n1");
+
+        command = analyze(
+            "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD '12'::short ON 'n1'");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(12);
+        assertThat(command.node()).isEqualTo("n1");
     }
 
     @Test
@@ -152,6 +172,12 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON ?", "n1");
         assertThat(command.index()).isEqualTo("users");
         assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n1");
+
+        command = analyze(
+            "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD CAST(? AS int) ON ?", "123", "n1");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(123);
         assertThat(command.node()).isEqualTo("n1");
     }
 
@@ -170,6 +196,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
+
+        command = analyze(
+            "ALTER TABLE users REROUTE CANCEL SHARD CAST('12' AS long) ON 'n2'");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(12);
+        assertThat(command.node()).isEqualTo("n2");
+        assertThat(command.allowPrimary()).isFalse();
     }
 
     @Test
@@ -178,6 +211,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON ?", "n2");
         assertThat(command.index()).isEqualTo("users");
         assertThat(command.shardId()).isEqualTo(0);
+        assertThat(command.node()).isEqualTo("n2");
+        assertThat(command.allowPrimary()).isFalse();
+
+        command = analyze(
+            "ALTER TABLE users REROUTE CANCEL SHARD ?::int ON ?", "32", "n2");
+        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.shardId()).isEqualTo(32);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
     }

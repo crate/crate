@@ -1393,6 +1393,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitIntegerParamOrLiteralDoubleColonCast(SqlBaseParser.IntegerParamOrLiteralDoubleColonCastContext ctx) {
+        return new Cast((Expression) visit(ctx.parameterOrLiteral()), (ColumnType<?>) visit(ctx.dataType()), true);
+    }
+
+    @Override
+    public Node visitIntegerParamOrLiteralCast(SqlBaseParser.IntegerParamOrLiteralCastContext ctx) {
+        return generateCast(ctx.TRY_CAST() != null, ctx.expr(), ctx.dataType(), true);
+    }
+
+    @Override
     public Node visitDefaultQuerySpec(SqlBaseParser.DefaultQuerySpecContext context) {
         List<SelectItem> selectItems = visitCollection(context.selectItem(), SelectItem.class);
         return new QuerySpecification(
@@ -1851,11 +1861,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitCast(SqlBaseParser.CastContext context) {
-        if (context.TRY_CAST() != null) {
-            return new TryCast((Expression) visit(context.expr()), (ColumnType<?>) visit(context.dataType()));
-        } else {
-            return new Cast((Expression) visit(context.expr()), (ColumnType<?>) visit(context.dataType()));
-        }
+        return generateCast(context.TRY_CAST() != null, context.expr(), context.dataType(), false);
     }
 
     @Override
@@ -2422,5 +2428,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             case SqlBaseLexer.FOLLOWING -> FrameBound.Type.UNBOUNDED_FOLLOWING;
             default -> throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
         };
+    }
+
+    private Expression generateCast(boolean isTryCast,
+                                    SqlBaseParser.ExprContext expr,
+                                    SqlBaseParser.DataTypeContext datatype,
+                                    boolean isIntegerOnly) {
+        if (isTryCast) {
+            return new TryCast((Expression) visit(expr), (ColumnType<?>) visit(datatype), isIntegerOnly);
+        } else {
+            return new Cast((Expression) visit(expr), (ColumnType<?>) visit(datatype), isIntegerOnly);
+        }
     }
 }

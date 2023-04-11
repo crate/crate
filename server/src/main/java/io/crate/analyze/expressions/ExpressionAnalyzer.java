@@ -560,6 +560,9 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
+            if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
+                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
+            }
             return node.getExpression()
                 .accept(this, context)
                 .cast(
@@ -571,6 +574,9 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
+            if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
+                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
+            }
             try {
                 return node.getExpression()
                     .accept(this, context)
