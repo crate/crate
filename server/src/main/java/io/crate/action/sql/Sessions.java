@@ -24,6 +24,7 @@ package io.crate.action.sql;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +47,8 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.user.Privilege.Clazz;
+import io.crate.user.Privilege.Type;
 import io.crate.user.User;
 
 
@@ -171,5 +174,14 @@ public class Sessions {
 
     public Iterable<Session> getActive() {
         return sessions.values();
+    }
+
+    public Iterable<Cursor> getCursors(User user) {
+        return () -> sessions.values().stream()
+            .filter(session ->
+                user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, session.sessionSettings().currentSchema())
+                || session.sessionSettings().sessionUser().equals(user))
+            .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
+            .iterator();
     }
 }

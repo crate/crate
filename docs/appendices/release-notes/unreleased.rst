@@ -54,6 +54,8 @@ None
 Changes
 =======
 
+- Added the ``pg_catalog.pg_cursors`` table to expose open cursors.
+
 - Added the :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>` 
   read-only session setting for improved compatibility with PostgreSQL clients.
 

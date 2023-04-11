@@ -160,6 +160,7 @@ following tables:
  - `pg_attribute <pgsql_pg_attribute_>`__
  - `pg_class <pgsql_pg_class_>`__
  - `pg_constraint <pgsql_pg_constraint_>`__
+ - `pg_cursors <pgsql_pg_cursors_>`__
  - `pg_database <pgsql_pg_database_>`__
  - `pg_description`_
  - `pg_enum`_
@@ -538,6 +539,7 @@ CrateDB and we love to hear feedback.
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html
 .. _pgsql_pg_class: https://www.postgresql.org/docs/14/static/catalog-pg-class.html
 .. _pgsql_pg_constraint: https://www.postgresql.org/docs/14/static/catalog-pg-constraint.html
+.. _pgsql_pg_cursors: https://www.postgresql.org/docs/15/view-pg-cursors.html
 .. _pgsql_pg_database: https://www.postgresql.org/docs/14/static/catalog-pg-database.html
 .. _pgsql_pg_index: https://www.postgresql.org/docs/14/static/catalog-pg-index.html
 .. _pgsql_pg_indexes: https://www.postgresql.org/docs/14/view-pg-indexes.html

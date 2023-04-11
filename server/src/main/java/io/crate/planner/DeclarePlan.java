@@ -38,6 +38,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 
@@ -72,6 +73,8 @@ public class DeclarePlan implements Plan {
         CircuitBreaker circuitBreaker = dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY);
         Cursor cursor = new Cursor(
             circuitBreaker,
+            declareStmt.cursorName(),
+            SqlFormatter.formatSql(declareStmt),
             declareStmt.scroll(),
             declareStmt.hold(),
             cursorRowConsumer.declareResult,

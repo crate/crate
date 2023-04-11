@@ -58,16 +58,23 @@ public final class Cursor implements AutoCloseable {
     private final List<Object[]> rows = new ArrayList<>();
     private final ArrayRow sharedRow = new ArrayRow();
     private final RowAccounting<Object[]> rowAccounting;
+    private final long creationTime;
+    private final String name;
+    private final String declareStatement;
     private boolean exhausted = false;
     @VisibleForTesting
     int cursorPosition = 0;
 
     public Cursor(CircuitBreaker circuitBreaker,
+                  String name,
+                  String declareStatement,
                   boolean scroll,
                   Hold hold,
                   CompletableFuture<BatchIterator<Row>> queryIterator,
                   CompletableFuture<Void> finalResult,
                   List<Symbol> outputs) {
+        this.name = name;
+        this.declareStatement = declareStatement;
         this.scroll = scroll;
         this.hold = hold;
         this.queryIterator = queryIterator;
@@ -81,6 +88,34 @@ public final class Cursor implements AutoCloseable {
             ),
             0
         );
+        this.creationTime = System.currentTimeMillis();
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public String declareStatement() {
+        return declareStatement;
+    }
+
+    public boolean isHold() {
+        return hold == Hold.WITH;
+    }
+
+    public boolean isBinary() {
+        return false;
+    }
+
+    public boolean isScrollable() {
+        return scroll;
+    }
+
+    /**
+     * In milliseconds
+     */
+    public long creationTime() {
+        return creationTime;
     }
 
     public Hold hold() {

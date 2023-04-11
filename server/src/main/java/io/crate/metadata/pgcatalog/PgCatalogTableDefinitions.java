@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.elasticsearch.common.inject.Inject;
 
+import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
@@ -54,12 +55,13 @@ public class PgCatalogTableDefinitions {
 
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
+                                     Sessions sessions,
                                      TableStats tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
                                      SessionSettingRegistry sessionSettingRegistry,
                                      Schemas schemas,
                                      LogicalReplicationService logicalReplicationService) {
-        tableDefinitions = new HashMap<>(17);
+        tableDefinitions = new HashMap<>();
         tableDefinitions.put(PgStatsTable.NAME, new StaticTableDefinition<>(
                 tableStats::statsEntries,
                 (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relation().fqn()),
@@ -217,6 +219,11 @@ public class PgCatalogTableDefinitions {
             false)
         );
 
+        tableDefinitions.put(PgCursors.IDENT, new StaticTableDefinition<>(
+            (txnCtx, user) -> completedFuture(sessions.getCursors(user)),
+            PgCursors.create().expressions(),
+            false
+        ));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {

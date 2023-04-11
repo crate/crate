@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-public final class Cursors {
+public final class Cursors implements Iterable<Cursor> {
 
     public static final Cursors EMPTY = new Cursors(Map.of());
 
@@ -95,5 +95,10 @@ public final class Cursors {
     @Override
     public String toString() {
         return "Cursors{" + cursors.keySet() + "}";
+    }
+
+    @Override
+    public Iterator<Cursor> iterator() {
+        return cursors.values().iterator();
     }
 }
