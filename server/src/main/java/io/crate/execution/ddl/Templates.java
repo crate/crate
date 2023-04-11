@@ -38,7 +38,6 @@ public final class Templates {
             .builder(targetTemplateName)
             .patterns(Collections.singletonList(PartitionName.templatePrefix(newName.schema(), newName.name())))
             .settings(source.settings())
-            .order(source.order())
             .putMapping(source.mapping())
             .putAlias(new AliasMetadata(targetAlias))
             .version(source.version());

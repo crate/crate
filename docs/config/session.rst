@@ -148,6 +148,14 @@ Supported session settings
 
   Shows the emulated ``PostgreSQL`` server version.
 
+.. _conf-session-standard_conforming_strings:
+
+**standard_conforming_strings**
+  | *Default:* ``on``
+  | *Modifiable:* ``no``
+
+  Causes ``'...'`` strings to treat backslashes literally.
+
 .. _conf-session-optimizer:
 
 **optimizer**

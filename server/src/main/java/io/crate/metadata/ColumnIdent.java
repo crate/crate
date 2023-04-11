@@ -50,7 +50,6 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
     private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
-    private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
 
     private static final Comparator<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
 
@@ -248,8 +247,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * @param columnName column name to check for validity
      */
     private static void validateSubscriptPatternInColumnName(String columnName) {
-        if (SUBSCRIPT_PATTERN.matcher(columnName).matches()) {
-            throw new InvalidColumnNameException(columnName, "conflicts with subscript pattern");
+        if (columnName.contains("[")) {
+            throw new InvalidColumnNameException(
+                columnName, "conflicts with subscript pattern, square brackets are not allowed");
         }
     }
 

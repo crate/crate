@@ -202,7 +202,7 @@ public class PartitionNameTest extends ESTestCase {
     public void testSplitInvalid3() throws Exception {
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate("lalala"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid index name: lalala");
+            .hasMessage("Trying to create partition name from the name of a non-partitioned table lalala");
     }
 
     @Test

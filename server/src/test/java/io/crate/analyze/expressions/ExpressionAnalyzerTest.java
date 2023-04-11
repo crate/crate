@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.types.BitStringType;
 
@@ -94,6 +95,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T5_DEFINITION)
             .addTable("create table tarr (xs array(integer))")
+            .addTable("create table quoted_subscript (\"a\"\"\" int[])")
             .addTable("create table nested_obj (" +
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
@@ -361,12 +363,31 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_quoted_subscript_expression_with_base_column_name_containing_quotes() {
+        var symbol = executor.asSymbol("quoted_subscript.\"a\"\"[1]\"");
+        assertThat(symbol).isFunction(
+            "subscript",
+            isReference("a\""),
+            isLiteral(1));
+    }
+
+    @Test
     public void test_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']['c']\"");
         assertThat(symbol).isReference("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
         assertThat(symbol).isReference("myObj['x']['AbC']");
+    }
+
+    /**
+     * bug: https://github.com/crate/crate/issues/13845
+     */
+    @Test
+    public void test_invalid_quoted_subscript() {
+        assertThatThrownBy(() -> executor.asSymbol("\"\"\"a[1]\"\"\""))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column \"a[1]\" unknown");
     }
 
     @Test

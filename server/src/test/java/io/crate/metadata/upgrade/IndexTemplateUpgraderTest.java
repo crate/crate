@@ -93,7 +93,6 @@ public class IndexTemplateUpgraderTest {
         // ensure all other attributes remains the same
         assertThat(upgradedTemplate.mapping(), is(oldPartitionTemplate.mapping()));
         assertThat(upgradedTemplate.patterns(), is(oldPartitionTemplate.patterns()));
-        assertThat(upgradedTemplate.order(), is(oldPartitionTemplate.order()));
         assertThat(upgradedTemplate.aliases(), is(oldPartitionTemplate.aliases()));
 
         // ensure non partitioned table templates are untouched

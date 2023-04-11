@@ -32,12 +32,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
+import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -54,7 +56,6 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
-import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
@@ -75,7 +76,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -91,7 +91,6 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -302,16 +301,21 @@ public class MetadataCreateIndexService {
                     AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
                 }
 
-                // we only find a template when its an API call (a new index)
-                // find templates, highest order are better matching
-                List<IndexTemplateMetadata> templates =
-                        MetadataIndexTemplateService.findTemplates(currentState.metadata(), request.index());
-
-
-                Map<String, AliasMetadata> templatesAliases = new HashMap<>();
-
-                List<String> templateNames = new ArrayList<>();
-
+                // No template handling here since neither of usages of this service is relevant to them:
+                // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
+                // 2. Resize partitioned tables. findTemplates always returns an empty list since
+                //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
+                // 3. Creating partitions/indices by inserting into a partitioned table.
+                //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
+                //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
+                IndexTemplateMetadata template = null;
+                try {
+                    template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
+                } catch (Exception ex) {
+                    // Creation of regular tables or resizing a partition don't pass validation.
+                    // Catching validation errors to do a safe assertion.
+                }
+                assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
                 Map<String, Object> mapping;
                 String mappingStr = request.mapping();
@@ -320,46 +324,8 @@ public class MetadataCreateIndexService {
                 } else {
                     mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
                 }
-                final Index recoverFromIndex = request.recoverFrom();
 
-                if (recoverFromIndex == null) {
-                    // apply templates, merging the mappings into the request mapping if exists
-                    for (IndexTemplateMetadata template : templates) {
-                        templateNames.add(template.getName());
-                        String mappingString = template.mapping().string();
-                        XContentHelper.mergeDefaults(mapping,
-                            MapperService.parseMapping(xContentRegistry, mappingString));
-                        //handle aliases
-                        for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
-                            AliasMetadata aliasMetadata = cursor.value;
-                            //if an alias with same name came with the create index request itself,
-                            // ignore this one taken from the index template
-                            if (request.aliases().contains(new Alias(aliasMetadata.alias()))) {
-                                continue;
-                            }
-                            //if an alias with same name was already processed, ignore this one
-                            if (templatesAliases.containsKey(cursor.key)) {
-                                continue;
-                            }
-
-                            //Allow templatesAliases to be templated by replacing a token with the name of the index that we are applying it to
-                            if (aliasMetadata.alias().contains("{index}")) {
-                                String templatedAlias = aliasMetadata.alias().replace("{index}", request.index());
-                                aliasMetadata = new AliasMetadata(templatedAlias);
-                            }
-
-                            AliasValidator.validateAliasMetadata(aliasMetadata, request.index(), currentState.metadata());
-                            templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
-                        }
-                    }
-                }
                 Settings.Builder indexSettingsBuilder = Settings.builder();
-                if (recoverFromIndex == null) {
-                    // apply templates, here, in reverse order, since first ones are better matching
-                    for (int i = templates.size() - 1; i >= 0; i--) {
-                        indexSettingsBuilder.put(templates.get(i).settings());
-                    }
-                }
                 // now, put the request settings, so they override templates
                 indexSettingsBuilder.put(request.settings());
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
@@ -383,6 +349,8 @@ public class MetadataCreateIndexService {
                 final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
 
                 final int routingNumShards;
+
+                final Index recoverFromIndex = request.recoverFrom();
                 if (recoverFromIndex == null) {
                     Settings idxSettings = indexSettingsBuilder.build();
                     routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings);
@@ -465,15 +433,12 @@ public class MetadataCreateIndexService {
                 if (mapper != null) {
                     indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
                 }
-                for (AliasMetadata aliasMetadata : templatesAliases.values()) {
-                    indexMetadataBuilder.putAlias(aliasMetadata);
-                }
                 for (Alias alias : request.aliases()) {
                     AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 
-                indexMetadataBuilder.state(request.state());
+                indexMetadataBuilder.state(State.OPEN);
 
                 final IndexMetadata indexMetadata;
                 try {
@@ -490,27 +455,20 @@ public class MetadataCreateIndexService {
                     .put(indexMetadata, false)
                     .build();
 
-                logger.info("[{}] creating index, cause [{}], templates {}, shards [{}]/[{}]",
-                    request.index(), request.cause(), templateNames, indexMetadata.getNumberOfShards(),
+                logger.info("[{}] creating index, cause [{}], shards [{}]/[{}]",
+                    request.index(), request.cause(), indexMetadata.getNumberOfShards(),
                     indexMetadata.getNumberOfReplicas());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
-                if (!request.blocks().isEmpty()) {
-                    for (ClusterBlock block : request.blocks()) {
-                        blocks.addIndexBlock(request.index(), block);
-                    }
-                }
                 blocks.updateBlocks(indexMetadata);
 
                 ClusterState updatedState = ClusterState.builder(currentState).blocks(blocks).metadata(newMetadata).build();
 
-                if (request.state() == State.OPEN) {
-                    RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable())
-                        .addAsNew(updatedState.metadata().index(request.index()));
-                    updatedState = allocationService.reroute(
-                        ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(),
-                        "index [" + request.index() + "] created");
-                }
+                RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable())
+                    .addAsNew(updatedState.metadata().index(request.index()));
+                updatedState = allocationService.reroute(
+                    ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(),
+                    "index [" + request.index() + "] created");
                 removalExtraInfo = "cleaning up after validating index on master";
                 removalReason = IndexRemovalReason.NO_LONGER_ASSIGNED;
 
@@ -547,12 +505,11 @@ public class MetadataCreateIndexService {
 
     private void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state) {
         validateIndexName(request.index(), state);
-        validateIndexSettings(request.index(), request.settings(), state, forbidPrivateIndexSettings);
+        validateIndexSettings(request.index(), request.settings(), forbidPrivateIndexSettings);
         shardLimitValidator.validateShardLimit(request.settings(), state);
     }
 
-    public void validateIndexSettings(String indexName, final Settings settings, final ClusterState clusterState,
-                                      final boolean forbidPrivateIndexSettings) throws IndexCreationException {
+    public void validateIndexSettings(String indexName, final Settings settings, final boolean forbidPrivateIndexSettings) throws IndexCreationException {
         List<String> validationErrors = getIndexSettingsValidationErrors(settings, forbidPrivateIndexSettings);
         if (validationErrors.isEmpty() == false) {
             ValidationException validationException = new ValidationException();

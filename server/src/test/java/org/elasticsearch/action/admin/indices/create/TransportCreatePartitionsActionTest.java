@@ -21,34 +21,28 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static io.crate.testing.Asserts.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.common.collect.ImmutableOpenIntMap;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import io.crate.exceptions.SQLExceptions;
 
+@UseRandomizedSchema(random = false)
 public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     TransportCreatePartitionsAction action;
@@ -60,116 +54,104 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
-        List<String> indices = Arrays.asList("index1", "index2", "index3", "index4");
+        execute("create table test (a int, b int) " +
+            "partitioned by (a) " +
+            "clustered into 1 shards " +
+            "with (number_of_replicas=0)");
 
-        PutIndexTemplateRequest request = new PutIndexTemplateRequest("*")
-            .patterns(List.of("*"))
-            .mapping(Map.of())
-            .settings(Settings.builder()
-                .put("number_of_shards", 1)
-                .put("number_of_replicas", 0)
-            );
-        cluster().client().execute(PutIndexTemplateAction.INSTANCE, request).get();
-
-        AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(indices)
-        ).get();
-        assertThat(response.isAcknowledged(), is(true));
-
+        ensureYellow();
         Metadata indexMetadata = cluster().clusterService().state().metadata();
-        for (String index : indices) {
-            assertThat(indexMetadata.hasIndex(index), is(true));
+
+        // CREATE TABLE... PARTITIONED BY doesn't create an index, it creates only template via MetadataIndexTemplateService.
+        assertThat(indexMetadata.indices()).isEmpty();
+
+        // Inserting some records into a partitioned table leads to creating indices/partitions by TransportCreatePartitionAction.
+        execute("insert into test (a,b) values (1,1), (2,2), (3,3)");
+        execute("refresh table test");
+
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        assertThat(updatedMetadata.indices().size()).isEqualTo(3); // 1 table with 3 partitions.
+
+        // CREATE TABLE statement assigns specific names to partitioned tables indices, all having template name as a prefix.
+        // See BoundCreateTable.templateName
+        String tableTemplateName = PartitionName.templateName("doc", "test");
+
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value; // Something like "partitioned.{table_name}.{part}
+            assertThat(PartitionName.templateName(indexName)).isEqualTo(tableTemplateName);
         }
     }
 
     @Test
-    public void testRoutingOfIndicesIsNotOverridden() throws Exception {
-        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
-            .patterns(List.of("*"))
-            .mapping(Map.of())
-            .settings(Settings.builder()
-                .put("number_of_shards", 1)
-                .put("number_of_replicas", 0)
-            );
-        cluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
+    public void test_insert_into_existing_partition_does_not_recreate_it() throws Exception {
+        execute("create table table1 (a int, b int) " +
+            "partitioned by (a) " +
+            "clustered into 1 shards " +
+            "with (number_of_replicas=0)");
 
-        cluster().client().admin().indices()
-            .create(new CreateIndexRequest("index_0")
-                .settings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
-            ).get();
-        ensureYellow("index_0");
+        ensureYellow();
+        Metadata indexMetadata = cluster().clusterService().state().metadata();
 
-        CreatePartitionsRequest request = new CreatePartitionsRequest(
-            Arrays.asList("index_0", "index_1"));
+        // CREATE TABLE... PARTITIONED BY doesn't create an index, it creates only template via MetadataIndexTemplateService.
+        assertThat(indexMetadata.indices()).isEmpty();
 
-        CompletableFuture<ClusterStateUpdateResponse> response = new CompletableFuture<>();
+        // Create some indices/partitions
+        execute("insert into table1 (a,b) values (1,1), (2,2), (3,3)");
+        execute("refresh table table1");
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        List<String> indexUUIDs = new ArrayList<>();
+        for (ObjectCursor<String> cursor: updatedMetadata.indices().keys()) {
+            indexUUIDs.add(updatedMetadata.index(cursor.value).getIndexUUID());
+        }
 
-        action.createIndices(request, new ActionListener<ClusterStateUpdateResponse>() {
-            @Override
-            public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                response.complete(clusterStateUpdateResponse);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                response.completeExceptionally(e);
-            }
-        });
-
-        assertThat("Create indices action did not lead to a new cluster state",
-            response.get(5, TimeUnit.SECONDS).isAcknowledged(), is(true));
-
+        // Try to insert into same partitions, when index is created it should not be re-created
+        // Only 1 new index should be created here, for a partition 4.
+        // Existing rows shouldn't be lost.
         ClusterState currentState = cluster().clusterService().state();
-        ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
-        assertTrue("[index_0][0] must be started already", newRouting.get(0).primaryShard().started());
-    }
-
-    @Test
-    public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
-        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
-            .patterns(List.of("*"))
-            .mapping(Map.of())
-            .settings(Settings.builder()
-                .put("number_of_shards", 1)
-                .put("number_of_replicas", 0)
-            );
-        cluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
-        List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
-        AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(indices)
-        ).get();
-        assertThat(response.isAcknowledged(), is(true));
-        Metadata indexMetadata = cluster().clusterService().state().metadata();
-        for (String index : indices) {
-            assertThat(indexMetadata.hasIndex(index), is(true));
+        updatedMetadata = currentState.metadata();
+        List<String> newUUIDs = new ArrayList<>();
+        for (ObjectCursor<String> cursor: updatedMetadata.indices().keys()) {
+            newUUIDs.add(updatedMetadata.index(cursor.value).getIndexUUID());
         }
-        AcknowledgedResponse response2 = action.execute(
-            new CreatePartitionsRequest(indices)
-        ).get();
-        assertThat(response2.isAcknowledged(), is(true));
+        assertThat(newUUIDs).containsAll(indexUUIDs); // old indices are still there, they were not overwritten
+
+        execute("insert into table1 (a,b) values (1,1), (2,2), (3,3), (4,4)");
+        execute("refresh table table1");
+        execute("select a, b from table1 order by a, b");
+        assertThat(response)
+            .hasRows(
+                "1| 1",
+                "1| 1",
+                "2| 2",
+                "2| 2",
+                "3| 3",
+                "3| 3",
+                "4| 4"
+            );
     }
 
     @Test
     public void testEmpty() throws Exception {
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(List.of())).get();
-        assertThat(response.isAcknowledged(), is(true));
+        assertThat(response.isAcknowledged()).isTrue();
     }
 
     @Test
-    public void testCreateInvalidName() throws Exception {
+    public void testCreateInvalidName() {
         CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"));
-        Assertions.assertThrows(
-            InvalidIndexNameException.class,
+        assertThatThrownBy(
             () -> {
                 try {
                     action.execute(createPartitionsRequest).get();
                 } catch (Exception e) {
                     throw SQLExceptions.unwrap(e);
                 }
-            },
-            "Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
+            })
+            .isExactlyInstanceOf(InvalidIndexNameException.class)
+            .hasMessage("Invalid index name [invalid/#haha], must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
+
         // if one name is invalid no index is created
-        assertThat(cluster().clusterService().state().metadata().hasIndex("valid"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("valid")).isFalse();
     }
 }

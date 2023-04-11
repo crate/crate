@@ -46,8 +46,9 @@ public class SessionSettingRegistry {
     private static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
-    private static final String SERVER_VERSION_NUM = "server_version_num";
-    private static final String SERVER_VERSION = "server_version";
+    static final String SERVER_VERSION_NUM = "server_version_num";
+    static final String SERVER_VERSION = "server_version";
+    static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     static final String DATE_STYLE_KEY = "datestyle";
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<String>(
@@ -137,6 +138,20 @@ public class SessionSettingRegistry {
                      s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      "Reports the emulated PostgreSQL version number",
+                     DataTypes.STRING
+                 )
+            )
+            .put(STANDARD_CONFORMING_STRINGS,
+                 new SessionSetting<>(
+                     STANDARD_CONFORMING_STRINGS,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
+                     },
+                     s -> "on",
+                     () -> "on",
+                     "Causes '...' strings to treat backslashes literally.",
                      DataTypes.STRING
                  )
             )
