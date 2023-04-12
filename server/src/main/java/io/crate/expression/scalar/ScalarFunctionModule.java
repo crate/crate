@@ -204,6 +204,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         LeastFunction.register(this);
         NullIfFunction.register(this);
         IfFunction.register(this);
+        NullOrEmptyFunction.register(this);
 
         CurrentSchemaFunction.register(this);
         CurrentSchemasFunction.register(this);

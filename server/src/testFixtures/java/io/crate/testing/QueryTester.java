@@ -21,27 +21,17 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.data.BatchIterators;
-import io.crate.data.Input;
-import io.crate.execution.dml.upsert.InsertSourceGen;
-import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.symbol.FunctionCopyVisitor;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.optimizer.symbol.Optimizer;
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -56,16 +46,27 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.Iterables;
+import io.crate.data.BatchIterators;
+import io.crate.data.Input;
+import io.crate.execution.dml.upsert.InsertSourceGen;
+import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.symbol.Optimizer;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CreateTable;
 
 public final class QueryTester implements AutoCloseable {
 
@@ -96,8 +97,9 @@ public final class QueryTester implements AutoCloseable {
                 .build();
             plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
 
-            DocSchemaInfo docSchema = findDocSchema(sqlExecutor.schemas());
-            table = (DocTableInfo) docSchema.getTables().iterator().next();
+            var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);
+            String tableName = Iterables.getLast(createTable.name().getName().getParts());
+            table = sqlExecutor.resolveTableInfo(tableName);
 
             indexEnv = new IndexEnv(
                 threadPool,
@@ -112,15 +114,6 @@ public final class QueryTester implements AutoCloseable {
                 Collections.singletonMap(table.ident(), docTableRelation),
                 docTableRelation
             );
-        }
-
-        private DocSchemaInfo findDocSchema(Schemas schemas) {
-            for (SchemaInfo schema : schemas) {
-                if (schema instanceof DocSchemaInfo) {
-                    return (DocSchemaInfo) schema;
-                }
-            }
-            throw new IllegalArgumentException("Create table statement must result in the creation of a user table");
         }
 
         public Builder indexValues(String column, Object ... values) throws IOException {
