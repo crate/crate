@@ -413,6 +413,15 @@ does always return ``NULL`` when comparing ``NULL``.
     SELECT 1 row in set (... sec)
 
 
+.. NOTE::
+
+   On object columns using ``IS NULL`` can be slow because objects themselves
+   don't have indices. They only exist for their child columns.
+
+   You can either query on inner columns or try the :ref:`null_or_empty
+   <scalar-null-or-empty>` scalar for improved performance.
+
+
 .. _sql_dql_is_not_null:
 
 ``IS NOT NULL``
@@ -454,6 +463,14 @@ does always return ``NULL`` when comparing ``NULL``.
     |       12 |
     +----------+
     SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+   On object columns using ``IS NOT NULL`` can be slow because objects
+   themselves don't have indices. They only exist for their child columns.
+
+   You can either query on inner columns or try the :ref:`null_or_empty
+   <scalar-null-or-empty>` scalar for improved performance.
 
 
 .. _sql_dql_array_comparisons:
