@@ -34,34 +34,13 @@ import org.elasticsearch.ElasticsearchException;
 
 public class Queries {
 
-    public static Query newMatchAllQuery() {
-        return new MatchAllDocsQuery();
-    }
-
-    /** Return a query that matches no document. */
-    public static Query newMatchNoDocsQuery(String reason) {
-        return new MatchNoDocsQuery(reason);
-    }
-
-
     public static Query newUnmappedFieldQuery(String field) {
-        return Queries.newMatchNoDocsQuery("unmapped field [" + (field != null ? field : "null") + "]");
+        return new MatchNoDocsQuery("unmapped field [" + (field != null ? field : "null") + "]");
     }
 
     public static Query newLenientFieldQuery(String field, RuntimeException e) {
         String message = ElasticsearchException.getExceptionName(e) + ":[" + e.getMessage() + "]";
-        return Queries.newMatchNoDocsQuery("failed [" + field + "] query, caused by " + message);
-    }
-
-    public static BooleanQuery filtered(@Nullable Query query, @Nullable Query filter) {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        if (query != null) {
-            builder.add(new BooleanClause(query, Occur.MUST));
-        }
-        if (filter != null) {
-            builder.add(new BooleanClause(filter, Occur.FILTER));
-        }
-        return builder.build();
+        return new MatchNoDocsQuery("failed [" + field + "] query, caused by " + message);
     }
 
     /** Return a query that matches all documents but those that match the given query. */

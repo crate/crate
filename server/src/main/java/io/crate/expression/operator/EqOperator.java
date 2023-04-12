@@ -43,12 +43,12 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
@@ -141,7 +141,7 @@ public final class EqOperator extends Operator<Object> {
         String fqn = ref.column().fqn();
         Object value = literal.value();
         if (value == null) {
-            return Queries.newMatchNoDocsQuery("`" + fqn + "` = null is always null");
+            return new MatchNoDocsQuery("`" + fqn + "` = null is always null");
         }
         DataType<?> dataType = ref.valueType();
         if (dataType.id() != ObjectType.ID && dataType.id() != ArrayType.ID && ref.indexType() == IndexType.NONE) {
@@ -210,7 +210,7 @@ public final class EqOperator extends Operator<Object> {
                 return null; // Fallback to generic filter on ARRAY(OBJECT)
             }
             // field doesn't exist, can't match
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+            return new MatchNoDocsQuery("column does not exist in this index");
         }
 
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();

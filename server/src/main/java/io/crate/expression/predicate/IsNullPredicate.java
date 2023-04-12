@@ -37,6 +37,7 @@ import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -118,7 +119,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
         if (arguments.get(0) instanceof Reference ref) {
             if (!ref.isNullable()) {
-                return Queries.newMatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
+                return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
             Query refExistsQuery = refExistsQuery(ref, context, true);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
@@ -144,7 +145,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         }
         StorageSupport<?> storageSupport = ref.valueType().storageSupport();
         if (storageSupport == null && ref instanceof DynamicReference) {
-            return Queries.newMatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
+            return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (ref.hasDocValues()) {
             return new FieldExistsQuery(field);
         } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {

@@ -31,9 +31,9 @@ import java.util.Map;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.TriFunction;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.data.Input;
@@ -258,7 +258,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 if (innerType.id() == ObjectType.ID) {
                     return null; // fallback to generic query to enable objects[1] = {x=10}
                 }
-                return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
+                return new MatchNoDocsQuery("column doesn't exist in this index");
             }
             StorageSupport<?> storageSupport = innerType.storageSupport();
             EqQuery eqQuery = storageSupport == null ? null : storageSupport.eqQuery();

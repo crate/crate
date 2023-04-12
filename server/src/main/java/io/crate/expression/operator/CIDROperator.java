@@ -28,8 +28,8 @@ import java.nio.ByteBuffer;
 import java.util.Locale;
 
 import org.apache.lucene.document.InetAddressPoint;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.network.InetAddresses;
 
 import io.crate.common.collections.Tuple;
@@ -142,7 +142,7 @@ public final class CIDROperator {
         public Query toQuery(Reference ref, Literal<?> literal, Context context) {
             String cidrStr = (String) literal.value();
             if (ref.indexType() == IndexType.NONE) {
-                return Queries.newMatchNoDocsQuery("column does not exist in this index");
+                return new MatchNoDocsQuery("column does not exist in this index");
             }
             Tuple<InetAddress, Integer> cidr = InetAddresses.parseCidr(cidrStr);
             return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.v1(), cidr.v2());

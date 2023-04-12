@@ -37,13 +37,14 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -234,7 +235,7 @@ public class LuceneQueryBuilder {
         public Query visitFunction(Function function, Context context) {
             assert function != null : "function must not be null";
             if (fieldIgnored(function, context)) {
-                return Queries.newMatchAllQuery();
+                return new MatchAllDocsQuery();
             }
             function = rewriteAndValidateFields(function, context);
 
@@ -321,7 +322,7 @@ public class LuceneQueryBuilder {
             // called for queries like: where boolColumn
             if (ref.valueType() == DataTypes.BOOLEAN) {
                 if (ref.indexType() == IndexType.NONE) {
-                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
+                    return new MatchNoDocsQuery("column does not exist in this index");
                 }
                 return new TermQuery(new Term(ref.column().fqn(), new BytesRef("T")));
             }
@@ -332,12 +333,12 @@ public class LuceneQueryBuilder {
         public Query visitLiteral(Literal literal, Context context) {
             Object value = literal.value();
             if (value == null) {
-                return Queries.newMatchNoDocsQuery("WHERE null -> no match");
+                return new MatchNoDocsQuery("WHERE null -> no match");
             }
             try {
                 return (boolean) value
-                    ? Queries.newMatchAllQuery()
-                    : Queries.newMatchNoDocsQuery("WHERE false -> no match");
+                    ? new MatchAllDocsQuery()
+                    : new MatchNoDocsQuery("WHERE false -> no match");
             } catch (ClassCastException e) {
                 // Throw a nice error if the top-level literal doesn't have a boolean type
                 // (This is currently caught earlier, so this code is just a safe-guard)
