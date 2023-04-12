@@ -46,6 +46,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.costs.PlanStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.PlanHint;
@@ -237,6 +238,29 @@ public class MemoTest {
         } else {
             fail("LogicalPlan is not a TestPlan");
         }
+    }
+
+    @Test
+    public void test_store_and_evict_stats() {
+        var y = plan();
+        var x = plan(y);
+
+        Memo memo = new Memo(x);
+        int xGroup = memo.getRootGroup();
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+        PlanStats xStats = new PlanStats(1, 2);
+        PlanStats yStats = new PlanStats(3, 4);
+
+        memo.storeStats(yGroup, yStats);
+        memo.storeStats(xGroup, xStats);
+
+        assertEquals(memo.stats(yGroup), yStats);
+        assertEquals(memo.stats(xGroup), xStats);
+
+        memo.replace(yGroup, plan());
+
+        assertThat(memo.stats(yGroup)).isNull();
+        assertThat(memo.stats(xGroup)).isNull();
     }
 
     private int getChildGroup(Memo memo, int group) {

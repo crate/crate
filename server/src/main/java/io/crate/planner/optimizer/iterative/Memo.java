@@ -29,9 +29,12 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists2;
+import io.crate.planner.costs.PlanStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 
@@ -113,6 +116,19 @@ public class Memo {
         return extract(resolve(rootGroup));
     }
 
+    public PlanStats stats(int group) {
+        return group(group).stats;
+    }
+
+    public void storeStats(int groupId, PlanStats stats)
+    {
+        Group group = group(groupId);
+        if (group.stats != null) {
+            evictStats(groupId); // cost is derived from stats, also needs eviction
+        }
+        group.stats = requireNonNull(stats, "stats is null");
+    }
+
     private LogicalPlan extract(LogicalPlan node) {
         return resolveGroupReferences(node, GroupReferenceResolver.from(this::resolve));
     }
@@ -144,7 +160,19 @@ public class Memo {
         incrementReferenceCounts(node, groupId);
         group.membership = node;
         decrementReferenceCounts(old, groupId);
+        evictStats(groupId);
+
         return node;
+    }
+
+    private void evictStats(int group)
+    {
+        group(group).stats = null;
+        for (int parentGroup : group(group).incomingReferences) {
+            if (parentGroup != ROOT_GROUP_REF) {
+                evictStats(parentGroup);
+            }
+        }
     }
 
     private void incrementReferenceCounts(LogicalPlan fromNode, int fromGroup) {
@@ -217,6 +245,8 @@ public class Memo {
 
         private LogicalPlan membership;
         private final List<Integer> incomingReferences = new ArrayList<>();
+        @Nullable
+        private PlanStats stats;
 
         private Group(LogicalPlan member) {
             this.membership = requireNonNull(member, "member is null");
