@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -52,7 +51,6 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-@UseRandomizedOptimizerRules(alwaysKeep = RewriteInsertFromSubQueryToInsertFromValues.class)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
