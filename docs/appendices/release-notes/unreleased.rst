@@ -63,6 +63,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Added a :ref:`null_or_empty <scalar-null-or-empty>` scalar function that can
+  be used as a faster alternative to `IS NULL` if it's acceptable to match on
+  empty objects. This makes it possible to mitigate a performance regression
+  introduced in 5.0.3 and 5.1.1
+
 - Fixed an issue that led to ``NullPointerException`` when trying to query an
   ``OBJECT`` field with no values, using the ``NOT`` operator, e.g.::
 
