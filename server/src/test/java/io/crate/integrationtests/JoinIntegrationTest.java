@@ -48,6 +48,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -408,6 +409,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "2| 2");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_self_join_with_order_and_limit_is_executed_with_qtf() throws Exception {
         execute("create table doc.t (x int, y int)");
@@ -1128,6 +1130,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     @UseHashJoins(value = 1.0)
     @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     public void test_nested_join_with_primary_key_lookup() throws Exception {
         // Tests for a bug where the "requires scroll" property wasn't inherited correctly.
         // This led to a primary-key lookup operation which didn't support `moveToStart`
@@ -1173,6 +1176,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     @UseHashJoins(value = 0.0)
     @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     public void test_nested_join_with_primary_key_lookup_on_each_join() throws Exception {
         // Tests for a bug where join operations got stuck because the Paging.PAGE_SIZE was set to 0 which
         // resulted in intermediate requests for just 1 record. This causes the join operations to get stuck.
@@ -1212,9 +1216,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(stmt);
     }
 
-
     @Test
     @UseHashJoins(1)
+    @UseRandomizedOptimizerRules(0)
     public void test_inner_join_on_empty_system_tables() throws Exception {
         String stmt = """
             SELECT
@@ -1248,6 +1252,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @Test
     @UseHashJoins(1)
+    @UseRandomizedOptimizerRules(0)
     public void test_joins_with_constant_conditions_with_unions_and_renames() {
         execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, PRIMARY KEY (id))");
         execute("CREATE TABLE doc.t2 (id TEXT, name TEXT, PRIMARY KEY (id))");
@@ -1295,6 +1300,7 @@ public class JoinIntegrationTest extends IntegTestCase {
      */
     @Test
     @UseHashJoins(1)
+    @UseRandomizedOptimizerRules(0)
     public void test_alias_in_left_join_condition() {
         execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, subscription_id TEXT, PRIMARY KEY (id))");
         execute("CREATE TABLE doc.t2 (kind TEXT, cluster_id TEXT, PRIMARY KEY (kind, cluster_id))");
@@ -1344,6 +1350,7 @@ public class JoinIntegrationTest extends IntegTestCase {
      * See {@url https://github.com/crate/crate/issues/13689} and {@url https://github.com/crate/crate/issues/13361}.
      */
     @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_nested_loop_join_works_as_the_left_side_of_another_join() {
         execute("CREATE TABLE t1 (x int) CLUSTERED INTO 3 SHARDS");
@@ -1402,6 +1409,7 @@ public class JoinIntegrationTest extends IntegTestCase {
      */
     @Test
     @UseHashJoins(1)
+    @UseRandomizedOptimizerRules(0)
     public void test_nested_joins() {
         execute("CREATE TABLE doc.j1 (x INT)");
         execute("CREATE TABLE doc.j2 (x INT)");
@@ -1442,6 +1450,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @Test
     @UseHashJoins(1)
+    @UseRandomizedOptimizerRules(0)
     public void test_join_using_on_nested_join() throws Exception {
         execute("CREATE TABLE doc.j1 (x INT)");
         execute("CREATE TABLE doc.j2 (x INT)");

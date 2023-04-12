@@ -39,6 +39,7 @@ import org.junit.Test;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class ObjectColumnTest extends IntegTestCase {
 
@@ -142,6 +143,7 @@ public class ObjectColumnTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(0);
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testAddColumnToStrictObject() throws Exception {
         Map<String, Object> authorMap = Map.of(

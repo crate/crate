@@ -40,6 +40,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
@@ -345,6 +346,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(selectedObject.get("another_new_col")).isEqualTo("1970-01-01T00:00:00");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();

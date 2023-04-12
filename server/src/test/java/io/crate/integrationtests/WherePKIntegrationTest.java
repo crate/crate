@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class WherePKIntegrationTest extends IntegTestCase {
 
@@ -324,6 +325,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount(), is(2L));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_select_where_pk_and_additional_filter() {
         execute("create table t1 (id int primary key, x int) with (refresh_interval=0)");

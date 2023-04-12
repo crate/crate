@@ -47,6 +47,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SubSelectIntegrationTest extends IntegTestCase {
@@ -65,6 +66,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                "1| Arthur\n"));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_sub_select_order_by_and_limit_using_query_then_fetch() throws Exception {
         execute("create table doc.tbl (ord int, name text)");

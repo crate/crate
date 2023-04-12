@@ -43,6 +43,7 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class UpdateIntegrationTest extends IntegTestCase {
 
@@ -1041,6 +1042,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         }
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_update_preserves_the_top_level_order_implied_by_set_clause_while_dynamically_adding_columns() {
         execute("create table t (x int) partitioned by (x) with (column_policy='dynamic')");
