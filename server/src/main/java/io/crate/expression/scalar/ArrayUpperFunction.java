@@ -29,10 +29,12 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 import java.util.List;
 import java.util.function.IntPredicate;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
@@ -56,8 +58,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-
-import javax.annotation.Nullable;
 
 public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
@@ -215,7 +215,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         switch (parentName) {
             case EqOperator.NAME:
                 if (cmpVal == 0) {
-                    return Queries.newMatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
                 }
                 return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
 
@@ -236,13 +236,13 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {
-                    return Queries.newMatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match");
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match");
                 }
                 return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
 
             case LteOperator.NAME:
                 if (cmpVal == 0) {
-                    return Queries.newMatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match");
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match");
                 }
                 return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
 

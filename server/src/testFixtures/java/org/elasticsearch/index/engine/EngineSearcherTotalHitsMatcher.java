@@ -19,13 +19,13 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-
-import java.io.IOException;
 
 public final class EngineSearcherTotalHitsMatcher extends TypeSafeMatcher<Engine.Searcher> {
 
@@ -64,6 +64,6 @@ public final class EngineSearcherTotalHitsMatcher extends TypeSafeMatcher<Engine
     }
 
     static Matcher<Engine.Searcher> engineSearcherTotalHits(int totalHits) {
-        return new EngineSearcherTotalHitsMatcher(Queries.newMatchAllQuery(), totalHits);
+        return new EngineSearcherTotalHitsMatcher(new MatchAllDocsQuery(), totalHits);
     }
 }

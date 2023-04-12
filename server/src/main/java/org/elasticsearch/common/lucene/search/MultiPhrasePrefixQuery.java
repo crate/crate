@@ -19,7 +19,13 @@
 
 package org.elasticsearch.common.lucene.search;
 
-import com.carrotsearch.hppc.ObjectHashSet;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
@@ -34,12 +40,7 @@ import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
+import com.carrotsearch.hppc.ObjectHashSet;
 
 public class MultiPhrasePrefixQuery extends Query {
 
@@ -167,14 +168,14 @@ public class MultiPhrasePrefixQuery extends Query {
         if (terms.isEmpty()) {
             if (sizeMinus1 == 0) {
                 // no prefix and the phrase query is empty
-                return Queries.newMatchNoDocsQuery("No terms supplied for " + MultiPhrasePrefixQuery.class.getName());
+                return new MatchNoDocsQuery("No terms supplied for " + MultiPhrasePrefixQuery.class.getName());
             }
 
             // if the terms does not exist we could return a MatchNoDocsQuery but this would break the unified highlighter
             // which rewrites query with an empty reader.
             return new BooleanQuery.Builder()
                 .add(query.build(), BooleanClause.Occur.MUST)
-                .add(Queries.newMatchNoDocsQuery("No terms supplied for " + MultiPhrasePrefixQuery.class.getName()),
+                .add(new MatchNoDocsQuery("No terms supplied for " + MultiPhrasePrefixQuery.class.getName()),
                     BooleanClause.Occur.MUST).build();
         }
         query.add(terms.toArray(Term.class), position);

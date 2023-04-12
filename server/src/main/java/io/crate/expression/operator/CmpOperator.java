@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntPredicate;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
@@ -94,7 +94,7 @@ public final class CmpOperator extends Operator<Object> {
         EqQuery eqQuery = storageSupport.eqQuery();
         if (eqQuery == null) {
             // For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+            return new MatchNoDocsQuery("column does not exist in this index");
         }
         String field = ref.column().fqn();
         return switch (functionName) {

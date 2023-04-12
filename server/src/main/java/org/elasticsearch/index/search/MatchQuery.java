@@ -44,6 +44,8 @@ import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.PhraseQuery;
@@ -56,7 +58,6 @@ import org.apache.lucene.util.QueryBuilder;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -275,9 +276,9 @@ public class MatchQuery {
             case NULL:
                 return null;
             case NONE:
-                return Queries.newMatchNoDocsQuery("Matching no documents because no terms present");
+                return new MatchNoDocsQuery("Matching no documents because no terms present");
             case ALL:
-                return Queries.newMatchAllQuery();
+                return new MatchAllDocsQuery();
             default:
                 throw new IllegalStateException("unknown zeroTermsQuery " + zeroTermsQuery);
         }

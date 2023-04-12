@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -207,7 +208,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
                 return LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance);
             case GteOperator.NAME:
                 if (distance - GeoUtils.TOLERANCE <= 0.0d) {
-                    return Queries.newMatchAllQuery();
+                    return new MatchAllDocsQuery();
                 }
                 // fall through
             case GtOperator.NAME:

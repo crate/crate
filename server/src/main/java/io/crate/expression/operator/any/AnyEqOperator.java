@@ -28,8 +28,8 @@ import java.util.function.Consumer;
 
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
@@ -65,7 +65,7 @@ public final class AnyEqOperator extends AnyOperator {
         List<?> values = (List<?>) candidates.value();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery("column does not exist in this index");
+            return new MatchNoDocsQuery("column does not exist in this index");
         }
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
         return EqOperator.termsQuery(columnName, innerType, values);
@@ -79,7 +79,7 @@ public final class AnyEqOperator extends AnyOperator {
                 // {x=10} = any(objects)
                 return null;
             }
-            return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
+            return new MatchNoDocsQuery("column doesn't exist in this index");
         }
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
