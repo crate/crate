@@ -153,7 +153,8 @@ public class CsvReaderBenchmark {
             List.of("id", "name"),
             CopyFromParserProperties.DEFAULT,
             CSV,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            null);
 
         while (batchIterator.moveNext()) {
             blackhole.consume(batchIterator.currentElement().get(0));

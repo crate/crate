@@ -23,7 +23,15 @@ package io.crate.execution.engine.collect.files;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
+import static io.crate.execution.engine.collect.files.FileReadingIterator.MAX_SOCKET_TIMEOUT_RETRIES;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,12 +46,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
@@ -67,8 +82,19 @@ public class FileReadingIteratorTest extends ESTestCase {
     private static final String CSV_AS_MAP_FIRST_LINE = "{\"name\":\"Arthur\",\"id\":\"4\",\"age\":\"38\"}";
     private static final String CSV_AS_MAP_SECOND_LINE = "{\"name\":\"Trillian\",\"id\":\"5\",\"age\":\"33\"}";
     private static final TransactionContext TXN_CTX = CoordinatorTxnCtx.systemTransactionContext();
+    private static ThreadPool THREAD_POOL;
 
     private InputFactory inputFactory;
+
+    @BeforeClass
+    public static void setupThreadPool() {
+        THREAD_POOL = new TestThreadPool(Thread.currentThread().getName());
+    }
+
+    @AfterClass
+    public static void shutdownThreadPool() {
+        ThreadPool.terminate(THREAD_POOL, 30, TimeUnit.SECONDS);
+    }
 
     @Before
     public void prepare() {
@@ -181,7 +207,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 List.of("name", "id", "age"),
                 CopyFromParserProperties.DEFAULT,
                 JSON,
-                Settings.EMPTY
+                Settings.EMPTY,
+                THREAD_POOL.scheduler()
             ) {
 
                 @Override
@@ -239,7 +266,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 List.of("id"),
                 new CopyFromParserProperties(true, true, ',', 0),
                 CSV,
-                Settings.EMPTY
+                Settings.EMPTY,
+                THREAD_POOL.scheduler()
             ) {
                 int retry = 0;
 
@@ -300,7 +328,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 List.of("id"),
                 new CopyFromParserProperties(true, false, ',', skipNumLines),
                 CSV,
-                Settings.EMPTY
+                Settings.EMPTY,
+                THREAD_POOL.scheduler()
             ) {
                 int retry = 0;
                 final List<String> linesToThrow = List.of("3", "2", "3", "5", "2");
@@ -333,6 +362,113 @@ public class FileReadingIteratorTest extends ESTestCase {
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
+    @Test
+    public void test_loadNextBatch_implements_retry_with_backoff() throws IOException {
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        var fi = new FileReadingIterator(
+            List.of(),
+            List.of(),
+            List.of(),
+            null,
+            Map.of(),
+            false,
+            1,
+            0,
+            List.of(),
+            null,
+            CSV,
+            Settings.EMPTY,
+            scheduler
+        );
+        ArgumentCaptor<Long> delays = ArgumentCaptor.forClass(Long.class);
+
+        for (int i = 0; i < MAX_SOCKET_TIMEOUT_RETRIES; i++) {
+            fi.loadNextBatch().complete(null);
+        }
+
+        verify(scheduler, times(MAX_SOCKET_TIMEOUT_RETRIES))
+            .schedule(any(Runnable.class), delays.capture(), eq(TimeUnit.MILLISECONDS));
+        final List<Long> actualDelays = delays.getAllValues();
+        assertThat(actualDelays).isEqualTo(Arrays.asList(0L, 10L, 30L, 100L, 230L));
+
+        // retry fails if MAX_SOCKET_TIMEOUT_RETRIES is exceeded
+        assertThatThrownBy(fi::loadNextBatch)
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("All batches already loaded");
+    }
+
+    @Test
+    public void test_retry_from_one_uri_does_not_affect_reading_next_uri() throws Exception {
+        Path tempFile = createTempFile("tempfile1", ".csv");
+        Files.write(tempFile, List.of("1", "2", "3"));
+        Path tempFile2 = createTempFile("tempfile2", ".csv");
+        Files.write(tempFile2, List.of("4", "5", "6"));
+        List<String> fileUris = List.of(tempFile.toUri().toString(), tempFile2.toUri().toString());
+
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx =
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+
+        var fi = new FileReadingIterator(
+            fileUris,
+            inputs,
+            ctx.expressions(),
+            null,
+            Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+            false,
+            1,
+            0,
+            List.of("id"),
+            new CopyFromParserProperties(true, false, ',', 0),
+            CSV,
+            Settings.EMPTY,
+            THREAD_POOL.scheduler()
+        ) {
+            private boolean isThrownOnce = false;
+            final int lineToThrow = 2;
+
+            @Override
+            BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+                return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+                    private int currentLineNumber = 0;
+                    @Override
+                    public String readLine() throws IOException {
+                        var line = super.readLine();
+                        if (!isThrownOnce && currentLineNumber++ == lineToThrow) {
+                            isThrownOnce = true;
+                            throw new SocketTimeoutException("dummy");
+                        }
+                        return line;
+                    }
+                };
+            }
+        };
+
+        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.currentElement().get(0)).isEqualTo("{\"id\":\"1\"}");
+        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.currentElement().get(0)).isEqualTo("{\"id\":\"2\"}");
+        assertThat(fi.moveNext()).isEqualTo(false);
+        assertThat(fi.allLoaded()).isEqualTo(false);
+        var backoff = fi.loadNextBatch();
+        backoff.thenRun(
+            () -> {
+                assertThat(fi.currentElement().get(0)).isEqualTo("{\"id\":\"2\"}");
+                assertThat(fi.watermark).isEqualTo(3);
+                assertThat(fi.moveNext()).isEqualTo(true);
+                // the watermark helped 'fi' to recover the state right before the exception then cleared
+                assertThat(fi.watermark).isEqualTo(0);
+                assertThat(fi.currentElement().get(0)).isEqualTo("{\"id\":\"3\"}");
+
+                // verify the exception did not prevent reading the next URI
+                assertThat(fi.moveNext()).isEqualTo(true);
+                assertThat(fi.currentElement().get(0)).isEqualTo("{\"id\":\"4\"}");
+            }
+        ).join();
+    }
+
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    FileUriCollectPhase.InputFormat format) {
         Reference raw = createReference("_raw", DataTypes.STRING);
@@ -352,6 +488,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             List.of("name", "id", "age"),
             CopyFromParserProperties.DEFAULT,
             format,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            THREAD_POOL.scheduler());
     }
 }

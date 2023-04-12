@@ -42,10 +42,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -84,7 +87,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class S3FileReadingCollectorTest extends ESTestCase {
-
+    private static ThreadPool THREAD_POOL;
     private static File tmpFile;
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
@@ -116,6 +119,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             writer.write("\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
+        THREAD_POOL = new TestThreadPool(Thread.currentThread().getName());
     }
 
     @Before
@@ -129,6 +133,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
         assertThat(tmpFile.delete()).isTrue();
         assertThat(tmpFileGz.delete()).isTrue();
         assertThat(tmpFileEmptyLine.delete()).isTrue();
+        ThreadPool.terminate(THREAD_POOL, 30, TimeUnit.SECONDS);
     }
 
     @Test
@@ -241,7 +246,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             List.of("id", "name", "details"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            THREAD_POOL.scheduler());
     }
 
     private record WriteBufferAnswer(byte[] bytes) implements Answer<Integer> {

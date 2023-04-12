@@ -65,7 +65,12 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testFileUriCollect() throws Exception {
-        FileCollectSource fileCollectSource = new FileCollectSource(createNodeContext(), clusterService, Collections.emptyMap());
+        FileCollectSource fileCollectSource = new FileCollectSource(
+            createNodeContext(),
+            clusterService,
+            Collections.emptyMap(),
+            THREAD_POOL
+            );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
