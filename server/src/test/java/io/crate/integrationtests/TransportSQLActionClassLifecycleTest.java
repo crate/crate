@@ -72,6 +72,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
@@ -492,6 +493,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         assertThat((Long) resp.rows()[0][0], is(0L));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSysOperationsLogConcurrentAccess() throws Exception {
         new Setup(sqlExecutor).groupBySetup();

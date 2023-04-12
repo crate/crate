@@ -56,6 +56,7 @@ import io.crate.action.sql.Sessions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CopyFromFailFastITest extends IntegTestCase {
@@ -95,6 +96,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
             .hasMessageContaining("ERRORS: {Cannot cast value `fail here` to type `integer`");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @TestLogging("io.crate.execution.dml.upsert:DEBUG")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_non_handler_node() throws Exception {

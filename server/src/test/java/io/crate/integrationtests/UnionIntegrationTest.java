@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends IntegTestCase {
@@ -276,6 +277,7 @@ public class UnionIntegrationTest extends IntegTestCase {
         ));
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_union_with_group_by_and_order_plus_limit_and_offset() {
         execute(

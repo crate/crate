@@ -26,9 +26,12 @@ import static org.junit.Assert.assertEquals;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.testing.UseRandomizedOptimizerRules;
+
 
 public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testDeleteWhereSeqNoAndTermThatMatch() throws Exception {
         execute("create table t (x integer primary key, y string) with (number_of_replicas=0)");
@@ -68,6 +71,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         assertEquals(0, response.rowCount());
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testUpdateWhereSeqNoAndPrimaryTermWithPrimaryKey() throws Exception {
         execute("create table t (x integer primary key, y string)");
