@@ -43,6 +43,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,13 +59,18 @@ public class FileCollectSource implements CollectSource {
     private final Map<String, FileInputFactory> fileInputFactoryMap;
     private final InputFactory inputFactory;
     private final NodeContext nodeCtx;
+    private final ThreadPool threadPool;
 
     @Inject
-    public FileCollectSource(NodeContext nodeCtx, ClusterService clusterService, Map<String, FileInputFactory> fileInputFactoryMap) {
+    public FileCollectSource(NodeContext nodeCtx,
+                             ClusterService clusterService,
+                             Map<String, FileInputFactory> fileInputFactoryMap,
+                             ThreadPool threadPool) {
         this.fileInputFactoryMap = fileInputFactoryMap;
         this.nodeCtx = nodeCtx;
         this.inputFactory = new InputFactory(nodeCtx);
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -78,20 +84,22 @@ public class FileCollectSource implements CollectSource {
         ctx.add(collectPhase.toCollect());
 
         List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
-        return CompletableFuture.completedFuture(FileReadingIterator.newInstance(
-            fileUris,
-            ctx.topLevelInputs(),
-            ctx.expressions(),
-            fileUriCollectPhase.compression(),
-            fileInputFactoryMap,
-            fileUriCollectPhase.sharedStorage(),
-            fileUriCollectPhase.nodeIds().size(),
-            getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
-            fileUriCollectPhase.targetColumns(),
-            fileUriCollectPhase.parserProperties(),
-            fileUriCollectPhase.inputFormat(),
-            fileUriCollectPhase.withClauseOptions()
-        ));
+        return CompletableFuture.completedFuture(
+            FileReadingIterator.newInstance(
+                fileUris,
+                ctx.topLevelInputs(),
+                ctx.expressions(),
+                fileUriCollectPhase.compression(),
+                fileInputFactoryMap,
+                fileUriCollectPhase.sharedStorage(),
+                fileUriCollectPhase.nodeIds().size(),
+                getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
+                fileUriCollectPhase.targetColumns(),
+                fileUriCollectPhase.parserProperties(),
+                fileUriCollectPhase.inputFormat(),
+                fileUriCollectPhase.withClauseOptions(),
+                threadPool.scheduler()
+            ));
     }
 
     @VisibleForTesting

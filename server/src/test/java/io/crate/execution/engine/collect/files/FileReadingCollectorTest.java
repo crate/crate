@@ -40,10 +40,13 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -71,7 +74,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class FileReadingCollectorTest extends ESTestCase {
-
+    private static ThreadPool THREAD_POOL;
     private static File tmpFile;
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
@@ -102,6 +105,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             writer.write("\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
+        THREAD_POOL = new TestThreadPool(Thread.currentThread().getName());
     }
 
     @Before
@@ -115,6 +119,7 @@ public class FileReadingCollectorTest extends ESTestCase {
         assertThat(tmpFile.delete(), is(true));
         assertThat(tmpFileGz.delete(), is(true));
         assertThat(tmpFileEmptyLine.delete(), is(true));
+        ThreadPool.terminate(THREAD_POOL, 30, TimeUnit.SECONDS);
     }
 
     @Test
@@ -249,7 +254,8 @@ public class FileReadingCollectorTest extends ESTestCase {
             List.of("a", "b"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            THREAD_POOL.scheduler());
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

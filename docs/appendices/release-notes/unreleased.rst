@@ -80,6 +80,9 @@ Changes
 - Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
   expressions of type ``INTERVAL``.
 
+- Improved ``COPY FROM`` retry logic to retry with a delay which increases
+  exponentially on temporary network timeout and general network errors.
+
 - Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
   deprecated.
 

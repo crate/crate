@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
@@ -45,10 +48,12 @@ import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -73,7 +78,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  List<String> targetColumns,
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
-                                                 Settings withClauseOptions) {
+                                                 Settings withClauseOptions,
+                                                 ScheduledExecutorService scheduler) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -86,7 +92,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
             targetColumns,
             parserProperties,
             inputFormat,
-            withClauseOptions);
+            withClauseOptions,
+            scheduler);
     }
 
 
@@ -110,8 +117,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private URI currentUri;
     private BufferedReader currentReader = null;
     private long currentLineNumber;
+    @VisibleForTesting
+    long watermark;
     private final Row row;
     private LineProcessor lineProcessor;
+    private final ScheduledExecutorService scheduler;
+    private final Iterator<TimeValue> backOffPolicy;
 
     @VisibleForTesting
     FileReadingIterator(Collection<String> fileUris,
@@ -125,7 +136,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         List<String> targetColumns,
                         CopyFromParserProperties parserProperties,
                         FileUriCollectPhase.InputFormat inputFormat,
-                        Settings withClauseOptions) {
+                        Settings withClauseOptions,
+                        ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
@@ -138,6 +150,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
+        this.scheduler = scheduler;
+        this.backOffPolicy = BackoffPolicy.exponentialBackoff(TimeValue.ZERO, MAX_SOCKET_TIMEOUT_RETRIES).iterator();
     }
 
     @Override
@@ -167,7 +181,15 @@ public class FileReadingIterator implements BatchIterator<Row> {
         raiseIfKilled();
         try {
             if (currentReader != null) {
-                String line = getLine(currentReader, currentLineNumber, 0);
+                String line;
+                try {
+                    line = getLine(currentReader);
+                } catch (SocketException | SocketTimeoutException e) {
+                    if (backOffPolicy.hasNext()) {
+                        return false;
+                    }
+                    throw e;
+                }
                 if (line == null) {
                     closeCurrentReader();
                     return moveNext();
@@ -199,6 +221,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     private void advanceToNextUri(FileInput fileInput) throws IOException {
+        watermark = 0;
         currentUri = currentInputUriIterator.next();
         initCurrentReader(fileInput, currentUri);
     }
@@ -243,30 +266,33 @@ public class FileReadingIterator implements BatchIterator<Row> {
         }
     }
 
-    private String getLine(BufferedReader reader, long startFrom, int retry) throws IOException {
+    private String getLine(BufferedReader reader) throws IOException {
         String line = null;
         try {
             while ((line = reader.readLine()) != null) {
                 currentLineNumber++;
-                if (currentLineNumber < startFrom) {
+                if (currentLineNumber < watermark) {
                     continue;
+                } else {
+                    watermark = 0;
                 }
                 if (line.length() == 0) {
                     continue;
                 }
                 break;
             }
-        } catch (SocketTimeoutException e) {
-            if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
-                URI uri = currentInput.uri();
-                LOGGER.error("Timeout during COPY FROM '" + uri.toString() + "' after " + retry + " retries", e);
-                throw e;
-            } else {
-                long startLine = retry == 0 ? currentLineNumber + 1 : startFrom;
+        } catch (SocketException | SocketTimeoutException e) {
+            if (backOffPolicy.hasNext()) {
+                watermark = watermark == 0 ? currentLineNumber + 1 : watermark;
                 closeCurrentReader();
                 initCurrentReader(currentInput, currentUri);
-                return getLine(currentReader, startLine, retry + 1);
+            } else {
+                URI uri = currentInput.uri();
+                LOGGER.error("Timeout during COPY FROM '" + uri.toString() +
+                             "' after " + MAX_SOCKET_TIMEOUT_RETRIES +
+                             " retries", e);
             }
+            throw e;
         } catch (Exception e) {
             URI uri = currentInput.uri();
             // it's nice to know which exact file/uri threw an error
@@ -282,6 +308,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         closeCurrentReader();
         releaseBatchIteratorState();
         killed = BatchIterator.CLOSED;
+        backOffPolicy.forEachRemaining((delay) -> {});
     }
 
     private void releaseBatchIteratorState() {
@@ -292,13 +319,22 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public CompletableFuture<?> loadNextBatch() {
-        throw new IllegalStateException("All batches already loaded");
+    public CompletableFuture<?> loadNextBatch() throws IOException {
+        if (backOffPolicy.hasNext()) {
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            scheduler.schedule(
+                (Runnable) () -> cf.complete(null), // cast to Runnable for enabling mockito tests
+                backOffPolicy.next().getMillis(),
+                TimeUnit.MILLISECONDS);
+            return cf;
+        } else {
+            throw new IllegalStateException("All batches already loaded");
+        }
     }
 
     @Override
     public boolean allLoaded() {
-        return true;
+        return !backOffPolicy.hasNext();
     }
 
     @Override
