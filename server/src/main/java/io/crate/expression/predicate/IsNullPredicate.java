@@ -160,7 +160,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                 if (objType.innerTypes().isEmpty()) {
                     return null;
                 }
-                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder()
+                    .setMinimumNumberShouldMatch(1);
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
                     Reference childRef = context.getRef(ref.column().append(childColumn));
@@ -173,13 +174,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     }
                     booleanQuery.add(refExistsQuery, Occur.SHOULD);
                 }
-                // Even if a child columns exist, an object can have empty values, we have to run generic function.
-                // Example of such object:
-                // CREATE TABLE t (obj OBJECT as (x int));
-                // INSERT INTO t (obj) VALUES ({});
-                return new BooleanQuery.Builder()
-                    .setMinimumNumberShouldMatch(1)
-                    .add(new ConstantScoreQuery(booleanQuery.build()), Occur.SHOULD)
+                return booleanQuery
+                    // Even if a child columns exist, an object can have empty values. Example:
+                    //  CREATE TABLE t (obj OBJECT as (x int));
+                    //  INSERT INTO t (obj) VALUES ({});
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }

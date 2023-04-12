@@ -34,6 +34,7 @@ public final class PgRangeTable {
         return SystemTable.<Void>builder(IDENT)
             .add("rngtypid", INTEGER, ignored -> null)
             .add("rngsubtype", INTEGER, ignored -> null)
+            .add("rngmultitypid", INTEGER, ignored -> null)
             .add("rngcollation", INTEGER, ignored -> null)
             .add("rngsubopc", INTEGER, ignored -> null)
             .add("rngcanonical", REGPROC, ignored -> null)
