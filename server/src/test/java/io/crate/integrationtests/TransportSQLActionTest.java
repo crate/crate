@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -53,6 +52,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import io.crate.testing.UseRandomizedOptimizerRules;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -372,6 +372,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSqlRequestWithFilter() throws Exception {
         execute("create table test (id string primary key)");
@@ -604,6 +605,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("124| bar1");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testSelectToRoutedRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
@@ -1508,6 +1510,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertEquals(response.rowCount(), 0L);
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertAndCopyHaveSameIdGeneration() throws Exception {
         execute("create table t (" +
@@ -1741,6 +1744,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_subscript_on_ignored_object_does_not_raise_missing_key_error() throws Exception {
         execute("create table tbl (obj object (ignored))");
@@ -1755,6 +1759,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_primary_key_lookup_on_multiple_columns() throws Exception {
         execute(
@@ -1778,6 +1783,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_primary_key_lookup_with_param_that_requires_cast_to_column_type() throws Exception {
         execute("create table tbl (ts timestamp with time zone primary key, path text primary key)");
@@ -1793,6 +1799,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_primary_key_lookups_returns_inserted_records() throws Exception {
         int numKeys = randomIntBetween(1, 3);

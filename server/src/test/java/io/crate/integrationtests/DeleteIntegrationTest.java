@@ -31,6 +31,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class DeleteIntegrationTest extends IntegTestCase {
 
@@ -275,6 +276,7 @@ public class DeleteIntegrationTest extends IntegTestCase {
         execute("delete from t1 as foo where foo.id = 1");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_delete_partitions_from_subquery_does_not_leave_empty_orphan_partitions() {
         execute("CREATE TABLE t (x int) PARTITIONED by (x)");

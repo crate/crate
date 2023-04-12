@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -50,6 +52,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
+@UseRandomizedOptimizerRules(alwaysKeep = RewriteInsertFromSubQueryToInsertFromValues.class)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
@@ -825,6 +828,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
@@ -1350,6 +1354,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat((String) response.rows()[0][0]).isEqualTo("{\"id\":0,\"ts\":\"2015-01-01\"}");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
         execute("create table t (x int, y int, z as x + y primary key)");
@@ -1359,6 +1364,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where z = 3").rowCount()).isEqualTo(1L);
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertIntoTableWithNestedPrimaryKeyFromQuery() throws Exception {
         execute("create table t (o object as (ot object as (x int primary key)))");

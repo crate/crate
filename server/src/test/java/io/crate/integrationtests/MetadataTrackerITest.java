@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -246,6 +247,8 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         }, 50, TimeUnit.SECONDS);
     }
 
+    @UseRandomizedOptimizerRules(0)
+    @Test
     public void test_subscription_to_multiple_publications_should_not_stop_on_a_single_publication_drop() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT)");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");

@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -91,6 +92,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
+@UseRandomizedOptimizerRules(0)
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 
@@ -2361,6 +2363,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_select_partitioned_by_column_with_query_then_fetch_plan() throws Exception {
         execute("create table doc.tbl (p int, ordinal int, name text) partitioned by (p)");

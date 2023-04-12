@@ -37,6 +37,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.DataTypeTesting;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.types.DataType;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
@@ -249,6 +250,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testQueriesOnColumnThatDoesNotExistInAllPartitions() throws Exception {
         // LuceneQueryBuilder uses a MappedFieldType to generate queries
@@ -303,6 +305,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo("yalla");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void testWhereNotEqualAnyWithLargeArray() throws Exception {
         // Test overriding of default value 8192 for indices.query.bool.max_clause_count

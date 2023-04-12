@@ -35,6 +35,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 public class PgCatalogITest extends IntegTestCase {
@@ -143,6 +144,7 @@ public class PgCatalogITest extends IntegTestCase {
         assertThat(response).hasColumns("classoid", "description", "objoid");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)

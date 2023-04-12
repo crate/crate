@@ -53,9 +53,11 @@ import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+@UseRandomizedOptimizerRules(0)
 @IntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends IntegTestCase {

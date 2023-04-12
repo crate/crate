@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +54,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         properties.setProperty("user", "crate");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_simple_correlated_subquery() {
         execute("EXPLAIN SELECT 1, (SELECT t.mountain) FROM sys.summits t");
@@ -104,6 +106,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             .hasMessageContaining("Subquery returned more than 1 row when it shouldn't.");
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_simple_correlated_subquery_with_order_by() {
         String statement = "SELECT 1, (SELECT t.mountain) FROM sys.summits t order by 2 asc limit 5";
@@ -180,6 +183,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_correlated_subquery_used_in_virtual_table_with_union() {
         String stmt = """
@@ -214,6 +218,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_where_exists_with_correlated_subquery() {
         String stmt = "select x from generate_series(1, 2) as t (x) where exists (select t.x)";
@@ -235,6 +240,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_can_use_correlated_subquery_in_where_clause() {
         String stmt = "SELECT mountain, region FROM sys.summits t where mountain = (SELECT t.mountain) ORDER BY height desc limit 3";
@@ -278,6 +284,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_correlated_subquery_without_table_alias_within_join_condition() {
         String stmt = """
@@ -329,6 +336,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
     }
 
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_correlated_subquery_without_table_alias_within_join_condition_and_additional_condition() {
         var stmt = """
@@ -387,6 +395,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     public void test_can_use_column_in_query_paired_with_correlation_that_is_not_selected() throws Exception {
         execute("CREATE TABLE a (f1 TEXT, f2 TEXT, f3 TEXT)");
         execute("CREATE TABLE b (f1 TEXT, f2 TEXT, f3 TEXT)");
