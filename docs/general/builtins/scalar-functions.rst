@@ -3214,6 +3214,29 @@ objects::
         SELECT 1 row in set (... sec)
 
 
+.. _scalar-null-or-empty:
+
+
+``null_or_empty(object)``
+-------------------------
+
+The ``null_or_empty(object)`` function returns a boolean indicating if an object
+is ``NULL`` or empty (``{}``).
+
+This can serve as a faster alternative to ``IS NULL`` if matching on empty
+objects is acceptable. It makes better use of indices.
+
+::
+
+    cr> SELECT null_or_empty({}) x, null_or_empty(NULL) y, null_or_empty({x=10}) z;
+    +------+------+-------+
+    | x    | y    | z     |
+    +------+------+-------+
+    | TRUE | TRUE | FALSE |
+    +------+------+-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-conditional-fn-exp:
 
 Conditional functions and expressions
