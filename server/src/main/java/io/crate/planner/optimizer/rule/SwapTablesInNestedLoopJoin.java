@@ -32,7 +32,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.stats.StatsEstimator;
+import io.crate.planner.optimizer.stats.StatsCalculator;
 import io.crate.statistics.TableStats;
 
 public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
@@ -53,12 +53,9 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        StatsEstimator statsEstimator = new StatsEstimator(resolvePlan);
-        StatsEstimator.Context lhsStats = new StatsEstimator.Context();
-        StatsEstimator.Context rhsStats = new StatsEstimator.Context();
+        StatsCalculator statsEstimator = new StatsCalculator(resolvePlan);
         join.lhs().accept(statsEstimator, lhsStats);
         join.rhs().accept(statsEstimator, rhsStats);
-        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
         if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
                  return new NestedLoopJoin(
                      join.rhs(),

@@ -143,14 +143,6 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        if (limit instanceof Literal) {
-            return DataTypes.LONG.sanitizeValue(((Literal<?>) limit).value());
-        }
-        return source.numExpectedRows();
-    }
-
-    @Override
     public String toString() {
         return "Limit{" +
                "source=" + source +

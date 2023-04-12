@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.stats;
 
-public class LogicalPlanStatsEstimate {
+public record PlanStats(long outputRowCount, long totalSize) {}
 
 
-}

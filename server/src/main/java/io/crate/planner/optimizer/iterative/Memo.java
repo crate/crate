@@ -34,9 +34,9 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists2;
+import io.crate.planner.optimizer.stats.PlanStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
-import io.crate.statistics.Stats;
 
 /**
  * Memo is used as part of an iterative Optimizer as an in-place
@@ -116,13 +116,17 @@ public class Memo {
         return extract(resolve(rootGroup));
     }
 
-    public void storeStats(int groupId, PlanNodeStatsEstimate stats)
-    {
-        Group group = getGroup(groupId);
+    public void addStats(int groupId, PlanStats stats) {
+        Group group = group(groupId);
         if (group.stats != null) {
-            evictStatisticsAndCost(groupId); // cost is derived from stats, also needs eviction
+            evictStats(groupId);
         }
-        group.stats = requireNonNull(stats, "stats is null");
+        group.stats = stats;
+    }
+
+    @Nullable
+    public PlanStats stats(int groupId) {
+        return group(groupId).stats;
     }
 
     private LogicalPlan extract(LogicalPlan node) {
@@ -156,7 +160,19 @@ public class Memo {
         incrementReferenceCounts(node, groupId);
         group.membership = node;
         decrementReferenceCounts(old, groupId);
+        evictStats(groupId);
+
         return node;
+    }
+
+    private void evictStats(int group)
+    {
+        group(group).stats = null;
+        for (int parentGroup : group(group).incomingReferences) {
+            if (parentGroup != ROOT_GROUP_REF) {
+                evictStats(parentGroup);
+            }
+        }
     }
 
     private void incrementReferenceCounts(LogicalPlan fromNode, int fromGroup) {
@@ -230,7 +246,7 @@ public class Memo {
         private LogicalPlan membership;
         private final List<Integer> incomingReferences = new ArrayList<>();
         @Nullable
-        private Stats stats;
+        private PlanStats stats;
 
         private Group(LogicalPlan member) {
             this.membership = requireNonNull(member, "member is null");
