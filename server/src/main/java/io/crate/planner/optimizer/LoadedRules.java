@@ -45,7 +45,6 @@ public class LoadedRules implements SessionSettingProvider {
     private static List<Class<? extends Rule<?>>> buildRules() {
         var rules = new ArrayList<Rule<?>>();
         rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
-        rules.addAll(LogicalPlanner.WRITE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
         return Lists2.map(rules, x -> (Class<? extends Rule<?>>) x.getClass());
     }

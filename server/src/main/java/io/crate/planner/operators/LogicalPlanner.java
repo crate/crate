@@ -156,7 +156,10 @@ public class LogicalPlanner {
         new RewriteToQueryThenFetch()
     );
 
-    public static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
+    // This rule is private because the RewriteInsertFromSubQueryToInsertFromValues
+    // rule is mandatory to make inserts from a sub-query work correctly
+    // and should therefore not be exposed to be configurable
+    private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
         List.of(new RewriteInsertFromSubQueryToInsertFromValues());
 
     public LogicalPlanner(NodeContext nodeCtx, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
