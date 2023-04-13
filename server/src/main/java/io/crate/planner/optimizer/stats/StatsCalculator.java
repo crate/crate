@@ -23,17 +23,13 @@ package io.crate.planner.optimizer.stats;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 import io.crate.planner.operators.Collect;
-import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
-import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 public class StatsCalculator {
 
@@ -44,18 +40,18 @@ public class StatsCalculator {
     }
 
     public Map<LogicalPlan, Stats> calculate(LogicalPlan logicalPlan) {
-        StatsPlanVisitor visitor = new StatsPlanVisitor(memo, this);
+        StatsVisitor visitor = new StatsVisitor(memo, this);
         var context = new HashMap<LogicalPlan, Stats>();
         logicalPlan.accept(visitor, context);
         return context;
     }
 
-    static class StatsPlanVisitor extends LogicalPlanVisitor<Map<LogicalPlan, Stats>, Void> {
+    static class StatsVisitor extends LogicalPlanVisitor<Map<LogicalPlan, Stats>, Void> {
 
         private final Memo memo;
         private final StatsCalculator statsCalculator;
 
-        public StatsPlanVisitor(Memo memo, StatsCalculator statsCalculator) {
+        public StatsVisitor(Memo memo, StatsCalculator statsCalculator) {
             this.memo = memo;
             this.statsCalculator = statsCalculator;
         }
@@ -76,16 +72,20 @@ public class StatsCalculator {
 
         @Override
         public Void visitCollect(Collect collect, Map<LogicalPlan, Stats> context) {
-            var stats = new Stats(collect.numExpectedRows(), collect.numExpectedRows());
+            var stats = new Stats(collect.numExpectedRows(), collect.estimatedRowSize());
             context.put(collect, stats);
             return null;
         }
 
         @Override
         public Void visitPlan(LogicalPlan logicalPlan, Map<LogicalPlan, Stats> context) {
+            long numberOfDocs = 0L;
             for (LogicalPlan source : logicalPlan.sources()) {
                 source.accept(this, context);
+                var stats = context.get(source);
+                numberOfDocs = numberOfDocs + stats.numDocs();
             }
+            context.put(logicalPlan, new Stats(numberOfDocs, 0));
             return null;
         }
     }
