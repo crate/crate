@@ -188,7 +188,7 @@ public final class CopyToPlan implements Plan {
                                                          new Rule.Context(tableStats,
                                                                           context.transactionContext(),
                                                                           context.nodeContext(),
-                                                                          Function.identity()));
+                                                                          Function.identity(), null));
             return plan == null ? collect : plan;
         }
         return collect;

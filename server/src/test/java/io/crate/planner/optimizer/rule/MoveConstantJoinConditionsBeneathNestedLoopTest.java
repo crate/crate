@@ -87,7 +87,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
                                                 new TableStats(),
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
-                                                Function.identity()
+                                                Function.identity(),
+                                                null
                                                 ));
 
         assertThat(result.joinCondition(), is(nonConstantPart));

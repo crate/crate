@@ -97,7 +97,7 @@ public class Optimizer {
         int numIterations = 0;
         Function<LogicalPlan, LogicalPlan> resolvePlan = Function.identity();
         Version minVersion = minNodeVersionInCluster.get();
-        Rule.Context context = new Rule.Context(tableStats, txnCtx, nodeCtx, resolvePlan);
+        Rule.Context context = new Rule.Context(tableStats, txnCtx, nodeCtx, resolvePlan, null);
         while (!done && numIterations < 10_000) {
             done = true;
             for (Rule<?> rule : rules) {

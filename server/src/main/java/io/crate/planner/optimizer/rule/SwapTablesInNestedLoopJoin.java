@@ -23,17 +23,12 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import java.util.function.Function;
-
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.stats.StatsCalculator;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.stats.StatsProvider;
 
 public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
 
@@ -50,7 +45,9 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
     public LogicalPlan apply(NestedLoopJoin join,
                              Captures captures,
                              Rule.Context context) {
-//        StatsCalculator statsCalculator = new StatsCalculator(resolvePlan);
+        StatsProvider statsProvider = context.statsProvider();
+//        var lhsStats = statsProvider.apply(join.lhs());
+//        var rhsStats = statsProvider.apply(join.rhs());
 //        if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
 //                 return new NestedLoopJoin(
 //                     join.rhs(),

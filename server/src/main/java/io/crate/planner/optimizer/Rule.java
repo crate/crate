@@ -28,6 +28,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.stats.StatsProvider;
 import io.crate.statistics.TableStats;
 import org.elasticsearch.Version;
 
@@ -58,6 +59,7 @@ public interface Rule<T> {
         TableStats tableStats,
         TransactionContext txnCtx,
         NodeContext nodeCtx,
-        Function<LogicalPlan, LogicalPlan> resolvePlan
+        Function<LogicalPlan, LogicalPlan> resolvePlan,
+        StatsProvider statsProvider
     ) {}
 }

@@ -36,6 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.stats.StatsProvider;
 import io.crate.statistics.TableStats;
 
 /**
@@ -107,11 +108,12 @@ public class IterativeOptimizer {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
+        var statsProvider = new StatsProvider(context.memo);
 
         var done = false;
         var progress = false;
         var minVersion = minNodeVersionInCluster.get();
-        Rule.Context ruleContext = new Rule.Context(context.tableStats(), context.txnCtx, nodeCtx, resolvePlan);
+        Rule.Context ruleContext = new Rule.Context(context.tableStats(), context.txnCtx, nodeCtx, resolvePlan, statsProvider);
         while (!done) {
             done = true;
             for (Rule<?> rule : rules) {

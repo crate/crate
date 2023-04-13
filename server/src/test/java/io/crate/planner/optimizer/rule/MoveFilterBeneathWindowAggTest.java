@@ -78,7 +78,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            Function.identity(),
+            null
             )
         );
 
@@ -108,7 +109,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
                 new TableStats(),
                 CoordinatorTxnCtx.systemTransactionContext(),
                 e.nodeCtx,
-                Function.identity()
+                Function.identity(),
+                null
             )
         );
 
@@ -137,7 +139,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
                 new TableStats(),
                 CoordinatorTxnCtx.systemTransactionContext(),
                 e.nodeCtx,
-                Function.identity()
+                Function.identity(),
+                null
             )
         );
         var expectedPlan =
@@ -173,7 +176,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
                 new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            Function.identity(),
+                null
             )
         );
         var expectedPlan =
@@ -210,7 +214,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
                 new TableStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            Function.identity()
+            Function.identity(),
+                null
             )
         );
         assertThat(newPlan).isNull();

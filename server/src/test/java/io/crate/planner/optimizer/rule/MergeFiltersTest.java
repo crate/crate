@@ -76,7 +76,8 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
                                                  new TableStats(),
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
-                                                 Function.identity()));
+                                                 Function.identity(),
+                                                 null));
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

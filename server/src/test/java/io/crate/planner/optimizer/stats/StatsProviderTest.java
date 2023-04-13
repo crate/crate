@@ -38,7 +38,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-public class StatsCalculatorTest  extends CrateDummyClusterServiceUnitTest {
+public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
 
     public void test_simple_collect() throws Exception{
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -49,9 +49,9 @@ public class StatsCalculatorTest  extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var memo = new Memo(source);
-        StatsCalculator statsCalculator = new StatsCalculator(memo);
-        var result = statsCalculator.calculate(source);
-        assertThat(result.get(source).numDocs()).isEqualTo(1L);
+        StatsProvider statsProvider = new StatsProvider(memo);
+        var result = statsProvider.apply(source);
+        assertThat(result.numDocs()).isEqualTo(1L);
     }
 
     public void test_group_reference() throws Exception{
@@ -63,12 +63,12 @@ public class StatsCalculatorTest  extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
         var memo = new Memo(source);
-        StatsCalculator statsCalculator = new StatsCalculator(memo);
-        var result = statsCalculator.calculate(groupReference);
-        assertThat(result.get(groupReference).numDocs()).isEqualTo(1L);
+        StatsProvider statsProvider = new StatsProvider(memo);
+        var result = statsProvider.apply(groupReference);
+        assertThat(result.numDocs()).isEqualTo(1L);
     }
 
-    public void test_eval() throws Exception{
+    public void test_tree_of_operators() throws Exception{
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
@@ -77,8 +77,8 @@ public class StatsCalculatorTest  extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var eval = Eval.create(source, Lists2.concat(source.outputs(),source.outputs()));
         var memo = new Memo(source);
-        StatsCalculator statsCalculator = new StatsCalculator(memo);
-        var result = statsCalculator.calculate(eval);
-        assertThat(result.get(eval).numDocs()).isEqualTo(1L);
+        StatsProvider statsProvider = new StatsProvider(memo);
+        var result = statsProvider.apply(eval);
+        assertThat(result.numDocs()).isEqualTo(1L);
     }
 }

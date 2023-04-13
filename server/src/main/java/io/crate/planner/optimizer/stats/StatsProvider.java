@@ -31,39 +31,38 @@ import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.statistics.Stats;
 
-public class StatsCalculator {
+public class StatsProvider {
 
     private final Memo memo;
 
-    public StatsCalculator(Memo memo) {
+    public StatsProvider(Memo memo) {
         this.memo = memo;
     }
 
-    public Map<LogicalPlan, Stats> calculate(LogicalPlan logicalPlan) {
+    public PlanStats apply(LogicalPlan logicalPlan) {
         StatsVisitor visitor = new StatsVisitor(memo, this);
-        var context = new HashMap<LogicalPlan, Stats>();
+        var context = new HashMap<LogicalPlan, PlanStats>();
         logicalPlan.accept(visitor, context);
-        return context;
+        return context.get(logicalPlan);
     }
 
-    static class StatsVisitor extends LogicalPlanVisitor<Map<LogicalPlan, Stats>, Void> {
+    static class StatsVisitor extends LogicalPlanVisitor<Map<LogicalPlan, PlanStats>, Void> {
 
         private final Memo memo;
-        private final StatsCalculator statsCalculator;
+        private final StatsProvider statsProvider;
 
-        public StatsVisitor(Memo memo, StatsCalculator statsCalculator) {
+        public StatsVisitor(Memo memo, StatsProvider statsCalculator) {
             this.memo = memo;
-            this.statsCalculator = statsCalculator;
+            this.statsProvider = statsCalculator;
         }
 
         @Override
-        public Void visitGroupReference(GroupReference group, Map<LogicalPlan, Stats> context) {
+        public Void visitGroupReference(GroupReference group, Map<LogicalPlan, PlanStats> context) {
             var groupId = group.groupId();
             var stats = memo.stats(groupId);
             if (stats == null) {
                 var logicalPlan = memo.resolve(groupId);
-                var result = statsCalculator.calculate(logicalPlan);
-                stats = result.get(logicalPlan);
+                stats = statsProvider.apply(logicalPlan);
                 memo.addStats(groupId, stats);
             }
             context.put(group, stats);
@@ -71,21 +70,21 @@ public class StatsCalculator {
         }
 
         @Override
-        public Void visitCollect(Collect collect, Map<LogicalPlan, Stats> context) {
-            var stats = new Stats(collect.numExpectedRows(), collect.estimatedRowSize());
+        public Void visitCollect(Collect collect, Map<LogicalPlan, PlanStats> context) {
+            var stats = new PlanStats(collect.numExpectedRows());
             context.put(collect, stats);
             return null;
         }
 
         @Override
-        public Void visitPlan(LogicalPlan logicalPlan, Map<LogicalPlan, Stats> context) {
+        public Void visitPlan(LogicalPlan logicalPlan, Map<LogicalPlan, PlanStats> context) {
             long numberOfDocs = 0L;
             for (LogicalPlan source : logicalPlan.sources()) {
                 source.accept(this, context);
                 var stats = context.get(source);
-                numberOfDocs = numberOfDocs + stats.numDocs();
+                numberOfDocs = numberOfDocs + stats.outputRowCount();
             }
-            context.put(logicalPlan, new Stats(numberOfDocs, 0));
+            context.put(logicalPlan, new Stats(numberOfDocs));
             return null;
         }
     }
