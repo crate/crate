@@ -46,21 +46,21 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
                              Captures captures,
                              Rule.Context context) {
         StatsProvider statsProvider = context.statsProvider();
-//        var lhsStats = statsProvider.apply(join.lhs());
-//        var rhsStats = statsProvider.apply(join.rhs());
-//        if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
-//                 return new NestedLoopJoin(
-//                     join.rhs(),
-//                     join.lhs(),
-//                     join.joinType().invert(),
-//                     join.joinCondition(),
-//                     join.isFiltered(),
-//                     join.topMostLeftRelation(),
-//                     join.orderByWasPushedDown(),
-//                     join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-//                     join.isJoinConditionOptimised(),
-//                     join.isRewriteNestedLoopJoinToHashJoinDone());
-//            }
-            return null;
+        var lhsStats = statsProvider.apply(join.lhs());
+        var rhsStats = statsProvider.apply(join.rhs());
+        if (join.joinType().supportsInversion() && lhsStats.outputRowCount() < rhsStats.outputRowCount()) {
+            return new NestedLoopJoin(
+                join.rhs(),
+                join.lhs(),
+                join.joinType().invert(),
+                join.joinCondition(),
+                join.isFiltered(),
+                join.topMostLeftRelation(),
+                join.orderByWasPushedDown(),
+                join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                join.isJoinConditionOptimised(),
+                join.isRewriteNestedLoopJoinToHashJoinDone());
+        }
+        return null;
     }
 }

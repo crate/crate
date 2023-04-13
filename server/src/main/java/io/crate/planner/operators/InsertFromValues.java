@@ -856,7 +856,6 @@ public class InsertFromValues implements LogicalPlan {
         return Map.of();
     }
 
-    @Override
     public long numExpectedRows() {
         return -1L;
     }

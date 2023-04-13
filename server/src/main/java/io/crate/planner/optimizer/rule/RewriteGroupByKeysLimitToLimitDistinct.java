@@ -39,6 +39,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.stats.StatsProvider;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -79,7 +80,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
 
     private static boolean eagerTerminateIsLikely(Limit limit,
                                                   GroupHashAggregate groupAggregate,
-                                                  Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                                                  StatsProvider statsProvider) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
@@ -95,7 +96,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = resolvePlan.apply(groupAggregate.source()).numExpectedRows();
+        long sourceRows = statsProvider.apply(groupAggregate.source()).outputRowCount();
         if (sourceRows == 0) {
             return false;
         }
@@ -168,7 +169,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              Captures captures,
                              Rule.Context context) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy, context.resolvePlan())) {
+        if (!eagerTerminateIsLikely(limit, groupBy, context.statsProvider())) {
             return null;
         }
         return new LimitDistinct(

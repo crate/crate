@@ -123,7 +123,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         this.groupKeys = groupKeys;
     }
 
-    @Override
     public long numExpectedRows() {
         return numExpectedRows;
     }

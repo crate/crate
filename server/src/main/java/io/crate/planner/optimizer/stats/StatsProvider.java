@@ -24,12 +24,17 @@ package io.crate.planner.optimizer.stats;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.planner.operators.Collect;
+import io.crate.planner.operators.CorrelatedJoin;
+import io.crate.planner.operators.Count;
+import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.statistics.Stats;
+import io.crate.types.DataTypes;
 
 public class StatsProvider {
 
@@ -70,9 +75,26 @@ public class StatsProvider {
         }
 
         @Override
+        public Void visitLimit(Limit limit, Map<LogicalPlan, PlanStats> context) {
+            if (limit.limit() instanceof Literal) {
+                long numberOfRows = DataTypes.LONG.sanitizeValue(((Literal<?>) limit.limit()).value());
+                context.put(limit, new PlanStats(numberOfRows));
+            } else {
+                limit.source().accept(this, context);
+            }
+            return null;
+        }
+
+        @Override
         public Void visitCollect(Collect collect, Map<LogicalPlan, PlanStats> context) {
             var stats = new PlanStats(collect.numExpectedRows());
             context.put(collect, stats);
+            return null;
+        }
+
+        @Override
+        public Void visitCount(Count logicalPlan, Map<LogicalPlan, PlanStats> context) {
+            context.put(logicalPlan, new PlanStats(1));
             return null;
         }
 
@@ -84,7 +106,7 @@ public class StatsProvider {
                 var stats = context.get(source);
                 numberOfDocs = numberOfDocs + stats.outputRowCount();
             }
-            context.put(logicalPlan, new Stats(numberOfDocs));
+            context.put(logicalPlan, new PlanStats(numberOfDocs));
             return null;
         }
     }

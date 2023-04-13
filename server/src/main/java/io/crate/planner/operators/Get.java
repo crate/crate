@@ -265,7 +265,6 @@ public class Get implements LogicalPlan {
         return estimatedSizePerRow;
     }
 
-    @Override
     public long numExpectedRows() {
         return docKeys.size();
     }

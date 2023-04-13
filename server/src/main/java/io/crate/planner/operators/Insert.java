@@ -149,7 +149,6 @@ public class Insert implements LogicalPlan {
         return source.dependencies();
     }
 
-    @Override
     public long numExpectedRows() {
         return 1;
     }

@@ -51,7 +51,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         StatsProvider statsProvider = new StatsProvider(memo);
         var result = statsProvider.apply(source);
-        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.outputRowCount()).isEqualTo(1L);
     }
 
     public void test_group_reference() throws Exception{
@@ -65,7 +65,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         StatsProvider statsProvider = new StatsProvider(memo);
         var result = statsProvider.apply(groupReference);
-        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.outputRowCount()).isEqualTo(1L);
     }
 
     public void test_tree_of_operators() throws Exception{
@@ -79,6 +79,6 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         StatsProvider statsProvider = new StatsProvider(memo);
         var result = statsProvider.apply(eval);
-        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.outputRowCount()).isEqualTo(1L);
     }
 }

@@ -249,8 +249,8 @@ public class MemoTest {
         Memo memo = new Memo(x);
         int xGroup = memo.getRootGroup();
         int yGroup = getChildGroup(memo, memo.getRootGroup());
-        Stats xStats = new Stats(1, 2);
-        Stats yStats = new Stats(3, 4);
+        var xStats = new PlanStats(1);
+        var yStats = new PlanStats(3);
 
         memo.addStats(yGroup, yStats);
         memo.addStats(xGroup, xStats);
