@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.stats;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import io.crate.planner.operators.Collect;
@@ -30,77 +32,61 @@ import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 public class StatsCalculator {
 
-    private final Function<LogicalPlan, LogicalPlan> resolvePlan;
-    private final TableStats tableStats;
     private final Memo memo;
 
-    public StatsCalculator(TableStats tableStats, Function<LogicalPlan, LogicalPlan> resolvePlan, Memo memo ) {
-        this.tableStats = tableStats;
-        this.resolvePlan = resolvePlan;
+    public StatsCalculator(Memo memo) {
         this.memo = memo;
     }
 
-    public PlanStats calculate(LogicalPlan logicalPlan) {
-        StatsPlanVisitor visitor = new StatsPlanVisitor(tableStats, memo);
-        logicalPlan.accept(visitor)
+    public Map<LogicalPlan, Stats> calculate(LogicalPlan logicalPlan) {
+        StatsPlanVisitor visitor = new StatsPlanVisitor(memo, this);
+        var context = new HashMap<LogicalPlan, Stats>();
+        logicalPlan.accept(visitor, context);
+        return context;
     }
 
-    private PlanStats groupStats(GroupReference group) {
-        var groupId = group.groupId();
-        var stats = memo.stats(groupId);
-        if (stats == null) {
-            stats = calculate(memo.resolve(groupId));
-            memo.addStats(groupId, stats);
-        }
-        return stats;
-    }
+    static class StatsPlanVisitor extends LogicalPlanVisitor<Map<LogicalPlan, Stats>, Void> {
 
-    static class StatsPlanVisitor extends LogicalPlanVisitor<StatsCalculator.Context, Void> {
-
-        private final TableStats tableStats;
         private final Memo memo;
+        private final StatsCalculator statsCalculator;
 
-        public StatsPlanVisitor(TableStats tableStats, Memo memo) {
-            this.tableStats = tableStats;
+        public StatsPlanVisitor(Memo memo, StatsCalculator statsCalculator) {
             this.memo = memo;
+            this.statsCalculator = statsCalculator;
         }
 
         @Override
-        public Void visitGroupReference(GroupReference group, Void context) {
-                groupStats(group);
-        }
-
-        @Override
-        public Void visitCollect(Collect logicalPlan, StatsCalculator.Context context) {
-            var stats = tableStats.getStats(logicalPlan.relation().relationName());
-            context.outputRowCount = stats.numDocs();
+        public Void visitGroupReference(GroupReference group, Map<LogicalPlan, Stats> context) {
+            var groupId = group.groupId();
+            var stats = memo.stats(groupId);
+            if (stats == null) {
+                var logicalPlan = memo.resolve(groupId);
+                var result = statsCalculator.calculate(logicalPlan);
+                stats = result.get(logicalPlan);
+                memo.addStats(groupId, stats);
+            }
+            context.put(group, stats);
             return null;
         }
 
         @Override
-        public Void visitLimit(Limit logicalPlan, StatsCalculator.Context context) {
-            // filter by limit
+        public Void visitCollect(Collect collect, Map<LogicalPlan, Stats> context) {
+            var stats = new Stats(collect.numExpectedRows(), collect.numExpectedRows());
+            context.put(collect, stats);
+            return null;
         }
 
         @Override
-        public Void visitUnion(Union logicalPlan, Context context) {
-            logicalPlan.
-        }
-
-        @Override
-        public Void visitPlan(LogicalPlan logicalPlan, StatsCalculator.Context context) {
+        public Void visitPlan(LogicalPlan logicalPlan, Map<LogicalPlan, Stats> context) {
             for (LogicalPlan source : logicalPlan.sources()) {
                 source.accept(this, context);
             }
             return null;
         }
-    }
-
-    static class Context {
-        long outputRowCount;
     }
 }

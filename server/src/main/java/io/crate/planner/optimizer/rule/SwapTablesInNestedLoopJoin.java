@@ -53,22 +53,20 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        StatsCalculator statsEstimator = new StatsCalculator(resolvePlan);
-        join.lhs().accept(statsEstimator, lhsStats);
-        join.rhs().accept(statsEstimator, rhsStats);
-        if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
-                 return new NestedLoopJoin(
-                     join.rhs(),
-                     join.lhs(),
-                     join.joinType().invert(),
-                     join.joinCondition(),
-                     join.isFiltered(),
-                     join.topMostLeftRelation(),
-                     join.orderByWasPushedDown(),
-                     join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                     join.isJoinConditionOptimised(),
-                     join.isRewriteNestedLoopJoinToHashJoinDone());
-            }
+//        StatsCalculator statsCalculator = new StatsCalculator(resolvePlan);
+//        if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
+//                 return new NestedLoopJoin(
+//                     join.rhs(),
+//                     join.lhs(),
+//                     join.joinType().invert(),
+//                     join.joinCondition(),
+//                     join.isFiltered(),
+//                     join.topMostLeftRelation(),
+//                     join.orderByWasPushedDown(),
+//                     join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+//                     join.isJoinConditionOptimised(),
+//                     join.isRewriteNestedLoopJoinToHashJoinDone());
+//            }
             return null;
     }
 }

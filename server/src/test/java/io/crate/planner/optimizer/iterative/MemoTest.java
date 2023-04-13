@@ -51,6 +51,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.PlanHint;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 
@@ -248,8 +249,8 @@ public class MemoTest {
         Memo memo = new Memo(x);
         int xGroup = memo.getRootGroup();
         int yGroup = getChildGroup(memo, memo.getRootGroup());
-        PlanStats xStats = new PlanStats(1, 2);
-        PlanStats yStats = new PlanStats(3, 4);
+        Stats xStats = new Stats(1, 2);
+        Stats yStats = new Stats(3, 4);
 
         memo.addStats(yGroup, yStats);
         memo.addStats(xGroup, xStats);

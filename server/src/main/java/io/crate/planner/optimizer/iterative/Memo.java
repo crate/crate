@@ -34,9 +34,9 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists2;
-import io.crate.planner.optimizer.stats.PlanStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.statistics.Stats;
 
 /**
  * Memo is used as part of an iterative Optimizer as an in-place
@@ -116,7 +116,7 @@ public class Memo {
         return extract(resolve(rootGroup));
     }
 
-    public void addStats(int groupId, PlanStats stats) {
+    public void addStats(int groupId, Stats stats) {
         Group group = group(groupId);
         if (group.stats != null) {
             evictStats(groupId);
@@ -125,7 +125,7 @@ public class Memo {
     }
 
     @Nullable
-    public PlanStats stats(int groupId) {
+    public Stats stats(int groupId) {
         return group(groupId).stats;
     }
 
@@ -246,7 +246,7 @@ public class Memo {
         private LogicalPlan membership;
         private final List<Integer> incomingReferences = new ArrayList<>();
         @Nullable
-        private PlanStats stats;
+        private Stats stats;
 
         private Group(LogicalPlan member) {
             this.membership = requireNonNull(member, "member is null");

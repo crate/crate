@@ -56,6 +56,10 @@ public class Stats implements Writeable {
         statsByColumn = Map.of();
     }
 
+    public Stats(long numDocs, long sizeInBytes) {
+        this(numDocs, sizeInBytes, Map.of());
+    }
+
     public Stats(long numDocs, long sizeInBytes, Map<ColumnIdent, ColumnStats> statsByColumn) {
         this.numDocs = numDocs;
         this.sizeInBytes = sizeInBytes;
