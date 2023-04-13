@@ -58,10 +58,7 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Union union = captures.get(unionCapture);
         List<LogicalPlan> unionSources = union.sources();
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";

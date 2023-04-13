@@ -49,10 +49,7 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
     @Override
     public LogicalPlan apply(NestedLoopJoin join,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
 //        StatsCalculator statsCalculator = new StatsCalculator(resolvePlan);
 //        if (lhsStats.numExpectedRows < rhsStats.numExpectedRows) {
 //                 return new NestedLoopJoin(

@@ -166,12 +166,9 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy, resolvePlan)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, context.resolvePlan())) {
             return null;
         }
         return new LimitDistinct(

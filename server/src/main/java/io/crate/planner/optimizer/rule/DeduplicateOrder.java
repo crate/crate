@@ -66,12 +66,7 @@ public final class DeduplicateOrder implements Rule<Order> {
     }
 
     @Override
-    public LogicalPlan apply(Order plan,
-                             Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    public LogicalPlan apply(Order plan, Captures captures, Rule.Context context) {
         Order childOrder = captures.get(this.childOrder);
         return plan.replaceSources(childOrder.sources());
     }

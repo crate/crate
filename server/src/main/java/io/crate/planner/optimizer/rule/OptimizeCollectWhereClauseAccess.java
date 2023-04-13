@@ -65,19 +65,16 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
     @Override
     public LogicalPlan apply(Collect collect,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         var relation = (DocTableRelation) collect.relation();
-        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
+        var normalizer = new EvaluatingNormalizer(context.nodeCtx(), RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();
         var detailedQuery = WhereClauseOptimizer.optimize(
             normalizer,
             where.queryOrFallback(),
             relation.tableInfo(),
-            txnCtx,
-            nodeCtx
+            context.txnCtx(),
+            context.nodeCtx()
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation
@@ -87,7 +84,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                 docKeys.get(),
                 detailedQuery.query(),
                 collect.outputs(),
-                tableStats.estimatedSizePerRow(relation.relationName())
+                context.tableStats().estimatedSizePerRow(relation.relationName())
             );
         } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
             return new Collect(collect, detailedQuery);

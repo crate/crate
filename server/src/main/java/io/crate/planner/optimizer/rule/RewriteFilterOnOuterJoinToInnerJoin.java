@@ -119,18 +119,15 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
+                             Rule.Context context) {
+        final var symbolEvaluator = new NullSymbolEvaluator(context.txnCtx(), context.nodeCtx());
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        var sources = Lists2.map(nl.sources(), resolvePlan);
+        var sources = Lists2.map(nl.sources(), context.resolvePlan());
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = lhs.getRelationNames();

@@ -21,10 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.JoinPlan;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -35,8 +32,6 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
-
-import java.util.function.Function;
 
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
@@ -63,10 +58,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         JoinPlan join = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), join);
     }

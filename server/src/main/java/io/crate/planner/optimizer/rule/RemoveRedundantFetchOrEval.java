@@ -54,10 +54,7 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
     @Override
     public LogicalPlan apply(Eval plan,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         return plan.source();
     }
 }

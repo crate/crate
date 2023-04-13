@@ -24,13 +24,10 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.Function;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
@@ -41,7 +38,6 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate> {
 
@@ -76,10 +72,7 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
     @Override
     public LogicalPlan apply(HashAggregate aggregate,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());

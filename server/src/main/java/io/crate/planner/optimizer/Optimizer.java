@@ -97,13 +97,14 @@ public class Optimizer {
         int numIterations = 0;
         Function<LogicalPlan, LogicalPlan> resolvePlan = Function.identity();
         Version minVersion = minNodeVersionInCluster.get();
+        Rule.Context context = new Rule.Context(tableStats, txnCtx, nodeCtx, resolvePlan);
         while (!done && numIterations < 10_000) {
             done = true;
             for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, tableStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, context, isTraceEnabled);
                 if (transformedPlan != null) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
@@ -122,17 +123,14 @@ public class Optimizer {
     @Nullable
     public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
                                                    LogicalPlan node,
-                                                   TableStats tableStats,
-                                                   NodeContext nodeCtx,
-                                                   TransactionContext txnCtx,
-                                                   Function<LogicalPlan, LogicalPlan> resolvePlan,
+                                                   Rule.Context context,
                                                    boolean traceEnabled) {
-        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
+        Match<T> match = rule.pattern().accept(node, Captures.empty(), context.resolvePlan());
         if (match.isPresent()) {
             if (traceEnabled) {
                 LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
             }
-            return rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx, resolvePlan);
+            return rule.apply(match.value(), match.captures(), context);
         }
         return null;
     }

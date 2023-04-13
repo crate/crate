@@ -32,9 +32,7 @@ import java.util.function.Function;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.HashJoin;
@@ -43,7 +41,6 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
 
@@ -62,12 +59,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
-                             Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    public LogicalPlan apply(NestedLoopJoin nl, Captures captures, Rule.Context context) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
@@ -95,6 +87,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             );
         } else {
             // Push constant join condition down to source
+            var resolvePlan = context.resolvePlan();
             var lhs = resolvePlan.apply(nl.lhs());
             var rhs = resolvePlan.apply(nl.rhs());
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());

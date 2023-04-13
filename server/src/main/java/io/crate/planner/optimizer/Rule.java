@@ -45,10 +45,7 @@ public interface Rule<T> {
      */
     LogicalPlan apply(T plan,
                       Captures captures,
-                      TableStats tableStats,
-                      TransactionContext txnCtx,
-                      NodeContext nodeCtx,
-                      Function<LogicalPlan, LogicalPlan> resolvePlan);
+                      Context context);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.
@@ -56,4 +53,11 @@ public interface Rule<T> {
     default Version requiredVersion() {
         return Version.V_4_0_0;
     }
+
+    record Context(
+        TableStats tableStats,
+        TransactionContext txnCtx,
+        NodeContext nodeCtx,
+        Function<LogicalPlan, LogicalPlan> resolvePlan
+    ) {}
 }

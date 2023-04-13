@@ -57,10 +57,7 @@ public class MoveLimitBeneathEval implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Eval eval = captures.get(evalCapture);
         return transpose(limit, eval);
     }

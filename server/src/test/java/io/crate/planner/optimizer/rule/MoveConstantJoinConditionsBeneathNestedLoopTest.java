@@ -37,6 +37,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.Rule;
 import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -82,10 +83,12 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         HashJoin result = (HashJoin) rule.apply(match.value(),
                                                 match.captures(),
+                                                new Rule.Context(
                                                 new TableStats(),
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
-                                                Function.identity());
+                                                Function.identity()
+                                                ));
 
         assertThat(result.joinCondition(), is(nonConstantPart));
         assertThat(result.lhs(), is(c1));

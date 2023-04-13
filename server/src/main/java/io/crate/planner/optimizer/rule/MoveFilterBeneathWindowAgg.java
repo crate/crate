@@ -66,10 +66,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();

@@ -77,14 +77,11 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(tableStats, Set.of());
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(context.tableStats(), Set.of());
         if (fetchRewrite == null) {
             return null;
         }

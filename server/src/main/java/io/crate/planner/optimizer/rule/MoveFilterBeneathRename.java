@@ -22,8 +22,6 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Rename;
@@ -31,10 +29,8 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -58,10 +54,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter plan,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
             rename.source(),

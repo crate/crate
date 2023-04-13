@@ -81,10 +81,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<RelationName> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());

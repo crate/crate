@@ -26,12 +26,9 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.List;
-import java.util.function.Function;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -39,7 +36,6 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
 
@@ -60,10 +56,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         var join = captures.get(joinCapture);
         var splitQuery = QuerySplitter.split(filter.query());
         assert join.sources().size() == 1 : "CorrelatedJoin operator must have 1 children, the input plan";

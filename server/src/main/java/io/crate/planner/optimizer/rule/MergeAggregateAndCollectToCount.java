@@ -64,10 +64,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     @Override
     public Count apply(HashAggregate aggregate,
                        Captures captures,
-                       TableStats tableStats,
-                       TransactionContext txnCtx,
-                       NodeContext nodeCtx,
-                       Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                       Rule.Context context) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

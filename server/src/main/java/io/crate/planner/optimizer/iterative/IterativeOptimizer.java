@@ -111,6 +111,7 @@ public class IterativeOptimizer {
         var done = false;
         var progress = false;
         var minVersion = minNodeVersionInCluster.get();
+        Rule.Context ruleContext = new Rule.Context(context.tableStats(), context.txnCtx, nodeCtx, resolvePlan);
         while (!done) {
             done = true;
             for (Rule<?> rule : rules) {
@@ -120,10 +121,7 @@ public class IterativeOptimizer {
                 LogicalPlan transformed = Optimizer.tryMatchAndApply(
                     rule,
                     node,
-                    context.tableStats,
-                    nodeCtx,
-                    context.txnCtx,
-                    resolvePlan,
+                    ruleContext,
                     isTraceEnabled
                 );
                 if (transformed != null) {

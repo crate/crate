@@ -57,10 +57,7 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Rename rename = captures.get(renameCapture);
         return transpose(limit, rename);
     }

@@ -22,8 +22,6 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -31,10 +29,8 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
@@ -60,12 +56,9 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter plan,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Eval eval = captures.get(fetchOrEvalCapture);
-        var source = resolvePlan.apply(eval.source());
+        var source = context.resolvePlan().apply(eval.source());
         List<Symbol> outputsOfFetchSource = source.outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
             return transpose(plan, eval);

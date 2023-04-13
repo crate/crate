@@ -60,10 +60,7 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order plan,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Eval eval = captures.get(fetchCapture);
         List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

@@ -41,7 +41,7 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
     private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
         .with(nl -> nl.isRewriteNestedLoopJoinToHashJoinDone() == false &&
                     nl.orderByWasPushedDown() == false);
-    
+
     @Override
     public Pattern<NestedLoopJoin> pattern() {
         return pattern;
@@ -50,12 +50,8 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
     @Override
     public LogicalPlan apply(NestedLoopJoin nl,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
-
-        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
+                             Rule.Context context) {
+        if (context.txnCtx().sessionSettings().hashJoinsEnabled() &&
             EquiJoinDetector.isHashJoinPossible(nl.joinType(), nl.joinCondition())) {
             return new HashJoin(
                 nl.lhs(),

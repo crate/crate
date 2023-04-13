@@ -76,10 +76,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
         Symbol predicate = filter.query();

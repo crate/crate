@@ -37,6 +37,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
@@ -71,10 +72,11 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
         Filter mergedFilter = mergeFilters.apply(match.value(),
                                                  match.captures(),
+                                                 new Rule.Context(
                                                  new TableStats(),
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
-                                                 Function.identity());
+                                                 Function.identity()));
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }
