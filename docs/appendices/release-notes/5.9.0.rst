@@ -138,6 +138,9 @@ Scalar and Aggregation Functions
 - Added :ref:`position scalar function <scalar-position>` as alias for the
   :ref:`strpos scalar function <scalar-strpos>`.
 
+- Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
+  scalar function.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
