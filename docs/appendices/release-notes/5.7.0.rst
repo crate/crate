@@ -87,7 +87,8 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
+  scalar function.
 
 Performance and Resilience Improvements
 ---------------------------------------
