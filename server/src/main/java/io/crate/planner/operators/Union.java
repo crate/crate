@@ -178,6 +178,14 @@ public class Union implements LogicalPlan {
         }
     }
 
+    public LogicalPlan lhs() {
+        return lhs;
+    }
+
+    public LogicalPlan rhs() {
+        return rhs;
+    }
+
     @Override
     public List<Symbol> outputs() {
         return outputs;

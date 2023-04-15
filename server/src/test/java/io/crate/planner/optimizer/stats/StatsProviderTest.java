@@ -24,61 +24,110 @@ package io.crate.planner.optimizer.stats;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Eval;
+import io.crate.planner.operators.Limit;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
 
-    public void test_simple_collect() throws Exception{
+    public void test_simple_collect() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
 
         DocTableInfo a = e.resolveTableInfo("a");
+
         var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var source = new Collect(new DocTableRelation(a),
+                                 List.of(x),
+                                 WhereClause.MATCH_ALL,
+                                 1L,
+                                 DataTypes.INTEGER.fixedSize());
         var memo = new Memo(source);
-        StatsProvider statsProvider = new StatsProvider(memo);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
+        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
         var result = statsProvider.apply(source);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
 
-    public void test_group_reference() throws Exception{
+    public void test_group_reference() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
         DocTableInfo a = e.resolveTableInfo("a");
         var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var source = new Collect(new DocTableRelation(a),
+                                 List.of(x),
+                                 WhereClause.MATCH_ALL,
+                                 1L,
+                                 DataTypes.INTEGER.fixedSize());
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
         var memo = new Memo(source);
-        StatsProvider statsProvider = new StatsProvider(memo);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
+        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
         var result = statsProvider.apply(groupReference);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
 
-    public void test_tree_of_operators() throws Exception{
+    public void test_tree_of_operators() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
         DocTableInfo a = e.resolveTableInfo("a");
         var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
-        var eval = Eval.create(source, Lists2.concat(source.outputs(),source.outputs()));
+        var source = new Collect(new DocTableRelation(a),
+                                 List.of(x),
+                                 WhereClause.MATCH_ALL,
+                                 1L,
+                                 DataTypes.INTEGER.fixedSize());
+        var eval = Eval.create(source, Lists2.concat(source.outputs(), source.outputs()));
         var memo = new Memo(source);
-        StatsProvider statsProvider = new StatsProvider(memo);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
+        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
         var result = statsProvider.apply(eval);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
-}
+
+    public void test_limit() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table a (x int)")
+            .build();
+        DocTableInfo a = e.resolveTableInfo("a");
+        var x = e.asSymbol("x");
+        var source = new Collect(new DocTableRelation(a),
+                                 List.of(x),
+                                 WhereClause.MATCH_ALL,
+                                 10L,
+                                 DataTypes.INTEGER.fixedSize());
+        var memo = new Memo(source);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1)));
+        var limit = new Limit(source, Literal.of(5), Literal.of(0));
+        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
+        var result = statsProvider.apply(limit);
+        assertThat(result.outputRowCount()).isEqualTo(5L);
+    }
+
+    public void test_union() throws Exception {
+        
+    }
+
+    }

@@ -28,7 +28,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.stats.StatsProvider;
+import io.crate.planner.optimizer.stats.PlanStatsProvider;
 
 public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
 
@@ -45,7 +45,7 @@ public class SwapTablesInNestedLoopJoin implements Rule<NestedLoopJoin> {
     public LogicalPlan apply(NestedLoopJoin join,
                              Captures captures,
                              Rule.Context context) {
-        StatsProvider statsProvider = context.statsProvider();
+        PlanStatsProvider statsProvider = context.statsProvider();
         var lhsStats = statsProvider.apply(join.lhs());
         var rhsStats = statsProvider.apply(join.rhs());
         if (join.joinType().supportsInversion() && lhsStats.outputRowCount() < rhsStats.outputRowCount()) {

@@ -36,7 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.stats.StatsProvider;
+import io.crate.planner.optimizer.stats.PlanStatsProvider;
 import io.crate.statistics.TableStats;
 
 /**
@@ -108,7 +108,7 @@ public class IterativeOptimizer {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
-        var statsProvider = new StatsProvider(context.memo);
+        var statsProvider = new PlanStatsProvider(context.memo, context.tableStats());
 
         var done = false;
         var progress = false;

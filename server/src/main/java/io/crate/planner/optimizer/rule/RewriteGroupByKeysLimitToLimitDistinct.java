@@ -24,13 +24,9 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.Function;
-
-import io.crate.metadata.NodeContext;
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
@@ -39,8 +35,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.stats.StatsProvider;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.stats.PlanStatsProvider;
 import io.crate.types.DataTypes;
 
 
@@ -80,7 +75,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
 
     private static boolean eagerTerminateIsLikely(Limit limit,
                                                   GroupHashAggregate groupAggregate,
-                                                  StatsProvider statsProvider) {
+                                                  PlanStatsProvider statsProvider) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
