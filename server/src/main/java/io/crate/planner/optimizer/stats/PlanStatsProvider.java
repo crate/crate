@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.planner.Plan;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.Limit;
@@ -110,7 +109,7 @@ public class PlanStatsProvider {
             var rhsStats = context.get(context.size() - 1);
             if (lhsStats.outputRowCount() == -1 || rhsStats.outputRowCount() == -1) {
                 context.add(new PlanStats(-1));
-            } {
+            } else {
                 context.add(new PlanStats(lhsStats.outputRowCount() + rhsStats.outputRowCount()));
             }
             return null;

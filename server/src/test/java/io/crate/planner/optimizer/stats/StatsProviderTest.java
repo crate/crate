@@ -127,7 +127,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
     }
 
     public void test_union() throws Exception {
-        
+
     }
 
     }
