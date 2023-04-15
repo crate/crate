@@ -21,47 +21,50 @@
 
 package io.crate.planner.optimizer.stats;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.annotation.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
+import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public class PlanStatsProvider {
 
-    private final Memo memo;
     private final TableStats tableStats;
+    @Nullable
+    private final Memo memo;
 
-    public PlanStatsProvider(Memo memo, TableStats tableStats) {
-        this.memo = memo;
+    public PlanStatsProvider(TableStats tableStats, @Nullable Memo memo) {
         this.tableStats = tableStats;
+        this.memo = memo;
     }
 
     public PlanStats apply(LogicalPlan logicalPlan) {
 
         if (logicalPlan instanceof GroupReference g) {
-           return getAndMaybeUpdateGroupReferenceStats(g);
+            if (memo == null) {
+                throw new UnsupportedOperationException("Stats cannot be provided for GroupReference without a Memo");
+            }
+            return getAndMaybeUpdateGroupReferenceStats(g);
         }
 
         StatsVisitor visitor = new StatsVisitor(this, tableStats);
-        var context = new ArrayList<PlanStats>();
-        logicalPlan.accept(visitor, context);
-        if (context.isEmpty()) {
-            return new PlanStats(-1);
-        }
-        return context.get(context.size() -1);
+        return logicalPlan.accept(visitor, null);
     }
 
+    @VisibleForTesting
     PlanStats getAndMaybeUpdateGroupReferenceStats(GroupReference group) {
         var groupId = group.groupId();
         var stats = memo.stats(groupId);
@@ -73,7 +76,7 @@ public class PlanStatsProvider {
         return stats;
     }
 
-    private static class StatsVisitor extends LogicalPlanVisitor<List<PlanStats>, Void> {
+    private static class StatsVisitor extends LogicalPlanVisitor<Void, PlanStats> {
 
         private final PlanStatsProvider statsProvider;
         private final TableStats tableStats;
@@ -84,56 +87,72 @@ public class PlanStatsProvider {
         }
 
         @Override
-        public Void visitGroupReference(GroupReference group, List<PlanStats> context) {
-            var stats  = statsProvider.apply(group);
-            context.add(stats);
-            return null;
+        public PlanStats visitGroupReference(GroupReference group, Void context) {
+            return statsProvider.apply(group);
         }
 
         @Override
-        public Void visitLimit(Limit limit, List<PlanStats> context) {
+        public PlanStats visitLimit(Limit limit, Void context) {
             if (limit.limit() instanceof Literal) {
                 long numberOfRows = DataTypes.LONG.sanitizeValue(((Literal<?>) limit.limit()).value());
-                context.add(new PlanStats(numberOfRows));
-            } else {
-                limit.source().accept(this, context);
+                return new PlanStats(numberOfRows);
             }
-            return null;
+            return limit.source().accept(this, context);
         }
 
         @Override
-        public Void visitUnion(Union union, List<PlanStats> context) {
-            union.lhs().accept(this, context);
-            var lhsStats = context.get(context.size() - 1);
-            union.rhs().accept(this, context);
-            var rhsStats = context.get(context.size() - 1);
+        public PlanStats visitUnion(Union union, Void context) {
+            var lhsStats = union.lhs().accept(this, context);
+            var rhsStats = union.rhs().accept(this, context);
             if (lhsStats.outputRowCount() == -1 || rhsStats.outputRowCount() == -1) {
-                context.add(new PlanStats(-1));
+                return PlanStats.EMPTY;
+            }
+            return new PlanStats(lhsStats.outputRowCount() + rhsStats.outputRowCount());
+        }
+
+        @Override
+        public PlanStats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
+            var lhsStats = join.lhs().accept(this, context);
+            var rhsStats = join.rhs().accept(this, context);
+            if (lhsStats.outputRowCount() == -1 || rhsStats.outputRowCount() == -1) {
+                return PlanStats.EMPTY;
+            }
+            if (join.joinType() == JoinType.CROSS) {
+                return new PlanStats(lhsStats.outputRowCount() * rhsStats.outputRowCount());
             } else {
-                context.add(new PlanStats(lhsStats.outputRowCount() + rhsStats.outputRowCount()));
+                // We don't have any cardinality estimates, so just take the bigger table
+                return new PlanStats(Math.max(lhsStats.outputRowCount(), rhsStats.outputRowCount()));
             }
-            return null;
         }
 
         @Override
-        public Void visitCollect(Collect collect, List<PlanStats> context) {
+        public PlanStats visitHashJoin(HashJoin join, Void context) {
+            var lhsStats = join.lhs().accept(this, context);
+            var rhsStats = join.rhs().accept(this, context);
+            if (lhsStats.outputRowCount() == -1 || rhsStats.outputRowCount() == -1) {
+                return PlanStats.EMPTY;
+            }
+            // We don't have any cardinality estimates, so just take the bigger table
+            return new PlanStats(Math.max(lhsStats.outputRowCount(), rhsStats.outputRowCount()));
+        }
+
+        @Override
+        public PlanStats visitCollect(Collect collect, Void context) {
             Stats stats = tableStats.getStats(collect.relation().relationName());
-            context.add(new PlanStats(stats.numDocs()));
-            return null;
+            return new PlanStats(stats.numDocs());
         }
 
         @Override
-        public Void visitCount(Count logicalPlan,List<PlanStats> context) {
-            context.add(new PlanStats(1));
-            return null;
+        public PlanStats visitCount(Count logicalPlan, Void context) {
+            return new PlanStats(1);
         }
 
         @Override
-        public Void visitPlan(LogicalPlan logicalPlan, List<PlanStats> context) {
-            for (LogicalPlan source : logicalPlan.sources()) {
-                source.accept(this, context);
+        public PlanStats visitPlan(LogicalPlan logicalPlan, Void context) {
+            if(logicalPlan.sources().size() == 1) {
+                return logicalPlan.sources().get(0).accept(this, context);
             }
-            return null;
+            throw new UnsupportedOperationException("Plan stats not available ");
         }
     }
 }

@@ -108,7 +108,7 @@ public class IterativeOptimizer {
         var rules = context.rules;
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
-        var statsProvider = new PlanStatsProvider(context.memo, context.tableStats());
+        var statsProvider = new PlanStatsProvider(context.tableStats(), context.memo);
 
         var done = false;
         var progress = false;

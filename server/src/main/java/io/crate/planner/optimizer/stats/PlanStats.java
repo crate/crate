@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.stats;
 
-public record PlanStats(long outputRowCount) {}
+public record PlanStats(long outputRowCount) {
+    public static final PlanStats EMPTY = new PlanStats(-1);
+}
 
 

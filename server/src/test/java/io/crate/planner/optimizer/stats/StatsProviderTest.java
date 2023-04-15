@@ -61,7 +61,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
-        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
+        PlanStatsProvider statsProvider = new PlanStatsProvider(tableStats, memo);
         var result = statsProvider.apply(source);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
@@ -81,7 +81,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
-        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
+        PlanStatsProvider statsProvider = new PlanStatsProvider(tableStats, memo);
         var result = statsProvider.apply(groupReference);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
@@ -101,7 +101,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         var memo = new Memo(source);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1)));
-        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
+        PlanStatsProvider statsProvider = new PlanStatsProvider(tableStats, memo);
         var result = statsProvider.apply(eval);
         assertThat(result.outputRowCount()).isEqualTo(1L);
     }
@@ -121,7 +121,7 @@ public class StatsProviderTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1)));
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
-        PlanStatsProvider statsProvider = new PlanStatsProvider(memo, tableStats);
+        PlanStatsProvider statsProvider = new PlanStatsProvider(tableStats, memo);
         var result = statsProvider.apply(limit);
         assertThat(result.outputRowCount()).isEqualTo(5L);
     }
