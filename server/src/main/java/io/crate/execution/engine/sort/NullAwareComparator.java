@@ -24,6 +24,8 @@ package io.crate.execution.engine.sort;
 import java.util.Comparator;
 import java.util.function.Function;
 
+import io.crate.types.DataType;
+
 /**
  * Specialized comparator implementation that directly handles reverse/nullsFirst.
  * (`Comparator.comparing()` doesn't handle nulls)
@@ -31,14 +33,16 @@ import java.util.function.Function;
  * We favour this over chaining Comparator.nullsFirst/nullsLast + .reversed()
  * Because sorting is often one of the main bottlenecks and we want to have a small call stack for that.
  */
-class NullAwareComparator<T> implements Comparator<T> {
+class NullAwareComparator<T, U> implements Comparator<T> {
 
     private final int mod;
-    private final Function<T, Comparable<Object>> keyExtractor;
+    private final Function<T, U> keyExtractor;
     private final int leftNull;
     private final int rightNull;
+    private final DataType<U> type;
 
-    NullAwareComparator(Function<T, Comparable<Object>> keyExtractor, boolean reverse, boolean nullsFirst) {
+    NullAwareComparator(Function<T, U> keyExtractor, DataType<U> type, boolean reverse, boolean nullsFirst) {
+        this.type = type;
         this.keyExtractor = keyExtractor;
         this.mod = reverse ? -1 : 1;
         this.leftNull = nullsFirst ? -1 : 1;
@@ -58,7 +62,6 @@ class NullAwareComparator<T> implements Comparator<T> {
         if (val2 == null) {
             return rightNull;
         }
-        int cmp = val1.compareTo(val2);
-        return cmp * mod;
+        return type.compare(val1, val2) * mod;
     }
 }

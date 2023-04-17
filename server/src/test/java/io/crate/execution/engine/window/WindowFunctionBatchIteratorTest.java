@@ -45,6 +45,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class WindowFunctionBatchIteratorTest extends ESTestCase {
 
@@ -60,8 +61,8 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
             ),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
-            OrderingByPosition.arrayOrdering(0, false, false),
-            OrderingByPosition.arrayOrdering(1, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.STRING, 0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false),
             2,
             () -> 1,
             Runnable::run,

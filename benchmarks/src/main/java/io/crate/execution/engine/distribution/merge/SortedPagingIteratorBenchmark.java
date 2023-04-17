@@ -21,18 +21,6 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.infra.Blackhole;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +30,20 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.infra.Blackhole;
+
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -58,7 +60,7 @@ public class SortedPagingIteratorBenchmark {
     @Setup
     public void prepareData() {
         rnd = new Random(42);
-        compareOnFirstColumn = OrderingByPosition.rowOrdering(0, false, false);
+        compareOnFirstColumn = OrderingByPosition.rowOrdering(DataTypes.INTEGER, 0, false, false);
 
         unsortedFirst = IntStream.range(0, 1_000_000).mapToObj(Row1::new).collect(Collectors.toList());
         unsortedSecond = IntStream.range(500_000, 1_500_00).mapToObj(Row1::new).collect(Collectors.toList());

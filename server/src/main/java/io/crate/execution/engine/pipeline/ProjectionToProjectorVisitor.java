@@ -134,6 +134,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 
@@ -256,6 +257,7 @@ public class ProjectionToProjectorVisitor
         ctx.add(projection.orderBy());
 
         int numOutputs = projection.outputs().size();
+        List<DataType<?>> rowTypes = Symbols.typeView(Lists2.concat(projection.outputs(), projection.orderBy()));
         List<Input<?>> inputs = ctx.topLevelInputs();
         int[] orderByIndices = new int[inputs.size() - numOutputs];
         int idx = 0;
@@ -265,7 +267,7 @@ public class ProjectionToProjectorVisitor
 
         int rowMemoryOverhead = 32; // priority queues implementation are backed by an arrayList
         RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
-            Symbols.typeView(Lists2.concat(projection.outputs(), projection.orderBy())),
+            rowTypes,
             context.ramAccounting,
             rowMemoryOverhead
         );
@@ -275,7 +277,7 @@ public class ProjectionToProjectorVisitor
                 inputs,
                 ctx.expressions(),
                 numOutputs,
-                OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+                OrderingByPosition.arrayOrdering(rowTypes, orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                 projection.limit(),
                 projection.offset(),
                 UNBOUNDED_COLLECTOR_THRESHOLD
@@ -286,7 +288,7 @@ public class ProjectionToProjectorVisitor
             inputs,
             ctx.expressions(),
             numOutputs,
-            OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+            OrderingByPosition.arrayOrdering(rowTypes, orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
             projection.offset()
         );
     }

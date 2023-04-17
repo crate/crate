@@ -34,6 +34,7 @@ import org.junit.Test;
 import io.crate.data.CollectionBucket;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 
 public class JoinGroupByIntegrationTests extends IntegTestCase {
 
@@ -216,7 +217,7 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
         );
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        rows.sort(OrderingByPosition.arrayOrdering(1, false, false));
+        rows.sort(OrderingByPosition.arrayOrdering(DataTypes.FLOAT, 1, false, false));
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),
             is("yellow| 5.0\n" +
@@ -234,7 +235,7 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
         );
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        rows.sort(OrderingByPosition.arrayOrdering(1, false, false));
+        rows.sort(OrderingByPosition.arrayOrdering(DataTypes.FLOAT, 1, false, false));
 
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),

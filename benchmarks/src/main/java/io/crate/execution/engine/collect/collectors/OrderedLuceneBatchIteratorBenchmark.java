@@ -120,7 +120,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
     public void measureLoadAndConsumeOrderedLuceneBatchIterator(Blackhole blackhole) throws Exception {
         BatchIterator<Row> it = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(createOrderedCollector(indexSearcher, columnName)),
-            OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+            OrderingByPosition.rowOrdering(List.of(DataTypes.INTEGER), new int[]{0}, reverseFlags, nullsFirst),
             ROW_ACCOUNTING,
             EsExecutors.directExecutor(),
             () -> 1,
