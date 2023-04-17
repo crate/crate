@@ -214,7 +214,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 meta.put("primary_keys", primaryKeys);
             }
             for (int i = 0; i < pKeyIndices.size(); i ++) {
-                primaryKeys.add(references.get(i).column().fqn());
+                primaryKeys.add(references.get(pKeyIndices.get(i)).column().fqn());
             }
         }
 
