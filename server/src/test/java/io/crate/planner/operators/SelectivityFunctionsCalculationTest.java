@@ -21,14 +21,13 @@
 
 package io.crate.planner.operators;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
@@ -46,7 +45,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
 
     @Test
     public void test_collect_operator_adapts_expected_row_count_based_on_selectivity_calculation() throws Throwable {
-        var columnStats = new HashMap<ColumnIdent, ColumnStats>();
+        var columnStats = new HashMap<ColumnIdent, ColumnStats<?>>();
         long totalNumRows = 20000;
         var numbers = IntStream.range(1, 20001)
             .boxed()
@@ -64,7 +63,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             .build();
 
         LogicalPlan plan = e.logicalPlan("select * from doc.tbl where x = 10");
-        assertThat(plan.numExpectedRows(), Matchers.is(1L));
+        assertThat(plan.numExpectedRows()).isEqualTo(1L);
     }
 
 
@@ -88,6 +87,6 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             .build();
 
         LogicalPlan plan = e.logicalPlan("select x, count(*) from doc.tbl group by x");
-        assertThat(plan.numExpectedRows(), Matchers.is(2L));
+        assertThat(plan.numExpectedRows()).isEqualTo(2L);
     }
 }

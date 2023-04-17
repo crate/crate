@@ -195,7 +195,7 @@ public final class TransportAnalyzeAction {
     static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
         List<Row> records = samples.records;
         List<Object> columnValues = new ArrayList<>(records.size());
-        Map<ColumnIdent, ColumnStats> statsByColumn = new HashMap<>(primitiveColumns.size());
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
             columnValues.clear();
