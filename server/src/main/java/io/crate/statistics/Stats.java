@@ -87,6 +87,10 @@ public class Stats implements Writeable {
         return numDocs;
     }
 
+    public long sizeInBytes() {
+        return sizeInBytes;
+    }
+
     public long averageSizePerRowInBytes() {
         if (numDocs == -1) {
             return -1;

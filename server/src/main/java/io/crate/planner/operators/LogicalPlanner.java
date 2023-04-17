@@ -80,6 +80,7 @@ import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
@@ -292,6 +293,7 @@ public class LogicalPlanner {
 
         private final SubqueryPlanner subqueryPlanner;
         private final TableStats tableStats;
+        private final PlanStats planStats;
         private final Row params;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
@@ -300,6 +302,7 @@ public class LogicalPlanner {
                             Row params) {
             this.subqueryPlanner = subqueryPlanner;
             this.tableStats = tableStats;
+            this.planStats = new PlanStats(tableStats);
             this.params = params;
         }
 
@@ -357,11 +360,14 @@ public class LogicalPlanner {
         public LogicalPlan visitUnionSelect(UnionSelect union, List<Symbol> outputs) {
             var lhsRel = union.left();
             var rhsRel = union.right();
+            var source = new Union(
+                lhsRel.accept(this, lhsRel.outputs()),
+                rhsRel.accept(this, rhsRel.outputs()),
+                union.outputs());
+            var stats = planStats.apply(source);
             return Distinct.create(
-                new Union(
-                    lhsRel.accept(this, lhsRel.outputs()),
-                    rhsRel.accept(this, rhsRel.outputs()),
-                    union.outputs()),
+                source,
+                stats.numDocs(),
                 union.isDistinct(),
                 union.outputs(),
                 tableStats
@@ -418,30 +424,33 @@ public class LogicalPlanner {
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
+            var projectSet = ProjectSet.create(
+                    WindowAgg.create(
+                        Filter.create(
+                            groupByOrAggregate(
+                                ProjectSet.create(
+                                    source,
+                                    splitPoints.tableFunctionsBelowGroupBy()
+                                ),
+                                relation.groupBy(),
+                                splitPoints.aggregates(),
+                                tableStats
+                            ),
+                            having
+                        ),
+                        splitPoints.windowFunctions()
+                    ),
+                    splitPoints.tableFunctions()
+                );
+            var stats = planStats.apply(projectSet);
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
                 Eval.create(
                     Limit.create(
                         Order.create(
                             Distinct.create(
-                                ProjectSet.create(
-                                    WindowAgg.create(
-                                        Filter.create(
-                                            groupByOrAggregate(
-                                                ProjectSet.create(
-                                                    source,
-                                                    splitPoints.tableFunctionsBelowGroupBy()
-                                                ),
-                                                relation.groupBy(),
-                                                splitPoints.aggregates(),
-                                                tableStats
-                                            ),
-                                            having
-                                        ),
-                                        splitPoints.windowFunctions()
-                                    ),
-                                    splitPoints.tableFunctions()
-                                ),
+                                projectSet,
+                                stats.numDocs(),
                                 relation.isDistinct(),
                                 relation.outputs(),
                                 tableStats
@@ -462,7 +471,9 @@ public class LogicalPlanner {
                                                   List<Function> aggregates,
                                                   TableStats tableStats) {
         if (!groupKeys.isEmpty()) {
-            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(source.numExpectedRows(), tableStats, groupKeys);
+            PlanStats planStats = new PlanStats(tableStats);
+            var stats = planStats.apply(source);
+            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(stats.numDocs(), tableStats, groupKeys);
             return new GroupHashAggregate(source, groupKeys, aggregates, numExpectedRows);
         }
         if (!aggregates.isEmpty()) {

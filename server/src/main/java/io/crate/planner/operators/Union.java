@@ -203,6 +203,14 @@ public class Union implements LogicalPlan {
         return new Union(sources.get(0), sources.get(1), outputs);
     }
 
+    public LogicalPlan lhs() {
+        return lhs;
+    }
+
+    public LogicalPlan rhs() {
+        return rhs;
+    }
+
     @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         IntArrayList outputIndicesToKeep = new IntArrayList();
