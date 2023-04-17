@@ -37,6 +37,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
@@ -71,7 +72,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
         Filter mergedFilter = mergeFilters.apply(match.value(),
                                                  match.captures(),
-                                                 new TableStats(),
+                                                 new PlanStats(new TableStats()),
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
                                                  Function.identity());

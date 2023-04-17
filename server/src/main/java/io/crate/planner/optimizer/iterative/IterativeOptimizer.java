@@ -36,6 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.statistics.TableStats;
 
 /**
@@ -70,7 +71,8 @@ public class IterativeOptimizer {
             return node;
         };
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, tableStats));
+        var planStats = new PlanStats(tableStats, memo);
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStats));
         return memo.extract();
     }
 
@@ -120,7 +122,7 @@ public class IterativeOptimizer {
                 LogicalPlan transformed = Optimizer.tryMatchAndApply(
                     rule,
                     node,
-                    context.tableStats,
+                    context.planStats,
                     nodeCtx,
                     context.txnCtx,
                     resolvePlan,
@@ -163,6 +165,6 @@ public class IterativeOptimizer {
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
-        TableStats tableStats
+        PlanStats planStats
     ) {}
 }

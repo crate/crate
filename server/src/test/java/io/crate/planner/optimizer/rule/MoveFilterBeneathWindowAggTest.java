@@ -36,6 +36,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
@@ -73,7 +74,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            new PlanStats(new TableStats()),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -101,7 +102,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            new PlanStats(new TableStats()),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -128,7 +129,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            new PlanStats(new TableStats()),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -162,7 +163,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            new PlanStats(new TableStats()),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -197,7 +198,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            new PlanStats(new TableStats()),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()

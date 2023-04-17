@@ -37,6 +37,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -82,7 +83,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         HashJoin result = (HashJoin) rule.apply(match.value(),
                                                 match.captures(),
-                                                new TableStats(),
+                                                new PlanStats(new TableStats()),
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
                                                 Function.identity());

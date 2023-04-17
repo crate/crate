@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.JoinPlan;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -63,7 +63,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {

@@ -50,6 +50,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.PlanHint;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 
@@ -223,6 +224,29 @@ public class MemoTest {
             plan(newX.id(),
                  plan(y1.id(), plan(z.id())),
                  plan(y2.id(), plan(z.id()))));
+    }
+
+    @Test
+    public void test_store_and_evict_stats() {
+        var y = plan();
+        var x = plan(y);
+
+        Memo memo = new Memo(x);
+        int xGroup = memo.getRootGroup();
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+        var xStats = new Stats(1, 1, Map.of());
+        var yStats = new Stats(3, 3, Map.of());
+
+        memo.addStats(yGroup, yStats);
+        memo.addStats(xGroup, xStats);
+
+        assertEquals(memo.stats(yGroup), yStats);
+        assertEquals(memo.stats(xGroup), xStats);
+
+        memo.replace(yGroup, plan());
+
+        assertThat(memo.stats(yGroup)).isNull();
+        assertThat(memo.stats(xGroup)).isNull();
     }
 
 
