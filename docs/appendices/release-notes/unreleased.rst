@@ -86,3 +86,7 @@ Fixes
 - Fixed an issue that caused ``SQLParseException`` when quoted subscript
   expressions contained quotes. An example would be querying an array with the
   name containing quotes like ``SELECT "arr""[1]";``.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign
+  ``PRIMARY KEY`` to wrong columns, when adding multiple primary key columns,
+  having none-primary columns in-between.
