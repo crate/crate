@@ -48,7 +48,7 @@ public class Stats implements Writeable {
     @VisibleForTesting
     final long sizeInBytes;
 
-    private final Map<ColumnIdent, ColumnStats> statsByColumn;
+    private final Map<ColumnIdent, ColumnStats<?>> statsByColumn;
 
     private Stats() {
         numDocs = -1;
@@ -56,7 +56,7 @@ public class Stats implements Writeable {
         statsByColumn = Map.of();
     }
 
-    public Stats(long numDocs, long sizeInBytes, Map<ColumnIdent, ColumnStats> statsByColumn) {
+    public Stats(long numDocs, long sizeInBytes, Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
         this.numDocs = numDocs;
         this.sizeInBytes = sizeInBytes;
         this.statsByColumn = statsByColumn;
@@ -97,7 +97,7 @@ public class Stats implements Writeable {
         }
     }
 
-    public Map<ColumnIdent, ColumnStats> statsByColumn() {
+    public Map<ColumnIdent, ColumnStats<?>> statsByColumn() {
         return statsByColumn;
     }
 
