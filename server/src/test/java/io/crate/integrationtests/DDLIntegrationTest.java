@@ -1058,6 +1058,7 @@ public class DDLIntegrationTest extends IntegTestCase {
          - 2 columns sharing sub-path to verify that we don't add multiple times common path part to AddColumnRequest
          - object with branching (with multiple leaves)
          - some primitive columns with different constraints
+         - multiple primary keys columns, having some none-primary columns in-between
          With dynamic mapping updates we can add many columns but they don't have constraints so
          all added columns have different constraints as it's the only use-case hitting related code path.
          */
@@ -1066,7 +1067,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 add column o1['a1']['b1'] text generated always as 'val1' ,
                 add column o1['a1']['c1'] int constraint leaf_check check (o1['a1']['c1'] > 10),
                 add column o2 object as (a2 object as (b2 text not null), c2 int),
-                add column int_col INTEGER constraint int_check check (int_col > 20),
+                add column int_col INTEGER constraint int_check check (int_col > 20) primary key,
                 add column long_col LONG generated always as 30,
                 add column analyzed_col TEXT INDEX USING FULLTEXT WITH (analyzer = 'simple')
             """
@@ -1089,12 +1090,12 @@ public class DDLIntegrationTest extends IntegTestCase {
                       ),
                       "c2" INTEGER
                    ),
-                   "int_col" INTEGER,
+                   "int_col" INTEGER NOT NULL,
                    "long_col" BIGINT GENERATED ALWAYS AS _cast(30, 'bigint'),
                    "analyzed_col" TEXT INDEX USING FULLTEXT WITH (
                       analyzer = 'simple'
                    ),
-                   PRIMARY KEY ("id"),
+                   PRIMARY KEY ("id", "int_col"),
                    CONSTRAINT int_check CHECK("int_col" > 20),
                    CONSTRAINT leaf_check CHECK("o1"['a1']['c1'] > 10)
                 )""".stripIndent()
@@ -1109,7 +1110,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             .hasMessageContaining("Failed CONSTRAINT int_check CHECK (\"int_col\" > 20)");
 
         Asserts.assertSQLError(
-            () -> execute("insert into t (id, o2, o1) values (1, {\"a2\" = {\"b2\" = 'test'}}, {\"a1\" = {\"c1\" = 9}})"))
+            () -> execute("insert into t (id, o2, o1, int_col) values (1, {\"a2\" = {\"b2\" = 'test'}}, {\"a1\" = {\"c1\" = 9}}, 25)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
