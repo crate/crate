@@ -48,6 +48,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 
 public class RamAccountingPageIteratorTest extends ESTestCase {
 
@@ -60,6 +61,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
     public void testNoRamAccountingWrappingAppliedForNullOrderByAndNonRepeat() {
         PagingIterator<Integer, Row> pagingIterator1 = PagingIterator.create(
             2,
+            List.of(DataTypes.STRING),
             false,
             null,
             () -> null);
@@ -71,6 +73,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
     public void testRamAccountingWrappingAppliedForRepeatableIterator() {
         PagingIterator<Integer, Row> repeatableIterator = PagingIterator.create(
             2,
+            List.of(DataTypes.STRING),
             true,
             null,
             () -> null);
@@ -87,6 +90,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
         PagingIterator<Integer, Row> repeatingSortedPagingIterator = PagingIterator.create(
             2,
+            List.of(DataTypes.INTEGER),
             true,
             orderBy,
             () -> null);
@@ -97,6 +101,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
         PagingIterator<Integer, Row> nonRepeatingSortedPagingIterator = PagingIterator.create(
             2,
+            List.of(DataTypes.INTEGER),
             false,
             orderBy,
             () -> null);
@@ -107,12 +112,13 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
     @Test
     public void testNoCircuitBreaking() {
+        List<StringType> types = List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING);
         PagingIterator<Integer, Row> pagingIterator = PagingIterator.create(
             2,
+            types,
             true,
             null,
-            () -> new RowAccountingWithEstimators(List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
-                                                  RamAccounting.NO_ACCOUNTING));
+            () -> new RowAccountingWithEstimators(types, RamAccounting.NO_ACCOUNTING));
         assertThat(pagingIterator, instanceOf(RamAccountingPageIterator.class));
         assertThat(((RamAccountingPageIterator) pagingIterator).delegatePagingIterator,
                    instanceOf(PassThroughPagingIterator.class));
@@ -130,12 +136,14 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
     @Test
     public void testCircuitBreaking() throws Exception {
+        List<StringType> types = List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING);
         PagingIterator<Integer, Row> pagingIterator = PagingIterator.create(
             2,
+            types,
             true,
             null,
             () -> new RowAccountingWithEstimators(
-                List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
+                types,
                 ConcurrentRamAccounting.forCircuitBreaker(
                     "test",
                     new MemoryCircuitBreaker(

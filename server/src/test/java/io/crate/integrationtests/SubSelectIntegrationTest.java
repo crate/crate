@@ -48,6 +48,7 @@ import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SubSelectIntegrationTest extends IntegTestCase {
@@ -183,7 +184,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "  select min(age) as minAge from characters group by gender) as ch " +
                 "group by minAge");
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(0, true, true));
+        Collections.sort(rows, OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true));
         assertThat(TestingHelpers.printedTable(rows.toArray(new Object[0][])),
             is("1\n1\n"));
     }
@@ -197,7 +198,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "group by race");
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(0, false, true));
+        Collections.sort(rows, OrderingByPosition.arrayOrdering(DataTypes.STRING, 0, false, true));
         assertThat(printedTable(rows.toArray(new Object[0][])),
             is("Android| NULL\n" +
                "Human| 73.0\n" +

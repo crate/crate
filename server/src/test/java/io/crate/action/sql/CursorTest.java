@@ -133,6 +133,7 @@ public class CursorTest extends ESTestCase {
         );
         PagingIterator<Integer, Row> pi = PagingIterator.create(
             1,
+            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
             true,
             null,
             () -> rowAccounting);

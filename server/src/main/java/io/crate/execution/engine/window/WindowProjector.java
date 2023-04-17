@@ -127,12 +127,17 @@ public class WindowProjector {
         Supplier<InputFactory.Context<CollectExpression<Row, ?>>> createInputFactoryContext =
             () -> inputFactory.ctxForInputColumns(txnCtx);
         int arrayListElementOverHead = 32;
+        List<DataType<?>> rowTypes = Symbols.typeView(projection.standalone());
         RowAccountingWithEstimators accounting = new RowAccountingWithEstimators(
-            Symbols.typeView(projection.standalone()), ramAccounting, arrayListElementOverHead);
+            rowTypes, ramAccounting, arrayListElementOverHead);
         Comparator<Object[]> cmpPartitionBy = partitions.isEmpty()
             ? null
-            : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions()));
-        Comparator<Object[]> cmpOrderBy = createComparator(createInputFactoryContext, windowDefinition.orderBy());
+            : createComparator(createInputFactoryContext, rowTypes, new OrderBy(windowDefinition.partitions()));
+        Comparator<Object[]> cmpOrderBy = createComparator(
+            createInputFactoryContext,
+            rowTypes,
+            windowDefinition.orderBy()
+        );
         int numCellsInSourceRow = projection.standalone().size();
         ComputeFrameBoundary<Object[]> computeFrameStart = createComputeStartFrameBoundary(
             numCellsInSourceRow,

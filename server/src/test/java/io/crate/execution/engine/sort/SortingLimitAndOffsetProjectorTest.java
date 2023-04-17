@@ -58,7 +58,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);
     private static final List<Input<?>> INPUT_LITERAL_LIST = List.of(INPUT, TRUE_LITERAL);
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
-    private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, false);
+    private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
 

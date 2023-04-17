@@ -21,16 +21,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.expression.symbol.Symbols;
-import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +29,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.Symbols;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * A plan node which merges results from upstreams

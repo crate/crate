@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -50,6 +51,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends IntegTestCase {
@@ -234,7 +236,10 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-            new int[]{0, 1}, new boolean[]{false, false}, new boolean[]{false, false}));
+            List.of(DataTypes.STRING, DataTypes.STRING),
+            new int[]{0, 1},
+            new boolean[]{false, false},
+            new boolean[]{false, false}));
         assertThat(response).hasRows(
             "blue| large",
             "blue| small",
@@ -320,7 +325,11 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-            new int[]{0, 1}, new boolean[]{false, true}, new boolean[]{false, true}));
+            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
+            new int[]{0, 1},
+            new boolean[]{false, true},
+            new boolean[]{false, true}
+        ));
 
         assertThat(rows).containsExactly(
             new Object[][]{
