@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.stats;
 
 import javax.annotation.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
@@ -36,13 +35,13 @@ import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.sql.tree.JoinType;
-import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public class PlanStatsProvider {
 
     private final TableStats tableStats;
+    // Memo can be null when there are no Group References in the Logical Plans involved
     @Nullable
     private final Memo memo;
 
@@ -52,49 +51,43 @@ public class PlanStatsProvider {
     }
 
     public PlanStats apply(LogicalPlan logicalPlan) {
-
-        if (logicalPlan instanceof GroupReference g) {
-            if (memo == null) {
-                throw new UnsupportedOperationException("Stats cannot be provided for GroupReference without a Memo");
-            }
-            return getAndMaybeUpdateGroupReferenceStats(g);
-        }
-
-        StatsVisitor visitor = new StatsVisitor(this, tableStats);
+        PlanStatsVisitor visitor = new PlanStatsVisitor(tableStats, memo);
         return logicalPlan.accept(visitor, null);
     }
 
-    @VisibleForTesting
-    PlanStats getAndMaybeUpdateGroupReferenceStats(GroupReference group) {
-        var groupId = group.groupId();
-        var stats = memo.stats(groupId);
-        if (stats == null) {
-            var logicalPlan = memo.resolve(groupId);
-            stats = apply(logicalPlan);
-            memo.addStats(groupId, stats);
-        }
-        return stats;
-    }
+    private static class PlanStatsVisitor extends LogicalPlanVisitor<Void, PlanStats> {
 
-    private static class StatsVisitor extends LogicalPlanVisitor<Void, PlanStats> {
-
-        private final PlanStatsProvider statsProvider;
         private final TableStats tableStats;
+        @Nullable
+        private final Memo memo;
 
-        public StatsVisitor(PlanStatsProvider statsCalculator, TableStats tableStats) {
-            this.statsProvider = statsCalculator;
+        public PlanStatsVisitor(TableStats tableStats, @Nullable  Memo memo) {
             this.tableStats = tableStats;
+            this.memo = memo;
         }
 
         @Override
         public PlanStats visitGroupReference(GroupReference group, Void context) {
-            return statsProvider.apply(group);
+            if (memo == null) {
+                throw new UnsupportedOperationException("Stats cannot be provided for GroupReference without a Memo");
+            }
+            var groupId = group.groupId();
+            var stats = memo.stats(groupId);
+            if (stats == null) {
+                // No stats for this group yet.
+                // Let's get the logical plan, calculate the stats
+                // and update the stats for this group
+                var logicalPlan = memo.resolve(groupId);
+                stats = logicalPlan.accept(this, context);
+                memo.addStats(groupId, stats);
+            }
+            return stats;
         }
 
         @Override
         public PlanStats visitLimit(Limit limit, Void context) {
             if (limit.limit() instanceof Literal) {
-                long numberOfRows = DataTypes.LONG.sanitizeValue(((Literal<?>) limit.limit()).value());
+                var numberOfRows = DataTypes.LONG.sanitizeValue(((Literal<?>) limit.limit()).value());
                 return new PlanStats(numberOfRows);
             }
             return limit.source().accept(this, context);
@@ -119,10 +112,9 @@ public class PlanStatsProvider {
             }
             if (join.joinType() == JoinType.CROSS) {
                 return new PlanStats(lhsStats.outputRowCount() * rhsStats.outputRowCount());
-            } else {
-                // We don't have any cardinality estimates, so just take the bigger table
-                return new PlanStats(Math.max(lhsStats.outputRowCount(), rhsStats.outputRowCount()));
             }
+            // We don't have any cardinality estimates, so just take the bigger table
+            return new PlanStats(Math.max(lhsStats.outputRowCount(), rhsStats.outputRowCount()));
         }
 
         @Override
@@ -138,7 +130,7 @@ public class PlanStatsProvider {
 
         @Override
         public PlanStats visitCollect(Collect collect, Void context) {
-            Stats stats = tableStats.getStats(collect.relation().relationName());
+            var stats = tableStats.getStats(collect.relation().relationName());
             return new PlanStats(stats.numDocs());
         }
 
@@ -152,7 +144,7 @@ public class PlanStatsProvider {
             if(logicalPlan.sources().size() == 1) {
                 return logicalPlan.sources().get(0).accept(this, context);
             }
-            throw new UnsupportedOperationException("Plan stats not available ");
+            throw new UnsupportedOperationException("Plan stats not available");
         }
     }
 }
