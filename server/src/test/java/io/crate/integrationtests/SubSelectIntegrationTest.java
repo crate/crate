@@ -24,12 +24,9 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +43,6 @@ import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.types.DataTypes;
 
@@ -60,11 +56,12 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         setup.setUpCharacters();
 
         execute("select i, name from (select id as i, name from characters order by name) as ch order by i desc");
-        assertThat(printedTable(response.rows()),
-            is("4| Arthur\n" +
-               "3| Trillian\n" +
-               "2| Ford\n" +
-               "1| Arthur\n"));
+        assertThat(response).hasRows(
+            "4| Arthur",
+            "3| Trillian",
+            "2| Ford",
+            "1| Arthur"
+        );
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -79,21 +76,21 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ));
         execute("refresh table doc.tbl");
         execute("explain select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
-        assertThat(printedTable(response.rows()), is(
-            "Rename[i, name] AS t\n" +
-            "  └ Fetch[ord AS i, name]\n" +
-            "    └ Limit[20::bigint;0]\n" +
-            "      └ OrderBy[ord AS i DESC]\n" +
-            "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]\n"
-        ));
+        assertThat(response).hasRows(
+            "Rename[i, name] AS t",
+            "  └ Fetch[ord AS i, name]",
+            "    └ Limit[20::bigint;0]",
+            "      └ OrderBy[ord AS i DESC]",
+            "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]"
+        );
 
         execute("select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
-        assertThat(printedTable(response.rows()), is(
-            "4| Arthur\n" +
-            "3| Trillian\n" +
-            "2| Ford\n" +
-            "1| Arthur\n"
-        ));
+        assertThat(response).hasRows(
+            "4| Arthur",
+            "3| Trillian",
+            "2| Ford",
+            "1| Arthur"
+        );
     }
 
     @Test
@@ -103,8 +100,8 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select id, name " +
                 "from (select * from characters where female = true) as ch " +
                 "where name like 'Arthur'");
-        assertThat(printedTable(response.rows()),
-            is("4| Arthur\n"));
+        assertThat(response).hasRows(
+            "4| Arthur");
     }
 
     @Test
@@ -114,8 +111,8 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select id, name " +
                 "from (select * from characters where female = true) as ch " +
                 "where id = 4");
-        assertThat(printedTable(response.rows()),
-            is("4| Arthur\n"));
+        assertThat(response).hasRows(
+            "4| Arthur");
     }
 
     @Test
@@ -126,11 +123,11 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select name " +
                 "from (select * from locations order by name limit 10 offset 5) as l " +
                 "limit 5 offset 4");
-        assertThat(printedTable(response.rows()),
-            is("End of the Galaxy\n" +
-               "Galactic Sector QQ7 Active J Gamma\n" +
-               "North West Ripple\n" +
-               "Outer Eastern Rim\n"));
+        assertThat(response).hasRows(
+            "End of the Galaxy",
+            "Galactic Sector QQ7 Active J Gamma",
+            "North West Ripple",
+            "Outer Eastern Rim");
     }
 
     @Test
@@ -146,11 +143,11 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 " from (select a, i, (x + x) as xx from t1) as t) as tt " +
                 "order by aa");
 
-        assertThat(printedTable(response.rows()),
-            is("aa| 9\n" +
-               "bb| 14\n" +
-               "cc| 20\n" +
-               "dd| 30\n"));
+        assertThat(response).hasRows(
+            "aa| 9",
+            "bb| 14",
+            "cc| 20",
+            "dd| 30");
     }
 
     @Test
@@ -161,8 +158,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
                 "where gender = 'male'");
-        assertThat(printedTable(response.rows()),
-            is("male| 34\n"));
+        assertThat(response).hasRows(
+            "male| 34"
+        );
     }
 
     @Test
@@ -172,9 +170,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
                 "where (minAge * 2) < 120 order by gender");
-        assertThat(printedTable(response.rows()),
-            is("female| 32\n" +
-               "male| 34\n"));
+        assertThat(response).hasRows(
+            "female| 32",
+            "male| 34"
+        );
     }
 
     @Test
@@ -185,8 +184,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "group by minAge");
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true));
-        assertThat(TestingHelpers.printedTable(rows.toArray(new Object[0][])),
-            is("1\n1\n"));
+        assertThat(rows).containsExactly(
+            new Object[] { 1L },
+            new Object[] { 1L }
+        );
     }
 
     @Test
@@ -199,10 +200,11 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(DataTypes.STRING, 0, false, true));
-        assertThat(printedTable(rows.toArray(new Object[0][])),
-            is("Android| NULL\n" +
-               "Human| 73.0\n" +
-               "Vogon| NULL\n"));
+        assertThat(rows).containsExactly(
+            new Object[] { "Android", null },
+            new Object[] {"Human", 73.0 },
+            new Object[] {"Vogon", null }
+        );
     }
 
     @Test
@@ -220,9 +222,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "  from t1, t2 where t2.y > 60) as t " +
                 "where col1 = 'a' order by col3");
 
-        assertThat(printedTable(response.rows()),
-            is("a| 55\n" +
-               "a| 77\n"));
+        assertThat(response).hasRows(
+            "a| 55",
+            "a| 77");
     }
 
     @Test
@@ -241,14 +243,14 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "    from t1, t2 where t1.a='a' or t2.a='aa') as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(printedTable(response.rows()),
-            is("aaa| 58\n" +
-               "abb| 91\n" +
-               "acc| 135\n" +
-               "add| 191\n" +
-               "baa| 60\n" +
-               "caa| 62\n" +
-               "daa| 66\n"));
+        assertThat(response).hasRows(
+            "aaa| 58",
+            "abb| 91",
+            "acc| 135",
+            "add| 191",
+            "baa| 60",
+            "caa| 62",
+            "daa| 66");
     }
 
     @Test
@@ -267,24 +269,24 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "    from t1 left join t2 on t1.a = t2.a where t1.a='a') as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(printedTable(response.rows()),
-            is("aa| 58\n"));
+        assertThat(response).hasRows(
+            "aa| 58");
 
-        assertThat(printedTable(execute(
+        String stmt =
             "select aa, xyi from (" +
             "  select (xy + i) as xyi, aa from (" +
             "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
             "    from t1 right join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
-            "order by aa, xyi").rows()),
-
-            is("aa| 58\n" +
-               "bb| NULL\n")
+            "order by aa, xyi";
+        assertThat(execute(stmt)).hasRows(
+            "aa| 58",
+            "bb| NULL"
         );
     }
 
     @Test
     public void testSingleRowSubselectInWhereClauseOnSysTables() throws Exception {
-        assertThat(execute("select 1 where 2 = (select 2)").rowCount(), is(1L));
+        assertThat(execute("select 1 where 2 = (select 2)")).hasRowCount(1L);
     }
 
     @Test
@@ -297,7 +299,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2");
 
         execute("select * from t1 where x = (select y from t2)");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
     }
 
     @Test
@@ -312,7 +314,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2, t3");
 
         execute("select * from t1 where x = (select y from t2 where y = (select z from t3))");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
     }
 
     @Test
@@ -323,7 +325,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select sum(x) from t1 where x = (select 1)");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -334,7 +336,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select sum(x), x from t1 where x = (select 1) group by x");
-        assertThat(printedTable(response.rows()), is("1| 1\n"));
+        assertThat(response).hasRows("1| 1");
     }
 
     @Test
@@ -358,7 +360,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select x, (select 'foo') from t1 where x = (select 1)");
-        assertThat(printedTable(response.rows()), is("1| foo\n"));
+        assertThat(response).hasRows("1| foo");
     }
 
     @Test
@@ -378,26 +380,32 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         // Left table is expected to be one row, due to the single row subselect in the where clause.
         execute("select * from t as t1, t as t2 where t1.x = (select 1) order by t2.x");
-        assertThat(printedTable(response.rows()), is("1| 1\n1| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "1| 2"
+        );
 
         // Left table is expected to be bigger due to the table stats stating it being 100 rows
         execute("select * from t as t2, t as t1 where t1.x = (select 1) order by t2.x");
-        assertThat(printedTable(response.rows()), is("1| 1\n2| 1\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 1"
+        );
     }
 
     @Test
     public void testSubSelectReturnsNoRowIsHandledAsNullValue() throws Exception {
         execute("select name from sys.cluster where name = (select name from sys.nodes where 1 = 2)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
 
         execute("select name from sys.cluster where (select name from sys.nodes where 1 = 2) is null");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
     public void testScalarSubqueryCanBeUsedInGroupByAndHaving() throws Exception {
         execute("select (select 'foo'), count(*) from unnest([1, 2]) group by 1 having count(*) = (select 2)");
-        assertThat(printedTable(response.rows()), is("foo| 2\n"));
+        assertThat(response).hasRows("foo| 2");
     }
 
     @Test
@@ -410,7 +418,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         // orderBy and limit in subQuery to prevent rewrite to non-subquery
         execute("select sum(x) from (select x from t order by x limit 1) as t");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -424,7 +432,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select sum(ids) from (select date_trunc('day', ts), count(distinct id) as ids from t1 group by 1) tt");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -435,7 +443,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
     }
 
     @Test
@@ -445,7 +453,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "       where t1.t1 = (select 1) " +
                 "       order by x limit 3" +
                 ") t");
-        assertThat(printedTable(response.rows()), is("3\n"));
+        assertThat(response).hasRows("3");
     }
 
     @Test
@@ -463,7 +471,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "on t1.col1 = t2.col1 " +
                 "order by 1 desc, 2 " +
                 "limit 2 offset 1");
-        assertThat(printedTable(response.rows()), is("3| 3\n2| 2\n"));
+        assertThat(response).hasRows(
+            "3| 3",
+            "2| 2");
     }
 
     @Test
@@ -483,7 +493,11 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "where t1.col1 = t2.col1 " +
                 "order by 1 desc, 2 " +
                 "limit 4 offset 2");
-        assertThat(printedTable(response.rows()), is("3| 3\n3| 3\n2| 2\n2| 2\n"));
+        assertThat(response).hasRows(
+            "3| 3",
+            "3| 3",
+            "2| 2",
+            "2| 2");
     }
 
     @Test
@@ -501,13 +515,13 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "where t1.col1 = t2.cnt::integer " +
                 "order by 1 desc, 2, 3 " +
                 "limit 1 offset 1");
-        assertThat(printedTable(response.rows()), is("2| 4| 2\n"));
+        assertThat(response).hasRows("2| 4| 2");
     }
 
     @Test
     public void testGlobalAggOnSubQueryWithWhereOnOuterRelation() throws Exception {
         execute("select sum(x) from (select min(unnest) as x from unnest([1])) as t where x = 2");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
+        assertThat(response).hasRows("NULL");
     }
 
     @Test
@@ -518,9 +532,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select (select 2), x from t");
-        assertThat(printedTable(response.rows()),
-            is("2| 1\n" +
-               "2| 1\n"));
+        assertThat(response).hasRows(
+            "2| 1",
+            "2| 1"
+        );
     }
 
     @Test
@@ -528,7 +543,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select unnest from (" +
                 "   select unnest from unnest([1, 2, 3, 4]) order by unnest asc limit 3" +
                 ") t order by unnest desc limit 1");
-        assertThat(printedTable(response.rows()), is("3\n"));
+        assertThat(response).hasRows("3");
     }
 
     @Test
@@ -541,7 +556,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select x, y from (" +
                 "   select x, y from t order by x limit 2) t " +
                 "order by y desc limit 1");
-        assertThat(printedTable(response.rows()), is("30| 40\n"));
+        assertThat(response).hasRows("30| 40");
     }
 
     @Test
@@ -554,7 +569,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select x, y from (" +
                 "   select x, y from t order by x limit 3) t " +
                 "where x = 30 order by y desc limit 2");
-        assertThat(printedTable(response.rows()), is("30| 40\n"));
+        assertThat(response).hasRows("30| 40");
     }
 
     @Test
@@ -572,9 +587,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "   order by tt.x desc limit 3" +
                 ") ttt " +
                 "where ttt.xx = 4 or ttt.xx = 6 order by ttt.xx asc limit 2");
-        assertThat(printedTable(response.rows()),
-            is("4| 40\n" +
-               "6| 60\n"));
+        assertThat(response).hasRows(
+            "4| 40",
+            "6| 60");
     }
 
     @Test
@@ -592,9 +607,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "   order by tt.x desc limit 3" +
                 ") ttt " +
                 "where ttt.yy = 40 or ttt.yy = 60 order by ttt.xx asc limit 2");
-        assertThat(printedTable(response.rows()),
-            is("4| 40\n" +
-               "6| 60\n"));
+        assertThat(response).hasRows(
+            "4| 40",
+               "6| 60");
     }
 
     @Test
@@ -602,37 +617,35 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         setup.setUpLocations();
         execute("refresh table locations");
         execute("select count(*) from locations where position > (select max(position) from locations) - 2");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
     public void testSubqueryExpressionWithInPredicateLeftFieldSymbol() throws Exception {
         setup.setUpCharacters();
         execute("select id, name from characters where id in (select unnest from unnest([1,2,3])) order by id");
-        assertThat(
-            printedTable(response.rows()),
-            is("1| Arthur\n" +
-               "2| Ford\n" +
-               "3| Trillian\n")
+        assertThat(response).hasRows(
+            "1| Arthur",
+            "2| Ford",
+            "3| Trillian"
         );
     }
 
     @Test
     public void testSubqueryExpressionWithInPredicateLeftValueSymbol() throws Exception {
         execute("select 1 in (select unnest from unnest([1,2,3]))");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()), is("true\n"));
+        assertThat(response).hasRows("true");
     }
 
     @Test
     public void testSubqueryExpressionWithInPredicateEvaluatesToNull() throws Exception {
         execute("select 1 in (select unnest from unnest([2, cast(null as long)]))");
-        assertThat(response.rowCount(), is(1L));
-        assertNull(response.rows()[0][0]);
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isNull();
 
         execute("select NULL in (select unnest from unnest([1,2]))");
-        assertThat(response.rowCount(), is(1L));
-        assertNull(response.rows()[0][0]);
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isNull();
     }
 
     @Test
@@ -651,10 +664,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             "   group by department" +
             "   order by avg(income) desc"
         );
-        assertThat(
-            printedTable(response.rows()),
-            is("engineering| 5000.0\n" +
-               "HR| 0.5\n")
+        assertThat(response).hasRows(
+            "engineering| 5000.0",
+            "HR| 0.5"
         );
     }
 
@@ -668,14 +680,15 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "     (select jobs.department from jobs) sub " +
                 "where employees.department = sub.department " +
                 "order by 1, 2");
-        assertThat(response.rowCount(), is(6L));
-        assertThat(printedTable(response.rows()),
-                   is("asok| internship\n" +
-                      "catbert| HR\n" +
-                      "dilbert| engineering\n" +
-                      "pointy haired boss| management\n" +
-                      "ratbert| HR\n" +
-                      "wally| engineering\n"));
+        assertThat(response).hasRowCount(6L);
+        assertThat(response).hasRows(
+            "asok| internship",
+            "catbert| HR",
+            "dilbert| engineering",
+            "pointy haired boss| management",
+            "ratbert| HR",
+            "wally| engineering"
+        );
     }
 
     @Test
@@ -693,9 +706,8 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             "   and department = 'HR'" +
             "   order by income desc"
         );
-        assertThat(
-            printedTable(response.rows()),
-            is("catbert| 9.9999999999E8\n")
+        assertThat(response).hasRows(
+            "catbert| 9.9999999999E8"
         );
     }
 
@@ -708,11 +720,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             "   and t1 in (select unnest from unnest([4, 5, 6])) " +
             "order by t1 "
         );
-        assertThat(
-            printedTable(response.rows()),
-            is("4\n" +
-               "5\n" +
-               "6\n")
+        assertThat(response).hasRows(
+            "4",
+            "5",
+            "6"
         );
     }
 
@@ -726,10 +737,10 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id, r) values (1, 1), (2, 2)");
         refresh();
         execute("select id from t1 where r = (select r from t1 where id = 1)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select count(*) from t1 where r = (select r from t1 where id = 1)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -738,13 +749,16 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
         execute("refresh table t1");
         execute("select a['b'], c['d']['e'] from (select * from t1) t2");
-        assertThat(printedTable(response.rows()), is("1| 2\n"));
+        assertThat(response).hasRows(
+            "1| 2");
     }
 
     @Test
     public void testSubscriptOnSubSelectFromUnnestWithObjectLiteral() {
         execute("select unnest['b'] from (select * from unnest([{b=1}])) t1");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows(
+            "1"
+        );
     }
 
     @Test
@@ -753,8 +767,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id) values (1), (2)");
         execute("refresh table t1");
         execute("select id + 1 from (select id from t1) tt order by 1 desc");
-        assertThat(printedTable(response.rows()), is("3\n" +
-                                                     "2\n"));
+        assertThat(response).hasRows(
+            "3",
+            "2");
     }
 
     @Test
@@ -766,7 +781,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("select \"o['a']['b']['c']\" from (" +
                 "select o, o['a']['b']['c'] from nested_obj" +
                 ") nobj");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @Test
@@ -777,17 +792,17 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             "SELECT id, name " +
             "FROM ch " +
             "WHERE name LIKE 'Arthur'");
-        assertThat(printedTable(response.rows()),
-            is("4| Arthur\n"));
+        assertThat(response).hasRows(
+            "4| Arthur");
     }
 
     @Test
     public void test_exists_with_subquery_returns_result_if_subquery_has_rows() {
         String stmt = "SELECT mountain, height FROM sys.summits WHERE EXISTS (SELECT 1) order by height desc limit 2";
         execute(stmt);
-        assertThat(printedTable(response.rows())).isEqualTo(
-            "Mont Blanc| 4808\n" +
-            "Monte Rosa| 4634\n"
+        assertThat(response).hasRows(
+            "Mont Blanc| 4808",
+            "Monte Rosa| 4634"
         );
         stmt = """
             SELECT mountain FROM sys.summits

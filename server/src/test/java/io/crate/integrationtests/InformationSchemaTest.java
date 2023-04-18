@@ -23,17 +23,11 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,8 +35,6 @@ import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -68,7 +60,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultTables() {
         execute("select * from information_schema.tables order by table_schema, table_name");
-        assertEquals(57L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(57L);
 
         assertThat(response).hasRows(
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
@@ -143,9 +135,10 @@ public class InformationSchemaTest extends IntegTestCase {
                 "FROM information_schema.tables " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(printedTable(response.rows()), is("BASE TABLE| t1| 2| 1\n" +
-                                                                    "VIEW| t1_view1| NULL| NULL\n" +
-                                                                    "VIEW| t1_view2| NULL| NULL\n"));
+        assertThat(response).hasRows(
+            "BASE TABLE| t1| 2| 1",
+            "VIEW| t1_view1| NULL| NULL",
+            "VIEW| t1_view2| NULL| NULL");
 
         // SELECT information_schema.views
         execute("SELECT table_name, view_definition " +
@@ -153,27 +146,27 @@ public class InformationSchemaTest extends IntegTestCase {
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
         Object[][] rows = response.rows();
-        assertThat(rows[0][0], is("t1_view1"));
-        assertThat(rows[0][1],
-            is("SELECT *\n" +
-               "FROM \"t1\"\n" +
-               "WHERE \"name\" = 'foo'\n"));
-        assertThat(rows[1][0], is("t1_view2"));
-        assertThat(rows[1][1],
-            is("SELECT \"id\"\n" +
-               "FROM \"t1\"\n" +
-               "WHERE \"name\" = 'foo'\n"));
+        assertThat(rows[0][0]).isEqualTo("t1_view1");
+        assertThat(rows[0][1]).isEqualTo(
+            "SELECT *\n" +
+            "FROM \"t1\"\n" +
+            "WHERE \"name\" = 'foo'\n");
+        assertThat(rows[1][0]).isEqualTo("t1_view2");
+        assertThat(rows[1][1]).isEqualTo(
+            "SELECT \"id\"\n" +
+            "FROM \"t1\"\n" +
+            "WHERE \"name\" = 'foo'\n");
 
         // SELECT information_schema.columns
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(printedTable(response.rows()), is("t1| id\n" +
-                                                                    "t1| name\n" +
-                                                                    "t1_view1| id\n" +
-                                                                    "t1_view1| name\n" +
-                                                                    "t1_view2| id\n"));
+        assertThat(response).hasRows("t1| id",
+                                                                    "t1| name",
+                                                                    "t1_view1| id",
+                                                                    "t1_view1| name",
+                                                                    "t1_view2| id");
 
         // After dropping the target table of the view, the view still shows up in information_schema.tables and
         // information_schema.views,  but not in information_schema.columns, because the SELECT statement could not be
@@ -184,22 +177,22 @@ public class InformationSchemaTest extends IntegTestCase {
                 "FROM information_schema.views " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(rows[0][0], is("t1_view1"));
-        assertThat(rows[0][1],
-            is("SELECT *\n" +
-               "FROM \"t1\"\n" +
-               "WHERE \"name\" = 'foo'\n"));
-        assertThat(rows[1][0], is("t1_view2"));
-        assertThat(rows[1][1],
-            is("SELECT \"id\"\n" +
-               "FROM \"t1\"\n" +
-               "WHERE \"name\" = 'foo'\n"));
+        assertThat(rows[0][0]).isEqualTo("t1_view1");
+        assertThat(rows[0][1]).isEqualTo(
+            "SELECT *\n" +
+            "FROM \"t1\"\n" +
+            "WHERE \"name\" = 'foo'\n");
+        assertThat(rows[1][0]).isEqualTo("t1_view2");
+        assertThat(rows[1][1]).isEqualTo(
+            "SELECT \"id\"\n" +
+            "FROM \"t1\"\n" +
+            "WHERE \"name\" = 'foo'\n");
 
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response).hasRows("");
 
         // Clean up metadata that does not show up in information_schema any more
         execute("DROP VIEW t1_view1, t1_view2");
@@ -208,13 +201,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertEquals(57L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(57L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertEquals(58L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(58L);
     }
 
     @Test
@@ -226,29 +219,29 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ? order by table_name asc",
             new Object[]{defaultSchema});
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[0][13], is(defaultSchema));
-        assertThat(response.rows()[0][12], is("foo"));
-        assertThat(response.rows()[0][11], is("crate"));
-        assertThat(response.rows()[0][14], is("BASE TABLE"));
-        assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[0][5], is(3));
-        assertThat(response.rows()[0][4], is("0-1"));
-        assertThat(response.rows()[0][2], is("col1"));
-        assertThat(response.rows()[0][1], is(false));
+        assertThat(response.rows()[0][13]).isEqualTo(defaultSchema);
+        assertThat(response.rows()[0][12]).isEqualTo("foo");
+        assertThat(response.rows()[0][11]).isEqualTo("crate");
+        assertThat(response.rows()[0][14]).isEqualTo("BASE TABLE");
+        assertThat(response.rows()[0][8]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
+        assertThat(response.rows()[0][5]).isEqualTo(3);
+        assertThat(response.rows()[0][4]).isEqualTo("0-1");
+        assertThat(response.rows()[0][2]).isEqualTo("col1");
+        assertThat(response.rows()[0][1]).isEqualTo(false);
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[1][13], is(defaultSchema));
-        assertThat(response.rows()[1][12], is("test"));
-        assertThat(response.rows()[1][11], is("crate"));
-        assertThat(response.rows()[1][14], is("BASE TABLE"));
-        assertThat(response.rows()[1][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[1][5], is(5));
-        assertThat(response.rows()[1][4], is("0-1"));
-        assertThat(response.rows()[1][2], is("col1"));
-        assertThat(response.rows()[0][1], is(false));
+        assertThat(response.rows()[1][13]).isEqualTo(defaultSchema);
+        assertThat(response.rows()[1][12]).isEqualTo("test");
+        assertThat(response.rows()[1][11]).isEqualTo("crate");
+        assertThat(response.rows()[1][14]).isEqualTo("BASE TABLE");
+        assertThat(response.rows()[1][8]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
+        assertThat(response.rows()[1][5]).isEqualTo(5);
+        assertThat(response.rows()[1][4]).isEqualTo("0-1");
+        assertThat(response.rows()[1][2]).isEqualTo("col1");
+        assertThat(response.rows()[0][1]).isEqualTo(false);
     }
 
     @Test
@@ -259,11 +252,11 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_schema, table_name, number_of_shards, number_of_replicas " +
                 "from INFORMATION_SCHEMA.Tables where table_schema = ? " +
                 "order by table_name asc limit 1", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-        assertEquals(sqlExecutor.getCurrentSchema(), response.rows()[0][0]);
-        assertEquals("foo", response.rows()[0][1]);
-        assertEquals(3, response.rows()[0][2]);
-        assertEquals("0-1", response.rows()[0][3]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(sqlExecutor.getCurrentSchema());
+        assertThat(response.rows()[0][1]).isEqualTo("foo");
+        assertThat(response.rows()[0][2]).isEqualTo(3);
+        assertThat(response.rows()[0][3]).isEqualTo("0-1");
     }
 
     @Test
@@ -274,11 +267,11 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureGreen();
         execute("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables where table_schema = ? " +
                 "order by number_of_shards desc, table_name asc limit 2", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
 
-        assertThat(printedTable(response.rows()), is(
-            "bar| 3\n" +
-            "foo| 3\n"));
+        assertThat(response).hasRows(
+            "bar| 3",
+            "foo| 3");
     }
 
     @Test
@@ -288,24 +281,24 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ? order by table_name asc limit 1 offset 1", new Object[]{defaultSchema});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null); // version
-        assertThat(response.rows()[0][13], is(defaultSchema)); // table_schema
-        assertThat(response.rows()[0][12], is("test"));  // table_name
-        assertThat(response.rows()[0][11], is("crate")); // table_catalog
-        assertThat(response.rows()[0][14], is("BASE TABLE")); // table_type
-        assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
-        assertThat(response.rows()[0][5], is(5)); // number_of_shards
-        assertThat(response.rows()[0][4], is("0-1")); // number_of_replicas
-        assertThat(response.rows()[0][2], is("col1")); // primary key
-        assertThat(response.rows()[0][1], is(false)); // closed
+        assertThat(response.rows()[0][13]).isEqualTo(defaultSchema); // table_schema
+        assertThat(response.rows()[0][12]).isEqualTo("test");  // table_name
+        assertThat(response.rows()[0][11]).isEqualTo("crate"); // table_catalog
+        assertThat(response.rows()[0][14]).isEqualTo("BASE TABLE"); // table_type
+        assertThat(response.rows()[0][8]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME); // routing_hash_function
+        assertThat(response.rows()[0][5]).isEqualTo(5); // number_of_shards
+        assertThat(response.rows()[0][4]).isEqualTo("0-1"); // number_of_replicas
+        assertThat(response.rows()[0][2]).isEqualTo("col1"); // primary key
+        assertThat(response.rows()[0][1]).isEqualTo(false); // closed
     }
 
     @Test
     public void testSelectFromInformationSchemaTable() {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='doc'");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         ensureGreen();
@@ -313,17 +306,17 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name, number_of_shards, number_of_replicas, " +
                 "clustered_by from INFORMATION_SCHEMA.Tables where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
-        assertEquals("0-1", response.rows()[0][2]);
-        assertEquals("col1", response.rows()[0][3]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[0][1]).isEqualTo(5);
+        assertThat(response.rows()[0][2]).isEqualTo("0-1");
+        assertThat(response.rows()[0][3]).isEqualTo("col1");
     }
 
     @Test
     public void testSelectBlobTablesFromInformationSchemaTable() {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='blob'");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         String blobsPath = createTempDir().toAbsolutePath().toString();
         execute("create blob table test clustered into 5 shards with (blobs_path=?)", new Object[]{blobsPath});
@@ -332,13 +325,13 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name, number_of_shards, number_of_replicas, " +
                 "clustered_by, blobs_path, routing_hash_function, version " +
                 "from INFORMATION_SCHEMA.Tables where table_schema='blob' ");
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
-        assertEquals("0-1", response.rows()[0][2]);
-        assertEquals("digest", response.rows()[0][3]);
-        assertEquals(blobsPath, response.rows()[0][4]);
-        assertThat(response.rows()[0][5], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[0][1]).isEqualTo(5);
+        assertThat(response.rows()[0][2]).isEqualTo("0-1");
+        assertThat(response.rows()[0][3]).isEqualTo("digest");
+        assertThat(response.rows()[0][4]).isEqualTo(blobsPath);
+        assertThat(response.rows()[0][5]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
         TestingHelpers.assertCrateVersion(response.rows()[0][6], Version.CURRENT, null);
 
         // cleanup blobs path, tempDir hook will be deleted before table would be deleted, avoid error in log
@@ -346,6 +339,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSelectPartitionedTablesFromInformationSchemaTable() {
         execute("create table test (id int, name string, o object as (i int), primary key (id, o['i']))" +
                 " partitioned by (o['i'])");
@@ -355,12 +349,12 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name, number_of_shards, number_of_replicas, " +
                 "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(4, response.rows()[0][1]);
-        assertEquals("0-1", response.rows()[0][2]);
-        assertEquals("_id", response.rows()[0][3]);
-        assertThat((List<Object>) response.rows()[0][4], Matchers.contains("o['i']"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[0][1]).isEqualTo(4);
+        assertThat(response.rows()[0][2]).isEqualTo("0-1");
+        assertThat(response.rows()[0][3]).isEqualTo("_id");
+        assertThat((List<Object>) response.rows()[0][4]).containsExactly("o['i']");
     }
 
     @Test
@@ -368,63 +362,69 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[0][13], is(sqlExecutor.getCurrentSchema()));
-        assertThat(response.rows()[0][12], is("test"));
-        assertThat(response.rows()[0][11], is("crate"));
-        assertThat(response.rows()[0][14], is("BASE TABLE"));
-        assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[0][5], is(5));
-        assertThat(response.rows()[0][4], is("0-1"));
-        assertThat(response.rows()[0][2], is("_id"));
-        assertThat(response.rows()[0][1], is(false));
+        assertThat(response.rows()[0][13]).isEqualTo(sqlExecutor.getCurrentSchema());
+        assertThat(response.rows()[0][12]).isEqualTo("test");
+        assertThat(response.rows()[0][11]).isEqualTo("crate");
+        assertThat(response.rows()[0][14]).isEqualTo("BASE TABLE");
+        assertThat(response.rows()[0][8]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
+        assertThat(response.rows()[0][5]).isEqualTo(5);
+        assertThat(response.rows()[0][4]).isEqualTo("0-1");
+        assertThat(response.rows()[0][2]).isEqualTo("_id");
+        assertThat(response.rows()[0][1]).isEqualTo(false);
     }
 
     @Test
     public void testSelectFromTableConstraints() throws Exception {
         execute("SELECT column_name FROM information_schema.columns WHERE table_schema='information_schema' " +
                 "AND table_name='table_constraints'");
-        assertEquals(9L, response.rowCount());
-        assertThat(TestingHelpers.getColumn(response.rows(),0),
-            arrayContaining("constraint_catalog", "constraint_name", "constraint_schema", "constraint_type", "initially_deferred",
-                "is_deferrable", "table_catalog", "table_name", "table_schema"));
+        assertThat(response.rowCount()).isEqualTo(9L);
+        assertThat(TestingHelpers.getColumn(response.rows(),0)).containsExactly(
+            "constraint_catalog",
+            "constraint_name",
+            "constraint_schema",
+            "constraint_type",
+            "initially_deferred",
+            "is_deferrable",
+            "table_catalog",
+            "table_name",
+            "table_schema");
         execute("SELECT constraint_name, constraint_type, table_name, table_schema FROM " +
                 "information_schema.table_constraints ORDER BY table_schema ASC, table_name ASC");
-        assertThat(printedTable(response.rows()),
-            is(
-                "columns_pk| PRIMARY KEY| columns| information_schema\n" +
-                "information_schema_columns_column_name_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_data_type_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_is_generated_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_is_nullable_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_ordinal_position_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_catalog_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_name_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema\n" +
-                "key_column_usage_pk| PRIMARY KEY| key_column_usage| information_schema\n" +
-                "referential_constraints_pk| PRIMARY KEY| referential_constraints| information_schema\n" +
-                "schemata_pk| PRIMARY KEY| schemata| information_schema\n" +
-                "sql_features_pk| PRIMARY KEY| sql_features| information_schema\n" +
-                "table_constraints_pk| PRIMARY KEY| table_constraints| information_schema\n" +
-                "table_partitions_pk| PRIMARY KEY| table_partitions| information_schema\n" +
-                "tables_pk| PRIMARY KEY| tables| information_schema\n" +
-                "views_pk| PRIMARY KEY| views| information_schema\n" +
-                "allocations_pk| PRIMARY KEY| allocations| sys\n" +
-                "checks_pk| PRIMARY KEY| checks| sys\n" +
-                "jobs_pk| PRIMARY KEY| jobs| sys\n" +
-                "jobs_log_pk| PRIMARY KEY| jobs_log| sys\n" +
-                "node_checks_pk| PRIMARY KEY| node_checks| sys\n" +
-                "nodes_pk| PRIMARY KEY| nodes| sys\n" +
-                "privileges_pk| PRIMARY KEY| privileges| sys\n" +
-                "repositories_pk| PRIMARY KEY| repositories| sys\n" +
-                "shards_pk| PRIMARY KEY| shards| sys\n" +
-                "snapshot_restore_pk| PRIMARY KEY| snapshot_restore| sys\n" +
-                "snapshots_pk| PRIMARY KEY| snapshots| sys\n" +
-                "summits_pk| PRIMARY KEY| summits| sys\n" +
-                "users_pk| PRIMARY KEY| users| sys\n"
-            ));
+        assertThat(response).hasRows(
+            "columns_pk| PRIMARY KEY| columns| information_schema",
+            "information_schema_columns_column_name_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_data_type_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_is_generated_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_is_nullable_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_ordinal_position_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_table_catalog_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_table_name_not_null| CHECK| columns| information_schema",
+            "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema",
+            "key_column_usage_pk| PRIMARY KEY| key_column_usage| information_schema",
+            "referential_constraints_pk| PRIMARY KEY| referential_constraints| information_schema",
+            "schemata_pk| PRIMARY KEY| schemata| information_schema",
+            "sql_features_pk| PRIMARY KEY| sql_features| information_schema",
+            "table_constraints_pk| PRIMARY KEY| table_constraints| information_schema",
+            "table_partitions_pk| PRIMARY KEY| table_partitions| information_schema",
+            "tables_pk| PRIMARY KEY| tables| information_schema",
+            "views_pk| PRIMARY KEY| views| information_schema",
+            "allocations_pk| PRIMARY KEY| allocations| sys",
+            "checks_pk| PRIMARY KEY| checks| sys",
+            "jobs_pk| PRIMARY KEY| jobs| sys",
+            "jobs_log_pk| PRIMARY KEY| jobs_log| sys",
+            "node_checks_pk| PRIMARY KEY| node_checks| sys",
+            "nodes_pk| PRIMARY KEY| nodes| sys",
+            "privileges_pk| PRIMARY KEY| privileges| sys",
+            "repositories_pk| PRIMARY KEY| repositories| sys",
+            "shards_pk| PRIMARY KEY| shards| sys",
+            "snapshot_restore_pk| PRIMARY KEY| snapshot_restore| sys",
+            "snapshots_pk| PRIMARY KEY| snapshots| sys",
+            "summits_pk| PRIMARY KEY| summits| sys",
+            "users_pk| PRIMARY KEY| users| sys"
+        );
 
         execute("CREATE TABLE test (\n" +
                 " col1 INTEGER constraint chk_1 check (col1 > 10),\n" +
@@ -438,25 +438,25 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT constraint_type, constraint_name, table_name FROM information_schema.table_constraints " +
                 "WHERE table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(6L, response.rowCount()); // 4 explicit constraints + 2 NOT NULL derived from composite PK
-        assertThat(response.rows()[0][0], is("PRIMARY KEY"));
-        assertThat(response.rows()[0][1], is("test_pk"));
-        assertThat(response.rows()[0][2], is("test"));
-        assertThat(response.rows()[1][0], is("CHECK"));
-        assertThat((String) response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col1_not_null"));
-        assertThat(response.rows()[1][2], is("test"));
-        assertThat(response.rows()[2][0], is("CHECK"));
-        assertThat((String) response.rows()[2][1], is(sqlExecutor.getCurrentSchema() + "_test_col2_not_null"));
-        assertThat(response.rows()[2][2], is("test"));
-        assertThat(response.rows()[3][0], is("CHECK"));
-        assertThat(response.rows()[3][1], is(sqlExecutor.getCurrentSchema() + "_test_col3_not_null"));
-        assertThat(response.rows()[3][2], is("test"));
-        assertThat(response.rows()[4][0], is("CHECK"));
-        assertThat(response.rows()[4][1], is("unnecessary_check"));
-        assertThat(response.rows()[4][2], is("test"));
-        assertThat(response.rows()[5][0], is("CHECK"));
-        assertThat(response.rows()[5][1], is("chk_1"));
-        assertThat(response.rows()[5][2], is("test"));
+        assertThat(response.rowCount()).isEqualTo(6L); // 4 explicit constraints + 2 NOT NULL derived from composite PK
+        assertThat(response.rows()[0][0]).isEqualTo("PRIMARY KEY");
+        assertThat(response.rows()[0][1]).isEqualTo("test_pk");
+        assertThat(response.rows()[0][2]).isEqualTo("test");
+        assertThat(response.rows()[1][0]).isEqualTo("CHECK");
+        assertThat((String) response.rows()[1][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col1_not_null");
+        assertThat(response.rows()[1][2]).isEqualTo("test");
+        assertThat(response.rows()[2][0]).isEqualTo("CHECK");
+        assertThat((String) response.rows()[2][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col2_not_null");
+        assertThat(response.rows()[2][2]).isEqualTo("test");
+        assertThat(response.rows()[3][0]).isEqualTo("CHECK");
+        assertThat(response.rows()[3][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col3_not_null");
+        assertThat(response.rows()[3][2]).isEqualTo("test");
+        assertThat(response.rows()[4][0]).isEqualTo("CHECK");
+        assertThat(response.rows()[4][1]).isEqualTo("unnecessary_check");
+        assertThat(response.rows()[4][2]).isEqualTo("test");
+        assertThat(response.rows()[5][0]).isEqualTo("CHECK");
+        assertThat(response.rows()[5][1]).isEqualTo("chk_1");
+        assertThat(response.rows()[5][2]).isEqualTo("test");
     }
 
     @Test
@@ -465,11 +465,11 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureGreen();
         execute("SELECT table_name, constraint_name FROM Information_schema" +
                 ".table_constraints WHERE table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount()); // 1 PK + 1 NOT NULL derived from PK
-        assertThat(response.rows()[0][0], is("test"));
-        assertThat(response.rows()[0][1], is("test_pk"));
-        assertThat(response.rows()[1][0], is("test"));
-        assertThat((String) response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col1_not_null"));
+        assertThat(response.rowCount()).isEqualTo(2L); // 1 PK + 1 NOT NULL derived from PK
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[0][1]).isEqualTo("test_pk");
+        assertThat(response.rows()[1][0]).isEqualTo("test");
+        assertThat((String) response.rows()[1][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col1_not_null");
 
         execute("CREATE TABLE test2 (" +
             "   col1a STRING PRIMARY KEY," +
@@ -479,13 +479,13 @@ public class InformationSchemaTest extends IntegTestCase {
                 "ORDER BY table_name ASC",
             new Object[]{sqlExecutor.getCurrentSchema()});
 
-        assertEquals(5L, response.rowCount()); // 2 PK + 1 explicit NOT NULL + 2 NOT NULL derived from PK-s.
-        assertThat(response.rows()[2][0], is("test2"));
-        assertThat(response.rows()[2][1], is("test2_pk"));
-        assertThat(response.rows()[3][0], is("test2"));
-        assertThat((String) response.rows()[3][1], is(sqlExecutor.getCurrentSchema() + "_test2_col1a_not_null"));
-        assertThat(response.rows()[4][0], is("test2"));
-        assertThat(response.rows()[4][1], is(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null"));
+        assertThat(response.rowCount()).isEqualTo(5L); // 2 PK + 1 explicit NOT NULL + 2 NOT NULL derived from PK-s.
+        assertThat(response.rows()[2][0]).isEqualTo("test2");
+        assertThat(response.rows()[2][1]).isEqualTo("test2_pk");
+        assertThat(response.rows()[3][0]).isEqualTo("test2");
+        assertThat((String) response.rows()[3][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test2_col1a_not_null");
+        assertThat(response.rows()[4][0]).isEqualTo("test2");
+        assertThat(response.rows()[4][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null");
     }
 
 
@@ -494,13 +494,13 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='ANALYZER' order by " +
                 "routine_name desc limit 5");
-        assertThat(printedTable(response.rows()), is(
-            "whitespace\n" +
-            "stop\n" +
-            "standard\n" +
-            "simple\n" +
-            "keyword\n"
-        ));
+        assertThat(response).hasRows(
+            "whitespace",
+            "stop",
+            "standard",
+            "simple",
+            "keyword"
+        );
     }
 
     @Test
@@ -508,7 +508,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKENIZER' order by " +
                 "routine_name asc limit 5");
-        assertThat(printedTable(response.rows()), is("standard\n"));
+        assertThat(response).hasRows("standard");
     }
 
     @Test
@@ -516,13 +516,13 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKEN_FILTER' order by " +
                 "routine_name asc limit 5");
-        assertThat(printedTable(response.rows()), is(
-            "cjk_bigram\n" +
-                "cjk_width\n" +
-                "dictionary_decompounder\n" +
-                "hunspell\n" +
-                "hyphenation_decompounder\n"
-        ));
+        assertThat(response).hasRows(
+            "cjk_bigram",
+            "cjk_width",
+            "dictionary_decompounder",
+            "hunspell",
+            "hyphenation_decompounder"
+        );
     }
 
     @Test
@@ -530,10 +530,10 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='CHAR_FILTER' order by " +
                 "routine_name asc");
-        assertThat(printedTable(response.rows()), is(
-            "mapping\n" +
-            "pattern_replace\n"
-        ));
+        assertThat(response).hasRows(
+            "mapping",
+            "pattern_replace"
+        );
     }
 
     @Test
@@ -547,71 +547,71 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name from INFORMATION_SCHEMA.table_constraints " +
                 "where table_schema not in ('sys', 'information_schema')  " +
                 "ORDER BY table_name");
-        assertEquals(6L, response.rowCount()); // 3 PK + 3 NOT NULL derived from PK
+        assertThat(response.rowCount()).isEqualTo(6L); // 3 PK + 3 NOT NULL derived from PK
         // Aligned with PG, every PK column produces a new NOT NULL row in table_constraints.
-        assertThat(printedTable(response.rows()), is(
-            "abc\n" +
-                "abc\n" +
-                "test1\n" +
-                "test1\n" +
-                "test2\n" +
-                "test2\n")
+        assertThat(response).hasRows(
+            "abc",
+            "abc",
+            "test1",
+            "test1",
+            "test2",
+            "test2"
         );
     }
 
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(947, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(947);
     }
 
     @Test
     public void testColumnsColumns() {
         execute("select column_name, data_type from information_schema.columns where table_schema='information_schema' and table_name='columns' order by column_name asc");
-        assertThat(response.rowCount(), is(42L));
-        assertThat(printedTable(response.rows()), is(
-            "character_maximum_length| integer\n" +
-            "character_octet_length| integer\n" +
-            "character_set_catalog| text\n" +
-            "character_set_name| text\n" +
-            "character_set_schema| text\n" +
-            "check_action| integer\n" +
-            "check_references| text\n" +
-            "collation_catalog| text\n" +
-            "collation_name| text\n" +
-            "collation_schema| text\n" +
-            "column_default| text\n" +
-            "column_details| object\n" +
-            "column_details['name']| text\n" +
-            "column_details['path']| text_array\n" +
-            "column_name| text\n" +
-            "data_type| text\n" +
-            "datetime_precision| integer\n" +
-            "domain_catalog| text\n" +
-            "domain_name| text\n" +
-            "domain_schema| text\n" +
-            "generation_expression| text\n" +
-            "identity_cycle| boolean\n" +
-            "identity_generation| text\n" +
-            "identity_increment| text\n" +
-            "identity_maximum| text\n" +
-            "identity_minimum| text\n" +
-            "identity_start| text\n" +
-            "interval_precision| integer\n" +
-            "interval_type| text\n" +
-            "is_generated| text\n" +
-            "is_identity| boolean\n" +
-            "is_nullable| boolean\n" +
-            "numeric_precision| integer\n" +
-            "numeric_precision_radix| integer\n" +
-            "numeric_scale| integer\n" +
-            "ordinal_position| integer\n" +
-            "table_catalog| text\n" +
-            "table_name| text\n" +
-            "table_schema| text\n" +
-            "udt_catalog| text\n" +
-            "udt_name| text\n" +
-            "udt_schema| text\n")
+        assertThat(response.rowCount()).isEqualTo(42L);
+        assertThat(response).hasRows(
+            "character_maximum_length| integer",
+            "character_octet_length| integer",
+            "character_set_catalog| text",
+            "character_set_name| text",
+            "character_set_schema| text",
+            "check_action| integer",
+            "check_references| text",
+            "collation_catalog| text",
+            "collation_name| text",
+            "collation_schema| text",
+            "column_default| text",
+            "column_details| object",
+            "column_details['name']| text",
+            "column_details['path']| text_array",
+            "column_name| text",
+            "data_type| text",
+            "datetime_precision| integer",
+            "domain_catalog| text",
+            "domain_name| text",
+            "domain_schema| text",
+            "generation_expression| text",
+            "identity_cycle| boolean",
+            "identity_generation| text",
+            "identity_increment| text",
+            "identity_maximum| text",
+            "identity_minimum| text",
+            "identity_start| text",
+            "interval_precision| integer",
+            "interval_type| text",
+            "is_generated| text",
+            "is_identity| boolean",
+            "is_nullable| boolean",
+            "numeric_precision| integer",
+            "numeric_precision_radix| integer",
+            "numeric_scale| integer",
+            "ordinal_position| integer",
+            "table_catalog| text",
+            "table_name| text",
+            "table_schema| text",
+            "udt_catalog| text",
+            "udt_name| text",
+            "udt_schema| text"
         );
     }
 
@@ -621,30 +621,30 @@ public class InformationSchemaTest extends IntegTestCase {
                 "where table_schema = 'pg_catalog' " +
                 "and table_name = 'pg_type' " +
                 "order by 1 asc");
-        assertThat(printedTable(response.rows()), is(
-            "oid| integer\n" +
-            "typarray| integer\n" +
-            "typbasetype| integer\n" +
-            "typbyval| boolean\n" +
-            "typcategory| text\n" +
-            "typcollation| integer\n" +
-            "typdefault| text\n" +
-            "typdelim| text\n" +
-            "typelem| integer\n" +
-            "typinput| regproc\n" +
-            "typisdefined| boolean\n" +
-            "typlen| smallint\n" +
-            "typname| text\n" +
-            "typnamespace| integer\n" +
-            "typndims| integer\n" +
-            "typnotnull| boolean\n" +
-            "typoutput| regproc\n" +
-            "typowner| integer\n" +
-            "typreceive| regproc\n" +
-            "typrelid| integer\n" +
-            "typsend| regproc\n" +
-            "typtype| text\n" +
-            "typtypmod| integer\n")
+        assertThat(response).hasRows(
+            "oid| integer",
+            "typarray| integer",
+            "typbasetype| integer",
+            "typbyval| boolean",
+            "typcategory| text",
+            "typcollation| integer",
+            "typdefault| text",
+            "typdelim| text",
+            "typelem| integer",
+            "typinput| regproc",
+            "typisdefined| boolean",
+            "typlen| smallint",
+            "typname| text",
+            "typnamespace| integer",
+            "typndims| integer",
+            "typnotnull| boolean",
+            "typoutput| regproc",
+            "typowner| integer",
+            "typreceive| regproc",
+            "typrelid| integer",
+            "typsend| regproc",
+            "typtype| text",
+            "typtypmod| integer"
         );
     }
 
@@ -668,7 +668,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where table_schema = ? order by column_name asc", new Object[]{defaultSchema});
-        assertThat(response.cols(), arrayContaining(
+        assertThat(response).hasColumns(
             "character_maximum_length",
             "character_octet_length",
             "character_set_catalog",
@@ -709,60 +709,60 @@ public class InformationSchemaTest extends IntegTestCase {
             "udt_catalog",
             "udt_name",
             "udt_schema"
-        ));
+        );
 
-        assertEquals(11L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(11L);
 
         Map<String, Integer> cols = IntStream.range(0, response.cols().length)
                                              .boxed()
                                              .collect(Collectors.toMap(i -> response.cols()[i], i -> i));
 
-        assertEquals("age", response.rows()[0][cols.get("column_name")]);
-        assertEquals("b", response.rows()[1][cols.get("column_name")]);
-        assertEquals("col1", response.rows()[2][cols.get("column_name")]);
-        assertEquals("col2", response.rows()[3][cols.get("column_name")]);
-        assertEquals("d", response.rows()[4][cols.get("column_name")]);
-        assertEquals("f", response.rows()[5][cols.get("column_name")]);
-        assertEquals("s", response.rows()[6][cols.get("column_name")]);
-        assertEquals("stuff", response.rows()[7][cols.get("column_name")]);
-        assertEquals("stuff['level1']", response.rows()[8][cols.get("column_name")]);
-        assertEquals("stuff['level1']['level2']", response.rows()[9][cols.get("column_name")]);
-        assertEquals("stuff['level1']['level2_nullable']", response.rows()[10][cols.get("column_name")]);
+        assertThat(response.rows()[0][cols.get("column_name")]).isEqualTo("age");
+        assertThat(response.rows()[1][cols.get("column_name")]).isEqualTo("b");
+        assertThat(response.rows()[2][cols.get("column_name")]).isEqualTo("col1");
+        assertThat(response.rows()[3][cols.get("column_name")]).isEqualTo("col2");
+        assertThat(response.rows()[4][cols.get("column_name")]).isEqualTo("d");
+        assertThat(response.rows()[5][cols.get("column_name")]).isEqualTo("f");
+        assertThat(response.rows()[6][cols.get("column_name")]).isEqualTo("s");
+        assertThat(response.rows()[7][cols.get("column_name")]).isEqualTo("stuff");
+        assertThat(response.rows()[8][cols.get("column_name")]).isEqualTo("stuff['level1']");
+        assertThat(response.rows()[9][cols.get("column_name")]).isEqualTo("stuff['level1']['level2']");
+        assertThat(response.rows()[10][cols.get("column_name")]).isEqualTo("stuff['level1']['level2_nullable']");
 
-        assertEquals("integer", response.rows()[0][cols.get("data_type")]);
-        assertEquals(null, response.rows()[0][cols.get("datetime_precision")]);
-        assertEquals("NEVER", response.rows()[0][cols.get("is_generated")]);
-        assertEquals(32, response.rows()[0][cols.get("numeric_precision")]);
-        assertEquals(2, response.rows()[0][cols.get("numeric_precision_radix")]);
-        assertEquals(3, response.rows()[0][cols.get("ordinal_position")]);
-        assertEquals("crate", response.rows()[0][cols.get("table_catalog")]);
-        assertEquals("test", response.rows()[0][cols.get("table_name")]);
+        assertThat(response.rows()[0][cols.get("data_type")]).isEqualTo("integer");
+        assertThat(response.rows()[0][cols.get("datetime_precision")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("is_generated")]).isEqualTo("NEVER");
+        assertThat(response.rows()[0][cols.get("numeric_precision")]).isEqualTo(32);
+        assertThat(response.rows()[0][cols.get("numeric_precision_radix")]).isEqualTo(2);
+        assertThat(response.rows()[0][cols.get("ordinal_position")]).isEqualTo(3);
+        assertThat(response.rows()[0][cols.get("table_catalog")]).isEqualTo("crate");
+        assertThat(response.rows()[0][cols.get("table_name")]).isEqualTo("test");
 
-        assertEquals(false, response.rows()[0][cols.get("is_identity")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_generation")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_start")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_increment")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_maximum")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_minimum")]);
-        assertEquals(null, response.rows()[0][cols.get("identity_cycle")]);
+        assertThat(response.rows()[0][cols.get("is_identity")]).isEqualTo(false);
+        assertThat(response.rows()[0][cols.get("identity_generation")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("identity_start")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("identity_increment")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("identity_maximum")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("identity_minimum")]).isEqualTo(null);
+        assertThat(response.rows()[0][cols.get("identity_cycle")]).isEqualTo(null);
 
-        assertEquals(false, response.rows()[0][cols.get("is_nullable")]);
-        assertEquals(false, response.rows()[2][cols.get("is_nullable")]);
-        assertEquals(true, response.rows()[3][cols.get("is_nullable")]);
-        assertEquals(false, response.rows()[7][cols.get("is_nullable")]);
-        assertEquals(false, response.rows()[8][cols.get("is_nullable")]);
-        assertEquals(false, response.rows()[9][cols.get("is_nullable")]);
-        assertEquals(true, response.rows()[10][cols.get("is_nullable")]);
+        assertThat(response.rows()[0][cols.get("is_nullable")]).isEqualTo(false);
+        assertThat(response.rows()[2][cols.get("is_nullable")]).isEqualTo(false);
+        assertThat(response.rows()[3][cols.get("is_nullable")]).isEqualTo(true);
+        assertThat(response.rows()[7][cols.get("is_nullable")]).isEqualTo(false);
+        assertThat(response.rows()[8][cols.get("is_nullable")]).isEqualTo(false);
+        assertThat(response.rows()[9][cols.get("is_nullable")]).isEqualTo(false);
+        assertThat(response.rows()[10][cols.get("is_nullable")]).isEqualTo(true);
 
-        assertEquals(8, response.rows()[1][cols.get("numeric_precision")]);
-        assertEquals(16, response.rows()[6][cols.get("numeric_precision")]);
-        assertEquals(53, response.rows()[4][cols.get("numeric_precision")]);
-        assertEquals(24, response.rows()[5][cols.get("numeric_precision")]);
+        assertThat(response.rows()[1][cols.get("numeric_precision")]).isEqualTo(8);
+        assertThat(response.rows()[6][cols.get("numeric_precision")]).isEqualTo(16);
+        assertThat(response.rows()[4][cols.get("numeric_precision")]).isEqualTo(53);
+        assertThat(response.rows()[5][cols.get("numeric_precision")]).isEqualTo(24);
 
-        assertEquals(Map.of("name","stuff","path", List.of()) , response.rows()[7][cols.get("column_details")]); // column_details
-        assertEquals(Map.of("name","stuff","path", List.of("level1")) , response.rows()[8][cols.get("column_details")]); // column_details
-        assertEquals(Map.of("name","stuff","path", List.of("level1","level2")) , response.rows()[9][cols.get("column_details")]); // column_details
-        assertEquals(Map.of("name","stuff","path", List.of("level1","level2_nullable")) , response.rows()[10][cols.get("column_details")]); // column_details
+        assertThat(response.rows()[7][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of())); // column_details
+        assertThat(response.rows()[8][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1"))); // column_details
+        assertThat(response.rows()[9][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1","level2"))); // column_details
+        assertThat(response.rows()[10][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1","level2_nullable"))); // column_details
     }
 
     @Test
@@ -772,8 +772,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(3L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
 
         execute("create table test2 (col1 integer, col2 string, age integer)");
         ensureGreen();
@@ -782,9 +782,9 @@ public class InformationSchemaTest extends IntegTestCase {
                 "where table_schema = ? " +
                 "order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
 
-        assertEquals(6L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals("test2", response.rows()[4][0]);
+        assertThat(response.rowCount()).isEqualTo(6L);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[4][0]).isEqualTo("test2");
     }
 
     @Test
@@ -795,32 +795,32 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select table_name, column_name," +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
 
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals("col1", response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-        assertEquals("text", response.rows()[0][3]);
+        assertThat(response.rows()[0][0]).isEqualTo("test");
+        assertThat(response.rows()[0][1]).isEqualTo("col1");
+        assertThat(response.rows()[0][2]).isEqualTo(1);
+        assertThat(response.rows()[0][3]).isEqualTo("text");
 
-        assertEquals("test", response.rows()[1][0]);
-        assertEquals("col2", response.rows()[1][1]);
-        assertEquals(2, response.rows()[1][2]);
-        assertEquals("text", response.rows()[1][3]);
+        assertThat(response.rows()[1][0]).isEqualTo("test");
+        assertThat(response.rows()[1][1]).isEqualTo("col2");
+        assertThat(response.rows()[1][2]).isEqualTo(2);
+        assertThat(response.rows()[1][3]).isEqualTo("text");
     }
 
     @Test
     public void testGlobalAggregation() {
         execute("select max(ordinal_position) from information_schema.columns");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        assertEquals(120, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(120);
 
         execute("create table t1 (id integer, col1 string)");
         execute("select max(ordinal_position) from information_schema.columns where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        assertEquals(2, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(2);
     }
 
     @Test
@@ -831,12 +831,12 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureYellow();
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        assertEquals(3, response.rows()[0][0]);
-        assertEquals(10, response.rows()[0][1]);
-        assertEquals(6.0d, response.rows()[0][2]);
-        assertEquals(18L, response.rows()[0][3]);
+        assertThat(response.rows()[0][0]).isEqualTo(3);
+        assertThat(response.rows()[0][1]).isEqualTo(10);
+        assertThat(response.rows()[0][2]).isEqualTo(6.0d);
+        assertThat(response.rows()[0][3]).isEqualTo(18L);
     }
 
     @Test
@@ -848,12 +848,12 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where table_schema = ? and table_name != 't1'",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        assertEquals(2, response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals(2.5d, response.rows()[0][2]);
-        assertEquals(5L, response.rows()[0][3]);
+        assertThat(response.rows()[0][0]).isEqualTo(2);
+        assertThat(response.rows()[0][1]).isEqualTo(3);
+        assertThat(response.rows()[0][2]).isEqualTo(2.5d);
+        assertThat(response.rows()[0][3]).isEqualTo(5L);
     }
 
     @Test
@@ -863,9 +863,9 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         ensureYellow();
         execute("select min(number_of_shards) as min_shards from information_schema.tables where table_name = 't1'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        assertEquals(10, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(10);
     }
 
     @Test
@@ -874,8 +874,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
-        assertEquals(1, response.rowCount());
-        assertEquals(60L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(60L);
     }
 
     @Test
@@ -883,8 +883,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (TableInfoid integer, col1 string)");
         ensureGreen();
         execute("select count(distinct table_schema) from information_schema.tables order by count(distinct table_schema)");
-        assertEquals(1, response.rowCount());
-        assertEquals(4L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(4L);
     }
 
     @Test
@@ -898,7 +898,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 ") with (number_of_replicas=0)");
         ensureGreen();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        assertEquals(4, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(4);
 
         execute("insert into t4 (stuff) values (?)", new Object[] {
             Map.of(
@@ -909,7 +909,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
         waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        assertEquals(5, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(5);
     }
 
     @Test
@@ -923,7 +923,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 ")");
         ensureYellow();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        assertEquals(4, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(4);
 
         execute("insert into t4 (stuff) values (?)", new Object[] {
             Map.of(
@@ -932,10 +932,11 @@ public class InformationSchemaTest extends IntegTestCase {
                 "last_name", "Adams")});
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
-        assertEquals(4, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(4);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testPartitionedBy() {
         execute("create table my_table (id integer, name string) partitioned by (name)");
         execute("create table my_other_table (id integer, name string, content string) " +
@@ -944,8 +945,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select * from information_schema.tables " +
                 "where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
 
-        assertThat((List<Object>) response.rows()[0][6], Matchers.contains("name", "content"));
-        assertThat((List<Object>) response.rows()[1][6], Matchers.contains("name"));
+        assertThat((List<Object>) response.rows()[0][6]).containsExactly("name", "content");
+        assertThat((List<Object>) response.rows()[1][6]).containsExactly("name");
     }
 
     @Test
@@ -970,7 +971,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 "   number_of_replicas, " +
                 "   settings['write']['wait_for_active_shards'] " +
                 "from information_schema.table_partitions order by table_name, partition_ident");
-        assertEquals(3, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3);
 
         Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04132", Map.of("par", 1), "1", 5, "0-1", "1"};
         Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", Map.of("par", 2), "2", 5, "0-1", "1"};
@@ -989,23 +990,23 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
-        assertThat(printedTable(response.rows()), is("parted| 2| 0\n"));
+        assertThat(response).hasRows("parted| 2| 0");
 
         execute("select * from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("insert into parted (par, content) values (1, 'foo'), (3, 'baz')");
         execute("refresh table parted");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
-        assertThat(printedTable(response.rows()), is("parted| 2| 0\n"));
+        assertThat(response).hasRows("parted| 2| 0");
 
         execute("select table_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
-        assertThat(printedTable(response.rows()), is(
-            "parted| 04132| {par=1}| 2| 0\n" +
-            "parted| 04136| {par=3}| 2| 0\n"));
+        assertThat(response).hasRows(
+            "parted| 04132| {par=1}| 2| 0",
+            "parted| 04136| {par=3}| 2| 0");
 
         execute("alter table parted set (number_of_shards=6)");
         waitNoPendingTasksOnAll();
@@ -1015,15 +1016,15 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
-        assertThat(printedTable(response.rows()), is("parted| 6| 0\n"));
+        assertThat(response).hasRows("parted| 6| 0");
 
         execute("select table_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(printedTable(response.rows()), is(
-            "parted| 04132| {par=1}| 2| 0\n" +
-            "parted| 04134| {par=2}| 6| 0\n" +
-            "parted| 04136| {par=3}| 2| 0\n"));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response).hasRows(
+            "parted| 04132| {par=1}| 2| 0",
+            "parted| 04134| {par=2}| 6| 0",
+            "parted| 04136| {par=3}| 2| 0");
 
         execute("update parted set new=true where par=1");
         refresh();
@@ -1031,28 +1032,28 @@ public class InformationSchemaTest extends IntegTestCase {
 
         // ensure newer index metadata does not override settings in template
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
-        assertThat(printedTable(response.rows()), is("parted| 6| 0\n"));
+        assertThat(response).hasRows("parted| 6| 0");
 
         execute("select table_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(printedTable(response.rows()), is(
-            "parted| 04132| {par=1}| 2| 0\n" +
-            "parted| 04134| {par=2}| 6| 0\n" +
-            "parted| 04136| {par=3}| 2| 0\n"));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response).hasRows(
+            "parted| 04132| {par=1}| 2| 0",
+            "parted| 04134| {par=2}| 6| 0",
+            "parted| 04136| {par=3}| 2| 0");
 
         execute("delete from parted where par=2");
         waitNoPendingTasksOnAll();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");
-        assertThat(printedTable(response.rows()), is("parted| 6| 0\n"));
+        assertThat(response).hasRows("parted| 6| 0");
         waitNoPendingTasksOnAll();
         execute("select table_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where table_name='parted' order by table_name, partition_ident");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(printedTable(response.rows()), is(
-            "parted| 04132| {par=1}| 2| 0\n" +
-            "parted| 04136| {par=3}| 2| 0\n"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response).hasRows(
+            "parted| 04132| {par=1}| 2| 0",
+            "parted| 04136| {par=3}| 2| 0");
 
 
     }
@@ -1075,7 +1076,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
         execute("select table_name, table_schema, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions order by table_name, partition_ident");
-        assertEquals(5, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(5);
 
         Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132132c5p0", Map.of("par", 1, "par_str", "bar"), 5, "0-1"};
         Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08132136dtng", Map.of("par", 1, "par_str", "foo"), 5, "0-1"};
@@ -1107,11 +1108,11 @@ public class InformationSchemaTest extends IntegTestCase {
         refresh();
 
         execute("select table_name, partition_ident, values from information_schema.table_partitions order by table_name, partition_ident");
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2);
 
-        assertThat(printedTable(response.rows()),
-            is("my_table| 04130| {metadata['date']=0}\n" +
-               "my_table| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
+        assertThat(response).hasRows(
+            "my_table| 04130| {metadata['date']=0}",
+            "my_table| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}");
     }
 
     @Test
@@ -1125,8 +1126,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
         ensureGreen();
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("any1"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("any1");
     }
 
     @Test
@@ -1146,7 +1147,7 @@ public class InformationSchemaTest extends IntegTestCase {
             obj
         };
         execute(stmtInsert, argsInsert);
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitForMappingUpdateOnAll("data_points", "data.somestringroute");
         refresh();
 
@@ -1155,13 +1156,14 @@ public class InformationSchemaTest extends IntegTestCase {
                                "where table_name = 'data_points' " +
                                "order by column_name";
         execute(stmtIsColumns);
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
-        String expected = "data_points| data| object\n" +
-                          "data_points| data['somelongroute']| bigint\n" +
-                          "data_points| data['somestringroute']| text\n" +
-                          "data_points| day| text\n";
-        assertEquals(expected, printedTable(response.rows()));
+        assertThat(response).hasRows(
+            "data_points| data| object",
+            "data_points| data['somelongroute']| bigint",
+            "data_points| data['somestringroute']| text",
+            "data_points| day| text"
+        );
     }
 
     @Test
@@ -1172,24 +1174,26 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureYellow();
         execute("select distinct table_schema from information_schema.tables " +
                 "where table_schema ~ '[a-z]+o[a-z]' order by table_schema");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("blob"));
-        assertThat(response.rows()[1][0], is("doc"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("blob");
+        assertThat(response.rows()[1][0]).isEqualTo("doc");
     }
 
     @Test
     @UseRandomizedSchema(random = false)
     public void testSelectSchemata() throws Exception {
         execute("select * from information_schema.schemata order by schema_name asc");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
+        assertThat(response.rowCount()).isEqualTo(5L);
+        assertThat(TestingHelpers.getColumn(response.rows(), 0))
+            .containsExactly("blob", "doc", "information_schema", "pg_catalog", "sys");
 
         execute("create table t1 (col string) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select * from information_schema.schemata order by schema_name asc");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
+        assertThat(response.rowCount()).isEqualTo(5L);
+        assertThat(TestingHelpers.getColumn(response.rows(), 0))
+            .containsExactly("blob", "doc", "information_schema", "pg_catalog", "sys");
     }
 
     @Test
@@ -1197,18 +1201,18 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t (lastname string, firstname string, name as (lastname || '_' || firstname)) " +
                 "with (number_of_replicas = 0)");
         execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = 'ALWAYS'");
-        assertThat(printedTable(response.rows()),
-            is("name| ALWAYS| concat(concat(lastname, '_'), firstname)\n"));
+        assertThat(response).hasRows(
+            "name| ALWAYS| concat(concat(lastname, '_'), firstname)");
     }
 
     @Test
     public void testSelectSqlFeatures() {
         execute("select * from information_schema.sql_features order by feature_id asc");
-        assertThat(response.rowCount(), is(679L));
+        assertThat(response).hasRowCount(679L);
 
         execute("select feature_id, feature_name from information_schema.sql_features where feature_id='E011'");
-        assertThat(response.rowCount(), is(7L));
-        assertThat(response.rows()[0][1], is("Numeric data types"));
+        assertThat(response).hasRowCount(7L);
+        assertThat(response.rows()[0][1]).isEqualTo("Numeric data types");
     }
 
     @Test
@@ -1222,17 +1226,16 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testInformationRoutinesColumns() {
         execute("select column_name from information_schema.columns where table_name='routines' order by column_name asc");
-        assertThat(printedTable(response.rows()),
-            is(
-              "data_type\n" +
-              "is_deterministic\n" +
-              "routine_body\n" +
-              "routine_definition\n" +
-              "routine_name\n" +
-              "routine_schema\n" +
-              "routine_type\n" +
-              "specific_name\n"
-            ));
+        assertThat(response).hasRows(
+            "data_type",
+            "is_deterministic",
+            "routine_body",
+            "routine_definition",
+            "routine_name",
+            "routine_schema",
+            "routine_type",
+            "specific_name"
+        );
     }
 
     @Test
@@ -1242,13 +1245,13 @@ public class InformationSchemaTest extends IntegTestCase {
 
         execute("alter table t close");
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(true, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(true);
 
         execute("alter table t open");
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(false, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
     }
 
     @Test
@@ -1266,28 +1269,28 @@ public class InformationSchemaTest extends IntegTestCase {
 
         execute("select closed from information_schema.table_partitions where table_name = 't'");
 
-        assertEquals(3, response.rowCount());
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals(false, response.rows()[1][0]);
-        assertEquals(false, response.rows()[2][0]);
+        assertThat(response.rowCount()).isEqualTo(3);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(response.rows()[1][0]).isEqualTo(false);
+        assertThat(response.rows()[2][0]).isEqualTo(false);
 
         execute("alter table t partition (i = 1) close");
         execute("select partition_ident, values from information_schema.table_partitions" +
                 " where table_name = 't' and closed = true");
 
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
 
-        HashMap values = (HashMap) response.rows()[0][1];
-        assertEquals(1, values.get("i"));
-        assertTrue(partitionIdent.endsWith((String) response.rows()[0][0]));
+        Map<?, ?> values = (Map<?, ?>) response.rows()[0][1];
+        assertThat(values.get("i")).isEqualTo(1);
+        assertThat(partitionIdent).endsWith((String) response.rows()[0][0]);
 
         execute("alter table t partition (i = 1) open");
         execute("select closed from information_schema.table_partitions");
 
-        assertEquals(3, response.rowCount());
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals(false, response.rows()[1][0]);
-        assertEquals(false, response.rows()[2][0]);
+        assertThat(response.rowCount()).isEqualTo(3);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(response.rows()[1][0]).isEqualTo(false);
+        assertThat(response.rows()[2][0]).isEqualTo(false);
     }
 
     @Test
@@ -1298,8 +1301,8 @@ public class InformationSchemaTest extends IntegTestCase {
         ensureYellow();
 
         execute("select * from information_schema.key_column_usage order by table_name, ordinal_position asc");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.cols(), arrayContaining(
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response).hasColumns(
             "column_name",
             "constraint_catalog",
             "constraint_name",
@@ -1308,32 +1311,39 @@ public class InformationSchemaTest extends IntegTestCase {
             "table_catalog",
             "table_name",
             "table_schema"
-        ));
+        );
 
         final String defaultSchema = sqlExecutor.getCurrentSchema();
-        Matcher<Object[][]> resultMatcher = arrayContaining(
+        Object[][] expectedRows = new Object[][] {
             new Object[]{"id2", "crate", "table2_pk", defaultSchema, 1, "crate", "table2", defaultSchema},
             new Object[]{"id3", "crate", "table3_pk", defaultSchema, 1, "crate", "table3", defaultSchema},
             new Object[]{"name", "crate", "table3_pk", defaultSchema, 2, "crate", "table3", defaultSchema}
-        );
-        assertThat(response.rows(), resultMatcher);
+        };
+        assertThat(response.rows()).isEqualTo(expectedRows);
 
         // check that the constraint name is the same as in table_constraints by joining the two tables
         execute("select t1.* from information_schema.key_column_usage t1 " +
                 "join information_schema.table_constraints t2 " +
                 "on t1.constraint_name = t2.constraint_name " +
                 "order by t1.table_name, t1.ordinal_position asc");
-        assertThat(response.rows(), resultMatcher);
+        assertThat(response.rows()).isEqualTo(expectedRows);
     }
 
     @Test
     public void testSelectFromReferentialConstraints() {
         execute("select * from information_schema.referential_constraints");
-        assertEquals(0L, response.rowCount());
-        assertThat(response.cols(),
-            arrayContaining("constraint_catalog", "constraint_name", "constraint_schema", "delete_rule",
-                "match_option", "unique_constraint_catalog", "unique_constraint_name", "unique_constraint_schema",
-                "update_rule"));
+        assertThat(response.rowCount()).isEqualTo(0L);
+        assertThat(response).hasColumns(
+            "constraint_catalog",
+            "constraint_name",
+            "constraint_schema",
+            "delete_rule",
+            "match_option",
+            "unique_constraint_catalog",
+            "unique_constraint_name",
+            "unique_constraint_schema",
+            "update_rule"
+        );
     }
 
     @Test
@@ -1342,7 +1352,8 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("SELECT column_name, character_maximum_length " +
                 "FROM information_schema.columns " +
                 "WHERE table_name = 't'");
-        assertThat(printedTable(response.rows()), is("col1| NULL\n" +
-                                                     "col2| 1\n"));
+        assertThat(response).hasRows(
+            "col1| NULL",
+            "col2| 1");
     }
 }
