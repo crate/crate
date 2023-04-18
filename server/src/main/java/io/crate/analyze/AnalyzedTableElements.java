@@ -36,6 +36,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
@@ -487,11 +488,15 @@ public class AnalyzedTableElements<T> {
             // Hence, we ignore copyTo which is irrelevant for ADD COLUMN.
             // columnDefinition.isIndexColumn() cannot be used here, it's always false for ADD COLUMN.
             ref = new IndexReference(
-                columnDefinition.position,
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                RowGranularity.DOC,
+                realType,
+                ColumnPolicy.DYNAMIC,
+                columnDefinition.indexConstraint(),
                 isNullable,
                 columnDefinition.docValues(),
-                new ReferenceIdent(relationName, columnDefinition.ident()),
-                columnDefinition.indexConstraint(),
+                columnDefinition.position,
+                null, //default expression is irrelevant for ADD COLUMN
                 List.of(), //copyTo is irrelevant for ADD COLUMN
                 columnDefinition.analyzer()
             );
