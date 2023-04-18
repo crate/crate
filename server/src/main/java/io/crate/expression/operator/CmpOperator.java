@@ -21,14 +21,11 @@
 
 package io.crate.expression.operator;
 
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.IntPredicate;
 
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 
-import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
@@ -37,6 +34,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
@@ -45,10 +43,13 @@ public final class CmpOperator extends Operator<Object> {
     private final Signature signature;
     private final BoundSignature boundSignature;
     private final IntPredicate isMatch;
+    private final DataType<Object> type;
 
+    @SuppressWarnings("unchecked")
     public CmpOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmpResultIsMatch) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.type = (DataType<Object>) boundSignature.argTypes().get(0);
         this.isMatch = cmpResultIsMatch;
     }
 
@@ -63,7 +64,8 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null && args[1] != null : "1st and 2nd argument must not be null";
@@ -76,13 +78,7 @@ public final class CmpOperator extends Operator<Object> {
 
         assert (left.getClass().equals(right.getClass())) : "left and right must have the same type for comparison";
 
-        if (left instanceof Comparable) {
-            return isMatch.test(((Comparable) left).compareTo(right));
-        } else if (left instanceof Map) {
-            return isMatch.test(Objects.compare((Map) left, (Map) right, MapComparator.getInstance()));
-        } else {
-            return null;
-        }
+        return isMatch.test(type.compare(left, right));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

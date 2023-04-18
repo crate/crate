@@ -123,22 +123,6 @@ public final class DataTypes {
         DATE
     );
 
-    public static final List<DataType<?>> PRIMITIVE_TYPES_WITHOUT_INTERVAL = List.of(
-        BYTE,
-        BOOLEAN,
-        CHARACTER,
-        STRING,
-        IP,
-        DOUBLE,
-        FLOAT,
-        SHORT,
-        INTEGER,
-        LONG,
-        TIMESTAMPZ,
-        TIMESTAMP,
-        DATE
-    );
-
     private static final Set<Integer> PRIMITIVE_TYPE_IDS =
         PRIMITIVE_TYPES.stream()
             .map(DataType::id)
