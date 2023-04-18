@@ -31,6 +31,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -110,6 +112,31 @@ public class IndexReference extends SimpleReference {
                           List<Reference> columns,
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, nullable, hasDocValues, position, null);
+        this.columns = columns;
+        this.analyzer = analyzer;
+    }
+
+    public IndexReference(ReferenceIdent ident,
+                          RowGranularity granularity,
+                          DataType<?> type,
+                          ColumnPolicy columnPolicy,
+                          IndexType indexType,
+                          boolean nullable,
+                          boolean hasDocValues,
+                          int position,
+                          Symbol defaultExpression,
+                          List<Reference> columns,
+                          String analyzer) {
+        super(ident,
+              granularity,
+              type,
+              columnPolicy,
+              indexType,
+              nullable,
+              hasDocValues,
+              position,
+              defaultExpression
+        );
         this.columns = columns;
         this.analyzer = analyzer;
     }

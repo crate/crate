@@ -97,3 +97,7 @@ Fixes
 - Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign a
   wrong type to ``ARRAY(GEO_SHAPE)`` column and create a ``GEO_SHAPE`` column
   instead.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign a
+  wrong type to ``ARRAY(TEXT)`` column and create a ``TEXT`` column instead if
+  column has a ``FULLTEXT`` index.

@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import io.crate.testing.Asserts;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -152,5 +153,20 @@ public class FulltextIntegrationTest extends IntegTestCase {
         // equals original whole string must not work
         execute("SELECT id, keywords FROM t_string_array WHERE keywords_ft = 'foo bar'");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_can_add_geo_shape_array_column() throws Exception {
+        execute("create table t(id int)");
+        execute("alter table t add column keywords ARRAY(STRING) INDEX USING FULLTEXT");
+        execute("insert into t(id, keywords) VALUES (1, ['foo bar'])");
+        Asserts.assertThat(response.rowCount()).isEqualTo(1L);
+        execute("select column_name, data_type from information_schema.columns where table_name = 't' order by 1");
+        Asserts.assertThat(response).hasRows(
+            """
+            id| integer
+            keywords| text_array
+            """
+        );
     }
 }
