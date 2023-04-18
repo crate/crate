@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -52,7 +53,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -60,6 +60,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
+import org.joda.time.Period;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -76,6 +77,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -2163,5 +2165,33 @@ public class TransportSQLActionTest extends IntegTestCase {
         for (int i = 0; i < 30; i++) {
             assertThat(execute("select created from tbl").rows()[0][0]).isEqualTo(created);
         }
+    }
+
+    @Test
+    @UseJdbc(0)
+    public void test_can_sort_on_interval() throws Exception {
+        execute(
+            """
+            select x from unnest([
+                interval '3' hour,
+                interval '5' hour,
+                interval '4' hour
+            ]) t (x) order by 1 desc
+            """
+        );
+        assertThat(response).hasRows(
+            "PT5H",
+            "PT4H",
+            "PT3H"
+        );
+        execute("select current_timestamp - process['probe_timestamp'] from sys.nodes order by 1");
+        List<Period> sorted = Arrays.stream(response.rows())
+            .map(row -> (Period) row[0])
+            .sorted((o1, o2) -> DataTypes.INTERVAL.compare(o1, o2))
+            .toList();
+        List<Period> resultOrder = Arrays.stream(response.rows())
+            .map(row -> (Period) row[0])
+            .toList();
+        assertThat(sorted).containsExactlyElementsOf(resultOrder);
     }
 }

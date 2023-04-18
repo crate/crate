@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.util.function.Consumer;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -1146,16 +1148,19 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testOrderByOnInterval() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .build();
-        assertThatThrownBy(() ->
-                executor.analyze("select INTERVAL '12' HOUR AS \"interval\" from sys.nodes order by 1"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot ORDER BY ''PT12H'::interval AS interval': invalid data type 'interval'.");
-        assertThatThrownBy(() ->
-                               executor.analyze("select current_timestamp - process['probe_timestamp'] AS \"interval\" " +
-                                                "from sys.nodes order by 1"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot ORDER BY '(CURRENT_TIMESTAMP - process['probe_timestamp']) AS interval': " +
-                        "invalid data type 'interval'.");
+        QueriedSelectRelation stmt = executor.analyze("select INTERVAL '12' HOUR AS \"interval\" from sys.nodes order by 1");
+        assertThat(stmt.orderBy().orderBySymbols()).satisfiesExactly(
+            x -> assertThat(x)
+                .isAlias("interval")
+                .isLiteral(new Period(12, 0, 0, 0))
+        );
+        stmt = executor.analyze(
+            "select current_timestamp - process['probe_timestamp'] AS \"interval\" from sys.nodes order by 1");
+        assertThat(stmt.orderBy().orderBySymbols()).satisfiesExactly(
+            x -> assertThat(x)
+                .isAlias("interval")
+                .isFunction("subtract")
+        );
     }
 
     @Test
