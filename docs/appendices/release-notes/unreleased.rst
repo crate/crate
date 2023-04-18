@@ -89,3 +89,7 @@ Fixes
 - Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign
   ``PRIMARY KEY`` to wrong columns, when adding multiple primary key columns,
   having none-primary columns in-between.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign a
+  wrong type to ``ARRAY(TEXT)`` column and create a ``TEXT`` column instead if
+  column has a ``FULLTEXT`` index.
