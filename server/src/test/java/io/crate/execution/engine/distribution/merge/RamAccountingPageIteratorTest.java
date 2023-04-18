@@ -21,8 +21,9 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +47,6 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 
@@ -66,7 +66,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             null,
             () -> null);
 
-        assertThat(pagingIterator1, instanceOf(PassThroughPagingIterator.class));
+        assertThat(pagingIterator1).isExactlyInstanceOf(PassThroughPagingIterator.class);
     }
 
     @Test
@@ -77,9 +77,9 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             true,
             null,
             () -> null);
-        assertThat(repeatableIterator, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) repeatableIterator).delegatePagingIterator,
-            instanceOf(PassThroughPagingIterator.class));
+        assertThat(repeatableIterator).isExactlyInstanceOf(RamAccountingPageIterator.class);
+        assertThat(((RamAccountingPageIterator<?>) repeatableIterator).delegatePagingIterator)
+            .isExactlyInstanceOf(PassThroughPagingIterator.class);
     }
 
     @Test
@@ -95,9 +95,9 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             orderBy,
             () -> null);
 
-        assertThat(repeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) repeatingSortedPagingIterator).delegatePagingIterator,
-            instanceOf(RecordingSortedMergeIterator.class));
+        assertThat(repeatingSortedPagingIterator).isExactlyInstanceOf(RamAccountingPageIterator.class);
+        assertThat(((RamAccountingPageIterator<?>) repeatingSortedPagingIterator).delegatePagingIterator)
+            .isExactlyInstanceOf(RecordingSortedMergeIterator.class);
 
         PagingIterator<Integer, Row> nonRepeatingSortedPagingIterator = PagingIterator.create(
             2,
@@ -105,9 +105,9 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             false,
             orderBy,
             () -> null);
-        assertThat(nonRepeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) nonRepeatingSortedPagingIterator).delegatePagingIterator,
-            instanceOf(PlainSortedMergeIterator.class));
+        assertThat(nonRepeatingSortedPagingIterator).isExactlyInstanceOf(RamAccountingPageIterator.class);
+        assertThat(((RamAccountingPageIterator<?>) nonRepeatingSortedPagingIterator).delegatePagingIterator)
+            .isExactlyInstanceOf(PlainSortedMergeIterator.class);
     }
 
     @Test
@@ -119,9 +119,9 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             true,
             null,
             () -> new RowAccountingWithEstimators(types, RamAccounting.NO_ACCOUNTING));
-        assertThat(pagingIterator, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) pagingIterator).delegatePagingIterator,
-                   instanceOf(PassThroughPagingIterator.class));
+        assertThat(pagingIterator).isExactlyInstanceOf(RamAccountingPageIterator.class);
+        assertThat(((RamAccountingPageIterator<?>) pagingIterator).delegatePagingIterator)
+            .isExactlyInstanceOf(PassThroughPagingIterator.class);
 
         pagingIterator.merge(Arrays.asList(
             new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
@@ -130,8 +130,8 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
         var rows = new ArrayList<Row>();
         pagingIterator.forEachRemaining(rows::add);
-        assertThat(rows.get(0), TestingHelpers.isRow("a", "b", "c"));
-        assertThat(rows.get(1), TestingHelpers.isRow("d", "e", "f"));
+        assertThat(rows.get(0)).isEqualTo(new RowN("a", "b", "c"));
+        assertThat(rows.get(1)).isEqualTo(new RowN("d", "e", "f"));
     }
 
     @Test
@@ -150,12 +150,10 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
                         new ByteSizeValue(197, ByteSizeUnit.BYTES),
                         1,
                         LogManager.getLogger(RowAccountingWithEstimatorsTest.class)))));
-
-        expectedException.expect(CircuitBreakingException.class);
-        expectedException.expectMessage(
-            "Data too large, data for field [test] would be [288/288b], which is larger than the limit of [197/197b]");
-        pagingIterator.merge(Arrays.asList(
-            new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
-            new KeyIterable<>(1, Collections.singletonList(TEST_ROWS[1]))));
+        assertThatThrownBy(() -> pagingIterator.merge(Arrays.asList(
+                new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
+                new KeyIterable<>(1, Collections.singletonList(TEST_ROWS[1])))))
+            .isExactlyInstanceOf(CircuitBreakingException.class)
+            .hasMessage("[query] Data too large, data for field [test] would be [288/288b], which is larger than the limit of [197/197b]");
     }
 }
