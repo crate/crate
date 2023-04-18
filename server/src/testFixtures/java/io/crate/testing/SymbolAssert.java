@@ -227,6 +227,19 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         return this;
     }
 
+    /**
+     * Similar to {@link #isAlias(String, Consumer)} but returns a new {@link SymbolAssert} for the alias child
+     **/
+    public SymbolAssert isAlias(String expectedAliasName) {
+        isNotNull();
+        isExactlyInstanceOf(AliasSymbol.class);
+        AliasSymbol alias = (AliasSymbol) actual;
+        assertThat(alias.alias())
+            .as("alias")
+            .isEqualTo(expectedAliasName);
+        return new SymbolAssert(alias.symbol());
+    }
+
     public SymbolAssert isAggregation(final String expectedName) {
         isNotNull();
         isExactlyInstanceOf(Aggregation.class);
