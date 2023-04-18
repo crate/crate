@@ -187,7 +187,8 @@ public class PgCatalogITest extends IntegTestCase {
             "search_path| doc| Sets the schema search order.| NULL| NULL",
             "server_version| 14.0| Reports the emulated PostgreSQL version number| NULL| NULL",
             "server_version_num| 140000| Reports the emulated PostgreSQL version number| NULL| NULL",
-            "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally.| NULL| NULL"
+            "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally.| NULL| NULL",
+            "statement_timeout| PT0S| The maximum duration of any statement before it gets killed. Infinite/disabled if 0| NULL| NULL"
         );
     }
 
