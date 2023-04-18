@@ -32,6 +32,7 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.testing.Asserts;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -191,5 +192,20 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "-0.131835 51.534804, -0.131835 51.535017, -0.131492 51.535444, -0.129776 51.536512, " +
                 "-0.129089 51.536726))')");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_can_add_geo_shape_array_column() throws Exception {
+        execute("create table t(id int)");
+        execute("alter table t add column shapes array(geo_shape)");
+        execute("insert into t(id, shapes) VALUES (?, ?)", $(3, new Object[]{GEO_SHAPE1, GEO_SHAPE2}));
+        Asserts.assertThat(response.rowCount()).isEqualTo(1L);
+        execute("select column_name, data_type from information_schema.columns where table_name = 't' order by 1");
+        Asserts.assertThat(response).hasRows(
+            """
+            id| integer
+            shapes| geo_shape_array
+            """
+        );
     }
 }
