@@ -71,7 +71,7 @@ public class WindowBatchIteratorTest {
     public void testWindowBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(0, false, false);
+                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     TestingBatchIterators.range(0, 10),
                     new IgnoreRowAccounting(),
@@ -95,7 +95,7 @@ public class WindowBatchIteratorTest {
     public void testWindowBatchIteratorWithBatchSimulatingSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(0, false, false);
+                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
                     new IgnoreRowAccounting(),
@@ -144,7 +144,7 @@ public class WindowBatchIteratorTest {
             rowsWithSpare,
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
-            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
             null,
             1,
             () -> 1,
@@ -186,12 +186,12 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
-        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(1, false, false);
+        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
-            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
             cmpOrderBy,
             2,
             () -> 1,
@@ -234,12 +234,12 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
-        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(1, false, false);
+        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.UNBOUNDED_FOLLOWING),
-            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
             cmpOrderBy,
             2,
             () -> 1,
@@ -312,7 +312,7 @@ public class WindowBatchIteratorTest {
             rows,
             getComputeFrameStart(null, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(null, FrameBound.Type.UNBOUNDED_FOLLOWING),
-            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
             null,
             1,
             () -> 1,
@@ -374,7 +374,7 @@ public class WindowBatchIteratorTest {
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,
-            OrderingByPosition.arrayOrdering(0, true, true),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true),
             1,
             () -> 1,
             Runnable::run,

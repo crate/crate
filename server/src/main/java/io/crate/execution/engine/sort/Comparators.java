@@ -21,8 +21,17 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.common.collections.Ordering;
+import static io.crate.execution.engine.sort.OrderingByPosition.arrayOrdering;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Ordering;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -31,20 +40,14 @@ import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.function.Supplier;
-
-import static io.crate.execution.engine.sort.OrderingByPosition.arrayOrdering;
+import io.crate.types.DataType;
 
 public final class Comparators {
 
     @Nullable
     public static <T extends CollectExpression<Row, ?>> Comparator<Object[]> createComparator(
         Supplier<InputFactory.Context<T>> createInputFactoryCtx,
+        List<? extends DataType<?>> types,
         @Nullable OrderBy orderBy) {
 
         if (orderBy == null) {
@@ -54,15 +57,16 @@ public final class Comparators {
         int[] positions = new int[orderBySymbols.size()];
         for (int i = 0; i < orderBySymbols.size(); i++) {
             Symbol symbol = orderBySymbols.get(i);
-            if (symbol instanceof InputColumn) {
-                positions[i] = ((InputColumn) symbol).index();
+            if (symbol instanceof InputColumn inputColumn) {
+                positions[i] = inputColumn.index();
             } else {
                 return createComparatorWithEval(createInputFactoryCtx, orderBy);
             }
         }
-        return arrayOrdering(positions, orderBy.reverseFlags(), orderBy.nullsFirst());
+        return arrayOrdering(types, positions, orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 
+    @SuppressWarnings("unchecked")
     private static <T extends CollectExpression<Row, ?>> Comparator<Object[]> createComparatorWithEval(
         Supplier<InputFactory.Context<T>> createInputFactoryCtx,
         OrderBy orderBy) {
@@ -77,13 +81,14 @@ public final class Comparators {
             var row = new ArrayRow();
             comparators.add(new NullAwareComparator<>(
                 cells -> {
-                    Comparable<Object> value;
+                    Object value;
                     synchronized (row) {
                         row.cells(cells);
-                        value = (Comparable<Object>) expressionsInput.value(row);
+                        value = expressionsInput.value(row);
                     }
-                    return value;
+                    return (Object) value;
                 },
+                (DataType<Object>) orderSymbol.valueType(),
                 orderBy.reverseFlags()[i],
                 orderBy.nullsFirst()[i]
             ));

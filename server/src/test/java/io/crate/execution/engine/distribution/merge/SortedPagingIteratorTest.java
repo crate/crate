@@ -37,11 +37,12 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 
 public class SortedPagingIteratorTest extends ESTestCase {
 
     public static final Comparator<Row> ORDERING =
-        OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new boolean[]{false});
+        OrderingByPosition.rowOrdering(List.of(DataTypes.STRING), new int[]{0}, new boolean[]{false}, new boolean[]{false});
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {

@@ -60,7 +60,7 @@ public class SortingProjectorTest extends ESTestCase {
             List.of(input, Literal.of(true)),
             List.<CollectExpression<Row, ?>>of(input),
             numOutputs,
-            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
             offset
         );
     }

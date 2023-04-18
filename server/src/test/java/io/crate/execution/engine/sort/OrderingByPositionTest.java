@@ -21,73 +21,81 @@
 
 package io.crate.execution.engine.sort;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.Ordering;
+import io.crate.types.DataTypes;
 
 public class OrderingByPositionTest extends ESTestCase {
 
     @Test
     public void testOrderByAscNullsFirst() throws Exception {
-        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, true);
+        Comparator<Object[]> ordering =
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, true);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null})).isEqualTo(1);
     }
 
     @Test
     public void testOrderByAscNullsLast() throws Exception {
-        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, false);
+        Comparator<Object[]> ordering =
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(-1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null})).isEqualTo(-1);
     }
 
     @Test
     public void testOrderByDescNullsLast() throws Exception {
-        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, false);
+        Comparator<Object[]> ordering =
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, false);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(-1));
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{2}), is(1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null})).isEqualTo(-1);
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{2})).isEqualTo(1);
     }
 
     @Test
     public void testOrderByDescNullsFirst() throws Exception {
-        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, true);
+        Comparator<Object[]> ordering =
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null})).isEqualTo(1);
     }
 
     @Test
     public void testOrderByAsc() throws Exception {
-        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, true);
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, true);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{2}), is(-1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{2})).isEqualTo(-1);
     }
 
     @Test
     public void testMultipleOrderBy() throws Exception {
         Comparator<Object[]> ordering = Ordering.compound(Arrays.asList(
-            OrderingByPosition.arrayOrdering(1, false, false),
-            OrderingByPosition.arrayOrdering(0, false, false)
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false),
+            OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false)
         ));
 
-        assertThat(ordering.compare(new Object[]{0, 0}, new Object[]{4, 0}), is(-1));
-        assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1}), is(-1));
-        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(-1));
-        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(-1));
+        assertThat(ordering.compare(new Object[]{0, 0}, new Object[]{4, 0})).isEqualTo(-1);
+        assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1})).isEqualTo(-1);
+        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2})).isEqualTo(-1);
+        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2})).isEqualTo(-1);
     }
 
     @Test
     public void testSingleOrderByPositionResultsInNonCompoundOrdering() throws Exception {
         Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(
-            new int[]{0}, new boolean[]{false}, new boolean[]{false});
-        assertThat(ordering, Matchers.instanceOf(NullAwareComparator.class));
+            List.of(DataTypes.INTEGER),
+            new int[]{0},
+            new boolean[]{false},
+            new boolean[]{false}
+        );
+        assertThat(ordering).isExactlyInstanceOf(NullAwareComparator.class);
     }
 }

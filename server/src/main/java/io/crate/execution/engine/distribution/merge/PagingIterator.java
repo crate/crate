@@ -23,6 +23,7 @@ package io.crate.execution.engine.distribution.merge;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.types.DataType;
 
 public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
@@ -61,6 +63,7 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
      * {@link RamAccountingPageIterator} which calculates the memory usage and applies CircuitBreaker logic.
      */
     static <TKey> PagingIterator<TKey, Row> create(int numUpstreams,
+                                                   List<? extends DataType<?>> inputTypes,
                                                    boolean requiresRepeat,
                                                    @Nullable PositionalOrderBy orderBy,
                                                    Supplier<RowAccounting<Row>> rowAccountingSupplier) {
@@ -75,7 +78,7 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
                 pagingIterator = PassThroughPagingIterator.oneShot();
             }
         } else {
-            Comparator<Row> rowOrdering = OrderingByPosition.rowOrdering(orderBy);
+            Comparator<Row> rowOrdering = OrderingByPosition.rowOrdering(inputTypes, orderBy);
             pagingIterator = new RamAccountingPageIterator<>(
                 createSorted(rowOrdering, requiresRepeat),
                 rowAccountingSupplier.get()
