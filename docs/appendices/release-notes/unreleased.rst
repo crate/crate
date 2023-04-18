@@ -54,8 +54,8 @@ None
 Changes
 =======
 
-- Added support for ``ORDER BY``, ``MAX`` and ``MIN`` on expressions of type
-  ``INTERVAL``.
+- Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
+  expressions of type ``INTERVAL``.
 
 - Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
   deprecated.

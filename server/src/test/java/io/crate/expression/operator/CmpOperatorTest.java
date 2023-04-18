@@ -23,13 +23,9 @@ package io.crate.expression.operator;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
@@ -42,6 +38,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 <= 0.1", isLiteral(true));
         assertNormalize("16 <= 8", isLiteral(false));
         assertNormalize("'abc' <= 'abd'", isLiteral(true));
+        assertNormalize("'2 hour'::interval <= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true <= null");
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
@@ -53,6 +51,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("id < 8", isFunction("op_<"));
         assertNormalize("0.1 < 0.2", isLiteral(true));
         assertNormalize("'abc' < 'abd'", isLiteral(true));
+        assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true < null");
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
@@ -65,6 +64,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 >= 0.1", isLiteral(true));
         assertNormalize("16 >= 8", isLiteral(true));
         assertNormalize("'abc' >= 'abd'", isLiteral(false));
+        assertNormalize("'2 hour'::interval >= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'12 hour'::interval >= '2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true >= null");
         assertEvaluateNull("null >= 1");
         assertEvaluateNull("null >= 'abc'");
@@ -77,6 +78,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 > 0.1", isLiteral(false));
         assertNormalize("16 > 8", isLiteral(true));
         assertNormalize("'abd' > 'abc'", isLiteral(true));
+        assertNormalize("'10 hour'::interval > '2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true > null");
         assertEvaluateNull("null > 1");
         assertEvaluateNull("name > null", Literal.of("foo"));
@@ -95,15 +97,5 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null between 1 and null");
         assertEvaluateNull("null between null and 10");
         assertEvaluateNull("null between null and null");
-    }
-
-    @Test
-    public void test_comparison_for_intervals_is_not_allowed() {
-        for (String op : List.of(">", ">=", "<", "<=")) {
-            assertThatThrownBy(() -> assertEvaluate("INTERVAL '1' DAY " + op + " INTERVAL '2' HOUR", null))
-                .isExactlyInstanceOf(UnsupportedFunctionException.class)
-                .hasMessageStartingWith("Unknown function: ('P1D'::interval " + op + " 'PT2H'::interval), " +
-                                        "no overload found for matching argument types: (interval, interval).");
-        }
     }
 }
