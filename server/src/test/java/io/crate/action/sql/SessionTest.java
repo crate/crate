@@ -29,20 +29,28 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.joda.time.Period;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Answers;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
@@ -50,6 +58,8 @@ import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -516,6 +526,68 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         session.sync().get(5, TimeUnit.SECONDS);
         assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_kills_query_if_not_completed_within_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .overridePlanner(planner)
+            .build();
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(
+                new Plan() {
+                    @Override
+                    public StatementType type() {
+                        return StatementType.INSERT;
+                    }
+
+                    @Override
+                    public void executeOrFail(DependencyCarrier dependencies,
+                                              PlannerContext plannerContext,
+                                              RowConsumer consumer,
+                                              Row params,
+                                              SubQueryResults subQueryResults) throws Exception {
+                    }
+
+                    @Override
+                    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                                     PlannerContext plannerContext,
+                                                                     List<Row> bulkParams,
+                                                                     SubQueryResults subQueryResults) {
+                        return List.of(new CompletableFuture<>());
+                    }
+                }
+            );
+
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        DependencyCarrier dependencies = sqlExecutor.dependencyMock;
+        when(dependencies.scheduler()).thenReturn(scheduler);
+
+        Answer<ScheduledFuture<?>> triggerRunnable = new Answer<ScheduledFuture<?>>() {
+
+            @Override
+            public ScheduledFuture<?> answer(InvocationOnMock invocation) throws Throwable {
+                Runnable runnable = (Runnable) invocation.getArgument(0);
+                runnable.run();
+                return null;
+            }
+        };
+        when(scheduler.schedule(any(Runnable.class), Mockito.anyLong(), any(TimeUnit.class)))
+            .thenAnswer(triggerRunnable);
+        ElasticsearchClient client = mock(ElasticsearchClient.class);
+        when(dependencies.client()).thenReturn(client);
+
+        Session session = sqlExecutor.createSession();
+        session.sessionSettings().statementTimeout(Period.millis(10));
+
+        session.parse("S_1", "SELECT 1", List.of());
+        session.bind("P_1", "S_1", List.of(), null);
+        session.execute("P_1", 0, new BaseResultReceiver());
+        session.sync();
+
+        verify(client, times(1))
+            .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
     }
 
 

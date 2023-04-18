@@ -54,6 +54,9 @@ None
 Changes
 =======
 
+- Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
+  setting that allows to set a timeout for queries.
+
 - Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
   expressions of type ``INTERVAL``.
 

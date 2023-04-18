@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +40,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -54,6 +58,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -573,6 +578,29 @@ public class Session implements AutoCloseable {
         }
     }
 
+    private void addStatementTimeout(CompletableFuture<?> result) {
+        Period timeout = sessionSettings.statementTimeout();
+        final UUID jobId = mostRecentJobID;
+        int timeoutMillis = timeout.normalizedStandard(PeriodType.millis()).getMillis();
+        if (jobId == null || timeoutMillis <= 0) {
+            return;
+        }
+        Runnable kill = () -> {
+            if (result.isDone()) {
+                return;
+            }
+            KillJobsNodeRequest request = new KillJobsNodeRequest(
+                List.of(),
+                List.of(jobId),
+                sessionSettings.userName(),
+                "statement_timeout (" + TimeValue.timeValueMillis(timeoutMillis).toString() + " ms)"
+            );
+            executor.client().execute(KillJobsNodeAction.INSTANCE, request);
+        };
+        ScheduledExecutorService scheduler = executor.scheduler();
+        scheduler.schedule(kill, timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
     private CompletableFuture<?> triggerDeferredExecutions() {
         switch (deferredExecutionsByStmt.size()) {
             case 0:
@@ -663,10 +691,12 @@ public class Session implements AutoCloseable {
         List<CompletableFuture<?>> resultReceiverFutures = Lists2.map(toExec, x -> x.resultReceiver().completionFuture());
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
-        return allRowCounts
+        CompletableFuture<Void> result = allRowCounts
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
             .thenAccept(ignored -> emitRowCountsToResultReceivers(mostRecentJobID, jobsLogs, toExec, rowCounts))
             .runAfterBoth(allResultReceivers, () -> {});
+        addStatementTimeout(result);
+        return result;
     }
 
     private static void emitRowCountsToResultReceivers(UUID jobId,
@@ -756,7 +786,10 @@ public class Session implements AutoCloseable {
             resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
         portal.setActiveConsumer(consumer);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
-        return resultReceiver.completionFuture();
+        CompletableFuture<?> result = resultReceiver.completionFuture();
+        addStatementTimeout(result);
+        return result;
+
     }
 
     @Nullable

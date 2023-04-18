@@ -32,6 +32,8 @@ import java.util.function.Function;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.SearchPath;
@@ -71,6 +73,27 @@ public class SessionSettingRegistry {
         () -> String.valueOf(DEFAULT_DATE_STYLE),
         "Display format for date and time values.",
         DataTypes.STRING
+    );
+
+    static final SessionSetting<Period> STATEMENT_TIMEOUT = new SessionSetting<Period>(
+        "statement_timeout",
+        inputs -> {},
+        inputs -> {
+            Object input = inputs[0];
+            // Interpret numeric values as milliseconds for PostgreSQL compat.
+            if (input instanceof Number num) {
+                return new Period(0, 0, 0, num.intValue());
+            }
+            Period period = DataTypes.INTERVAL.implicitCast(input);
+            // Must fit into `Integer` range as millis
+            period.normalizedStandard(PeriodType.millis());
+            return period;
+        },
+        CoordinatorSessionSettings::statementTimeout,
+        settings -> settings.statementTimeout().toString(),
+        () -> "0",
+        "The maximum duration of any statement before it gets killed. Infinite/disabled if 0",
+        DataTypes.INTERVAL
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -172,7 +195,8 @@ public class SessionSettingRegistry {
                      DataTypes.BOOLEAN)
             )
             .put(APPLICATION_NAME.name(), APPLICATION_NAME)
-            .put(DATE_STYLE.name(), DATE_STYLE);
+            .put(DATE_STYLE.name(), DATE_STYLE)
+            .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
