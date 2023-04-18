@@ -2046,9 +2046,6 @@ to days and hours::
     * Comparisons between intervals except for equality (``=``) and
       inequality(``<>``) are not allowed.
 
-    * Intervals cannot be used in :ref:`MIN <aggregation-min>` and
-      :ref:`MAX <aggregation-max>` aggregations.
-
 
 .. _data-types-bit-strings:
 

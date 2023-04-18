@@ -202,7 +202,14 @@ public abstract class AggregationTestCase extends ESTestCase {
             randomExtraStates,
             minNodeVersion
         );
-
+        for (var argType : actualArgumentTypes) {
+            if (argType.storageSupport() == null) {
+                return aggregationFunction.terminatePartial(
+                    RAM_ACCOUNTING,
+                    partialResultWithoutDocValues
+                );
+            }
+        }
         var shard = newStartedPrimaryShard(buildMapping(actualArgumentTypes));
         var mapperService = shard.mapperService();
         var refResolver = new LuceneReferenceResolver(

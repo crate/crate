@@ -58,12 +58,12 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
-public abstract class MinimumAggregation extends AggregationFunction<Comparable, Comparable> {
+public abstract class MinimumAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "min";
 
     public static void register(AggregationImplModule mod) {
-        for (var supportedType : DataTypes.PRIMITIVE_TYPES_WITHOUT_INTERVAL) {
+        for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
             mod.register(
                 Signature.aggregate(
@@ -204,36 +204,32 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
     private static class VariableMinimumAggregation extends MinimumAggregation {
 
-        private final DataType<Object> partialType;
-
-        @SuppressWarnings("unchecked")
         VariableMinimumAggregation(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
-            this.partialType = (DataType<Object>) partialType();
         }
 
         @Nullable
         @Override
-        public Comparable newState(RamAccounting ramAccounting,
-                                   Version indexVersionCreated,
-                                   Version minNodeInCluster,
-                                   MemoryManager memoryManager) {
+        public Object newState(RamAccounting ramAccounting,
+                               Version indexVersionCreated,
+                               Version minNodeInCluster,
+                               MemoryManager memoryManager) {
             return null;
         }
 
         @Override
-        public Comparable reduce(RamAccounting ramAccounting, Comparable state1, Comparable state2) {
+        public Object reduce(RamAccounting ramAccounting, Object state1, Object state2) {
             if (state1 == null) {
                 if (state2 != null) {
-                    ramAccounting.addBytes(partialType.valueBytes(state2));
+                    ramAccounting.addBytes(type.valueBytes(state2));
                 }
                 return state2;
             }
             if (state2 == null) {
                 return state1;
             }
-            if (state1.compareTo(state2) > 0) {
-                long delta = partialType.valueBytes(state1) - partialType.valueBytes(state2);
+            if (type.compare(state1, state2) > 0) {
+                long delta = type.valueBytes(state1) - type.valueBytes(state2);
                 ramAccounting.addBytes(delta);
                 return state2;
             }
@@ -282,23 +278,23 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         @Nullable
         @Override
-        public Comparable newState(RamAccounting ramAccounting,
-                                   Version indexVersionCreated,
-                                   Version minNodeInCluster,
-                                   MemoryManager memoryManager) {
+        public Object newState(RamAccounting ramAccounting,
+                               Version indexVersionCreated,
+                               Version minNodeInCluster,
+                               MemoryManager memoryManager) {
             ramAccounting.addBytes(size);
             return null;
         }
 
         @Override
-        public Comparable reduce(RamAccounting ramAccounting, Comparable state1, Comparable state2) {
+        public Object reduce(RamAccounting ramAccounting, Object state1, Object state2) {
             if (state1 == null) {
                 return state2;
             }
             if (state2 == null) {
                 return state1;
             }
-            if (state1.compareTo(state2) > 0) {
+            if (type.compare(state1, state2) > 0) {
                 return state2;
             }
             return state1;
@@ -307,10 +303,13 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
     private final Signature signature;
     private final BoundSignature boundSignature;
+    protected final DataType<Object> type;
 
+    @SuppressWarnings("unchecked")
     private MinimumAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.type = (DataType<Object>) boundSignature.returnType();
     }
 
     @Override
@@ -329,15 +328,15 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public Comparable terminatePartial(RamAccounting ramAccounting, Comparable state) {
+    public Object terminatePartial(RamAccounting ramAccounting, Object state) {
         return state;
     }
 
     @Override
-    public Comparable iterate(RamAccounting ramAccounting,
-                              MemoryManager memoryManager,
-                              Comparable state,
-                              Input<?>... args) throws CircuitBreakingException {
-        return reduce(ramAccounting, state, (Comparable) args[0].value());
+    public Object iterate(RamAccounting ramAccounting,
+                          MemoryManager memoryManager,
+                          Object state,
+                          Input<?>... args) throws CircuitBreakingException {
+        return reduce(ramAccounting, state, args[0].value());
     }
 }

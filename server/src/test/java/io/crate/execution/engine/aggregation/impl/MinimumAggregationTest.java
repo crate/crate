@@ -21,11 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
@@ -109,10 +110,16 @@ public class MinimumAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_min_on_interval() throws Exception {
+        Object result = executeAggregation(DataTypes.INTERVAL, new Object[][] {
+            { new Period(4, 30, 0, 0) },
+            { new Period(5, 50, 0, 0) }
+        });
+        assertThat(result).isEqualTo(new Period(4, 30, 0, 0));
+    }
+
+    @Test
     public void testUnsupportedType() throws Exception {
-        assertThatThrownBy(() -> executeAggregation(DataTypes.INTERVAL, new Object[][]{{new Object()}}))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: min(INPUT(0)), no overload found for matching argument types: (interval).");
         assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: min(INPUT(0)), no overload found for matching argument types: (object).");
