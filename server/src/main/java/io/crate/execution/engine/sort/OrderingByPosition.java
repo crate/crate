@@ -21,58 +21,81 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.common.collections.Ordering;
-import io.crate.analyze.OrderBy;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.consumer.OrderByPositionVisitor;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
+import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Ordering;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.consumer.OrderByPositionVisitor;
+import io.crate.types.DataType;
 
 public final class OrderingByPosition {
 
     public static Comparator<Object[]> arrayOrdering(RoutedCollectPhase collectPhase) {
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "collectPhase must have an orderBy clause to generate an ordering";
+
+        int[] positions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect());
         return arrayOrdering(
-            OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+            Symbols.typeView(collectPhase.toCollect()),
+            positions,
             orderBy.reverseFlags(),
             orderBy.nullsFirst()
         );
     }
 
-    public static Comparator<Row> rowOrdering(PositionalOrderBy orderBy) {
-        return rowOrdering(orderBy.indices(), orderBy.reverseFlags(), orderBy.nullsFirst());
+    public static Comparator<Row> rowOrdering(List<? extends DataType<?>> rowTypes, PositionalOrderBy orderBy) {
+        return rowOrdering(rowTypes, orderBy.indices(), orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 
-    public static Comparator<Row> rowOrdering(int[] positions, boolean[] reverseFlags, boolean[] nullsFirst) {
+    public static Comparator<Row> rowOrdering(OrderBy orderBy, List<Symbol> toCollect) {
+        int[] positions = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), toCollect);
+        return rowOrdering(Symbols.typeView(toCollect), positions, orderBy.reverseFlags(), orderBy.nullsFirst());
+    }
+
+    public static Comparator<Row> rowOrdering(List<? extends DataType<?>> rowTypes,
+                                              int[] positions,
+                                              boolean[] reverseFlags,
+                                              boolean[] nullsFirst) {
         List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
         for (int i = 0; i < positions.length; i++) {
-            Comparator<Row> rowOrdering = rowOrdering(positions[i], reverseFlags[i], nullsFirst[i]);
+            int position = positions[i];
+            Comparator<Row> rowOrdering = rowOrdering(rowTypes.get(position), position, reverseFlags[i], nullsFirst[i]);
             comparators.add(rowOrdering);
         }
         return Ordering.compound(comparators);
     }
 
-    public static Comparator<Row> rowOrdering(int position, boolean reverse, boolean nullsFirst) {
-        return new NullAwareComparator<>(row -> (Comparable) row.get(position), reverse, nullsFirst);
+    @SuppressWarnings("unchecked")
+    public static <T> Comparator<Row> rowOrdering(DataType<T> type, int position, boolean reverse, boolean nullsFirst) {
+        return new NullAwareComparator<>(row -> (T) row.get(position), type, reverse, nullsFirst);
     }
 
-    public static Comparator<Object[]> arrayOrdering(int[] position, boolean[] reverse, boolean[] nullsFirst) {
-        if (position.length == 1) {
-            return arrayOrdering(position[0], reverse[0], nullsFirst[0]);
+    public static Comparator<Object[]> arrayOrdering(List<? extends DataType<?>> rowTypes,
+                                                     int[] positions,
+                                                     boolean[] reverse,
+                                                     boolean[] nullsFirst) {
+        assert rowTypes.size() >= positions.length : "Must have a type for each order by position";
+        if (positions.length == 1) {
+            int position = positions[0];
+            return arrayOrdering(rowTypes.get(position), position, reverse[0], nullsFirst[0]);
         }
-        List<Comparator<Object[]>> comparators = new ArrayList<>(position.length);
-        for (int i = 0, positionLength = position.length; i < positionLength; i++) {
-            comparators.add(arrayOrdering(position[i], reverse[i], nullsFirst[i]));
+        List<Comparator<Object[]>> comparators = new ArrayList<>(positions.length);
+        for (int i = 0, positionLength = positions.length; i < positionLength; i++) {
+            int position = positions[i];
+            comparators.add(arrayOrdering(rowTypes.get(position), position, reverse[i], nullsFirst[i]));
         }
         return Ordering.compound(comparators);
     }
 
-    public static Comparator<Object[]> arrayOrdering(int position, boolean reverse, boolean nullsFirst) {
-        return new NullAwareComparator<>(cells -> (Comparable) cells[position], reverse, nullsFirst);
+    @SuppressWarnings("unchecked")
+    public static <T> Comparator<Object[]> arrayOrdering(DataType<T> type, int position, boolean reverse, boolean nullsFirst) {
+        return new NullAwareComparator<>(cells -> (T) cells[position], type, reverse, nullsFirst);
     }
 }

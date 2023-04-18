@@ -715,6 +715,7 @@ public class JobSetup {
                     projectingRowConsumer,
                     PagingIterator.create(
                         phase.numUpstreams(),
+                        phase.inputTypes(),
                         projectingRowConsumer.requiresScroll(),
                         phase.orderByPositions(),
                         () -> new RowAccountingWithEstimators(
@@ -1007,6 +1008,7 @@ public class JobSetup {
                 rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),
+                    mergePhase.inputTypes(),
                     rowConsumer.requiresScroll(),
                     mergePhase.orderByPositions(),
                     () -> new RowAccountingWithEstimators(

@@ -135,7 +135,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                 LuceneOrderedDocCollector collector2 = createOrderedCollector(searcher2, 2);
                 return OrderedLuceneBatchIteratorFactory.newInstance(
                     Arrays.asList(collector1, collector2),
-                    OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+                    OrderingByPosition.rowOrdering(List.of(DataTypes.LONG), new int[]{0}, reverseFlags, nullsFirst),
                     ROW_ACCOUNTING,
                     Runnable::run,
                     () -> 1,
@@ -154,7 +154,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Arrays.asList(createOrderedCollector(searcher1, 1)),
-            OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+            OrderingByPosition.rowOrdering(List.of(DataTypes.INTEGER), new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
             Runnable::run,
             () -> 2,
@@ -174,7 +174,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         LuceneOrderedDocCollector collector2 = createOrderedCollector(searcher2, 2);
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Arrays.asList(collector1, collector2),
-            OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+            OrderingByPosition.rowOrdering(List.of(DataTypes.INTEGER), new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
             Runnable::run,
             () -> 1,
@@ -194,7 +194,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         CountDownLatch triggerRunnable = new CountDownLatch(1);
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(luceneOrderedDocCollector),
-            OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+            OrderingByPosition.rowOrdering(List.of(DataTypes.INTEGER), new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
             runnable -> {
                 var t = new Thread(() -> {

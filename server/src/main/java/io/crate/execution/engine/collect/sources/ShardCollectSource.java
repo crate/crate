@@ -103,7 +103,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.types.DataType;
 
 /**
@@ -361,11 +360,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
         return CompletableFutures.allAsList(orderedDocCollectors).thenApply(collectors -> OrderedLuceneBatchIteratorFactory.newInstance(
             collectors,
-            OrderingByPosition.rowOrdering(
-                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-            ),
+            OrderingByPosition.rowOrdering(orderBy, collectPhase.toCollect()),
             new RowAccountingWithEstimators(columnTypes, collectTask.getRamAccounting()),
             executor,
             availableThreads,

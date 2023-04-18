@@ -57,6 +57,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -67,6 +68,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.DataType;
 import io.crate.user.User;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
@@ -150,8 +152,10 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         int numCellsInSourceRows = inputRows[0].length;
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
+        List<DataType<?>> rowTypes = Symbols.typeView(sourceSymbols);
         Comparator<Object[]> cmpOrderBy = createComparator(
             () -> inputFactory.ctxForRefs(txnCtx, referenceResolver),
+            rowTypes,
             windowDef.orderBy()
         );
         InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
@@ -162,7 +166,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
             WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
-            createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
+            createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), rowTypes, partitionOrderBy),
             cmpOrderBy,
             numCellsInSourceRows,
             () -> 1,
