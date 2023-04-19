@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertThat;
@@ -127,5 +128,16 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
         expectedException.expectMessage("Unknown function: arbitrary(INPUT(0))," +
                                         " no overload found for matching argument types: (object).");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
+    }
+
+    @Test
+    public void test_can_use_any_value_as_name() throws Exception {
+        Signature aggregate = Signature.aggregate(
+            "any_value",
+            DataTypes.INTEGER.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature()
+        );
+        Object result = executeAggregation(aggregate, new Object[][] { new Object[] { 1 } }, List.of());
+        assertThat(result).isEqualTo(1);
     }
 }

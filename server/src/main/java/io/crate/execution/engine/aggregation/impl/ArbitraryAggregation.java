@@ -62,11 +62,23 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "arbitrary";
 
+    /**
+     * SQL2023 calls this any_value
+     **/
+    public static final String ALIAS = "any_value";
+
     public static void register(AggregationImplModule mod) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             mod.register(
                 Signature.aggregate(
                     NAME,
+                    supportedType.getTypeSignature(),
+                    supportedType.getTypeSignature()),
+                ArbitraryAggregation::new
+            );
+            mod.register(
+                Signature.aggregate(
+                    ALIAS,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
                 ArbitraryAggregation::new
@@ -78,6 +90,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     private final BoundSignature boundSignature;
     private final DataType<Object> partialType;
 
+    @SuppressWarnings("unchecked")
     ArbitraryAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -151,7 +164,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new LongArbitraryDocValueAggregator(
+                return new LongArbitraryDocValueAggregator<>(
                     arg.column().fqn(),
                     dataType
                 );
@@ -161,7 +174,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 return new DoubleArbitraryDocValueAggregator(arg.column().fqn());
             case IpType.ID:
             case StringType.ID:
-                return new ArbitraryBinaryDocValueAggregator(
+                return new ArbitraryBinaryDocValueAggregator<>(
                     arg.column().fqn(),
                     dataType
                 );
@@ -170,11 +183,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
     }
 
-    private static class LongArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
+    private static class LongArbitraryDocValueAggregator<T> extends ArbitraryNumericDocValueAggregator {
 
-        private final DataType dataType;
+        private final DataType<T> dataType;
 
-        public LongArbitraryDocValueAggregator(String columnName, DataType<?> dataType) {
+        public LongArbitraryDocValueAggregator(String columnName, DataType<T> dataType) {
             super(columnName);
             this.dataType = dataType;
         }
@@ -258,14 +271,14 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
     }
 
-    private static class ArbitraryBinaryDocValueAggregator implements DocValueAggregator<MutableObject> {
+    private static class ArbitraryBinaryDocValueAggregator<T> implements DocValueAggregator<MutableObject> {
 
         private final String columnName;
-        private final DataType dataType;
+        private final DataType<T> dataType;
 
         private SortedBinaryDocValues values;
 
-        public ArbitraryBinaryDocValueAggregator(String columnName, DataType<?> dataType) {
+        public ArbitraryBinaryDocValueAggregator(String columnName, DataType<T> dataType) {
             this.columnName = columnName;
             this.dataType = dataType;
         }
