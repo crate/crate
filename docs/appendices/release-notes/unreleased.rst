@@ -54,6 +54,8 @@ None
 Changes
 =======
 
+- Added a :ref:`btrim <scalar-btrim>` scalar function.
+
 - Added support for underscores in numeric literals. Example::
 
     SELECT 1_000_000;

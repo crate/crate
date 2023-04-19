@@ -44,6 +44,7 @@ public final class TrimFunctions {
     private static final String TRIM_NAME = "trim";
     private static final String LTRIM_NAME = "ltrim";
     private static final String RTRIM_NAME = "rtrim";
+    private static final String BTRIM_NAME = "btrim";
 
     public static void register(ScalarFunctionModule module) {
         // trim(text)
@@ -129,6 +130,37 @@ public final class TrimFunctions {
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.TRAILING)
+                )
+        );
+
+
+        // btrim(text)
+        module.register(
+            Signature.scalar(
+                BTRIM_NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new SingleSideTrimFunction(
+                    signature,
+                    boundSignature,
+                    (i, c) -> trimChars(i, c, TrimMode.BOTH)
+                )
+        );
+        // btrim(text, trimmingText)
+        module.register(
+            Signature.scalar(
+                BTRIM_NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new SingleSideTrimFunction(
+                    signature,
+                    boundSignature,
+                    (i, c) -> trimChars(i, c, TrimMode.BOTH)
                 )
         );
     }

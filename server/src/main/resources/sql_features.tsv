@@ -406,8 +406,12 @@ T044	Multiplier P			NO
 T051	Row types			YES		Limited to built-in table functions
 T052	MAX and MIN for row types			NO		
 T053	Explicit aliases for all-fields reference			NO		
+T054	GREATEST and LEAST			yes		
+T055	String padding functions			yes		
+T056	Multi-character trim functions			yes		
 T061	UCS support			NO		
 T071	BIGINT data type			YES		
+T081	Optional string types maximum length 			YES		
 T101	Enhanced nullability determination			NO		
 T111	Updatable joins, unions, and columns			NO		
 T121	WITH (excluding RECURSIVE) in query expression			YES		

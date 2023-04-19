@@ -520,6 +520,27 @@ default) to the right of ``text``.
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-btrim:
+
+``btrim(text, [ trimmingText ])``
+---------------------------------
+
+A combination of :ref:`ltrim <scalar-ltrim>` and :ref:`rtrim <scalar-rtrim>`,
+removing the longest string matching ``trimmingText`` from both the start and
+end of ``text``.
+
+::
+
+    cr> select btrim('XXHelloXX', 'XX') AS btrim;
+    +-------+
+    | btrim |
+    +-------+
+    | Hello |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
+
 .. _scalar-quote_ident:
 
 ``quote_ident(text)``

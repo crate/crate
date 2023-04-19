@@ -45,7 +45,7 @@ public class FilesIterablesTest {
         assertNull(context.isVerifiedBy);
         assertNull(context.comments);
 
-        assertThat(sqlFeatureContextIterable).hasSize(675);
+        assertThat(sqlFeatureContextIterable).hasSize(679);
     }
 
     @Test
