@@ -87,6 +87,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a regression that caused the ``-h`` option in ``bin/crate`` to fail with
+  an ``Error parsing arguments!`` error.
+
 - Added a :ref:`null_or_empty <scalar-null-or-empty>` scalar function that can
   be used as a faster alternative to `IS NULL` if it's acceptable to match on
   empty objects. This makes it possible to mitigate a performance regression
