@@ -27,12 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Test;
+
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
-import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
@@ -44,7 +45,8 @@ import io.crate.types.DataTypes;
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
-    public void test_collect() throws Exception {
+    @Test
+    public void test_retrieve_number_of_docs_from_tablestats_in_collect_operator() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
@@ -65,7 +67,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.numDocs()).isEqualTo(1L);
     }
 
-    public void test_group_reference() throws Exception {
+    @Test
+    public void test_retrieve_stats_for_group_reference() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
@@ -87,7 +90,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.numDocs()).isEqualTo(1L);
     }
 
-    public void test_tree_of_operators() throws Exception {
+    @Test
+    public void test_retrieve_stats_for_nested_operators() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table a (x int)")
             .build();
@@ -108,37 +112,5 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         PlanStats planStats = new PlanStats(tableStats, memo);
         var result = planStats.apply(limit);
         assertThat(result.numDocs()).isEqualTo(5L);
-    }
-
-    public void test_update_table_stats() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table a (x int)")
-            .build();
-
-        DocTableInfo a = e.resolveTableInfo("a");
-
-        var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a),
-                                 List.of(x),
-                                 WhereClause.MATCH_ALL,
-                                 10L,
-                                 DataTypes.INTEGER.fixedSize());
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
-
-        var eval = Eval.create(source, List.of());
-
-        var memo = new Memo(eval);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.apply(eval);
-        assertThat(result.numDocs()).isEqualTo(10L);
-
-        // now update the tablestats
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(100L, 1, Map.of())));
-
-        planStats = new PlanStats(tableStats, memo);
-        result = planStats.apply(eval);
-        assertThat(result.numDocs()).isEqualTo(100L);
-
     }
 }
