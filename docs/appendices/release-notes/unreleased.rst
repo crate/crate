@@ -58,7 +58,8 @@ Changes
   setting that allows to set a timeout for queries.
 
 - Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
-  compliance with the SQL2023 standard.
+  compliance with the SQL2023 standard. Extended the aggregations to support any
+  type.
 
 - Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
   expressions of type ``INTERVAL``.

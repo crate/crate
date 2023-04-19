@@ -380,8 +380,10 @@ public abstract class AggregationTestCase extends ESTestCase {
         for (int i = 0; i < data.length; i++) {
             var cell = data[i];
             XContentBuilder builder = JsonXContent.builder().startObject();
+            boolean containsMaps = false;
             for (int j = 0; j < cell.length; j++) {
                 Object value = cell[j];
+                containsMaps = containsMaps || value instanceof Map;
                 if (value instanceof BitString bs) {
                     builder.field(Integer.toString(j), bs.bitSet().toByteArray());
                 } else {
@@ -403,7 +405,14 @@ public abstract class AggregationTestCase extends ESTestCase {
                 0,
                 UNSET_AUTO_GENERATED_TIMESTAMP,
                 false);
-            assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
+            if (containsMaps) {
+                assertThat(result.getResultType()).isIn(
+                    Engine.Result.Type.MAPPING_UPDATE_REQUIRED,
+                    Engine.Result.Type.SUCCESS
+                );
+            } else {
+                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
+            }
         }
     }
 
