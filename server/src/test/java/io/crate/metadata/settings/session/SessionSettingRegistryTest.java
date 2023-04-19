@@ -21,8 +21,9 @@
 
 package io.crate.metadata.settings.session;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
@@ -34,6 +35,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.analyze.SymbolEvaluator;
@@ -43,6 +45,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.types.DataTypes;
 
 public class SessionSettingRegistryTest {
 
@@ -127,6 +130,23 @@ public class SessionSettingRegistryTest {
         assertThrows(IllegalArgumentException.class,
                      () -> setting.apply(sessionSettings, generateInput("SQL, MDY"), eval),
                      "Invalid value for parameter \"datestyle\": \"SQL\". Valid values include: [\"ISO\"].");
+    }
+
+    @Test
+    public void test_statement_timeout_max_value() throws Exception {
+        SessionSetting<Period> statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
+        statementTimeout.apply(sessionSettings, generateInput("24 days"), eval);
+        assertThat(sessionSettings.statementTimeout()).isEqualTo(DataTypes.INTERVAL.implicitCast("24 days"));
+
+        assertThatThrownBy(() -> statementTimeout.apply(sessionSettings, generateInput("25 days"), eval))
+            .isExactlyInstanceOf(ArithmeticException.class)
+            .hasMessage("Value cannot fit in an int: 2160000000");
+    }
+
+    @Test
+    public void test_statement_timeout_accepts_int() throws Exception {
+        SessionSetting<Period> statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
+        statementTimeout.apply(sessionSettings, List.of(Literal.of(200)), eval);
     }
 
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,

@@ -21,15 +21,17 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.SearchPath;
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.joda.time.Period;
 
-import java.io.IOException;
-import java.util.Objects;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.SearchPath;
 
 /**
  * Streamable session settings.
@@ -97,6 +99,11 @@ public class SessionSettings implements Writeable {
     public String dateStyle() {
         // Only available on coordinator.
         return null;
+    }
+
+    public Period statementTimeout() {
+        // Only available on coordinator
+        return Period.ZERO;
     }
 
     @Override
