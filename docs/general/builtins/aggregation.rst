@@ -96,10 +96,6 @@ Aggregate functions
 The ``arbitrary`` aggregate function returns a single value of a column.
 Which value it returns is not defined.
 
-It accepts references to columns of all primitive types.
-
-Using ``arbitrary`` on ``Object`` columns is not supported.
-
 Its return type is the type of its parameter column and can be ``NULL`` if the
 column contains ``NULL`` values.
 

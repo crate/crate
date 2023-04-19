@@ -22,13 +22,12 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -119,13 +118,14 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void testUnsupportedType() throws Exception {
-        assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageContaining(
-                "Unknown function: arbitrary(INPUT(0))," +
-                " no overload found for matching argument types: (object)."
-            );
+    public void test_object() throws Exception {
+        Map<String, Object> m1 = Map.of("x", 10);
+        Map<String, Object> m2 = Map.of("y", 20);
+        Object[][] data = new Object[][] {
+            new Object[] { m1 },
+            new Object[] { m2 }
+        };
+        assertThat(executeAggregation(DataTypes.UNTYPED_OBJECT, data)).isIn(m1, m2);
     }
 
     @Test
