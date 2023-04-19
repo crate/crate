@@ -62,6 +62,7 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 
@@ -74,6 +75,8 @@ public class NestedLoopJoin extends JoinPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
+    private boolean swapSides = false;
+    private boolean isSwapSidesDone = false;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -102,11 +105,15 @@ public class NestedLoopJoin extends JoinPlan {
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised,
-                          boolean rewriteEquiJoinToHashJoinDone) {
+                          boolean rewriteEquiJoinToHashJoinDone,
+                          boolean swap,
+                          boolean isSwapDone) {
         this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
+        this.swapSides = swap;
+        this.isSwapSidesDone = isSwapDone;
     }
 
     @Override
@@ -128,6 +135,10 @@ public class NestedLoopJoin extends JoinPlan {
 
     public boolean isFiltered() {
         return isFiltered;
+    }
+
+    public boolean isSwapSidesDone() {
+        return isSwapSidesDone;
     }
 
     public AnalyzedRelation topMostLeftRelation() {
@@ -176,25 +187,20 @@ public class NestedLoopJoin extends JoinPlan {
         isDistributed = isDistributed &&
                         (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
-
         JoinType joinType = this.joinType;
-        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
-        if (expectedRowsAvailable) {
-            if (!orderByWasPushedDown && joinType.supportsInversion() &&
-                (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
-                (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
-                // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
-                //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
-                //    to be preserved, then the switch is not possible.
-                // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-                //    performance decreases if the left side is much larger and no limit is applied.
-                ExecutionPlan tmpExecutionPlan = left;
-                left = right;
-                right = tmpExecutionPlan;
-                leftLogicalPlan = rhs;
-                rightLogicalPlan = lhs;
-                joinType = joinType.invert();
-            }
+        if ((isDistributed && swapSides) ||
+            (blockNlPossible && swapSides == false)) {
+            // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+            //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+            //    to be preserved, then the switch is not possible.
+            // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
+            //    performance decreases if the left side is much larger and no limit is applied.
+            ExecutionPlan tmpExecutionPlan = left;
+            left = right;
+            right = tmpExecutionPlan;
+            leftLogicalPlan = rhs;
+            rightLogicalPlan = lhs;
+            joinType = joinType.invert();
         }
 
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
@@ -207,6 +213,9 @@ public class NestedLoopJoin extends JoinPlan {
         if (joinCondition != null) {
             joinInput = InputColumns.create(paramBinder.apply(joinCondition), joinOutputs);
         }
+
+        var planStats = new PlanStats(plannerContext.tableStats());
+        var stats = planStats.apply(leftLogicalPlan);
 
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
@@ -221,8 +230,8 @@ public class NestedLoopJoin extends JoinPlan {
             joinType,
             joinInput,
             Symbols.typeView(leftLogicalPlan.outputs()),
-            leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows(),
+            stats.averageSizePerRowInBytes(),
+            stats.numDocs(),
             blockNlPossible
         );
         return new Join(
@@ -235,6 +244,10 @@ public class NestedLoopJoin extends JoinPlan {
             outputs.size(),
             orderByFromLeft
         );
+    }
+
+    public boolean swapSides() {
+        return swapSides;
     }
 
     @Override
@@ -264,7 +277,9 @@ public class NestedLoopJoin extends JoinPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            swapSides,
+            isSwapSidesDone
         );
     }
 
@@ -295,7 +310,9 @@ public class NestedLoopJoin extends JoinPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            swapSides,
+            isSwapSidesDone
         );
     }
 
@@ -332,7 +349,9 @@ public class NestedLoopJoin extends JoinPlan {
                 orderByWasPushedDown,
                 rewriteFilterOnOuterJoinToInnerJoinDone,
                 joinConditionOptimised,
-                rewriteNestedLoopJoinToHashJoinDone
+                rewriteNestedLoopJoinToHashJoinDone,
+                swapSides,
+                isSwapSidesDone
             )
         );
     }

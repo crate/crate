@@ -39,6 +39,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.statistics.TableStats;
 
 public class PlannerContext {
 
@@ -56,7 +57,8 @@ public class PlannerContext {
             fetchSize,
             context.params,
             context.cursors,
-            context.transactionState
+            context.transactionState,
+            context.tableStats
         );
     }
 
@@ -73,6 +75,7 @@ public class PlannerContext {
     private final String handlerNode;
     @Nullable
     private final Row params;
+    private final TableStats tableStats;
 
     /**
      * @param params See {@link #params()}
@@ -85,7 +88,8 @@ public class PlannerContext {
                           int fetchSize,
                           @Nullable Row params,
                           Cursors cursors,
-                          TransactionState transactionState) {
+                          TransactionState transactionState,
+                          TableStats tableStats) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
@@ -97,6 +101,7 @@ public class PlannerContext {
         this.handlerNode = clusterState.nodes().getLocalNodeId();
         this.cursors = cursors;
         this.transactionState = transactionState;
+        this.tableStats = tableStats;
     }
 
     /**
@@ -161,5 +166,9 @@ public class PlannerContext {
 
     public TransactionState transactionState() {
         return transactionState;
+    }
+
+    public TableStats tableStats() {
+        return tableStats;
     }
 }

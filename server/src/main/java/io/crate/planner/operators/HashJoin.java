@@ -22,7 +22,6 @@
 package io.crate.planner.operators;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
-import static io.crate.planner.operators.NestedLoopJoin.buildMergePhaseForJoin;
 import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 
 import java.util.ArrayList;
@@ -59,18 +58,25 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 
 public class HashJoin extends JoinPlan {
 
     private final List<Symbol> outputs;
+    private final boolean isSwapSideDone;
+    private final boolean swapSides;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
+                    Symbol joinCondition,
+                    boolean swap,
+                    boolean isSwapDone){
         super(lhs, rhs, joinCondition, JoinType.INNER);
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+        this.swapSides = swap;
+        this.isSwapSideDone = isSwapDone;
     }
 
     @Override
@@ -102,10 +108,7 @@ public class HashJoin extends JoinPlan {
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
 
-        // We move smaller table to the right side since benchmarking
-        // revealed that this improves performance in most cases.
-        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
-        if (expectedRowsAvailable && lhs.numExpectedRows() < rhs.numExpectedRows()) {
+        if (swapSides) {
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
 
@@ -180,6 +183,8 @@ public class HashJoin extends JoinPlan {
             rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
         }
 
+        var planStats = new PlanStats(plannerContext.tableStats());
+        var stats = planStats.apply(leftLogicalPlan);
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
@@ -195,8 +200,8 @@ public class HashJoin extends JoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows());
+            stats.averageSizePerRowInBytes(),
+            stats.numDocs());
         return new Join(
             joinPhase,
             leftExecutionPlan,
@@ -234,7 +239,9 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            swapSides,
+            isSwapSideDone
         );
     }
 
@@ -256,7 +263,9 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition
+            joinCondition,
+            swapSides,
+            isSwapSideDone
         );
     }
 
@@ -284,11 +293,17 @@ public class HashJoin extends JoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition
+                joinCondition,
+                swapSides,
+                isSwapSideDone
             )
         );
     }
-    
+
+    public boolean isSwapSideDone() {
+        return isSwapSideDone;
+    }
+
     @Override
     public long numExpectedRows() {
         if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {

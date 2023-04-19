@@ -57,6 +57,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.statistics.TableStats;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -136,7 +137,8 @@ public class PreExecutionBenchmark {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            new TableStats()
         );
         return planner.plan(analyzedStatement, plannerContext);
     }

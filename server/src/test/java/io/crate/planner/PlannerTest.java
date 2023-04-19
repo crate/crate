@@ -49,6 +49,7 @@ import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.tree.Assignment;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -97,7 +98,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            new TableStats()
         );
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));

@@ -91,7 +91,9 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 nl.orderByWasPushedDown(),
                 nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                 true, // Mark joinConditionOptimised = true
-                nl.isRewriteNestedLoopJoinToHashJoinDone()
+                nl.isRewriteNestedLoopJoinToHashJoinDone(),
+                nl.swapSides(),
+                nl.isSwapSidesDone()
             );
         } else {
             // Push constant join condition down to source
@@ -104,7 +106,9 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             return new HashJoin(
                 newLhs,
                 newRhs,
-                AndOperator.join(nonConstantConditions)
+                AndOperator.join(nonConstantConditions),
+                false,
+                false
             );
         }
     }

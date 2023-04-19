@@ -48,6 +48,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.statistics.TableStats;
 import io.crate.user.Privilege.Clazz;
 import io.crate.user.Privilege.Type;
 import io.crate.user.User;
@@ -83,6 +84,7 @@ public class Sessions {
 
     private volatile boolean disabled;
     private volatile TimeValue defaultStatementTimeout;
+    private final TableStats tableStats;
 
 
     @Inject
@@ -92,7 +94,8 @@ public class Sessions {
                     Provider<DependencyCarrier> executorProvider,
                     JobsLogs jobsLogs,
                     Settings settings,
-                    ClusterService clusterService) {
+                    ClusterService clusterService,
+                    TableStats tableStats) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -104,6 +107,7 @@ public class Sessions {
         clusterService.getClusterSettings().addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
             this.defaultStatementTimeout = statementTimeout;
         });
+        this.tableStats = tableStats;
     }
 
     private Session createSession(CoordinatorSessionSettings sessionSettings) {
@@ -120,8 +124,9 @@ public class Sessions {
             isReadOnly,
             executorProvider.get(),
             sessionSettings,
+            tableStats,
             () -> sessions.remove(sessionId)
-        );
+            );
         sessions.put(sessionId, session);
         return session;
     }
