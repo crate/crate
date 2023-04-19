@@ -320,7 +320,7 @@ public class Function implements Symbol, Cloneable {
                 break;
 
             default:
-                if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
+                if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
                 } else if (name.equalsIgnoreCase(ImplicitCastFunction.NAME) ||
                            name.equalsIgnoreCase(ExplicitCastFunction.NAME) ||

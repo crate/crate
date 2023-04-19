@@ -136,6 +136,25 @@ very little to no computation as for example ``max`` aggregate function would
 do.
 
 
+.. _aggregation-any-value:
+
+
+``any_value(column)``
+---------------------
+
+``any_value`` is an alias for :ref:`arbitrary <aggregation-arbitrary>`.
+
+Example::
+
+    cr> select any_value(x) from unnest([1, 1]) t (x);
+    +--------------+
+    | any_value(x) |
+    +--------------+
+    | 1            |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _aggregation-array-agg:
 
 ``array_agg(column)``
