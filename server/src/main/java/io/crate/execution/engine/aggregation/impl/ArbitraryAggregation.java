@@ -46,9 +46,9 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -57,27 +57,36 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.TypeSignature;
 
 public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "arbitrary";
 
+    /**
+     * SQL2023 calls this any_value
+     **/
+    public static final String ALIAS = "any_value";
+
     public static void register(AggregationImplModule mod) {
-        for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature()),
-                ArbitraryAggregation::new
-            );
-        }
+        TypeSignature T = TypeSignature.parseTypeSignature("T");
+        mod.register(
+            Signature.aggregate(NAME, T, T)
+                .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
+            ArbitraryAggregation::new
+        );
+        mod.register(
+            Signature.aggregate(ALIAS, T, T)
+                .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
+            ArbitraryAggregation::new
+        );
     }
 
     private final Signature signature;
     private final BoundSignature boundSignature;
     private final DataType<Object> partialType;
 
+    @SuppressWarnings("unchecked")
     ArbitraryAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -151,7 +160,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new LongArbitraryDocValueAggregator(
+                return new LongArbitraryDocValueAggregator<>(
                     arg.column().fqn(),
                     dataType
                 );
@@ -161,7 +170,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 return new DoubleArbitraryDocValueAggregator(arg.column().fqn());
             case IpType.ID:
             case StringType.ID:
-                return new ArbitraryBinaryDocValueAggregator(
+                return new ArbitraryBinaryDocValueAggregator<>(
                     arg.column().fqn(),
                     dataType
                 );
@@ -170,11 +179,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
     }
 
-    private static class LongArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
+    private static class LongArbitraryDocValueAggregator<T> extends ArbitraryNumericDocValueAggregator {
 
-        private final DataType dataType;
+        private final DataType<T> dataType;
 
-        public LongArbitraryDocValueAggregator(String columnName, DataType<?> dataType) {
+        public LongArbitraryDocValueAggregator(String columnName, DataType<T> dataType) {
             super(columnName);
             this.dataType = dataType;
         }
@@ -258,14 +267,14 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
     }
 
-    private static class ArbitraryBinaryDocValueAggregator implements DocValueAggregator<MutableObject> {
+    private static class ArbitraryBinaryDocValueAggregator<T> implements DocValueAggregator<MutableObject> {
 
         private final String columnName;
-        private final DataType dataType;
+        private final DataType<T> dataType;
 
         private SortedBinaryDocValues values;
 
-        public ArbitraryBinaryDocValueAggregator(String columnName, DataType<?> dataType) {
+        public ArbitraryBinaryDocValueAggregator(String columnName, DataType<T> dataType) {
             this.columnName = columnName;
             this.dataType = dataType;
         }

@@ -21,13 +21,10 @@
 
 package io.crate.execution.engine.collect.files;
 
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-
-import java.util.stream.StreamSupport;
 
 import org.junit.Test;
 
@@ -48,18 +45,12 @@ public class FilesIterablesTest {
         assertNull(context.isVerifiedBy);
         assertNull(context.comments);
 
-        assertThat(
-            StreamSupport.stream(sqlFeatureContextIterable.spliterator(), false).count(),
-            is(672L)
-        );
+        assertThat(sqlFeatureContextIterable).hasSize(673);
     }
 
     @Test
     public void testSummitsIterable() throws Exception {
         SummitsIterable summitsIterable = new SummitsIterable();
-        assertThat(
-            StreamSupport.stream(summitsIterable.spliterator(), false).count(),
-            is(1605L)
-        );
+        assertThat(summitsIterable).hasSize(1605);
     }
 }

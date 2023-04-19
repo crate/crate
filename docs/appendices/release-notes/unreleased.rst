@@ -57,6 +57,10 @@ Changes
 - Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
   setting that allows to set a timeout for queries.
 
+- Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
+  compliance with the SQL2023 standard. Extended the aggregations to support any
+  type.
+
 - Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
   expressions of type ``INTERVAL``.
 
@@ -112,3 +116,7 @@ Fixes
 - Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign
   ``PRIMARY KEY`` to wrong columns, when adding multiple primary key columns,
   having none-primary columns in-between.
+
+- Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign a
+  wrong type to ``ARRAY(TEXT)`` column and create a ``TEXT`` column instead if
+  column has a ``FULLTEXT`` index.
