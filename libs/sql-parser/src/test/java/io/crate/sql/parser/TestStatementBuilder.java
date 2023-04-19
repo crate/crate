@@ -1051,6 +1051,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_number_underscope_support() throws Exception {
+        printStatement("select 1_000_000");
+        printStatement("select 1_000.00");
+        printStatement("select 1_00_0_0.00e3");
+    }
+
+    @Test
     public void testEscapedStringLiteralBuilder() {
         printStatement("select E'aValue'");
         printStatement("select E'\\141Value'");

@@ -54,6 +54,10 @@ None
 Changes
 =======
 
+- Added support for underscores in numeric literals. Example::
+
+    SELECT 1_000_000;
+
 - Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
   setting that allows to set a timeout for queries.
 
