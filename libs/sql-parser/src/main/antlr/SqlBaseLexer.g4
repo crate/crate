@@ -375,12 +375,13 @@ BIT_STRING
 
 INTEGER_VALUE
     : DIGIT+
+    | DIGIT (DIGIT | '_')+ DIGIT
     ;
 
 DECIMAL_VALUE
-    : DIGIT+ '.' DIGIT*
+    : INTEGER_VALUE '.' INTEGER_VALUE?
     | '.' DIGIT+
-    | DIGIT+ ('.' DIGIT*)? EXPONENT
+    | INTEGER_VALUE ('.' DIGIT*)? EXPONENT
     | '.' DIGIT+ EXPONENT
     ;
 

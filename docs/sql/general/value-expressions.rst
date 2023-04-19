@@ -27,7 +27,7 @@ Different types have different notations. The simplest forms are:
 
 - boolean literals: ``true`` or ``false``
 - string literals: ``'this is a string literal'``
-- numeric literals: ``42``
+- numeric literals: ``42``, ``42.0`` or with underscores ``1_000_000``
 - interval literals: ``INTERVAL '1' SECOND``
 
 .. SEEALSO::

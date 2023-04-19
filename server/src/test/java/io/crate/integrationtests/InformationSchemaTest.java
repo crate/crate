@@ -1204,7 +1204,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSelectSqlFeatures() {
         execute("select * from information_schema.sql_features order by feature_id asc");
-        assertThat(response.rowCount(), is(673L));
+        assertThat(response.rowCount(), is(675L));
 
         execute("select feature_id, feature_name from information_schema.sql_features where feature_id='E011'");
         assertThat(response.rowCount(), is(7L));

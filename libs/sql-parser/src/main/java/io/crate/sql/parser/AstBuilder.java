@@ -2072,7 +2072,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-        long value = Long.parseLong(context.getText());
+        String text = context.getText().replace("_", "");
+        long value = Long.parseLong(text);
         if (value < Integer.MAX_VALUE + 1L) {
             return new IntegerLiteral((int) value);
         }
@@ -2081,7 +2082,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDecimalLiteral(SqlBaseParser.DecimalLiteralContext context) {
-        return new DoubleLiteral(context.getText());
+        String text = context.getText().replace("_", "");
+        return new DoubleLiteral(text);
     }
 
     @Override
