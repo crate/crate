@@ -74,6 +74,20 @@ Supported session settings
 
   Some clients set this implicitly to their client name.
 
+
+.. _conf-session-statement-timeout:
+
+**statement_timeout**
+  | *Default:* ``'0'``
+  | *Modifiable:* ``yes``
+
+  The maximum duration of any statement before it gets cancelled. If ``0`` (the
+  default), queries are allowed to run infinitely and don't get cancelled
+  automatically.
+
+  The value is an ``INTERVAL`` with a maximum of ``2147483647`` milliseconds.
+  That's roughly 24 days.
+
 .. _conf-session-enable-hashjoin:
 
 **enable_hashjoin**

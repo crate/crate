@@ -432,7 +432,8 @@ public class ShowIntegrationTest extends IntegTestCase {
             "search_path| doc| Sets the schema search order.",
             "server_version| 14.0| Reports the emulated PostgreSQL version number",
             "server_version_num| 140000| Reports the emulated PostgreSQL version number",
-            "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally."
+            "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally.",
+            "statement_timeout| PT0S| The maximum duration of any statement before it gets killed. Infinite/disabled if 0"
         );
     }
 

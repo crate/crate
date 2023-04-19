@@ -96,10 +96,6 @@ Aggregate functions
 The ``arbitrary`` aggregate function returns a single value of a column.
 Which value it returns is not defined.
 
-It accepts references to columns of all primitive types.
-
-Using ``arbitrary`` on ``Object`` columns is not supported.
-
 Its return type is the type of its parameter column and can be ``NULL`` if the
 column contains ``NULL`` values.
 
@@ -134,6 +130,25 @@ better than grouping on ``username`` as grouping on number types is generally
 faster than on strings.  The advantage is that the ``arbitrary`` function does
 very little to no computation as for example ``max`` aggregate function would
 do.
+
+
+.. _aggregation-any-value:
+
+
+``any_value(column)``
+---------------------
+
+``any_value`` is an alias for :ref:`arbitrary <aggregation-arbitrary>`.
+
+Example::
+
+    cr> select any_value(x) from unnest([1, 1]) t (x);
+    +--------------+
+    | any_value(x) |
+    +--------------+
+    | 1            |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 
 .. _aggregation-array-agg:
