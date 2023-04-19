@@ -22,9 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.oneOf;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -60,10 +58,8 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
             List.of(Literal.of(DataTypes.INTEGER, null)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertThat(
-            arbitraryFunction.boundSignature().returnType(),
-            is(DataTypes.INTEGER)
-        );
+        assertThat(arbitraryFunction.boundSignature().returnType())
+            .isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
@@ -83,51 +79,53 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
     @Test
     public void testDouble() throws Exception {
         Object[][] data = new Object[][]{{0.8d}, {0.3d}};
-        assertThat(executeAggregation(DataTypes.DOUBLE, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.DOUBLE, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object[][] data = new Object[][]{{0.8f}, {0.3f}};
-        assertThat(executeAggregation(DataTypes.FLOAT, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.FLOAT, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testInteger() throws Exception {
         Object[][] data = new Object[][]{{8}, {3}};
-        assertThat(executeAggregation(DataTypes.INTEGER, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.INTEGER, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testLong() throws Exception {
         Object[][] data = new Object[][]{{8L}, {3L}};
-        assertThat(executeAggregation(DataTypes.LONG, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.LONG, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testShort() throws Exception {
         Object[][] data = new Object[][]{{(short) 8}, {(short) 3}};
-        assertThat(executeAggregation(DataTypes.SHORT, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.SHORT, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testString() throws Exception {
         Object[][] data = new Object[][]{{"Youri"}, {"Ruben"}};
-        assertThat(executeAggregation(DataTypes.STRING, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.STRING, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testBoolean() throws Exception {
         Object[][] data = new Object[][]{{true}, {false}};
-        assertThat(executeAggregation(DataTypes.BOOLEAN, data), is(oneOf(data[0][0], data[1][0])));
+        assertThat(executeAggregation(DataTypes.BOOLEAN, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: arbitrary(INPUT(0))," +
-                                        " no overload found for matching argument types: (object).");
-        executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
+        assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageContaining(
+                "Unknown function: arbitrary(INPUT(0))," +
+                " no overload found for matching argument types: (object)."
+            );
     }
 
     @Test
