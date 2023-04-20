@@ -71,8 +71,8 @@ public class IterativeOptimizer {
             return node;
         };
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        var planStats = new PlanStats(tableStats, memo);
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStats));
+        var planStats = new PlanStats(memo);
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, tableStats, planStats));
         return memo.extract();
     }
 
@@ -122,6 +122,7 @@ public class IterativeOptimizer {
                 LogicalPlan transformed = Optimizer.tryMatchAndApply(
                     rule,
                     node,
+                    context.tableStats,
                     context.planStats,
                     nodeCtx,
                     context.txnCtx,
@@ -165,6 +166,7 @@ public class IterativeOptimizer {
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
+        TableStats tableStats,
         PlanStats planStats
     ) {}
 }

@@ -38,6 +38,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -65,6 +66,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
     @Override
     public LogicalPlan apply(Collect collect,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

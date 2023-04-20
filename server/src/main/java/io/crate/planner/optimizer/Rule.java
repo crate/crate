@@ -29,6 +29,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import org.elasticsearch.Version;
 
@@ -46,6 +47,7 @@ public interface Rule<T> {
      */
     LogicalPlan apply(T plan,
                       Captures captures,
+                      TableStats tableStats,
                       PlanStats planStats,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,

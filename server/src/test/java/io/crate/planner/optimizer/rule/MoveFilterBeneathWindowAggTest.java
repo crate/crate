@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isDocTable;
 
 import java.util.List;
 import java.util.function.Function;
@@ -74,7 +75,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new PlanStats(new TableStats()),
+            new TableStats(),
+            new PlanStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -102,7 +104,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new PlanStats(new TableStats()),
+            new TableStats(),
+            new PlanStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -129,7 +132,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new PlanStats(new TableStats()),
+            new TableStats(),
+            new PlanStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -163,7 +167,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new PlanStats(new TableStats()),
+            new TableStats(),
+            new PlanStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -198,7 +203,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new PlanStats(new TableStats()),
+            new TableStats(),
+            new PlanStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()

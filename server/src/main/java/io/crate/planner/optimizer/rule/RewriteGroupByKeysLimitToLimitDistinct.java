@@ -40,6 +40,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 
@@ -167,6 +168,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

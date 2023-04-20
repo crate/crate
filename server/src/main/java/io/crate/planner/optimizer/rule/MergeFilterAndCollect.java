@@ -34,6 +34,7 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -59,6 +60,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

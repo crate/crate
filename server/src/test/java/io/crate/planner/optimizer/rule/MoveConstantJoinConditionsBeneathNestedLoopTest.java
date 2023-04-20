@@ -83,7 +83,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         HashJoin result = (HashJoin) rule.apply(match.value(),
                                                 match.captures(),
-                                                new PlanStats(new TableStats()),
+                                                new TableStats(),
+                                                new PlanStats(),
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
                                                 Function.identity());

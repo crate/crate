@@ -45,42 +45,33 @@ import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public class PlanStats {
 
-    private final TableStats tableStats;
     // Memo can be null when there are no Group References in the Logical Plans involved
     @Nullable
     private final Memo memo;
 
-    public PlanStats(TableStats tableStats) {
-        this(tableStats, null);
+    public PlanStats() {
+        this( null);
     }
 
-    public PlanStats(TableStats tableStats, @Nullable Memo memo) {
-        this.tableStats = tableStats;
+    public PlanStats(@Nullable Memo memo) {
         this.memo = memo;
     }
 
-    public TableStats tableStats() {
-        return tableStats;
-    }
-
     public Stats apply(LogicalPlan logicalPlan) {
-        var visitor = new StatsVisitor(tableStats, memo);
+        var visitor = new StatsVisitor( memo);
         return logicalPlan.accept(visitor, null);
     }
 
     private static class StatsVisitor extends LogicalPlanVisitor<Void, Stats> {
 
-        private final TableStats tableStats;
         @Nullable
         private final Memo memo;
 
-        public StatsVisitor(TableStats tableStats, @Nullable Memo memo) {
-            this.tableStats = tableStats;
+        public StatsVisitor( @Nullable Memo memo) {
             this.memo = memo;
         }
 
@@ -165,8 +156,7 @@ public class PlanStats {
 
         @Override
         public Stats visitCollect(Collect collect, Void context) {
-            var stats = tableStats.getStats(collect.relation().relationName());
-            return new Stats(stats.numDocs(), stats.averageSizePerRowInBytes(), stats.statsByColumn());
+            return new Stats(collect.numExpectedRows(), collect.estimatedRowSize(), Map.of());
         }
 
         @Override

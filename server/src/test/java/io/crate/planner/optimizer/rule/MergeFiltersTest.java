@@ -72,7 +72,8 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
         Filter mergedFilter = mergeFilters.apply(match.value(),
                                                  match.captures(),
-                                                 new PlanStats(new TableStats()),
+                                                 new TableStats(),
+                                                 new PlanStats(),
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
                                                  Function.identity());

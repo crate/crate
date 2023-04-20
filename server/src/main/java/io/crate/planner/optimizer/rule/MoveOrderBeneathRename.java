@@ -34,6 +34,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import java.util.List;
 import java.util.function.Function;
@@ -79,6 +80,7 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order plan,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

@@ -29,6 +29,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
@@ -54,6 +55,7 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
     @Override
     public LogicalPlan apply(Eval plan,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

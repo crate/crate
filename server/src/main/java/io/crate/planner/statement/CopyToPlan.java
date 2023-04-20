@@ -185,7 +185,8 @@ public final class CopyToPlan implements Plan {
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
                                                          match.captures(),
-                                                         new PlanStats(tableStats),
+                                                         tableStats,
+                                                         new PlanStats(),
                                                          context.transactionContext(),
                                                          context.nodeContext(),
                                                          Function.identity());

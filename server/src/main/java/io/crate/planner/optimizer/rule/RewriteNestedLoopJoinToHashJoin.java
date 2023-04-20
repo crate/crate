@@ -35,6 +35,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
 
@@ -50,6 +51,7 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
     @Override
     public LogicalPlan apply(NestedLoopJoin nl,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

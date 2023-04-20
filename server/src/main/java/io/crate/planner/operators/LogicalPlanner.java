@@ -302,7 +302,7 @@ public class LogicalPlanner {
                             Row params) {
             this.subqueryPlanner = subqueryPlanner;
             this.tableStats = tableStats;
-            this.planStats = new PlanStats(tableStats);
+            this.planStats = new PlanStats();
             this.params = params;
         }
 
@@ -471,7 +471,7 @@ public class LogicalPlanner {
                                                   List<Function> aggregates,
                                                   TableStats tableStats) {
         if (!groupKeys.isEmpty()) {
-            PlanStats planStats = new PlanStats(tableStats);
+            PlanStats planStats = new PlanStats();
             var stats = planStats.apply(source);
             long numExpectedRows = GroupHashAggregate.approximateDistinctValues(stats.numDocs(), tableStats, groupKeys);
             return new GroupHashAggregate(source, groupKeys, aggregates, numExpectedRows);

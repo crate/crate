@@ -61,12 +61,13 @@ public class Optimizer {
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        var planStats = new PlanStats(tableStats);
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx);
+        var planStats = new PlanStats();
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, tableStats, planStats, txnCtx);
         var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
+            tableStats,
             planStats,
             txnCtx
         );
@@ -92,6 +93,7 @@ public class Optimizer {
 
     private LogicalPlan tryApplyRules(List<Rule<?>> rules,
                                       LogicalPlan plan,
+                                      TableStats tableStats,
                                       PlanStats planStats,
                                       TransactionContext txnCtx) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
@@ -108,7 +110,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, tableStats, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
                 if (transformedPlan != null) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
@@ -127,6 +129,7 @@ public class Optimizer {
     @Nullable
     public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
                                                    LogicalPlan node,
+                                                   TableStats tableStats,
                                                    PlanStats planStats,
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
@@ -137,7 +140,7 @@ public class Optimizer {
             if (traceEnabled) {
                 LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
             }
-            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
+            return rule.apply(match.value(), match.captures(), tableStats, planStats, txnCtx, nodeCtx, resolvePlan);
         }
         return null;
     }

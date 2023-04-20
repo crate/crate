@@ -48,6 +48,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 /* Move the orderBy expression to the sub-relation if possible.
  *
@@ -81,6 +82,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,

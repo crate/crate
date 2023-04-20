@@ -57,13 +57,11 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 1L,
+                                 10L,
                                  DataTypes.INTEGER.fixedSize());
         var memo = new Memo(source);
         // set number of docs in TableStats to 10
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10, 1, Map.of())));
-        PlanStats planStats = new PlanStats(tableStats, memo);
+        PlanStats planStats = new PlanStats(memo);
         var result = planStats.apply(source);
         assertThat(result.numDocs()).isEqualTo(10L);
     }
@@ -80,14 +78,11 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 1L,
+                                 10L,
                                  DataTypes.INTEGER.fixedSize());
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
         var memo = new Memo(source);
-        // set number of docs in TableStats to 10
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10, 1, Map.of())));
-        PlanStats planStats = new PlanStats(tableStats, memo);
+        PlanStats planStats = new PlanStats(memo);
         var result = planStats.apply(groupReference);
         assertThat(result.numDocs()).isEqualTo(10L);
     }
@@ -111,7 +106,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
 
         var memo = new Memo(limit);
-        PlanStats planStats = new PlanStats(tableStats, memo);
+        PlanStats planStats = new PlanStats(memo);
         var result = planStats.apply(limit);
         assertThat(result.numDocs()).isEqualTo(5L);
     }

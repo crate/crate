@@ -104,11 +104,12 @@ public class Collect implements LogicalPlan {
                                  TableStats tableStats,
                                  Row params) {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
+        long numExpectedRows1 = SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params);
         return new Collect(
             relation,
             toCollect,
             where,
-            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
+            numExpectedRows1,
             stats.estimateSizeForColumns(toCollect)
         );
     }

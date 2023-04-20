@@ -44,6 +44,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
 
@@ -64,6 +65,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
     @Override
     public LogicalPlan apply(NestedLoopJoin nl,
                              Captures captures,
+                             TableStats tableStats,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
