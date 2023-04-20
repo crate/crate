@@ -60,11 +60,12 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                  1L,
                                  DataTypes.INTEGER.fixedSize());
         var memo = new Memo(source);
+        // set number of docs in TableStats to 10
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1, Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10, 1, Map.of())));
         PlanStats planStats = new PlanStats(tableStats, memo);
         var result = planStats.apply(source);
-        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.numDocs()).isEqualTo(10L);
     }
 
     @Test
@@ -83,11 +84,12 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                  DataTypes.INTEGER.fixedSize());
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
         var memo = new Memo(source);
+        // set number of docs in TableStats to 10
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1, Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10, 1, Map.of())));
         PlanStats planStats = new PlanStats(tableStats, memo);
         var result = planStats.apply(groupReference);
-        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.numDocs()).isEqualTo(10L);
     }
 
     @Test
