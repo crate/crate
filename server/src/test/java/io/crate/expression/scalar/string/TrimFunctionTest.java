@@ -46,6 +46,7 @@ public class TrimFunctionTest extends ScalarTestCase {
     @Test
     public void test_btrim_trims_both_sides() {
         assertEvaluate("btrim(name)", "Arthur", Literal.of("  Arthur  "));
+        assertNormalize("btrim('aaabbbcArthurccbbbaaa', 'abc')", isLiteral("Arthur"));
     }
 
     @Test

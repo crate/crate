@@ -23,7 +23,7 @@ package io.crate.expression.scalar.string;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 import io.crate.common.StringUtils;
 import io.crate.data.Input;
@@ -40,6 +40,8 @@ import io.crate.user.UserLookup;
 
 
 public final class TrimFunctions {
+
+    private TrimFunctions() {}
 
     private static final String TRIM_NAME = "trim";
     private static final String LTRIM_NAME = "ltrim";
@@ -81,7 +83,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.LEADING)
@@ -96,7 +98,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.LEADING)
@@ -111,7 +113,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.TRAILING)
@@ -126,7 +128,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.TRAILING)
@@ -142,7 +144,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.BOTH)
@@ -157,7 +159,7 @@ public final class TrimFunctions {
                 DataTypes.STRING.getTypeSignature()
             ),
             (signature, boundSignature) ->
-                new SingleSideTrimFunction(
+                new SideTrimFunction(
                     signature,
                     boundSignature,
                     (i, c) -> trimChars(i, c, TrimMode.BOTH)
@@ -260,15 +262,15 @@ public final class TrimFunctions {
         }
     }
 
-    private static class SingleSideTrimFunction extends Scalar<String, String> {
+    private static class SideTrimFunction extends Scalar<String, String> {
 
         private final Signature signature;
         private final BoundSignature boundSignature;
-        private final BiFunction<String, String, String> trimFunction;
+        private final BinaryOperator<String> trimFunction;
 
-        SingleSideTrimFunction(Signature signature,
-                               BoundSignature boundSignature,
-                               BiFunction<String, String, String> function) {
+        SideTrimFunction(Signature signature,
+                         BoundSignature boundSignature,
+                         BinaryOperator<String> function) {
             this.signature = signature;
             this.boundSignature = boundSignature;
             this.trimFunction = function;
