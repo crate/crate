@@ -303,17 +303,18 @@ public class FileReadingIteratorTest extends ESTestCase {
                 Settings.EMPTY
             ) {
                 int retry = 0;
+                final List<String> linesToThrow = List.of("3", "2", "3", "5", "2");
+                int linesToThrowIndex = 0;
 
                 @Override
                 BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
                     return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
 
-                        private int currentLineNumber = 0;
-
                         @Override
                         public String readLine() throws IOException {
                             var line = super.readLine();
-                            if (currentLineNumber++ >= skipNumLines && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                            if (linesToThrow.get(linesToThrowIndex).equals(line) && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                linesToThrowIndex = (linesToThrowIndex + 1) % linesToThrow.size();
                                 throw new SocketTimeoutException("dummy");
                             }
                             return line;
