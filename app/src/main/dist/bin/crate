@@ -202,7 +202,7 @@ launch_service()
 }
 
 # Parse any command line options.
-while getopts "vh:D:X:C:" opt; do
+while getopts "vhD:X:C:" opt; do
     case $opt in
         v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" $props \
