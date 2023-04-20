@@ -27,12 +27,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.types.ArrayType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -80,6 +82,61 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
             Reference addedColumn = newTable.getReference(newColumn.column());
             assertThat(addedColumn).isEqualTo(newColumn);
+        }
+    }
+
+    @Test
+    public void test_can_add_geo_shape_array_column() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
+
+            Reference geoShapeArrayRef = new GeoReference(
+                2,
+                shapesIdent,
+                true,
+                new ArrayType<>(DataTypes.GEO_SHAPE),
+                null,
+                null,
+                null,
+                null
+            );
+            ReferenceIdent pointsIdent = new ReferenceIdent(tbl.ident(), "points");
+            Reference geoPointArrayRef = new GeoReference(
+                3,
+                pointsIdent,
+                true,
+                new ArrayType<>(DataTypes.GEO_POINT),
+                null,
+                null,
+                null,
+                null
+            );
+            List<Reference> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+
+            Reference addedShapesColumn = newTable.getReference(shapesIdent.columnIdent());
+            assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
+
+            Reference addedPointsColumn = newTable.getReference(pointsIdent.columnIdent());
+            assertThat(addedPointsColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
         }
     }
 
