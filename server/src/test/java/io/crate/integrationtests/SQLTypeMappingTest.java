@@ -33,7 +33,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -49,7 +48,7 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
 
-    private void setUpSimple() throws IOException {
+    private void setUpSimple() {
         setUpSimple(2);
     }
 
@@ -74,7 +73,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertAtNodeWithoutShard() throws Exception {
+    public void testInsertAtNodeWithoutShard() {
         setUpSimple(1);
 
         try (var session = createSessionOnNode(internalCluster().getNodeNames()[0])) {
@@ -196,7 +195,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 Map.of("created", true, "size", 127),
                 Map.of("path", "/dev/null", "created", 0)
             }),
-            isSQLError(containsString("Cannot cast"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+            isSQLError(is("Cannot cast object element `created` with value `true` to type `timestamp with time zone`"), INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
