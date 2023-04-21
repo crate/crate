@@ -38,15 +38,14 @@ import io.crate.types.DataType;
 
 /**
  * Used to evaluate a symbol tree to a value.
- *
- * - This should be preferred over {@link EvaluatingNormalizer} if it's required to fully evaluate the tree
- * - This should be preferred over {@link InputFactory} if it's not used repeatedly.
- *   (Unless column evaluation is necessary)
- *
+ * <ul>
+ *   <li>This should be preferred over {@link EvaluatingNormalizer} if it's required to fully evaluate the tree</li>
+ *   <li>This should be preferred over {@link InputFactory} if it's not used repeatedly.
+ *       (Unless column evaluation is necessary) </li>
+ * </ul>
  * This does not handle Columns/InputColumns, only Functions, Literals, ParameterSymbols and SubQuery values
  */
 public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> {
-
 
     private final SubQueryResults subQueryResults;
 
@@ -74,12 +73,15 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
             Object value = params.get(parameterSymbol.index());
             try {
                 return parameterSymbol.valueType().implicitCast(value);
+            } catch (ConversionException e) {
+                throw e;
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new ConversionException(value, parameterSymbol.valueType());
             }
         };
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
         DataType type = selectSymbol.valueType();

@@ -24,10 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,7 +41,7 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
 
-    private void setUpSimple() throws IOException {
+    private void setUpSimple() {
         setUpSimple(2);
     }
 
@@ -69,7 +66,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertAtNodeWithoutShard() throws Exception {
+    public void testInsertAtNodeWithoutShard() {
         setUpSimple(1);
 
         try (var session = createSessionOnNode(cluster().getNodeNames()[0])) {
@@ -170,11 +167,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("insert into test12 (object_field['size']) values (127)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining(String.format(
-                Locale.ENGLISH,
-                "Invalid column reference \"object_field\"['size'] used in INSERT INTO statement",
-                sqlExecutor.getCurrentSchema()
-            ));
+            .hasMessageContaining("Invalid column reference \"object_field\"['size'] used in INSERT INTO statement");
     }
 
     @Test
@@ -188,7 +181,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             }))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Cannot cast");
+            .hasMessageContaining("Cannot cast object element `created` with value `true` to type `timestamp with time zone`");
     }
 
     @Test
@@ -196,9 +189,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         setUpSimple();
 
         Asserts.assertSQLError(() -> execute("delete from t1 where byte_field=129"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4000)
-                .hasMessageContaining("Cannot cast `129` of type `integer` to type `byte`");
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast `129` of type `integer` to type `byte`");
     }
 
     @Test
@@ -206,9 +199,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         setUpSimple();
 
         Asserts.assertSQLError(() -> execute("update t1 set byte_field=0 where byte_field in (129)"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4000)
-                .hasMessageContaining("Cannot cast `[129]` of type `integer_array` to type `byte_array`");
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast `[129]` of type `integer_array` to type `byte_array`");
     }
 
     @Test
@@ -253,9 +246,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response.rows()[0][7]).isEqualTo(true);
         assertThat(response.rows()[0][8]).isEqualTo("a string");
         assertThat(response.rows()[0][9]).isEqualTo(1384905600000L);
-        assertEquals(
-            Map.of("inner", 1384905600000L),
-            response.rows()[0][10]);
+        assertThat(response.rows()[0][10]).isEqualTo(Map.of("inner", 1384905600000L));
         assertThat(response.rows()[0][11]).isEqualTo("127.0.0.1");
     }
 
