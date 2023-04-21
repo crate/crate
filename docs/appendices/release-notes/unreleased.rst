@@ -1,3 +1,4 @@
+
 ==================
 Unreleased Changes
 ==================
@@ -92,6 +93,14 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue that caused the actual cast/type conversion error to be hidden
+  when it failed for a sub-column of an object column, when using a client
+  statement with parameters i.e (python).::
+
+    CREATE TABLE a (b OBJECT(DYNAMIC) AS (c REAL));
+    # create a connection and a cursor and then:
+    cursor.execute("INSERT INTO a VALUES (?)", [({"c": True},)])
 
 - Fixed a regression that caused the ``-h`` option in ``bin/crate`` to fail with
   an ``Error parsing arguments!`` error.
