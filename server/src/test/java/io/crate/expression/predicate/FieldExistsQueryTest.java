@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -36,6 +37,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -63,7 +65,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
         builder.indexValues("xs", values);
         try (var queryTester = builder.build()) {
             var results = queryTester.runQuery("xs", expression);
-            assertThat(results).hasSize(1);
+            assertThat(results)
+                .as(expression + " must match 1 record")
+                .hasSize(1);
             if (isNull) {
                 assertThat(results.get(0)).isNull();
             } else {
@@ -174,5 +178,25 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
         // We can enable this case for all types once https://github.com/crate/crate/issues/11652 is implemented.
         String createStatement = "create table t_text (xs array(text) index off storage with (columnstore = false))";
         assertMatches(createStatement, false, ARRAY_VALUES);
+    }
+
+    @Test
+    public void test_is_null_with_values_on_geo_shape_array() throws Exception {
+        Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(DataTypes.GEO_SHAPE);
+        List<Map<String, Object>> shapes = List.of(dataGenerator.get(), dataGenerator.get());
+        Object[] rows = new Object[] {
+            null,
+            shapes
+        };
+        resetClusterService();
+        QueryTester.Builder builder = getBuilder("create table tbl (xs array(geo_shape))");
+        builder.indexValues("xs", rows);
+        try (var queryTester = builder.build()) {
+            List<Object> results = queryTester.runQuery("xs", "xs is null");
+            assertThat(results).containsExactly(new Object[] { null });
+
+            results = queryTester.runQuery("xs", "xs is not null");
+            assertThat(results).containsExactly(shapes);
+        }
     }
 }
