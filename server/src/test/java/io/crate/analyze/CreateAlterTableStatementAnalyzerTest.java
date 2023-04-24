@@ -26,6 +26,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -1217,9 +1218,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   obj object as (key text) default {key=''}," +
             "   arr array(long) default [1, 2])");
 
-        assertThat(mapToSortedString(analysis.mappingProperties()), is(
-            "arr={inner={position=3, type=long}, type=array}, " +
-            "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={position=2, type=keyword}}, type=object}"));
+        assertThat(mapToSortedString(analysis.mappingProperties())).isEqualTo(
+            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), position=3, type=long}, type=array}, " +
+                "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={position=2, type=keyword}}, type=object}");
     }
 
     @Test
