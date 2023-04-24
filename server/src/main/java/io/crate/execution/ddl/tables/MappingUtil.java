@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.AnalyzedTableElements;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -48,7 +47,6 @@ public class MappingUtil {
      * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
-     * Aligned with {@link AnalyzedTableElements#toMapping(AnalyzedTableElements)}
      */
     public static Map<String, Object> createMapping(List<Reference> columns,
                                                     IntArrayList pKeyIndices,
@@ -119,9 +117,6 @@ public class MappingUtil {
         return allColumnsMap;
     }
 
-    /**
-     * Aligned with AnalyzedColumnDefinition.toMapping()
-     */
     private static Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
 
         Map<String, Object> columnProperties = reference.toMapping();

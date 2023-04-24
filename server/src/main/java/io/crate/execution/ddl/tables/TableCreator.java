@@ -47,6 +47,8 @@ import io.crate.analyze.BoundCreateTable;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
+import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+
 @Singleton
 public class TableCreator {
 
@@ -64,11 +66,13 @@ public class TableCreator {
         var relationName = createTable.tableIdent();
         CreateTableRequest createTableRequest;
 
+        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        IntArrayList pKeysIndices = new IntArrayList();
+        createTable.analyzedTableElements().collectReferences(relationName, references, pKeysIndices, true);
+        var policy = (String) createTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
+        var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
-            LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-            IntArrayList pKeysIndices = new IntArrayList();
-            createTable.analyzedTableElements().collectReferences(relationName, references, pKeysIndices, true);
-            var policy = (String) createTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
             createTableRequest = new CreateTableRequest(
                 relationName,
                 new ArrayList<>(references.values()),
@@ -76,23 +80,31 @@ public class TableCreator {
                 createTable.analyzedTableElements().getCheckConstraints(),
                 createTable.tableParameter().settings(),
                 createTable.routingColumn(),
-                policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT,
+                tableColumnPolicy,
                 createTable.partitionedBy(),
                 createTable.analyzedTableElements().indicesMap()
             );
-
         } else {
-            // TODO: Remove in 5.5.
+            // TODO: Remove BWC branch in 5.5.
+            var mapping = createMapping(
+                new ArrayList<>(references.values()),
+                pKeysIndices,
+                createTable.analyzedTableElements().getCheckConstraints(),
+                createTable.analyzedTableElements().indicesMap(),
+                createTable.partitionedBy(),
+                tableColumnPolicy,
+                createTable.routingColumn()
+            );
             createTableRequest = templateName == null
                 ? new CreateTableRequest(
                     new CreateIndexRequest(
                         relationName.indexNameOrAlias(),
                         createTable.tableParameter().settings()
-                    ).mapping(createTable.mapping())
+                    ).mapping(mapping)
             )
                 : new CreateTableRequest(
                     new PutIndexTemplateRequest(templateName)
-                        .mapping(createTable.mapping())
+                        .mapping(mapping)
                         .create(true)
                         .settings(createTable.tableParameter().settings())
                         .patterns(Collections.singletonList(createTable.templatePrefix()))
