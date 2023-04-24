@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused ``geo_shape_array IS NULL`` expressions to fail
+  with an ``IllegalStateException``.
+
 - Fixed an issue that caused the actual cast/type conversion error to be hidden
   when it failed for a sub-column of an object column, when using a client
   statement with parameters i.e (python).::
