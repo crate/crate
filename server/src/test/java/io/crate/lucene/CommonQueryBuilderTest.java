@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -340,9 +341,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnObjectArray() throws Exception {
         Query isNull = convert("o_array IS NULL");
-        assertThat(isNull.toString(), is("+*:* -((FieldExistsQuery [field=o_array] (+*:* -(o_array IS NULL)))~1)"));
+        assertThat(isNull.toString()).isEqualTo(
+            "(o_array IS NULL)");
         Query isNotNull = convert("o_array IS NOT NULL");
-        assertThat(isNotNull.toString(), is("(FieldExistsQuery [field=o_array] (+*:* -(o_array IS NULL)))~1"));
+        assertThat(isNotNull.toString()).isEqualTo(
+            "(NOT (o_array IS NULL))");
     }
 
     @Test
