@@ -199,12 +199,19 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCreateColumnWithDefaultExpression() throws Exception {
-        execute("create table test (col1 text default 'foo')");
+        execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"keyword\",\"position\":1,\"default_expr\":\"'foo'\"}}}}";
+            "\"dynamic\":\"strict\"," +
+            "\"_meta\":{}," +
+            "\"properties\":{" +
+            "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\"}," +
+            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"_cast([1, 2], 'array(integer)')\"}}," +
+            "\"id\":{\"type\":\"integer\",\"position\":1}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
-
+        execute("insert into test(id) values(1)");
+        execute("refresh table test");
+        execute("select id, col1, col2 from test");
+        assertThat(response).hasRows("1| foo| [1, 2]");
     }
 
     @Test

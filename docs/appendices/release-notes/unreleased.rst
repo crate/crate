@@ -108,3 +108,6 @@ Fixes
 - Fixed an issue that caused ``ALTER TABLE ADD COLUMN`` statement to assign a
   wrong type to ``ARRAY(TEXT)`` column and create a ``TEXT`` column instead if
   column has a ``FULLTEXT`` index.
+
+- Fixed an issue that prevented assigning default expression to ``ARRAY``
+  columns.

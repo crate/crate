@@ -460,6 +460,16 @@ public class AnalyzedColumnDefinition<T> {
             mapping.put("copy_to", definition.copyToTargets);
         }
 
+        if (definition.docValues() != definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType)) {
+            // definition.docValues falls back to default if not specified.
+            // If computed value is non-default it means doc values are supported but disabled.
+            mapping.put(DOC_VALUES, "false");
+        }
+
+        if (definition.formattedDefaultExpression != null) {
+            mapping.put("default_expr", definition.formattedDefaultExpression);
+        }
+
         if ("array".equals(definition.collectionType)) {
             Map<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
@@ -470,16 +480,6 @@ public class AnalyzedColumnDefinition<T> {
             return outerMapping;
         } else if (definition.dataType().id() == ObjectType.ID) {
             objectMapping(mapping, definition);
-        }
-
-        if (definition.docValues() != definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType)) {
-            // definition.docValues falls back to default if not specified.
-            // If computed value is non-default it means doc values are supported but disabled.
-            mapping.put(DOC_VALUES, "false");
-        }
-
-        if (definition.formattedDefaultExpression != null) {
-            mapping.put("default_expr", definition.formattedDefaultExpression);
         }
 
         return mapping;
