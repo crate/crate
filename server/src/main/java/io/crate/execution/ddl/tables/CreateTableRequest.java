@@ -61,7 +61,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     private final IntArrayList pKeyIndices;
     private final Map<String, String> checkConstraints;
 
-    // Aligned with BoundCreateTable.mapping(), everything what's not covered by AddColumnRequest is added as a separate field.
+    // Everything what's not covered by AddColumnRequest is added as a separate field.
     private final Settings settings;
     @Nullable
     private final String routingColumn;

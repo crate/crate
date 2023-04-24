@@ -468,7 +468,7 @@ public class SQLExecutor {
                 .put(customSettings)
                 .build();
 
-            XContentBuilder mappingBuilder = JsonXContent.builder().map(analyzedStmt.mapping());
+            XContentBuilder mappingBuilder = JsonXContent.builder().map(TestingHelpers.toMapping(analyzedStmt));
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
             AliasMetadata alias = new AliasMetadata(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
@@ -485,7 +485,7 @@ public class SQLExecutor {
                 IndexMetadata indexMetadata = getIndexMetadata(
                     partition,
                     combinedSettings,
-                    analyzedStmt.mapping(),
+                    TestingHelpers.toMapping(analyzedStmt),
                     prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
                     .build();
@@ -538,7 +538,7 @@ public class SQLExecutor {
             IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
                 combinedSettings,
-                analyzedStmt.mapping(),
+                TestingHelpers.toMapping(analyzedStmt),
                 prevState.nodes().getSmallestNonClientNodeVersion()
             ).build();
 

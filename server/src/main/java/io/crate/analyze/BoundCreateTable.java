@@ -29,9 +29,7 @@ import io.crate.metadata.Schemas;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public class BoundCreateTable {
 
@@ -41,7 +39,6 @@ public class BoundCreateTable {
     private final ColumnIdent routingColumn;
     private final boolean noOp;
     private final boolean ifNotExists;
-    private Map<String, Object> mapping;
 
     public BoundCreateTable(RelationName relationName,
                             AnalyzedTableElements<Object> tableElements,
@@ -108,33 +105,6 @@ public class BoundCreateTable {
             return PartitionName.templatePrefix(tableIdent().schema(), tableIdent().name());
         }
         return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> mappingProperties() {
-        return (Map) mapping().get("properties");
-    }
-
-    public Collection<String> primaryKeys() {
-        return AnalyzedTableElements.primaryKeys(analyzedTableElements);
-    }
-
-    public Collection<String> notNullColumns() {
-        return AnalyzedTableElements.notNullColumns(analyzedTableElements);
-    }
-
-    public Map<String, Object> mapping() {
-        if (mapping == null) {
-            mapping = AnalyzedTableElements.toMapping(analyzedTableElements);
-            //noinspection unchecked
-            Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
-            if (routingColumn != null) {
-                metaMap.put("routing", routingColumn.fqn());
-            }
-            // merge in user defined mapping parameter
-            mapping.putAll(tableParameter.mappings());
-        }
-        return mapping;
     }
 
     public RelationName tableIdent() {

@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -1197,7 +1198,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         IndexMetadata indexMetadata = IndexMetadata.builder(analyzedStatement.tableIdent().name())
             .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(analyzedStatement.mapping()))
+            .putMapping(new MappingMetadata(TestingHelpers.toMapping(analyzedStatement)))
             .build();
 
         return newMeta(indexMetadata, analyzedStatement.tableIdent().name());

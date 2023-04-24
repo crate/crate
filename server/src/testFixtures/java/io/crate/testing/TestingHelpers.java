@@ -21,6 +21,7 @@
 
 package io.crate.testing;
 
+import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
@@ -39,6 +40,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -49,6 +51,10 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import com.carrotsearch.hppc.IntArrayList;
+import io.crate.analyze.BoundCreateTable;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -404,5 +410,24 @@ public class TestingHelpers {
             }
         }
         return values;
+    }
+
+    public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
+        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        IntArrayList pKeysIndices = new IntArrayList();
+        boundCreateTable.analyzedTableElements().collectReferences(boundCreateTable.tableIdent(), references, pKeysIndices, true);
+        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
+        var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+
+        return createMapping(
+            new ArrayList<>(references.values()),
+            pKeysIndices,
+            boundCreateTable.analyzedTableElements().getCheckConstraints(),
+            boundCreateTable.analyzedTableElements().indicesMap(),
+            boundCreateTable.partitionedBy(),
+            tableColumnPolicy,
+            boundCreateTable.routingColumn()
+        );
+
     }
 }
