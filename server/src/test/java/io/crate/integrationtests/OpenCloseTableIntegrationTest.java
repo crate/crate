@@ -23,12 +23,11 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -70,14 +69,14 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
         execute("insert into t values (1), (2)");
         refresh();
         execute("select * from t");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("alter table t close");
         execute("alter table t open");
         ensureGreen();
 
         execute("select * from t");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -101,9 +100,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
                 "from sys.shards " +
                 "where table_name = 'test' and primary = true " +
                 "group by table_name, primary");
-            assertThat(response.rowCount(), greaterThan(0L));
-            assertThat(response.rows()[0][0], is(uncommittedTranslogOps));
-            assertThat(response.rows()[0][1], is(uncommittedTranslogOps));
+            assertThat(response.rowCount()).isGreaterThan(0L);
+            assertThat(response.rows()[0][0]).isEqualTo(uncommittedTranslogOps);
+            assertThat(response.rows()[0][1]).isEqualTo(uncommittedTranslogOps);
         });
 
         execute("alter table test close");
@@ -115,9 +114,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             "from sys.shards " +
             "where table_name = 'test' and primary = true " +
             "group by table_name, primary");
-        assertThat(response.rowCount(), greaterThan(0L));
-        assertThat(response.rows()[0][0], is(0L));
-        assertThat(response.rows()[0][1], is(0L));
+        assertThat(response.rowCount()).isGreaterThan(0);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
+        assertThat(response.rows()[0][1]).isEqualTo(0L);
     }
 
     @Test
@@ -137,12 +136,12 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
                 // Closing an index is not blocked
                 execute("alter table test close");
-                assertThat(isClosed("test"), is(true));
+                assertThat(isClosed("test")).isTrue();
 
                 // Opening an index is not blocked
                 execute("alter table test open");
                 ensureYellow();
-                assertThat(isClosed("test"), is(false));
+                assertThat(isClosed("test")).isFalse();
             } finally {
                 execute("alter table test reset (\"" + blockSetting + "\")");
             }
@@ -165,7 +164,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
                 execute("alter table test set (\"" + blockSetting + "\" = true)");
                 execute("alter table test close");
             } catch (Exception e) {
-                assertThat(isClosed("test"), is(false));
+                assertThat(isClosed("test")).isFalse();
             } finally {
                 execute("alter table test reset (\"" + blockSetting + "\")");
             }
@@ -192,7 +191,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
                 execute("alter table test set (\"" + blockSetting + "\" = true)");
                 execute("alter table test close");
             } catch (Exception e) {
-                assertThat(isClosed("test"), is(false));
+                assertThat(isClosed("test")).isFalse();
             } finally {
                 execute("alter table test reset (\"" + blockSetting + "\")");
             }
@@ -314,9 +313,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     public void test_close_open_empty_partitioned_table() {
         execute("create table partitioned_table (i int) partitioned by (i)");
         execute("alter table partitioned_table close");
-        assertThat(isClosed("partitioned_table"), is(true));
+        assertThat(isClosed("partitioned_table")).isTrue();
         execute("alter table partitioned_table open");
-        assertThat(isClosed("partitioned_table"), is(false));
+        assertThat(isClosed("partitioned_table")).isFalse();
     }
 
     @Test
