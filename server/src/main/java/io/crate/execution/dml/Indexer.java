@@ -540,19 +540,18 @@ public class Indexer {
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
-                if (value == null) {
-                    continue;
-                }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                xContentBuilder.field(reference.column().leafName());
-                valueIndexer.indexValue(
-                    value,
-                    xContentBuilder,
-                    addField,
-                    onDynamicColumn,
-                    synthetics,
-                    columnConstraints
-                );
+                if (value != null || valueIndexer instanceof DynamicIndexer) {
+                    xContentBuilder.field(reference.column().leafName());
+                    valueIndexer.indexValue(
+                        value,
+                        xContentBuilder,
+                        addField,
+                        onDynamicColumn,
+                        synthetics,
+                        columnConstraints
+                    );
+                }
             }
             for (var entry : synthetics.entrySet()) {
                 ColumnIdent column = entry.getKey();

@@ -773,7 +773,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_empty_array_and_array_with_nulls_does_not_result_in_new_column() throws Exception {
+    public void test_dynamic_creation_of_undefined_types_within_object_types_result_in_exceptions() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')")
             .build();
@@ -784,22 +784,52 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
-            List.of(
-                table.getReference(new ColumnIdent("o")),
-                table.getDynamic(new ColumnIdent("n1"), true, false),
-                table.getDynamic(new ColumnIdent("n2"), true, false)
-            ),
+            List.of(table.getReference(new ColumnIdent("o"))),
             null
         );
-        List<Object> n1 = List.of();
-        List<Object> n2 = Arrays.asList(null, null);
-        ParsedDocument doc = indexer.index(item(Map.of("inner", n1), n1, n2));
-        assertThat(doc.newColumns()).isEmpty();
-        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
-            """
-            {"o":{"inner":[]},"n1":[],"n2":[null,null]}
-            """
+        assertThatThrownBy(() -> indexer.index(item(Map.of("inner", List.of()))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined_array dynamically. Storage is not supported for this type");
+
+        assertThatThrownBy(() -> indexer.index(item(Map.of("inner", Arrays.asList(null, null)))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined_array dynamically. Storage is not supported for this type");
+
+        assertThatThrownBy(() -> {
+            Map<String, Object> values = new HashMap<>();
+            values.put("inner", null);
+            indexer.index(item(values));
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined dynamically. Storage is not supported for this type");
+    }
+
+    @Test
+    public void test_dynamic_creation_of_undefined_types_result_in_exceptions() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(table.getDynamic(new ColumnIdent("n1"), true, false)),
+            null
         );
+        assertThatThrownBy(() -> indexer.index(item(List.of())))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined_array dynamically. Storage is not supported for this type");
+
+        assertThatThrownBy(() -> indexer.index(item(Arrays.asList(null, null))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined_array dynamically. Storage is not supported for this type");
+
+        assertThatThrownBy(() -> indexer.index(item((Object) null)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot create columns of type undefined dynamically. Storage is not supported for this type");
     }
 
     @Test

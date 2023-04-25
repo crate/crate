@@ -22,7 +22,6 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,7 +48,6 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
-import io.crate.types.UndefinedType;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
@@ -82,10 +80,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             type = guessType(value);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (handleEmptyArray(type, value, xcontentBuilder)) {
-                    type = null; // guess type again with next value
-                    return;
-                }
                 throw new IllegalArgumentException(
                     "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
@@ -121,24 +115,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             toValidate
         );
     }
-
-    static boolean handleEmptyArray(DataType<?> type,
-                                    Object value,
-                                    XContentBuilder builder) throws IOException {
-        if (type instanceof ArrayType<?> && ArrayType.unnest(type) instanceof UndefinedType) {
-            Collection<?> values = (Collection<?>) value;
-            if (values.isEmpty() || values.stream().allMatch(x -> x == null)) {
-                builder.startArray();
-                for (int i = 0; i < values.size(); i++) {
-                    builder.nullValue();
-                }
-                builder.endArray();
-                return true;
-            }
-        }
-        return false;
-    }
-
 
     /**
      * <p>

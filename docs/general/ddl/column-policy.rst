@@ -54,7 +54,9 @@ which means as-is.
 .. NOTE::
 
    The data type of the new column is guessed from the data type of the value
-   provided in the insert statement that creates the column.
+   provided in the insert statement that creates the column. Therefore,
+   undefined values such as ``null``, ``[]``, or ``[null]`` cannot be used
+   to create new columns.
 
 If a new column ``a`` was added with type ``boolean``, adding strings to this
 column will result in an error, except the string can be implicit casted to a

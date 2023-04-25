@@ -415,46 +415,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
     } */
 
     @Test
-    public void test_dynamic_empty_array_does_not_result_in_new_column() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) " +
-                "with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
-        refresh();
-        waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
-        assertThat(response).hasRows(
-            "id| smallint",
-            "tags| text_array"
-        );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":1,"tags":["wow","much","wow"],"new":[]}
-            """
-        );
-    }
-
-    @Test
-    public void testDynamicNullArray_does_not_result_in_new_column() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) " +
-                "with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
-        refresh();
-        waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
-        assertThat(response).hasRows(
-            "id| smallint",
-            "tags| text_array"
-        );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":2,"tags":["wow","much","wow"],"new":[null]}
-            """
-        );
-    }
-
-    @Test
     public void testDynamicNullArrayAndDouble() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");

@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 
+import static io.crate.data.Row1.ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -167,7 +168,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 new Object[]{listWithNull},
                 new Object[]{List.of(1, 2)},
             });
-        assertThat(rowCounts[0]).isEqualTo(1L);
+        assertThat(rowCounts[0]).isEqualTo(ERROR);
         assertThat(rowCounts[1]).isEqualTo(1L);
 
         waitForMappingUpdateOnAll("foo", "bar");

@@ -1874,8 +1874,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "clustered into 6 shards " +
             "partitioned by (day)");
         ensureYellow();
-        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
+        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("refresh table event");
         waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event group by data['sessionid'] " +
@@ -1894,8 +1894,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             ") clustered into 6 shards " +
             "partitioned by (day)");
         ensureYellow();
-        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
+        execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
         execute("refresh table event");
         waitForMappingUpdateOnAll("event", "data.sessionid");
@@ -1915,8 +1915,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             ") clustered into 6 shards" +
             " partitioned by (day)");
         ensureYellow();
-        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 42)");
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 42)");
+        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 42)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("refresh table event");
         waitForMappingUpdateOnAll("event", "data.sessionid");
@@ -1955,8 +1955,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             ") clustered into 6 shards " +
             "partitioned by (day)");
         ensureYellow();
-        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 0)");
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 21)");
+        execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 0)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("insert into event (day, number) values ('2015-03-08', 84)");
         execute("refresh table event");
@@ -1968,7 +1968,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "order by number");
         assertThat(response.rowCount(), is(2L));
         assertThat(printedTable(response.rows()), is(
-            "{sessionid=NULL}\n" +
+            "{}\n" +
             "NULL\n"));
 
         execute("select data " +

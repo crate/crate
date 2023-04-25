@@ -106,4 +106,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that allowed inserting undefined values resulting in
+  dynamic column creations. For example, an empty array cannot be used to
+  create a column dynamically since the inner type is undefined.

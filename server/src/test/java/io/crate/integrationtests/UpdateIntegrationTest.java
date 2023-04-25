@@ -29,7 +29,7 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
@@ -40,6 +40,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
@@ -123,19 +124,15 @@ public class UpdateIntegrationTest extends IntegTestCase {
                 .hasMessageContaining("\"stuff['level1']['level2']\" must not be null");
     }
 
+    @UseJdbc(0)
     @Test
     public void testUpdateNullDynamicColumn() {
-        /*
-         * Regression test
-         * validating dynamically generated columns with NULL values led to NPE
-         */
         execute("create table test (id int primary key) with (column_policy = 'dynamic')");
         execute("insert into test (id) values (1)");
         refresh();
-
-        execute("update test set dynamic_col=null");
-        refresh();
-        assertThat(response).hasRowCount(1);
+        assertThatThrownBy(() -> execute("update test set dynamic_col=null"))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("Cannot create columns of type undefined dynamically. Storage is not supported for this type");
     }
 
     @Test
