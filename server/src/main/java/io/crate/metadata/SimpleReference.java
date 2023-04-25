@@ -221,6 +221,9 @@ public class SimpleReference implements Reference {
                 mapping.put(TypeParsers.DOC_VALUES, Boolean.toString(hasDocValues));
             }
         }
+        if (defaultExpression != null) {
+            mapping.put("default_expr", defaultExpression.toString(Style.UNQUALIFIED));
+        }
         innerType.addMappingOptions(mapping);
         return mapping;
     }
