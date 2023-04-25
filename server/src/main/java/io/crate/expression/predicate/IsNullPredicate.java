@@ -57,6 +57,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
@@ -131,33 +132,34 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
         String field = ref.column().fqn();
-        if (ref.valueType() instanceof ArrayType<?>) {
+        FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
+        DataType<?> valueType = ref.valueType();
+        boolean canUseFieldsExist = ref.hasDocValues() || (fieldType != null && !fieldType.omitNorms());
+        if (valueType instanceof ArrayType<?>) {
             if (countEmptyArrays) {
-                return new BooleanQuery.Builder()
-                    .setMinimumNumberShouldMatch(1)
-                    .add(new FieldExistsQuery(field), Occur.SHOULD)
-                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
-                    .build();
-            } else {
-                // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
-                return new FieldExistsQuery(field);
+                if (canUseFieldsExist) {
+                    return new BooleanQuery.Builder()
+                        .setMinimumNumberShouldMatch(1)
+                        .add(new FieldExistsQuery(field), Occur.SHOULD)
+                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                        .build();
+                } else {
+                    return null;
+                }
             }
+            // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
+            valueType = ArrayType.unnest(valueType);
         }
-        StorageSupport<?> storageSupport = ref.valueType().storageSupport();
+        StorageSupport<?> storageSupport = valueType.storageSupport();
         if (storageSupport == null && ref instanceof DynamicReference) {
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
-        } else if (ref.hasDocValues()) {
+        } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);
         } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
-            FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
-            if (fieldType != null && !fieldType.omitNorms()) {
-                return new FieldExistsQuery(field);
-            }
-
-            if (ref.valueType() instanceof ObjectType objType) {
+            if (valueType instanceof ObjectType objType) {
                 if (objType.innerTypes().isEmpty()) {
                     return null;
                 }
