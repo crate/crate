@@ -157,4 +157,23 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
         assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
+
+    @Test
+    public void test_mapping_generation_default_expression() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs string default 'foo')")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Map<String, Object> mapping = reference.toMapping();
+        assertThat(mapping)
+            .containsEntry("position", 1)
+            .containsEntry("type", "keyword")
+            .containsEntry("default_expr", "'foo'")
+            .hasSize(3);
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+    }
+
 }
