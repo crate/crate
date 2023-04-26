@@ -21,7 +21,17 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
@@ -32,14 +42,6 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
 
 public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
 
@@ -66,10 +68,22 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(fetchOrEvalCapture);
         var source = resolvePlan.apply(eval.source());
-        List<Symbol> outputsOfFetchSource = source.outputs();
-        if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
-            return transpose(plan, eval);
+        List<Symbol> sourceOutputs = source.outputs();
+        Set<Symbol> filterColumns = extractColumns(plan.query());
+        boolean[] intersects = new boolean[] { false };
+        for (Symbol filterColumn : filterColumns) {
+            intersects[0] = false;
+            // Move also for cases like `o['x']` where the source only provides `o`.
+            // This makes `MergeFilterAndCollect` application more likely.
+            // Even if `MergeFilterAndCollect` doesn't apply, the `Filter` operator can fallback
+            // to use a `subscript(o, 'x')` function if `o['x']` as ref is not accessible.
+            SymbolVisitors.intersection(filterColumn, sourceOutputs, s -> {
+                intersects[0] = true;
+            });
+            if (!intersects[0]) {
+                return null;
+            }
         }
-        return null;
+        return transpose(plan, eval);
     }
 }
