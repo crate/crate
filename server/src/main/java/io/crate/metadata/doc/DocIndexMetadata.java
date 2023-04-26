@@ -496,6 +496,7 @@ public class DocIndexMetadata {
             } else if (columnDataType != DataTypes.NOT_SUPPORTED) {
                 List<String> copyToColumns = Maps.get(columnProperties, "copy_to");
 
+                // TODO: copy_to is deprecated and has to be removed after 5.4
                 // extract columns this column is copied to, needed for indices
                 if (copyToColumns != null) {
                     for (String copyToColumn : copyToColumns) {
@@ -515,9 +516,14 @@ public class DocIndexMetadata {
                 }
                 // is it an index?
                 if (indicesMap.containsKey(newIdent.fqn())) {
-                    IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
-                    builder.indexType(columnIndexType)
-                        .analyzer((String) columnProperties.get("analyzer"));
+                    List<String> sources = Maps.get(columnProperties, "sources");
+                    if (sources != null) {
+                        IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
+                        builder.indexType(columnIndexType)
+                            .position(position)
+                            .analyzer((String) columnProperties.get("analyzer"))
+                            .sources(sources);
+                    }
                 } else {
                     add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
@@ -609,7 +615,7 @@ public class DocIndexMetadata {
     private Map<ColumnIdent, IndexReference> createIndexDefinitions() {
         MapBuilder<ColumnIdent, IndexReference> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<ColumnIdent, IndexReference.Builder> entry : indicesBuilder.entrySet()) {
-            builder.put(entry.getKey(), entry.getValue().build());
+            builder.put(entry.getKey(), entry.getValue().build(references));
         }
         indices = builder.immutableMap();
         return indices;
@@ -645,7 +651,6 @@ public class DocIndexMetadata {
         columnPolicy = getColumnPolicy();
         // notNullColumns and primaryKey must be resolved before creating column definitions.
         createColumnDefinitions();
-        indices = createIndexDefinitions();
         references = new LinkedHashMap<>();
         DocSysColumns.forTable(ident, references::put);
         columns.sort(SORT_REFS_BY_POSTITON_THEN_NAME);
@@ -658,6 +663,9 @@ public class DocIndexMetadata {
                 }
             }
         }
+        // createIndexDefinitions() resolves sources by FQN using references.
+        // Index definition can include sub-columns, so we need to create index definitions after adding nested columns into references ^
+        indices = createIndexDefinitions();
         // Order of the partitionedByColumns is important; Must be the same order as `partitionedBy` is in.
         partitionedByColumns = Lists2.map(partitionedBy, references::get);
         generatedColumnReferences = List.copyOf(generatedColumnReferencesBuilder);

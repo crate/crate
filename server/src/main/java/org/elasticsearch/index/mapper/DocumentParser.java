@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -377,7 +378,7 @@ final class DocumentParser {
         } else if (mapper instanceof FieldMapper) {
             FieldMapper fieldMapper = (FieldMapper) mapper;
             fieldMapper.parse(context);
-            parseCopyFields(context, fieldMapper.copyTo().copyToFields());
+            addIndexColumnSources(context, fieldMapper);
         } else {
             throw new IllegalStateException("The provided mapper [" + mapper.name() + "] has an unrecognized type [" +
                 mapper.getClass().getSimpleName() + "].");
@@ -584,7 +585,29 @@ final class DocumentParser {
         parseObjectOrField(context, mapper);
     }
 
+    public static void addIndexColumnSources(ParseContext context, FieldMapper fieldMapper) throws IOException {
+        DocumentMapper docMapper = context.docMapper();
+        Set<String> indices = docMapper.mapping().indices();
+        if (indices != null) {
+            for (String index : indices) {
+                Mapper mapper = docMapper.mappers().getMapper(index);
+                assert mapper != null : "Cannot find source field mapping of an index column" + index;
+                if (mapper instanceof TextFieldMapper textFieldMapper && textFieldMapper.sources().contains(fieldMapper.name())) {
+                    textFieldMapper.parse(context);
+                } else {
+                    // TODO: remove this branch once CopyTo is removed
+                    // It's a replica's translog with outdated mapping (no source but has copy_to).
+                    // It can happen if corresponding primary on another node has been just upgraded via rolling upgrade and replica is out of sync.
+                    // Replica will eventually get upgraded when the node "hosting" the replica will be the next in the rolling upgrade.
+                    // But until then, translog reads must fallback to deprecated copy_to parsing.
+                    parseCopyFields(context, fieldMapper.copyTo().copyToFields());
+                }
+            }
+        }
+    }
+
     /** Creates instances of the fields that the current field should be copied to */
+    @Deprecated
     static void parseCopyFields(ParseContext context, List<String> copyToFields) throws IOException {
         if (!context.isWithinCopyTo() && copyToFields.isEmpty() == false) {
             context = context.createCopyToContext();
@@ -595,6 +618,7 @@ final class DocumentParser {
     }
 
     /** Creates an copy of the current field with given field name and boost */
+    @Deprecated
     private static void parseCopy(String field, ParseContext context) throws IOException {
         Mapper mapper = context.docMapper().mappers().getMapper(field);
         if (mapper != null) {

@@ -1539,32 +1539,6 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCopyToWithoutMetaIndices() throws Exception {
-        // regression test... this mapping used to cause an NPE
-        XContentBuilder builder = JsonXContent.builder()
-            .startObject()
-            .startObject("properties")
-            .startObject("description")
-            .field("type", "string")
-            .field("position", 1)
-            .array("copy_to", "description_ft")
-            .endObject()
-            .startObject("description_ft")
-            .field("type", "string")
-            .field("position", 2)
-            .field("analyzer", "english")
-            .endObject()
-            .endObject()
-            .endObject();
-
-        IndexMetadata metadata = getIndexMetadata("test1", builder);
-        DocIndexMetadata md = newMeta(metadata, "test1");
-
-        assertThat(md.indices().size(), is(1));
-        assertThat(md.indices().keySet().iterator().next(), is(new ColumnIdent("description_ft")));
-    }
-
-    @Test
     public void testArrayAsGeneratedColumn() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t1 (x as ([10, 20]))");
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);

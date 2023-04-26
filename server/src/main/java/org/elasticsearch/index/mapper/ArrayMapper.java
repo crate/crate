@@ -221,10 +221,9 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     private void parseInner(ParseContext context) throws IOException {
         assert innerMapper instanceof FieldMapper : "InnerMapper must be a FieldMapper";
-        ((FieldMapper) innerMapper).parse(context);
-        if (copyTo() != null) {
-            DocumentParser.parseCopyFields(context, copyTo().copyToFields());
-        }
+        FieldMapper innerFieldMapper = (FieldMapper) innerMapper;
+        innerFieldMapper.parse(context);
+        DocumentParser.addIndexColumnSources(context, innerFieldMapper);
     }
 
     @Override

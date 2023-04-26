@@ -22,6 +22,7 @@ package org.elasticsearch.index.mapper;
 import static org.elasticsearch.index.mapper.TypeParsers.parseTextField;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -32,6 +33,8 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
+
+import javax.annotation.Nonnull;
 
 /** A {@link FieldMapper} for full-text fields. */
 public class TextFieldMapper extends FieldMapper {
@@ -69,6 +72,7 @@ public class TextFieldMapper extends FieldMapper {
         protected NamedAnalyzer searchAnalyzer;
         protected NamedAnalyzer searchQuoteAnalyzer;
         protected boolean omitNormsSet = false;
+        private List<String> sources = new ArrayList<>();
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
@@ -135,6 +139,11 @@ public class TextFieldMapper extends FieldMapper {
             return builder;
         }
 
+        public Builder sources(List<String> sources) {
+            this.sources = sources;
+            return this;
+        }
+
         private TextFieldType buildFieldType(BuilderContext context) {
             TextFieldType ft = new TextFieldType(
                 buildFullName(context),
@@ -155,7 +164,8 @@ public class TextFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 tft,
-                copyTo
+                copyTo,
+                sources
             );
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -175,6 +185,9 @@ public class TextFieldMapper extends FieldMapper {
             return builder;
         }
     }
+
+    @Nonnull
+    private final List<String> sources;
 
     public static final class TextFieldType extends MappedFieldType {
 
@@ -198,9 +211,15 @@ public class TextFieldMapper extends FieldMapper {
                               String defaultExpression,
                               FieldType fieldType,
                               TextFieldType mappedFieldType,
-                              CopyTo copyTo) {
+                              CopyTo copyTo,
+                              List<String> sources) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert mappedFieldType.hasDocValues() == false;
+        this.sources = sources;
+    }
+
+    public List<String> sources() {
+        return this.sources;
     }
 
     @Override
@@ -248,5 +267,12 @@ public class TextFieldMapper extends FieldMapper {
     protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
         super.doXContentBody(builder, includeDefaults, params);
         doXContentAnalyzers(builder, includeDefaults);
+        if (sources.isEmpty() == false) {
+            builder.startArray("sources");
+            for (String source : sources) {
+                builder.value(source);
+            }
+            builder.endArray();
+        }
     }
 }

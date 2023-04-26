@@ -323,7 +323,7 @@ public class TableElementsAnalyzer {
                 );
             }
             for (T symbol : indexDefinition.columns()) {
-                context.analyzedTableElements.addCopyTo(
+                context.analyzedTableElements.addFTSource(
                     symbol,
                     indexDefinition.ident());
             }

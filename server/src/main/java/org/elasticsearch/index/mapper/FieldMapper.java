@@ -145,6 +145,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     /**
      * List of fields where this field should be copied to
      */
+    @Deprecated
     public CopyTo copyTo() {
         return copyTo;
     }
@@ -383,6 +384,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     /**
      * Represents a list of fields with optional boost factor where the current field should be copied to
      */
+    @Deprecated
     public static class CopyTo {
 
         private static final CopyTo EMPTY = new CopyTo(Collections.emptyList());

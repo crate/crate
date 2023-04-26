@@ -38,6 +38,10 @@ import java.util.Map;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.mapper.MapperService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -364,5 +368,25 @@ public class IndexTemplateUpgraderTest {
         assertThat(a.get("position")).isEqualTo(1);
         assertThat(b.get("position")).isEqualTo(2);
         assertThat(c.get("position")).isEqualTo(3);
+    }
+
+    @Test
+    public void test_copy_to_migrated_to_sources() throws Throwable {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(MappingConstants.FULLTEXT_MAPPING_5_3)
+            .build();
+
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetadata updatedTemplate = result.get(templateName);
+
+        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
+
+        assertThat(actualMap)
+            .isEqualTo(expectedMap);
     }
 }

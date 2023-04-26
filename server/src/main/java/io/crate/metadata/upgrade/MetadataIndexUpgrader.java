@@ -22,12 +22,18 @@
 package io.crate.metadata.upgrade;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.collections.Maps;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -37,6 +43,8 @@ import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 
 public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {
 
@@ -74,6 +82,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
         }
         Map<String, Object> oldMapping = mappingMetadata.sourceAsMap();
         upgradeColumnPositions(oldMapping, indexTemplateMetadata);
+        upgradeIndexColumnMapping(oldMapping, indexTemplateMetadata);
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
@@ -89,6 +98,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
                     newMapping.put(fieldName, fieldNode);
             }
         }
+
         try {
             return new MappingMetadata(Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
         } catch (IOException e) {
@@ -96,6 +106,82 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
             return mappingMetadata;
         }
     }
+
+    /**
+     * Migrates from "indexed column refers to indices via "copy_to"
+     * to "index refers to source columns via new "sources" field.
+     *
+     * Indices are defined on CREATE TABLE and can only be a part of top-level "properties".
+     * Hence,we will be adding sources only into rootMapping.
+     *
+     * @param rootMapping is the top level properties of the whole table.
+     * It's propagated (and mutated) through all calls since we might want to access upper level map
+     * when 'copy_to' is part of a deep sub-column.
+     *
+     * @param currentPath is accumulated FQN. On every call we know only leaf name and 'sources' have to contain FQN to be able to resolve Reference.
+     */
+    public static boolean addIndexColumnSources(Map<String, Object> rootMapping,
+                                                Map<String, Object> currentMapping,
+                                                String currentPath) {
+        Map<String, Map<String, Object>> propertiesMap = Maps.get(currentMapping, "properties");
+        if (propertiesMap == null) {
+            return false;
+        }
+        boolean updated = false;
+        for (Map.Entry<String, Map<String, Object>> entry: propertiesMap.entrySet()) {
+            String columnName = entry.getKey(); // Not an FQN name, leaf name.
+            String columnFQN = currentPath.isEmpty() ? columnName : currentPath + "." + columnName;
+            Map<String, Object> columnProperties = entry.getValue();
+
+            // Update index columns
+            List<String> indices = Maps.get(columnProperties, "copy_to");
+            if (indices != null) {
+                updated = true;
+                for (String index: indices) {
+                    Map<String, Object> indexProps = Maps.get(rootMapping, index);
+                    List<String> sources = Maps.get(indexProps, "sources");
+                    if (sources == null) {
+                        sources = new ArrayList<>();
+                        indexProps.put("sources", sources);
+                    }
+                    sources.add(columnFQN);
+                }
+            }
+
+            // There can be nested "properties" field
+            // either in "inner" field (ARRAY) or in current column properties (OBJECT).
+            String type = Maps.get(columnProperties, "type");
+            if (ArrayType.NAME.equals(type)) {
+                Map<String, Object> innerMapping = Maps.get(columnProperties, "inner");
+                String innerType = Maps.get(innerMapping, "type");
+                if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                    updated |= addIndexColumnSources(rootMapping, innerMapping, columnFQN);
+                }
+            } else {
+                // ObjectMapper has logic to skip type if object has "properties" field (i.e has nested sub-column).
+                // Hence, type could be null and it indicates that it's an object column.
+                if (type == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
+                    updated |= addIndexColumnSources(rootMapping, columnProperties, columnFQN);
+                }
+            }
+        }
+        return updated;
+    }
+
+    static void upgradeIndexColumnMapping(Map<String, Object> oldMapping,
+                                          @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+        addIndexColumnSources(Maps.get(oldMapping, "properties"), oldMapping, "");
+
+        if (indexTemplateMetadata != null) {
+            Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(
+                indexTemplateMetadata.mapping().compressedReference(),
+                true,
+                XContentType.JSON).map();
+            addIndexColumnSources(Maps.get(parsedTemplateMapping, "properties"), parsedTemplateMapping, "");
+        }
+    }
+
+
 
     /**
      * Fixes index mappings such that all columns contain unique column positions.

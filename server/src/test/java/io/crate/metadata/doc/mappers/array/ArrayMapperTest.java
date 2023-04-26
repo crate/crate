@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc.mappers.array;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -30,13 +29,11 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.assertj.core.api.Assertions;
@@ -53,7 +50,6 @@ import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
-import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
@@ -441,48 +437,5 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.doc().getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
-    }
-
-    @Test
-    public void testCopyToFieldsOfInnerMapping() throws Exception {
-        // @formatter:off
-        String mapping = Strings.toString(JsonXContent.builder()
-            .startObject().startObject(TYPE).startObject("properties")
-                .startObject("string_array")
-                    .field("type", ArrayMapper.CONTENT_TYPE)
-                    .startObject(ArrayMapper.INNER_TYPE)
-                        .field("type", "text")
-                        .field("index", "true")
-                        .field("position", 1)
-                        .field("copy_to", "string_array_ft")
-                    .endObject()
-                .endObject()
-            .endObject().endObject().endObject());
-        // @formatter:on
-
-        DocumentMapper mapper = mapper(INDEX, mapping);
-        FieldMapper arrayMapper = (FieldMapper) mapper.mappers().getMapper("string_array");
-        assertThat(arrayMapper, is(instanceOf(ArrayMapper.class)));
-        assertThat(arrayMapper.copyTo().copyToFields(), contains("string_array_ft"));
-
-        // @formatter:on
-        BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
-            .startObject()
-            .startArray("string_array")
-            .value("foo")
-            .value("bar")
-            .endArray()
-            .endObject());
-        SourceToParse sourceToParse = new SourceToParse(INDEX, "1", bytesReference, XContentType.JSON);
-        ParsedDocument doc = mapper.parse(sourceToParse);
-        // @formatter:off
-
-        List<String> copyValues = new ArrayList<>();
-        Document document = doc.doc();
-        document.getFields().stream()
-            .filter(f -> f.name().equals("string_array_ft"))
-            .filter(f -> f.fieldType().docValuesType() == DocValuesType.SORTED_SET)
-            .forEach(f -> copyValues.add(f.binaryValue().utf8ToString()));
-        assertThat(copyValues, containsInAnyOrder("foo", "bar"));
     }
 }

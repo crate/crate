@@ -102,6 +102,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                     defaultMapping.remove("_all");
                     updated = true;
                 }
+                updated |= MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
                 if (updated) {
                     builder.putMapping(
                         new CompressedXContent(BytesReference.bytes(JsonXContent.builder().value(mappingSource))));
