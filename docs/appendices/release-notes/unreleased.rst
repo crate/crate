@@ -55,6 +55,15 @@ None
 Changes
 =======
 
+- Added support for setting session settings via a ``"options"`` property in the
+  startup message for PostgreSQL wire protocol clients.
+
+  An example for JDBC::
+
+    Properties props = new Properties();
+    props.setProperty("options", "-c statement_timeout=90000");
+    Connection conn = DriverManager.getConnection(url, props);
+
 - Added a :ref:`btrim <scalar-btrim>` scalar function.
 
 - Added support for underscores in numeric literals. Example::

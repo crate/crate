@@ -33,6 +33,7 @@ import static org.mockito.Mockito.mock;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -48,6 +49,7 @@ import org.junit.Test;
 
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.user.StubUserManager;
@@ -102,6 +104,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
+            new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
             userManager,
             networkService,
@@ -126,6 +129,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
+            new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
             userManager,
             networkService,
@@ -154,6 +158,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
+            new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
             userManager,
             networkService,
@@ -182,6 +187,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
+            new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
             userManager,
             networkService,

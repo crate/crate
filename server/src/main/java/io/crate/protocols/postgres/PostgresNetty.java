@@ -60,6 +60,7 @@ import com.carrotsearch.hppc.IntSet;
 
 import io.crate.action.sql.Sessions;
 import io.crate.auth.Authentication;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -112,9 +113,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final PageCacheRecycler pageCacheRecycler;
     private final Netty4Transport transport;
+    private final SessionSettingRegistry sessionSettingRegistry;
 
     @Inject
     public PostgresNetty(Settings settings,
+                         SessionSettingRegistry sessionSettingRegistry,
                          Sessions sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
@@ -125,6 +128,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          PageCacheRecycler pageCacheRecycler,
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
+        this.sessionSettingRegistry = sessionSettingRegistry;
         this.userManager = userManager;
         namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
@@ -169,6 +173,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
                 PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
                     sqlOperations,
+                    sessionSettingRegistry,
                     userManager::getAccessControl,
                     chPipeline -> {
                         var nettyTcpChannel = new CloseableChannel(ch, true);
