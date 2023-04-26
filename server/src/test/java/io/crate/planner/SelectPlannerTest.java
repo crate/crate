@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -79,8 +80,8 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -1508,5 +1509,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 " (SELECT x FROM (SELECT x FROM t2) AS u) AS v");
 
         assertThat(withPlan).isEqualTo(subSelectPlan);
+    }
+
+    @Test
+    public void test_filter_on_object_col_is_pushed_down_to_collect_with_view() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (a text, ts timestamp))")
+            .addView(new RelationName("doc", "v"), "select * from tbl where o['a'] = 'x'")
+            .build();
+        LogicalPlan logicalPlan = e.logicalPlan("select * from v where o['ts'] < 1682489868000::timestamp");
+        assertThat(logicalPlan).hasOperators(
+            "Rename[o] AS doc.v",
+            "  └ Collect[doc.tbl | [o] | ((o['ts'] < 1682489868000::bigint) AND (o['a'] = 'x'))]"
+        );
     }
 }
