@@ -125,19 +125,18 @@ parameters:
 
 This command starts the process in the foreground.
 
-You can also start CrateDB in the background with the ``-d`` option. When doing
-this, it's helpful to write the process ID (*PID*) to a PID file with the
-``-p`` option. So, in combination:
+It's helpful to write the process ID (*PID*) to a PID file with the
+use of ``echo $!``. So you execute the following:
 
 ::
 
-    sh$ bin/crate -d -p crate.pid
+    sh$ bin/crate & echo $! > "/tmp/crate.pid"
 
 To stop the process, send a ``TERM`` signal using the PID file, like so:
 
 ::
 
-  sh$ kill -TERM `cat crate.pid`
+  sh$ kill -TERM `cat /tmp/crate.pid`
 
 
 .. _cli-crate-node:
