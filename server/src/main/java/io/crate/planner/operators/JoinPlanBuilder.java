@@ -183,7 +183,8 @@ public class JoinPlanBuilder {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
-                joinCondition
+                joinCondition,
+                false
             );
         } else {
             return new NestedLoopJoin(

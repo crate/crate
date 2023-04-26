@@ -38,62 +38,57 @@ import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
-public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
+public class MoveConstantJoinConditionsBeneathHashJoin implements Rule<HashJoin> {
 
-    private final Pattern<NestedLoopJoin> pattern;
+    private final Pattern<HashJoin> pattern;
 
-    public MoveConstantJoinConditionsBeneathNestedLoop() {
-        this.pattern = typeOf(NestedLoopJoin.class)
-            .with(nl -> nl.joinType() == JoinType.INNER &&
-                        !nl.isJoinConditionOptimised() &&
-                        nl.joinCondition() != null);
+    public MoveConstantJoinConditionsBeneathHashJoin() {
+        this.pattern = typeOf(HashJoin.class)
+            .with(hashJoin -> hashJoin.joinType() == JoinType.INNER &&
+                        !hashJoin.isJoinConditionOptimised() &&
+                        hashJoin.joinCondition() != null);
     }
 
     @Override
-    public Pattern<NestedLoopJoin> pattern() {
+    public Pattern<HashJoin> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
+    public LogicalPlan apply(HashJoin hashJoin,
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        var conditions = nl.joinCondition();
+        var conditions = hashJoin.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
         var nonConstantConditions = new HashSet<Symbol>(allConditions.size());
         for (var condition : allConditions.entrySet()) {
-            if (numberOfRelationsUsed(condition.getValue()) <= 1) {
+            if (RelationNameCollector.collect(condition.getValue()).size() <= 1) {
                 constantConditions.put(condition.getKey(), condition.getValue());
             } else {
                 nonConstantConditions.add(condition.getValue());
             }
         }
+
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
-            // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
-            return new NestedLoopJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
-                nl.isFiltered(),
-                nl.topMostLeftRelation(),
-                nl.orderByWasPushedDown(),
-                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+            // Nothing to optimize, just mark hashJoin to skip the rule the next time
+            return new HashJoin(
+                hashJoin.lhs(),
+                hashJoin.rhs(),
+                hashJoin.joinCondition(),
                 true // Mark joinConditionOptimised = true
             );
         } else {
             // Push constant join condition down to source
-            var lhs = nl.lhs();
-            var rhs = nl.rhs();
+            var lhs = hashJoin.lhs();
+            var rhs = hashJoin.rhs();
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
             var newLhs = getNewSource(queryForLhs, lhs);
@@ -105,9 +100,5 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 true
             );
         }
-    }
-
-    private static int numberOfRelationsUsed(Symbol joinCondition) {
-        return RelationNameCollector.collect(joinCondition).size();
     }
 }
