@@ -28,7 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.crate.expression.symbol.Symbol;
@@ -46,9 +48,15 @@ public class IndexReference extends SimpleReference {
     public static class Builder {
         private final ReferenceIdent ident;
         private IndexType indexType = IndexType.FULLTEXT;
+
+        @Deprecated
         private List<Reference> columns = new ArrayList<>();
+
         private String analyzer = null;
         private int position = 0;
+
+        // Temporal source names holder, real references resolved by names on build();
+        private List<String> sourceNames = new ArrayList<>();
 
         public Builder(ReferenceIdent ident) {
             requireNonNull(ident, "ident is null");
@@ -60,8 +68,14 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
+        @Deprecated
         public Builder addColumn(Reference info) {
             this.columns.add(info);
+            return this;
+        }
+
+        public Builder sources(List<String> sourceNames) {
+            this.sourceNames = sourceNames;
             return this;
         }
 
@@ -75,13 +89,22 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
-        public IndexReference build() {
-            return new IndexReference(position, ident, indexType, columns, analyzer);
+        public IndexReference build(Map<ColumnIdent, Reference> references) {
+            assert (columns.isEmpty() ^ sourceNames.isEmpty()) : "Only one of columns/sourceNames can be set.";
+            if (columns.isEmpty() == false) {
+                // columns is derived from copy_to which has been deprecated in 5.4.
+                // When a node is upgraded it can have shards on older nodes with outdated mapping (still having copy_to and no sources).
+                // This code handles outdated shards case.
+                return new IndexReference(position, ident, indexType, columns, analyzer);
+            }
+            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.column().fqn())).collect(Collectors.toList());
+            return new IndexReference(position, ident, indexType, sources, analyzer);
         }
     }
 
     @Nullable
     private final String analyzer;
+    @Nonnull
     private final List<Reference> columns;
 
     public IndexReference(StreamInput in) throws IOException {
@@ -99,7 +122,7 @@ public class IndexReference extends SimpleReference {
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, false, position, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
@@ -210,6 +233,11 @@ public class IndexReference extends SimpleReference {
             mapping.put("analyzer", analyzer);
             mapping.put("type", "text");
         }
+
+        if (columns.isEmpty() == false) {
+            mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).collect(Collectors.toList()));
+        }
+
         return mapping;
     }
 }

@@ -23,6 +23,7 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +140,15 @@ public class TypeParsers {
             final Object propNode = entry.getValue();
             if ("norms".equals(propName)) {
                 parseNorms(builder, name, propNode);
+                iterator.remove();
+            } else if (propName.equals("sources")) {
+                List<String> sources = new ArrayList<>();
+                assert propNode instanceof List<?> : "index sources must be a list";
+                List<?> nodes = (List<?>) propNode;
+                for (Object node : nodes) {
+                    sources.add(nodeStringValue(node, null));
+                }
+                builder.sources(sources);
                 iterator.remove();
             }
         }

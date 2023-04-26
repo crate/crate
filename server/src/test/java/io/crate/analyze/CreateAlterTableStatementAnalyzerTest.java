@@ -31,10 +31,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -412,10 +410,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "INDEX author_title_ft using fulltext(title, author['name']))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        Map<String, Object> details = (Map<String, Object>) mappingProperties.get("author");
-        Map<String, Object> nameMapping = (Map<String, Object>) ((Map<String, Object>) details.get("properties")).get("name");
-
-        assertThat(((List<String>) nameMapping.get("copy_to")).get(0), is("author_title_ft"));
+        assertThat((Map) mappingProperties.get("author_title_ft")).containsEntry("sources", List.of("title", "author.name"));
     }
 
     @Test
@@ -549,12 +544,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> contentMapping = (Map<String, Object>) mappingProperties.get("content");
 
-        assertThat((String) contentMapping.get("index"), isEmptyOrNullString());
-        assertThat(((List<String>) contentMapping.get("copy_to")).get(0), is("content_ft"));
+        assertThat((String) contentMapping.get("index")).isBlank();
 
         Map<String, Object> ft_mapping = (Map<String, Object>) mappingProperties.get("content_ft");
-        assertThat(ft_mapping.get("index"), nullValue());
-        assertThat(ft_mapping.get("analyzer"), is("standard"));
+        assertThat(ft_mapping.get("index")).isNull();
+        assertThat(ft_mapping.get("analyzer")).isEqualTo("standard");
+        assertThat(ft_mapping.get("sources")).isEqualTo(List.of("content"));
     }
 
     @Test
@@ -566,12 +561,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> contentMapping = (Map<String, Object>) mappingProperties.get("content");
 
-        assertThat((String) contentMapping.get("index"), isEmptyOrNullString());
-        assertThat(((List<String>) contentMapping.get("copy_to")).get(0), is("content_ft"));
+        assertThat((String) contentMapping.get("index")).isBlank();
 
         Map<String, Object> ft_mapping = (Map<String, Object>) mappingProperties.get("content_ft");
-        assertThat(ft_mapping.get("index"), nullValue());
-        assertThat(ft_mapping.get("analyzer"), is("keyword"));
+        assertThat(ft_mapping.get("index")).isNull();
+        assertThat(ft_mapping.get("analyzer")).isEqualTo("keyword");
+        assertThat(ft_mapping.get("sources")).isEqualTo(List.of("content"));
     }
 
     @Test
@@ -796,20 +791,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "title string," +
             "name string" +
             ")");
-        Map<String, Object> metaMap = (Map) analysis.mapping().get("_meta");
-        assertThat(
-            metaMap.get("indices").toString(),
-            is("{ft={}}"));
-        assertThat(
-            (List<String>) ((Map<String, Object>) analysis.mappingProperties()
-                .get("title")).get("copy_to"),
-            hasItem("ft")
-        );
-        assertThat(
-            (List<String>) ((Map<String, Object>) analysis.mappingProperties()
-                .get("name")).get("copy_to"),
-            hasItem("ft"));
-
+        Map<String, Object> mapping = analysis.mapping();
+        Map<String, Object> metaMap = Maps.getOrDefault(mapping, "_meta", Map.of());
+        assertThat(metaMap.get("indices").toString()).isEqualTo("{ft={}}");
+        assertThat((Map) Maps.getByPath(mapping, List.of("properties", "ft")))
+            .containsEntry("sources", List.of("title", "name"));
     }
 
     @Test(expected = ColumnUnknownException.class)

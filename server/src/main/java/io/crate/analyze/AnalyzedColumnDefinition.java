@@ -93,7 +93,7 @@ public class AnalyzedColumnDefinition<T> {
 
     private List<AnalyzedColumnDefinition<T>> children = new ArrayList<>();
     private boolean isIndex = false;
-    private ArrayList<String> copyToTargets;
+    private List<String> sources = new ArrayList<>();
     private boolean isParentColumn;
     @Nullable
     private GenericProperties<T> storageProperties;
@@ -133,7 +133,7 @@ public class AnalyzedColumnDefinition<T> {
                                      GenericProperties<T> geoProperties,
                                      List<AnalyzedColumnDefinition<T>> children,
                                      boolean isIndex,
-                                     ArrayList<String> copyToTargets,
+                                     List<String> sources,
                                      boolean isParentColumn,
                                      GenericProperties<T> storageProperties,
                                      @Nullable String formattedGeneratedExpression,
@@ -158,7 +158,7 @@ public class AnalyzedColumnDefinition<T> {
         this.geoProperties = geoProperties;
         this.children = children;
         this.isIndex = isIndex;
-        this.copyToTargets = copyToTargets;
+        this.sources = sources;
         this.isParentColumn = isParentColumn;
         this.storageProperties = storageProperties;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
@@ -187,7 +187,7 @@ public class AnalyzedColumnDefinition<T> {
             geoProperties == null ? null : geoProperties.map(mapper),
             Lists2.map(children, x -> x.map(mapper)),
             isIndex,
-            copyToTargets,
+            sources,
             isParentColumn,
             storageProperties == null ? null : storageProperties.map(mapper),
             formattedGeneratedExpression,
@@ -456,8 +456,10 @@ public class AnalyzedColumnDefinition<T> {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);
         }
-        if (definition.copyToTargets != null) {
-            mapping.put("copy_to", definition.copyToTargets);
+
+
+        if (definition.sources.isEmpty() == false) {
+            mapping.put("sources", definition.sources);
         }
 
         if (definition.docValues() != definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType)) {
@@ -565,8 +567,8 @@ public class AnalyzedColumnDefinition<T> {
         return children;
     }
 
-    void addCopyTo(Set<String> targets) {
-        this.copyToTargets = new ArrayList<>(targets);
+    void sources(List<String> sources) {
+        this.sources = sources;
     }
 
     public void ident(ColumnIdent ident) {
@@ -636,5 +638,9 @@ public class AnalyzedColumnDefinition<T> {
 
     public boolean docValues() {
         return docValues;
+    }
+
+    public List<String> sources() {
+        return sources;
     }
 }

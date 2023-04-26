@@ -36,6 +36,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -89,7 +90,8 @@ public class AnalyzedTableElements<T> {
      * additional primary keys that are not inline with a column definition
      */
     private List<T> additionalPrimaryKeys = new ArrayList<>();
-    private Map<T, Set<String>> copyToMap = new HashMap<>();
+
+    private Map<String, List<T>> ftSourcesMap = new HashMap<>();
 
     public AnalyzedTableElements() {
     }
@@ -104,7 +106,7 @@ public class AnalyzedTableElements<T> {
                                   List<List<String>> partitionedBy,
                                   int numGeneratedColumns,
                                   List<T> additionalPrimaryKeys,
-                                  Map<T, Set<String>> copyToMap) {
+                                  Map<String, List<T>> ftSourcesMap) {
         this.partitionedByColumns = partitionedByColumns;
         this.columns = columns;
         this.columnIdents = columnIdents;
@@ -115,7 +117,7 @@ public class AnalyzedTableElements<T> {
         this.partitionedBy = partitionedBy;
         this.numGeneratedColumns = numGeneratedColumns;
         this.additionalPrimaryKeys = additionalPrimaryKeys;
-        this.copyToMap = copyToMap;
+        this.ftSourcesMap = ftSourcesMap;
     }
 
     public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
@@ -177,10 +179,13 @@ public class AnalyzedTableElements<T> {
         for (T p : this.additionalPrimaryKeys) {
             additionalPrimaryKeys.add(mapper.apply(p));
         }
-        Map<U, Set<String>> copyToMap = new HashMap<>(this.copyToMap.size());
-        for (Map.Entry<T, Set<String>> entry : this.copyToMap.entrySet()) {
-            copyToMap.put(mapper.apply(entry.getKey()), entry.getValue());
+
+        Map<String, List<U>> ftSourcesMap = new HashMap<>(this.ftSourcesMap.size());
+        for (Map.Entry<String, List<T>> entry: this.ftSourcesMap.entrySet()) {
+            List<U> evaluatedSources = Lists2.map(entry.getValue(), source -> mapper.apply(source));
+            ftSourcesMap.put(entry.getKey(), evaluatedSources);
         }
+
         List<AnalyzedColumnDefinition<U>> partitionedByColumns = new ArrayList<>(this.partitionedByColumns.size());
         for (AnalyzedColumnDefinition<T> d : this.partitionedByColumns) {
             partitionedByColumns.add(d.map(mapper));
@@ -200,7 +205,7 @@ public class AnalyzedTableElements<T> {
             partitionedBy,
             numGeneratedColumns,
             additionalPrimaryKeys,
-            copyToMap
+            ftSourcesMap
         );
     }
 
@@ -344,7 +349,7 @@ public class AnalyzedTableElements<T> {
         validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated);
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
             column.validate();
-            tableElementsEvaluated.addCopyToInfo(column);
+            tableElementsEvaluated.addFtIndexSources(column, tableElementsEvaluated);
         }
         validateIndexDefinitions(relationName, tableElementsEvaluated);
         validatePrimaryKeys(relationName, tableElementsEvaluated);
@@ -530,15 +535,30 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    private void addCopyToInfo(AnalyzedColumnDefinition<T> column) {
-        if (!column.isIndexColumn()) {
-            Set<String> targets = copyToMap.get(column.ident().fqn());
-            if (targets != null) {
-                column.addCopyTo(targets);
+    /**
+     * FT mapping has been changed in 5.4. It used to be:
+     *
+     *  col1: ... copy_to[some_fulltext_index]
+     *  col2: ... copy_to[some_fulltext_index]
+     *  some_fulltext_index: {analyzer: 'stop'}
+     *
+     *  From 5.4 it was changed to:
+     *
+     *  col1: ...
+     *  col1: ...
+     *  some_fulltext_index:{sources:[col1, col2], analyzer: 'stop'}
+     *
+     */
+    private void addFtIndexSources(AnalyzedColumnDefinition<T> column, AnalyzedTableElements<Object> elements) {
+        if (column.isIndexColumn()) {
+            List<Object> sources = elements.ftSourcesMap.get(column.ident().fqn());
+            if (sources != null) {
+                // src.toString is in FQN form here.
+                column.sources(Lists2.map(sources, src -> src.toString()));
             }
         }
         for (AnalyzedColumnDefinition<T> child : column.children()) {
-            addCopyToInfo(child);
+            addFtIndexSources(child, elements);
         }
     }
 
@@ -554,24 +574,26 @@ public class AnalyzedTableElements<T> {
     }
 
     private static void validateIndexDefinitions(RelationName relationName, AnalyzedTableElements<Object> tableElements) {
-        for (Map.Entry<Object, Set<String>> entry : tableElements.copyToMap.entrySet()) {
-            ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey().toString());
-            if (!tableElements.columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent, relationName);
-            }
-            if (!DataTypes.STRING.equals(tableElements.columnTypes.get(columnIdent))) {
-                throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
+        for (List<Object> sources : tableElements.ftSourcesMap.values()) {
+            for (Object source: sources) {
+                ColumnIdent columnIdent = ColumnIdent.fromPath(source.toString());
+                if (!tableElements.columnIdents.contains(columnIdent)) {
+                    throw new ColumnUnknownException(columnIdent, relationName);
+                }
+                if (!DataTypes.STRING.equals(tableElements.columnTypes.get(columnIdent))) {
+                    throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
+                }
             }
         }
     }
 
-    void addCopyTo(T sourceColumn, String targetIndex) {
-        Set<String> targetColumns = copyToMap.get(sourceColumn);
-        if (targetColumns == null) {
-            targetColumns = new HashSet<>();
-            copyToMap.put(sourceColumn, targetColumns);
+    void addFTSource(T sourceColumn, String targetIndex) {
+        List<T> sources = ftSourcesMap.get(targetIndex);
+        if (sources == null) {
+            sources = new ArrayList<>();
+            ftSourcesMap.put(targetIndex, sources);
         }
-        targetColumns.add(targetIndex);
+        sources.add(sourceColumn);
     }
 
     public Set<ColumnIdent> columnIdents() {

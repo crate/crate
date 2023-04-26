@@ -28,13 +28,17 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import io.crate.common.collections.Maps;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import javax.annotation.Nonnull;
 
 /**
  * Wrapper around everything that defines a mapping, without references to
@@ -65,6 +69,15 @@ public final class Mapping implements ToXContentFragment {
         });
         this.metadataMappersMap = unmodifiableMap(metadataMappersMap);
         this.meta = meta;
+    }
+
+    @Nonnull
+    public Set<String> indices() {
+        if (meta == null) {
+            return Set.of();
+        }
+        Map<String, Object> indicesMap = Maps.getOrDefault(meta, "indices", Map.of());
+        return indicesMap.keySet();
     }
 
     /** Return the root object mapper. */

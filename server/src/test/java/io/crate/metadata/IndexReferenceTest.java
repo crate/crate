@@ -21,19 +21,23 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
+import io.crate.common.collections.Maps;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.types.StringType;
 
-public class IndexReferenceTest extends ESTestCase {
+public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
@@ -53,7 +57,26 @@ public class IndexReferenceTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         IndexReference indexReferenceInfo2 = Reference.fromStream(in);
 
-        assertThat(indexReferenceInfo2, is(indexReferenceInfo));
+        assertThat(indexReferenceInfo2).isEqualTo(indexReferenceInfo);
+    }
+
+    @Test
+    public void test_mapping_generation_ft_col_has_source_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (title string, description string, " +
+                      "index title_desc_fulltext using fulltext(title, description) " +
+                      "with (analyzer = 'stop'))"
+            ).build();
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
+        Map<String, Object> mapping = reference.toMapping();
+        assertThat(mapping)
+            .containsEntry("sources", List.of("title", "description"))
+            .containsEntry("analyzer", "stop");
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
     }
 
 }
