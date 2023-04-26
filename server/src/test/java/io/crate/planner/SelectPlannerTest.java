@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
@@ -1513,5 +1514,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 " (SELECT x FROM (SELECT x FROM t2) AS u) AS v");
 
         assertThat(withPlan, isPlan(subSelectPlan));
+    }
+
+    @Test
+    public void test_filter_on_object_col_is_pushed_down_to_collect_with_view() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (a text, ts timestamp))")
+            .addView(new RelationName("doc", "v"), "select * from tbl where o['a'] = 'x'")
+            .build();
+        LogicalPlan logicalPlan = e.logicalPlan("select * from v where o['ts'] < 1682489868000::timestamp");
+        assertThat(logicalPlan).hasOperators(
+            "Rename[o] AS doc.v",
+            "  └ Collect[doc.tbl | [o] | ((o['ts'] < 1682489868000::bigint) AND (o['a'] = 'x'))]"
+        );
     }
 }
