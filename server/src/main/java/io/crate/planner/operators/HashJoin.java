@@ -68,13 +68,17 @@ public class HashJoin implements LogicalPlan {
     final LogicalPlan rhs;
     final LogicalPlan lhs;
 
+    final boolean joinConditionOptimised;
+
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
+                    Symbol joinCondition,
+                    boolean joinConditionOptimised) {
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
+        this.joinConditionOptimised = joinConditionOptimised;
     }
 
     public JoinType joinType() {
@@ -254,7 +258,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            joinConditionOptimised
         );
     }
 
@@ -276,7 +281,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition
+            joinCondition,
+            joinConditionOptimised
         );
     }
 
@@ -304,11 +310,11 @@ public class HashJoin implements LogicalPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition
+                joinCondition,
+                joinConditionOptimised
             )
         );
     }
-
 
     @Override
     public long numExpectedRows() {
@@ -339,6 +345,10 @@ public class HashJoin implements LogicalPlan {
                 lhs::print,
                 rhs::print
             );
+    }
+
+    public boolean isJoinConditionOptimised() {
+        return joinConditionOptimised;
     }
 
     private List<Symbol> setModuloDistribution(List<Symbol> joinSymbols,

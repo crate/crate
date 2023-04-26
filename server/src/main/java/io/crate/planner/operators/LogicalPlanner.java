@@ -83,6 +83,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
+import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathHashJoin;
 import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
@@ -147,7 +148,8 @@ public class LogicalPlanner {
                 new DeduplicateOrder(),
                 new OptimizeCollectWhereClauseAccess(),
                 new RewriteGroupByKeysLimitToLimitDistinct(),
-                new MoveConstantJoinConditionsBeneathNestedLoop()
+                new MoveConstantJoinConditionsBeneathNestedLoop(),
+                new MoveConstantJoinConditionsBeneathHashJoin()
             )
         );
         this.fetchOptimizer = new Optimizer(

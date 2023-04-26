@@ -65,6 +65,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue introduced in 5.2.0 which led ``INNER JOIN`` queries to produce
+  0 or wrong results when filtering with a constant value is used in the join
+  condition, e.g.::
+
+    SELECT * FROM t1 INNER JOIN t2 ON t1.a = 10 AND t1.x = t2.y
+
 - Fixed a performance regression introduced in 5.2.3 which led to filters on
   object columns resulting in a table scan if used with views or virtual tables.
   See `#14015 <https://github.com/crate/crate/issues/14015>`_ for details.
