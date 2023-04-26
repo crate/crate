@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 
 public class SymbolVisitors {
 
@@ -162,6 +163,23 @@ public class SymbolVisitors {
                 for (T t : haystack) {
                     if (t instanceof ScopedSymbol && ((ScopedSymbol) t).column().equals(root)) {
                         consumer.accept(t);
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference ref, Void context) {
+            if (haystack.contains(ref)) {
+                consumer.accept((T) ref);
+            } else if (!ref.column().isTopLevel()) {
+                // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
+                ColumnIdent root = ref.column().getRoot();
+                for (T t : haystack) {
+                    if (t instanceof Reference tRef && tRef.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
                     }
                 }
             }
