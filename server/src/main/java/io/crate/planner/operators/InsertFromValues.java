@@ -76,7 +76,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
-import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -548,11 +548,11 @@ public class InsertFromValues implements LogicalPlan {
             boundArguments.toArray(new Input[0]));
 
         return StreamSupport.stream(rows.spliterator(), false)
-            .map(row -> cast(row, allTargetReferences, tableInfo))
+            .map(row -> cast(row, allTargetReferences))
             .iterator();
     }
 
-    private static Row cast(Row row, List<Reference> columnReferences, DocTableInfo tableInfo) {
+    private static Row cast(Row row, List<Reference> columnReferences) {
         if (row == null) {
             return null;
         }
@@ -564,10 +564,7 @@ public class InsertFromValues implements LogicalPlan {
             try {
                 cells[i] = targetType.implicitCast(value);
             } catch (IllegalArgumentException | ClassCastException e) {
-                throw new ColumnValidationException(
-                    reference.column().name(),
-                    tableInfo.ident(),
-                    "Invalid value '" + value + "' for type '" + targetType + "'");
+                throw new ConversionException(reference, targetType);
             }
         }
         return new RowN(cells);
