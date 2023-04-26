@@ -94,6 +94,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a performance regression introduced in 5.2.3 which led to filters on
+  object columns resulting in a table scan if used with views or virtual tables.
+  See `#14015 <https://github.com/crate/crate/issues/14015>`_ for details.
+
 - Fixed an issue that caused ``geo_shape_array IS NULL`` expressions to fail
   with an ``IllegalStateException``.
 
