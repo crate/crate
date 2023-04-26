@@ -59,8 +59,11 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -75,6 +78,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.ssl.SslContext;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 
 
 /**
@@ -196,6 +201,7 @@ public class PostgresWireProtocol {
     final PgDecoder decoder;
     final MessageHandler handler;
     private final Sessions sessions;
+    private final SessionSettingRegistry sessionSettingRegistry;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Authentication authService;
     private final Consumer<ChannelPipeline> addTransportHandler;
@@ -207,11 +213,13 @@ public class PostgresWireProtocol {
     private Properties properties;
 
     PostgresWireProtocol(Sessions sessions,
+                         SessionSettingRegistry sessionSettingRegistry,
                          Function<CoordinatorSessionSettings, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
                          Supplier<SslContext> getSslContext) {
         this.sessions = sessions;
+        this.sessionSettingRegistry = sessionSettingRegistry;
         this.getAccessControl = getAcessControl;
         this.addTransportHandler = addTransportHandler;
         this.authService = authService;
@@ -430,6 +438,10 @@ public class PostgresWireProtocol {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
             session = sessions.createSession(database, authenticatedUser);
+            String options = properties.getProperty("options");
+            if (options != null) {
+                applyOptions(options);
+            }
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParams(channel, session.sessionSettings()))
                 .addListener(f -> Messages.sendKeyData(channel, session.id(), session.secret()))
@@ -444,6 +456,31 @@ public class PostgresWireProtocol {
         } finally {
             authContext.close();
             authContext = null;
+        }
+    }
+
+    private void applyOptions(String options) {
+        OptionParser parser = new OptionParser();
+        var optionC = parser.accepts("c").withRequiredArg().ofType(String.class);
+        OptionSet parseResult = parser.parse(options.split(" "));
+        List<String> parsedOptions = parseResult.valuesOf(optionC);
+        for (String parsedOption : parsedOptions) {
+            String[] parts = parsedOption.split("=");
+            if (parts.length != 2) {
+                continue;
+            }
+            String key = parts[0].trim();
+            String value = parts[1].trim();
+            SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(key);
+            if (sessionSetting == null) {
+                continue;
+            }
+            sessionSetting.apply(session.sessionSettings(), List.of(Literal.of(value)), symbol -> {
+                if (symbol instanceof Literal<?> literal) {
+                    return literal.value();
+                }
+                throw new IllegalStateException("Unexpected symbol: " + symbol);
+            });
         }
     }
 

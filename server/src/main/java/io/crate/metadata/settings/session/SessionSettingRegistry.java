@@ -80,9 +80,17 @@ public class SessionSettingRegistry {
         inputs -> {},
         inputs -> {
             Object input = inputs[0];
-            // Interpret numeric values as milliseconds for PostgreSQL compat.
+            // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
             if (input instanceof Number num) {
                 return new Period(0, 0, 0, num.intValue());
+            }
+            if (input instanceof String str) {
+                try {
+                    int millis = Integer.parseInt(str);
+                    return new Period(0, 0, 0, millis);
+                } catch (NumberFormatException ignored) {
+                    // continue with implicitCast
+                }
             }
             Period period = DataTypes.INTERVAL.implicitCast(input);
             // Must fit into `Integer` range as millis

@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -51,10 +52,11 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -126,6 +128,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
+            new SessionSettingRegistry(Set.of()),
             sqlOperations,
             new StubUserManager(),
             networkService,

@@ -1122,6 +1122,23 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_c_options_in_properties() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("options", "-c error_on_unknown_object_key=false -c statement_timeout=60000");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            Statement stmt = conn.createStatement();
+            ResultSet result = stmt.executeQuery("SHOW error_on_unknown_object_key");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getBoolean("setting")).isFalse();
+
+            result = stmt.executeQuery("SHOW statement_timeout");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getString("setting")).isEqualTo("PT60S");
+        }
+    }
+
 
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
