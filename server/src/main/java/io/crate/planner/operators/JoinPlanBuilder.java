@@ -320,19 +320,49 @@ public class JoinPlanBuilder {
         return newJoinPairs;
     }
 
+    /**
+     * Extracts new {@link JoinPair} by splitting the join conditions as originally written in the query and detecting
+     * new join pairs which are implicitly defined by those join conditions. Every part of a join condition that gets
+     * to be converted to a new {@link JoinPair} is removed from the original {@link JoinPair}, and if the new
+     * {@link JoinPair} already exists, the two pairs are merged and their join conditions are joined with
+     * {@link AndOperator} e.g.:
+     *
+     * <pre>SELECT * FROM t1 JOIN t2 ON t1.a = t2.a INNER JOIN t3 ON t3.a = t1.a AND t3.b = t2.b</pre>
+     * In the query above, there are 2 join pairs:
+     *  - (t1, t2) -> t1.a = t2.b
+     *  - (t2, t3) -> t3.a = t1.a AND t3.a = t2.b
+     * The method will return the following join pairs:
+     *  - (t1, t2) -> t1.a = t2.b
+     *  - (t2, t3) -> t3.a = t2.b
+     *  - (t3, t1) -> t3.a = t1.a
+     *
+     * @param explicitJoinPairs The explicitJoinPairs as originally written in the query
+     * @param splitQueriesSize  The number of remaining queries of the WHERE clause, used to define the size of the new
+     *                          list of {@link JoinPair}.
+     * @return the new list of {@link JoinPair}
+     */
     static ArrayList<JoinPair> extractJoinPairsFromJoinConditions(List<JoinPair> explicitJoinPairs,
                                                                   int splitQueriesSize) {
-
+        // Create a map with new join pairs to be returned.
+        // tuples of relations names as key and their actual pair as value
         var newJoinPairsMap = new LinkedHashMap<Set<RelationName>, JoinPair>(explicitJoinPairs.size());
+
+        // Extract split join conditions into a map, for which the keys are tuples of relation names
+        // and values are the join condition for the pair, together with the join type of the pair, from
+        // which the join condition was split.
         var joinConditionsForNewPairs = new LinkedHashMap<Set<RelationName>, JoinCondition>();
         for (var joinPair : explicitJoinPairs) {
-            if (joinPair.condition() != null) {
+            if (joinPair.condition() == null) {
+                newJoinPairsMap.put(Set.of(joinPair.left(), joinPair.right()), joinPair);
+            } else {
                 var splittedJoinConditions = QuerySplitter.split(joinPair.condition());
                 var newJoinConditions = new ArrayList<Symbol>();
+                // Remove the conditions that actually belong to the original join pair
                 var jc1 = splittedJoinConditions.remove(Set.of(joinPair.left(), joinPair.right()));
                 if (jc1 != null) {
                     newJoinConditions.add(jc1);
                 }
+                // Could also be a "constant" condition referring to only on of the relations, e.g.: t1.a = 'foo'
                 var jc2 = splittedJoinConditions.remove(Set.of(joinPair.left()));
                 if (jc2 != null) {
                     newJoinConditions.add(jc2);
@@ -341,35 +371,55 @@ public class JoinPlanBuilder {
                 if (jc3 != null) {
                     newJoinConditions.add(jc3);
                 }
+                // put into the map the original joinPair, but the join condition no longer contains the part that will
+                // be converted into a new join pair.
                 newJoinPairsMap.put(Set.of(joinPair.left(), joinPair.right()),
-                                    JoinPair.of(joinPair.left(), joinPair.right(), joinPair.joinType(), AndOperator.join(newJoinConditions)));
+                                    JoinPair.of(
+                                        joinPair.left(),
+                                        joinPair.right(),
+                                        joinPair.joinType(),
+                                        AndOperator.join(newJoinConditions)));
 
+                // Put the remaining join conditions into the map to be processed next and produce new join pairs.
                 for (var joinCondition : splittedJoinConditions.entrySet()) {
-                    joinConditionsForNewPairs.put(joinCondition.getKey(),
-                                                  new JoinCondition(joinCondition.getValue(), joinPair.joinType()));
+                    joinConditionsForNewPairs.put(
+                        joinCondition.getKey(),
+                        new JoinCondition(joinCondition.getValue(), joinPair.joinType()));
                 }
             }
         }
+
+        // Iterate over the extracted join conditions and produce the new join pairs
         List<JoinPair> extractedFromJoinConditions = new ArrayList<>();
         for (var entry : joinConditionsForNewPairs.entrySet()) {
             var relationNames = new ArrayList<>(entry.getKey());
             var pair = newJoinPairsMap.remove(entry.getKey());
             if (pair == null) {
+                // Pair doesn't exist just create it and add it to the map, using the joinType
+                // of the original pair it was extracted from, to keep the semantics.
                 extractedFromJoinConditions.add(JoinPair.of(
-                    relationNames.get(0), relationNames.get(1), entry.getValue().joinType(), entry.getValue().condition()));
+                    relationNames.get(0),
+                    relationNames.get(1),
+                    entry.getValue().joinType(),
+                    entry.getValue().condition()));
             } else {
+                // If pair exists, and join condition is null, just create a new pair with the new extracted condition,
+                // if there is already a join condition on the pair, join it with the extracted one with AND.
                 var joinCondition = pair.condition();
                 if (joinCondition != null) {
                     joinCondition = AndOperator.of(joinCondition, entry.getValue().condition());
                 } else {
                     joinCondition = entry.getValue().condition();
                 }
-                extractedFromJoinConditions.add(JoinPair.of(pair.left(),
-                                                            pair.right(),
-                                                            pair.joinType(),
-                                                            joinCondition));
+                extractedFromJoinConditions.add(JoinPair.of(
+                    pair.left(),
+                    pair.right(),
+                    pair.joinType(),
+                    joinCondition));
             }
         }
+        // Return the new join pairs as a list with a size that calculates for any additional
+        // pairs that can be extracted from the WHERE clause (splitQueries).
         ArrayList<JoinPair> newJoinPairs;
         if (extractedFromJoinConditions.isEmpty()) {
             newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueriesSize);
