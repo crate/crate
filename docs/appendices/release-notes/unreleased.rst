@@ -103,6 +103,13 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused ``AssertionError`` to be thrown when referencing
+  previous relations, not explicitly joined, in an join condition, e.g.::
+
+    SELECT * FROM t1
+    CROSS JOIN t2
+    INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
+
 - Fixed a performance regression introduced in 5.2.3 which led to filters on
   object columns resulting in a table scan if used with views or virtual tables.
   See `#14015 <https://github.com/crate/crate/issues/14015>`_ for details.

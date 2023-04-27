@@ -677,14 +677,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).isEqualTo(
             """
             Eval[time, sensor_id, battery_level]
-              └ NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]
-                ├ NestedLoopJoin[CROSS]
-                │  ├ Rename[time] AS time_series
-                │  │  └ TableFunction[generate_series | [generate_series] | true]
-                │  └ Rename[sensor_id] AS sensors
-                │    └ TableFunction[unnest | [unnest] | true]
-                └ Rename[battery_level, time, sensor_id] AS readings
-                  └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]
+              └ NestedLoopJoin[RIGHT | (time = time)]
+                ├ NestedLoopJoin[LEFT | (sensor_id = sensor_id)]
+                │  ├ Rename[sensor_id] AS sensors
+                │  │  └ TableFunction[unnest | [unnest] | true]
+                │  └ Rename[battery_level, time, sensor_id] AS readings
+                │    └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]
+                └ Rename[time] AS time_series
+                  └ TableFunction[generate_series | [generate_series] | true]
             """
         );
 
@@ -1017,6 +1017,25 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 │  └ Collect[doc.j2 | [y] | true]
                 └ Collect[doc.j3 | [z] | true]
                 """
+        );
+    }
+
+    /**
+     * Verifies a bug fix
+     * See: https://github.com/crate/crate/issues/13942
+     */
+    @Test
+    public void test_cross_join_converted_to_inner_by_splitting_join_condition() {
+        LogicalPlan logicalPlan = e.logicalPlan("""
+            SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
+            """);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[a, x, i, b, y, i, c, z]",
+            "  └ HashJoin[(z = x)]",
+            "    ├ HashJoin[(z = y)]",
+            "    │  ├ Collect[doc.t2 | [b, y, i] | true]",
+            "    │  └ Collect[doc.t3 | [c, z] | true]",
+            "    └ Collect[doc.t1 | [a, x, i] | true]"
         );
     }
 }

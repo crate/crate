@@ -265,10 +265,10 @@ public class JoinPlanBuilder {
      * @return the new list of {@link JoinPair}
      */
     static List<JoinPair> convertImplicitJoinConditionsToJoinPairs(List<JoinPair> explicitJoinPairs,
-                                                                          Map<Set<RelationName>, Symbol> splitQueries) {
+                                                                   Map<Set<RelationName>, Symbol> splitQueries) {
+
+        ArrayList<JoinPair> newJoinPairs = extractJoinPairsFromJoinConditions(explicitJoinPairs, splitQueries.size());
         Iterator<Map.Entry<Set<RelationName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
-        ArrayList<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
-        newJoinPairs.addAll(explicitJoinPairs);
 
         while (queryIterator.hasNext()) {
             Map.Entry<Set<RelationName>, Symbol> queryEntry = queryIterator.next();
@@ -319,6 +319,71 @@ public class JoinPlanBuilder {
         }
         return newJoinPairs;
     }
+
+    static ArrayList<JoinPair> extractJoinPairsFromJoinConditions(List<JoinPair> explicitJoinPairs,
+                                                                  int splitQueriesSize) {
+
+        var newJoinPairsMap = new LinkedHashMap<Set<RelationName>, JoinPair>(explicitJoinPairs.size());
+        var joinConditionsForNewPairs = new LinkedHashMap<Set<RelationName>, JoinCondition>();
+        for (var joinPair : explicitJoinPairs) {
+            if (joinPair.condition() != null) {
+                var splittedJoinConditions = QuerySplitter.split(joinPair.condition());
+                var newJoinConditions = new ArrayList<Symbol>();
+                var jc1 = splittedJoinConditions.remove(Set.of(joinPair.left(), joinPair.right()));
+                if (jc1 != null) {
+                    newJoinConditions.add(jc1);
+                }
+                var jc2 = splittedJoinConditions.remove(Set.of(joinPair.left()));
+                if (jc2 != null) {
+                    newJoinConditions.add(jc2);
+                }
+                var jc3 = splittedJoinConditions.remove(Set.of(joinPair.right()));
+                if (jc3 != null) {
+                    newJoinConditions.add(jc3);
+                }
+                newJoinPairsMap.put(Set.of(joinPair.left(), joinPair.right()),
+                                    JoinPair.of(joinPair.left(), joinPair.right(), joinPair.joinType(), AndOperator.join(newJoinConditions)));
+
+                for (var joinCondition : splittedJoinConditions.entrySet()) {
+                    joinConditionsForNewPairs.put(joinCondition.getKey(),
+                                                  new JoinCondition(joinCondition.getValue(), joinPair.joinType()));
+                }
+            }
+        }
+        List<JoinPair> extractedFromJoinConditions = new ArrayList<>();
+        for (var entry : joinConditionsForNewPairs.entrySet()) {
+            var relationNames = new ArrayList<>(entry.getKey());
+            var pair = newJoinPairsMap.remove(entry.getKey());
+            if (pair == null) {
+                extractedFromJoinConditions.add(JoinPair.of(
+                    relationNames.get(0), relationNames.get(1), entry.getValue().joinType(), entry.getValue().condition()));
+            } else {
+                var joinCondition = pair.condition();
+                if (joinCondition != null) {
+                    joinCondition = AndOperator.of(joinCondition, entry.getValue().condition());
+                } else {
+                    joinCondition = entry.getValue().condition();
+                }
+                extractedFromJoinConditions.add(JoinPair.of(pair.left(),
+                                                            pair.right(),
+                                                            pair.joinType(),
+                                                            joinCondition));
+            }
+        }
+        ArrayList<JoinPair> newJoinPairs;
+        if (extractedFromJoinConditions.isEmpty()) {
+            newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueriesSize);
+            newJoinPairs.addAll(explicitJoinPairs);
+        } else {
+            newJoinPairs = new ArrayList<>(
+                newJoinPairsMap.values().size() + extractedFromJoinConditions.size() + splitQueriesSize);
+            newJoinPairs.addAll(newJoinPairsMap.values());
+            newJoinPairs.addAll(extractedFromJoinConditions);
+        }
+        return newJoinPairs;
+    }
+
+    record JoinCondition(Symbol condition, JoinType joinType) {}
 
     private static Symbol mergeJoinConditions(@Nullable Symbol condition1, Symbol condition2) {
         if (condition1 == null) {

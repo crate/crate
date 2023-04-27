@@ -37,7 +37,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.planner.operators.JoinPlanBuilder;
 import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -50,7 +49,7 @@ public class JoinPlanBuilderTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         Map<RelationName, AnalyzedRelation> sources =
-            T3.sources(List.of(T3.T1, T3.T2, T3.T3), clusterService);
+            T3.sources(List.of(T3.T1, T3.T2, T3.T3, T3.T4, T3.T5), clusterService);
         expressions = new SqlExpressions(sources);
     }
 
@@ -178,5 +177,34 @@ public class JoinPlanBuilderTest extends CrateDummyClusterServiceUnitTest {
             assertThat(newPairAtPos.left()).isEqualTo(oldPairAtPos.left());
             assertThat(newPairAtPos.right()).isEqualTo(oldPairAtPos.right());
         }
+    }
+
+    @Test
+    public void test_implicit_join_pairs_from_join_conditions() {
+        List<JoinPair> joinPairs = new ArrayList<>();
+        joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.CROSS, null));
+        joinPairs.add(JoinPair.of(T3.T2, T3.T3, JoinType.CROSS, null));
+        joinPairs.add(JoinPair.of(T3.T3, T3.T4, JoinType.INNER, asSymbol("t4.id = t3.z AND t4.id = t2.y")));
+        joinPairs.add(JoinPair.of(T3.T4, T3.T5, JoinType.RIGHT, asSymbol("t5.i = t4.id AND t5.i = t1.x")));
+        List<JoinPair> newJoinPairs =
+            JoinPlanBuilder.extractJoinPairsFromJoinConditions(joinPairs, 10);
+
+        assertThat(newJoinPairs).hasSize(4);
+        var joinPair0 = newJoinPairs.get(0);
+        assertThat(joinPair0).hasPair(T3.T3, T3.T4);
+        assertThat(joinPair0.condition()).isSQL("(doc.t4.id = doc.t3.z)");
+        assertThat(joinPair0.joinType()).isEqualTo(JoinType.INNER);
+        var joinPair1 = newJoinPairs.get(1);
+        assertThat(joinPair1).hasPair(T3.T4, T3.T5);
+        assertThat(joinPair1.condition()).isSQL("(doc.t5.i = doc.t4.id)");
+        assertThat(joinPair1.joinType()).isEqualTo(JoinType.RIGHT);
+        var joinPair2 = newJoinPairs.get(2);
+        assertThat(joinPair2).hasPair(T3.T4, T3.T2);
+        assertThat(joinPair2.condition()).isSQL("(doc.t4.id = doc.t2.y)");
+        assertThat(joinPair2.joinType()).isEqualTo(JoinType.INNER);
+        var joinPair3 = newJoinPairs.get(3);
+        assertThat(joinPair3).hasPair(T3.T5, T3.T1);
+        assertThat(joinPair3.condition()).isSQL("(doc.t5.i = doc.t1.x)");
+        assertThat(joinPair3.joinType()).isEqualTo(JoinType.RIGHT);
     }
 }

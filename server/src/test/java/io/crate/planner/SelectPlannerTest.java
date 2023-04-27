@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
