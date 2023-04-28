@@ -33,6 +33,7 @@ import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTI
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -297,7 +298,8 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(afterFix).isNotNull();
         assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
         assertThat(afterFix.getSettings().getAsStructuredMap())
-            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=8030099}}}");
+            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=" +
+                         Version.CURRENT.internalId + "}}}");
 
         // indexMetadata named 'm7.s7' and indexTemplateMetadata 'm7..partitioned.s7.' cannot co-exist.
         IndexTemplateMetadata existingTemplate = fixedMetadata.getTemplate(invalidTemplateName);
