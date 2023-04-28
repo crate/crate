@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import static io.crate.data.Row1.ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -170,11 +169,6 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             });
         assertThat(rowCounts[0]).isEqualTo(ERROR);
         assertThat(rowCounts[1]).isEqualTo(1L);
-
-        waitForMappingUpdateOnAll("foo", "bar");
-        execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
-        // integer values for unknown columns will be result in a long type for range safety
-        assertThat(response.rows()[0][0]).isEqualTo("bigint_array");
     }
 
     @Test

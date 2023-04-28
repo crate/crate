@@ -80,8 +80,10 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             type = guessType(value);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
+                var typeName = type.getName();
+                type = null;
                 throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
+                    "Cannot create columns of type " + typeName + " dynamically. " +
                     "Storage is not supported for this type");
             }
             boolean nullable = true;
