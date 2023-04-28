@@ -115,3 +115,6 @@ Fixes
 
 - Fixed an issue that prevented assigning default expression to ``ARRAY``
   columns.
+
+- Reverted base image change in the Docker image as it broke downstream components
+  which rely on some of the bundled tools like ``rev``.
