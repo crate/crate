@@ -73,6 +73,8 @@ public interface Reference extends Symbol {
     @Nullable
     Symbol defaultExpression();
 
+    boolean isGenerated();
+
     Reference getRelocated(ReferenceIdent referenceIdent);
 
     /**

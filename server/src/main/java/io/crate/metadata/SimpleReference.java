@@ -206,6 +206,11 @@ public class SimpleReference implements Reference {
     }
 
     @Override
+    public boolean isGenerated() {
+        return false;
+    }
+
+    @Override
     public Map<String, Object> toMapping() {
         DataType<?> innerType = ArrayType.unnest(type);
         Map<String, Object> mapping = new HashMap<>();

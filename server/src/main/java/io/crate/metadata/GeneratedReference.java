@@ -236,6 +236,11 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public boolean isGenerated() {
+        return true;
+    }
+
+    @Override
     public Reference getRelocated(ReferenceIdent referenceIdent) {
         return new GeneratedReference(
             ref.getRelocated(referenceIdent),

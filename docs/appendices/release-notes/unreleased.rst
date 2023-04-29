@@ -86,6 +86,10 @@ Changes
 - Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
   deprecated.
 
+- Added ``attgenerated`` column to ``pg_catalog.pg_attribute`` table which
+  returns ``''`` (empty string) for normal columns and ``'s'`` for
+  :ref:`generated columns <ddl-generated-columns>`.
+
 - Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
   ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
 
