@@ -58,6 +58,7 @@ public class PgAttributeTable {
             .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
             .add("atthasdef", BOOLEAN, c -> false) // don't support default values
             .add("attidentity", STRING, c -> "")
+            .add("attgenerated", STRING, c -> c.ref().isGenerated() ? "s" : "")
             .add("attisdropped", BOOLEAN, c -> false) // don't support dropping columns
             .add("attislocal", BOOLEAN, c -> true)
             .add("attinhcount", INTEGER, c -> 0)

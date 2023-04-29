@@ -42,7 +42,12 @@ public class PgCatalogITest extends IntegTestCase {
 
     @Before
     public void createRelations() {
-        execute("create table doc.t1 (id int primary key, s string, o object as (a int))");
+        execute("""
+            create table doc.t1 (
+                id int primary key,
+                s string, o object as (a int),
+                g generated always as s || '_foo')
+            """);
         execute("create view doc.v1 as select id from doc.t1");
     }
 
@@ -56,7 +61,7 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(response).hasRows(
             "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 3| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
+            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
             "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
             "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0");
     }
@@ -84,10 +89,11 @@ public class PgCatalogITest extends IntegTestCase {
             "select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where" +
             " c.relname = 't1' order by a.attnum");
         assertThat(response).hasRows(
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1");
+            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| s| false| | 0| false| true| -1| g| 0| false| 5| NULL| 728874843| 0| NULL| 1043| -1");
     }
 
     @Test
@@ -203,7 +209,7 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
-        assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 3| p| p| 0.0");
+        assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 4| p| p| 0.0");
     }
 
     @Test
