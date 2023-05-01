@@ -266,7 +266,9 @@ public class Symbols {
             pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
             null,
             null,
-            symbol.valueType().toColumnType(ColumnPolicy.STRICT, null),
+            symbol.valueType().toColumnType(
+                symbol instanceof Reference reference ? reference.columnPolicy() : ColumnPolicy.DYNAMIC,
+                null),
             List.of());
     }
 }

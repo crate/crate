@@ -83,10 +83,13 @@ Fixes
   more conditions. e.g.::
 
     SELECT CASE col1
-             WHEN 'value1' THEN 1
-             WHEN 'value2' THEN NULL
-             WHEN 'value3' THEN 3
-             ELSE NULL
-           END
-    FROM (select 'value1' as col1) a;
+      WHEN 'value1' THEN 1
+      WHEN 'value2' THEN NULL
+      WHEN 'value3' THEN 3
+      ELSE NULL
+    END
+    FROM (SELECT 'value1' AS col1) a;
 
+- Fixed an issue that caused :ref:`column policy <type-object-column-policy>`
+  of object types created by ``CREATE TABLE AS`` to be overridden to
+  ``strict``.
