@@ -28,9 +28,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.joda.time.Period;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
 
 /**
@@ -101,9 +101,9 @@ public class SessionSettings implements Writeable {
         return null;
     }
 
-    public Period statementTimeout() {
+    public TimeValue statementTimeout() {
         // Only available on coordinator
-        return Period.ZERO;
+        return TimeValue.ZERO;
     }
 
     @Override

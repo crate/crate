@@ -40,8 +40,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
-import org.joda.time.Period;
-import org.joda.time.PeriodType;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -579,9 +577,9 @@ public class Session implements AutoCloseable {
     }
 
     private void addStatementTimeout(CompletableFuture<?> result) {
-        Period timeout = sessionSettings.statementTimeout();
+        TimeValue timeout = sessionSettings.statementTimeout();
         final UUID jobId = mostRecentJobID;
-        int timeoutMillis = timeout.normalizedStandard(PeriodType.millis()).getMillis();
+        long timeoutMillis = timeout.millis();
         if (jobId == null || timeoutMillis <= 0) {
             return;
         }

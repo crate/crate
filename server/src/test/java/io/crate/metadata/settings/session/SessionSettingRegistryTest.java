@@ -35,17 +35,16 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.unit.TimeValue;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.LoadedRules;
-import io.crate.types.DataTypes;
 
 public class SessionSettingRegistryTest {
 
@@ -134,9 +133,9 @@ public class SessionSettingRegistryTest {
 
     @Test
     public void test_statement_timeout_max_value() throws Exception {
-        SessionSetting<Period> statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
+        var statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
         statementTimeout.apply(sessionSettings, generateInput("24 days"), eval);
-        assertThat(sessionSettings.statementTimeout()).isEqualTo(DataTypes.INTERVAL.implicitCast("24 days"));
+        assertThat(sessionSettings.statementTimeout()).isEqualTo(TimeValue.timeValueMillis(2073600000L));
 
         assertThatThrownBy(() -> statementTimeout.apply(sessionSettings, generateInput("25 days"), eval))
             .isExactlyInstanceOf(ArithmeticException.class)
@@ -145,7 +144,7 @@ public class SessionSettingRegistryTest {
 
     @Test
     public void test_statement_timeout_accepts_int() throws Exception {
-        SessionSetting<Period> statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
+        var statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
         statementTimeout.apply(sessionSettings, List.of(Literal.of(200)), eval);
     }
 

@@ -26,8 +26,7 @@ import static io.crate.Constants.DEFAULT_DATE_STYLE;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.joda.time.Period;
-
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
 import io.crate.planner.optimizer.Rule;
 import io.crate.user.User;
@@ -47,7 +46,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
     private String applicationName;
     private String dateStyle;
-    private Period statementTimeout;
+    private TimeValue statementTimeout;
 
     public CoordinatorSessionSettings(User authenticatedUser, String ... searchPath) {
         this(authenticatedUser, authenticatedUser, SearchPath.createSearchPathFrom(searchPath), true, Set.of(), true);
@@ -68,7 +67,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
-        this.statementTimeout = Period.ZERO;
+        this.statementTimeout = TimeValue.ZERO;
     }
 
     public User sessionUser() {
@@ -126,11 +125,11 @@ public class CoordinatorSessionSettings extends SessionSettings {
         return this.dateStyle;
     }
 
-    public Period statementTimeout() {
+    public TimeValue statementTimeout() {
         return statementTimeout;
     }
 
-    public void statementTimeout(Period statementTimeout) {
+    public void statementTimeout(TimeValue statementTimeout) {
         this.statementTimeout = statementTimeout;
     }
 }

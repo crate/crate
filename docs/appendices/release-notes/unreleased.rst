@@ -71,7 +71,8 @@ Changes
     SELECT 1_000_000;
 
 - Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
-  setting that allows to set a timeout for queries.
+  setting and :ref:`cluster setting <statement_timeout>` that allows to set a
+  timeout for queries.
 
 - Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
   compliance with the SQL2023 standard. Extended the aggregations to support any

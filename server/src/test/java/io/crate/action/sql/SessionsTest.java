@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -40,6 +39,7 @@ import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import io.crate.analyze.Analyzer;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.transport.CancelRequest;
@@ -50,12 +50,13 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.sql.tree.Declare.Hold;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.Privilege;
 import io.crate.user.Privilege.State;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 
-public class SessionsTest {
+public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
@@ -72,7 +73,7 @@ public class SessionsTest {
             () -> dependencies,
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            mock(ClusterService.class)
+            clusterService
         );
 
         KeyData keyData = new KeyData(10, 20);
@@ -127,7 +128,28 @@ public class SessionsTest {
         assertThat(sessions.getCursors(trillian)).hasSize(1);
     }
 
-    private static Sessions newSessions(NodeContext nodeCtx) {
+    @Test
+    public void test_uses_global_statement_timeout_as_default_for() throws Exception {
+        Functions functions = new Functions(Map.of());
+        UserLookup userLookup = () -> List.of(User.CRATE_USER);
+        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        Sessions sessions = new Sessions(
+            nodeCtx,
+            mock(Analyzer.class),
+            mock(Planner.class),
+            () -> mock(DependencyCarrier.class),
+            new JobsLogs(() -> false),
+            Settings.builder()
+                .put("statement_timeout", "30s")
+                .build(),
+            clusterService
+        );
+        Session session = sessions.createSession("doc", User.CRATE_USER);
+        assertThat(session.sessionSettings().statementTimeout())
+            .isEqualTo(TimeValue.timeValueSeconds(30));
+    }
+
+    private Sessions newSessions(NodeContext nodeCtx) {
         Sessions sessions = new Sessions(
             nodeCtx,
             mock(Analyzer.class),
@@ -135,7 +157,7 @@ public class SessionsTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            mock(ClusterService.class)
+            clusterService
         );
         return sessions;
     }
