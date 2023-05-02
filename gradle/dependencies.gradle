@@ -43,6 +43,7 @@ allprojects {
             force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
             force "junit:junit:${versions.junit}"
             force "org.slf4j:slf4j-api:${versions.slf4j}"
+            force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
             force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
