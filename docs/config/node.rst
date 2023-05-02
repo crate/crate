@@ -86,8 +86,9 @@ truth table outlining the four different types of node:
 Nodes marked as ``node.master`` will only handle cluster management if they are
 elected as the cluster master. All other loads are shared equally.
 
-Read-only node
-==============
+
+General
+=======
 
 .. _node.sql.read_only:
 
@@ -97,6 +98,27 @@ Read-only node
 
   If set to ``true``, the node will only allow SQL statements which are
   resulting in read operations.
+
+
+.. _statement_timeout:
+
+**statement_timeout**
+  | *Default:* ``0``
+  | *Runtime:* ``yes``
+
+  The maximum duration of any statement before it gets cancelled.
+
+  This value is used as default value for the :ref:`statement_timeout session
+  setting <conf-session-statement-timeout>`
+
+  If ``0`` queries are allowed to run infinitely and don't get cancelled
+  automatically.
+
+.. NOTE::
+
+   Updating this setting won't affect existing sessions, it will only take
+   effect for new sessions.
+
 
 Networking
 ==========

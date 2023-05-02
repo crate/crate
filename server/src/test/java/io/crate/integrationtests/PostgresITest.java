@@ -1135,7 +1135,7 @@ public class PostgresITest extends IntegTestCase {
 
             result = stmt.executeQuery("SHOW statement_timeout");
             assertThat(result.next()).isTrue();
-            assertThat(result.getString("setting")).isEqualTo("PT60S");
+            assertThat(result.getString("setting")).isEqualTo("1m");
         }
     }
 

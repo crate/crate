@@ -44,7 +44,6 @@ import java.util.function.Consumer;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.joda.time.Period;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Answers;
@@ -56,6 +55,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
@@ -579,7 +579,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         when(dependencies.client()).thenReturn(client);
 
         Session session = sqlExecutor.createSession();
-        session.sessionSettings().statementTimeout(Period.millis(10));
+        session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);

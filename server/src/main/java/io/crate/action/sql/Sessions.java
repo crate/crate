@@ -39,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
 import io.crate.analyze.Analyzer;
+import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.transport.CancelRequest;
 import io.crate.execution.jobs.transport.TransportCancelAction;
@@ -60,6 +61,14 @@ public class Sessions {
         false,
         Setting.Property.NodeScope);
 
+    public static final Setting<TimeValue> STATEMENT_TIMEOUT = Setting.timeSetting(
+        "statement_timeout",
+        TimeValue.timeValueMillis(0),
+        Setting.Property.Dynamic,
+        Setting.Property.NodeScope,
+        Setting.Property.Exposed
+    );
+
     private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
 
     private final NodeContext nodeCtx;
@@ -71,7 +80,9 @@ public class Sessions {
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
+
     private volatile boolean disabled;
+    private volatile TimeValue defaultStatementTimeout;
 
 
     @Inject
@@ -89,6 +100,10 @@ public class Sessions {
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
+        this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
+            this.defaultStatementTimeout = statementTimeout;
+        });
     }
 
     private Session createSession(CoordinatorSessionSettings sessionSettings) {
@@ -122,7 +137,7 @@ public class Sessions {
         } else {
             sessionSettings = new CoordinatorSessionSettings(authenticatedUser, defaultSchema);
         }
-
+        sessionSettings.statementTimeout(defaultStatementTimeout);
         return createSession(sessionSettings);
     }
 

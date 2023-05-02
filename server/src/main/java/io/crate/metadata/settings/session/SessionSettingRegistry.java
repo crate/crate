@@ -36,6 +36,7 @@ import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -75,27 +76,27 @@ public class SessionSettingRegistry {
         DataTypes.STRING
     );
 
-    static final SessionSetting<Period> STATEMENT_TIMEOUT = new SessionSetting<Period>(
+    static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<TimeValue>(
         "statement_timeout",
         inputs -> {},
         inputs -> {
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
             if (input instanceof Number num) {
-                return new Period(0, 0, 0, num.intValue());
+                return TimeValue.timeValueMillis(num.longValue());
             }
             if (input instanceof String str) {
                 try {
                     int millis = Integer.parseInt(str);
-                    return new Period(0, 0, 0, millis);
+                    return TimeValue.timeValueMillis(millis);
                 } catch (NumberFormatException ignored) {
                     // continue with implicitCast
                 }
             }
-            Period period = DataTypes.INTERVAL.implicitCast(input);
             // Must fit into `Integer` range as millis
-            period.normalizedStandard(PeriodType.millis());
-            return period;
+            Period period = DataTypes.INTERVAL.implicitCast(input)
+                .normalizedStandard(PeriodType.millis());
+            return TimeValue.timeValueMillis(period.getMillis());
         },
         CoordinatorSessionSettings::statementTimeout,
         settings -> settings.statementTimeout().toString(),
