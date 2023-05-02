@@ -830,9 +830,9 @@ public class SettingTests extends ESTestCase {
         assertThat(setting.get(Settings.EMPTY), equalTo(random));
 
         final int factor = randomIntBetween(1, 10);
-        setting = Setting.timeSetting("foo", (s) -> TimeValue.timeValueMillis(random.getMillis() * factor), TimeValue.ZERO);
+        setting = Setting.timeSetting("foo", (s) -> TimeValue.timeValueMillis(random.millis() * factor), TimeValue.ZERO);
         assertThat(setting.get(Settings.builder().put("foo", "12h").build()), equalTo(TimeValue.timeValueHours(12)));
-        assertThat(setting.get(Settings.EMPTY).getMillis(), equalTo(random.getMillis() * factor));
+        assertThat(setting.get(Settings.EMPTY).millis(), equalTo(random.millis() * factor));
     }
 
     @Test

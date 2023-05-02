@@ -80,7 +80,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends IntegTestCase {
 
         for (CompletableFuture<SQLResponse> future : futures) {
             try {
-                future.get(SQLTransportExecutor.REQUEST_TIMEOUT.getMillis(), TimeUnit.MILLISECONDS);
+                future.get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 fail("query run into a timeout");
             } catch (Exception e) {

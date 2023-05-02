@@ -268,12 +268,12 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
      * @return the scheduler interval in ms
      */
     static long clearInterval(TimeValue expiration) {
-        return Long.min(Long.max(1_000L, expiration.getMillis() / 10), 86_400_000L);
+        return Long.min(Long.max(1_000L, expiration.millis() / 10), 86_400_000L);
     }
 
     private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, ToLongFunction<E> getElementSize, String breaker) {
         Queue<E> q;
-        long expirationMillis = expiration.getMillis();
+        long expirationMillis = expiration.millis();
         final Runnable onClose;
         if (size == 0 && expirationMillis == 0) {
             return NoopLogSink.instance();

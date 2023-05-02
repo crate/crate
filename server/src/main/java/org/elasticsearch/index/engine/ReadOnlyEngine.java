@@ -203,7 +203,7 @@ public class ReadOnlyEngine extends Engine {
         final TranslogConfig translogConfig = config.getTranslogConfig();
         final TranslogDeletionPolicy translogDeletionPolicy = new TranslogDeletionPolicy(
             config.getIndexSettings().getTranslogRetentionSize().getBytes(),
-            config.getIndexSettings().getTranslogRetentionAge().getMillis(),
+            config.getIndexSettings().getTranslogRetentionAge().millis(),
             config.getIndexSettings().getTranslogRetentionTotalFiles()
         );
         final long localCheckpoint = Long.parseLong(infos.getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));

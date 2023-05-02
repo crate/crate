@@ -174,7 +174,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
                         state.blocks().hasGlobalBlockWithLevel(level));
                 }
             }
-        }, maxWaitTime.getMillis(), TimeUnit.MILLISECONDS);
+        }, maxWaitTime.millis(), TimeUnit.MILLISECONDS);
     }
 
     void assertDifferentMaster(final String node, final String oldMasterNode) throws Exception {

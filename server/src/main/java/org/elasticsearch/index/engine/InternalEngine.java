@@ -211,7 +211,7 @@ public class InternalEngine extends Engine {
         this.maxDocs = maxDocs;
         final TranslogDeletionPolicy translogDeletionPolicy = new TranslogDeletionPolicy(
                 engineConfig.getIndexSettings().getTranslogRetentionSize().getBytes(),
-                engineConfig.getIndexSettings().getTranslogRetentionAge().getMillis(),
+                engineConfig.getIndexSettings().getTranslogRetentionAge().millis(),
                 engineConfig.getIndexSettings().getTranslogRetentionTotalFiles()
         );
         store.incRef();

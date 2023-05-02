@@ -103,7 +103,7 @@ public class AzureStorageService {
         final CloudBlobClient client = createClient(azureStorageSettings);
         // Set timeout option if the user sets cloud.azure.storage.timeout or
         // cloud.azure.storage.xxx.timeout (it's negative by default)
-        final long timeout = azureStorageSettings.getTimeout().getMillis();
+        final long timeout = azureStorageSettings.getTimeout().millis();
         if (timeout > 0) {
             if (timeout > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Timeout [" + azureStorageSettings.getTimeout() + "] exceeds 2,147,483,647ms.");

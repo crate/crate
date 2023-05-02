@@ -21,11 +21,12 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
+
+import io.crate.common.unit.TimeValue;
 
 @Singleton
 public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
@@ -69,6 +70,6 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
                                     int expectedNodesDefaultValue) {
         return recoveryAfterNodes <= expectedNodes &&
                (expectedNodes == expectedNodesDefaultValue ||
-                recoverAfterTime.getMillis() > 0L);
+                recoverAfterTime.millis() > 0L);
     }
 }

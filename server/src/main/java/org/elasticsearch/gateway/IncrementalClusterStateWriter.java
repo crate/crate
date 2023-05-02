@@ -19,6 +19,14 @@
 
 package org.elasticsearch.gateway;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.LongSupplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,14 +40,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 
 import io.crate.common.unit.TimeValue;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.LongSupplier;
 
 /**
  * Tracks the metadata written to disk, allowing updated metadata to be written incrementally (i.e. only writing out the changed metadata).
@@ -111,7 +111,7 @@ public class IncrementalClusterStateWriter {
 
         final long durationMillis = relativeTimeMillisSupplier.getAsLong() - startTimeMillis;
         final TimeValue finalSlowWriteLoggingThreshold = this.slowWriteLoggingThreshold;
-        if (durationMillis >= finalSlowWriteLoggingThreshold.getMillis()) {
+        if (durationMillis >= finalSlowWriteLoggingThreshold.millis()) {
             LOGGER.warn("writing cluster state took [{}ms] which is above the warn threshold of [{}]; " +
                     "wrote metadata for [{}] indices and skipped [{}] unchanged indices",
                 durationMillis, finalSlowWriteLoggingThreshold, writer.getIndicesWritten(), writer.getIndicesSkipped());

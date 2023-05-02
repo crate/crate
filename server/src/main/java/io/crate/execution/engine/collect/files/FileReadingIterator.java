@@ -324,7 +324,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             CompletableFuture<Void> cf = new CompletableFuture<>();
             scheduler.schedule(
                 (Runnable) () -> cf.complete(null), // cast to Runnable for enabling mockito tests
-                backOffPolicy.next().getMillis(),
+                backOffPolicy.next().millis(),
                 TimeUnit.MILLISECONDS);
             return cf;
         } else {

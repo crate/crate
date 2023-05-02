@@ -21,6 +21,28 @@
 
 package io.crate.discovery;
 
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.discovery.SeedHostsProvider;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -34,28 +56,6 @@ import io.netty.resolver.dns.DnsNameResolver;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
 import io.netty.util.ReferenceCounted;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.discovery.SeedHostsProvider;
-import org.elasticsearch.transport.TransportService;
-
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
 public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider {
@@ -162,7 +162,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
 
     private List<DnsRecord> lookupRecords() throws InterruptedException, ExecutionException, TimeoutException {
         return resolver.resolveAll(new DefaultDnsQuestion(query, DnsRecordType.SRV), Collections.emptyList())
-            .get(resolveTimeout.getMillis(), TimeUnit.MILLISECONDS);
+            .get(resolveTimeout.millis(), TimeUnit.MILLISECONDS);
     }
 
     List<TransportAddress> parseRecords(List<DnsRecord> records) {

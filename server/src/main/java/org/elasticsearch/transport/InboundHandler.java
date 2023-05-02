@@ -82,7 +82,7 @@ public class InboundHandler {
     }
 
     void setSlowLogThreshold(TimeValue slowLogThreshold) {
-        this.slowLogThresholdMs = slowLogThreshold.getMillis();
+        this.slowLogThresholdMs = slowLogThreshold.millis();
     }
 
     void inboundMessage(CloseableChannel channel, InboundMessage message) throws Exception {

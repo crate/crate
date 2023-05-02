@@ -295,14 +295,14 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         });
 
         try {
-            nodeLatch.await(fetchTimeout.getMillis(), TimeUnit.MILLISECONDS);
+            nodeLatch.await(fetchTimeout.millis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status
             LOGGER.warn("Failed to update node information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
         }
 
         try {
-            indicesLatch.await(fetchTimeout.getMillis(), TimeUnit.MILLISECONDS);
+            indicesLatch.await(fetchTimeout.millis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status
             LOGGER.warn("Failed to update shard information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);

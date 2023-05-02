@@ -71,7 +71,7 @@ public class FutureUtils {
      * Calls {@link #get(Future, long, TimeUnit)}
      */
     public static <T> T get(Future<T> future, TimeValue timeValue) {
-        return get(future, timeValue.getMillis(), TimeUnit.MILLISECONDS);
+        return get(future, timeValue.millis(), TimeUnit.MILLISECONDS);
     }
 
     /**

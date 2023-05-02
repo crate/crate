@@ -275,7 +275,7 @@ public class TableParameters {
         }
         if (value instanceof TimeValue) {
             // return time as long (epoch) in MS so it can be compared correctly
-            return ((TimeValue) value).getMillis();
+            return ((TimeValue) value).millis();
         }
         return value.toString();
     }
