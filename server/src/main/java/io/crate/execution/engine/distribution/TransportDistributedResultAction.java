@@ -191,10 +191,10 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             TimeValue delay = retryDelay.next();
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("scheduling retry to start node operation for jobId: {} in {}ms",
-                             request.jobId(), delay.getMillis());
+                             request.jobId(), delay.millis());
             }
             NodeOperationRunnable operationRunnable = new NodeOperationRunnable(request, retryDelay);
-            scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
+            scheduler.schedule(operationRunnable::run, delay.millis(), TimeUnit.MILLISECONDS);
             return operationRunnable;
         } else {
             if (LOGGER.isTraceEnabled()) {

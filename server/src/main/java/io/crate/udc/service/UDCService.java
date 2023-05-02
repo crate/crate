@@ -21,9 +21,10 @@
 
 package io.crate.udc.service;
 
-import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.types.DataTypes;
-import io.crate.udc.ping.PingTask;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -31,14 +32,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.common.unit.TimeValue;
-
-import java.util.Timer;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.types.DataTypes;
+import io.crate.udc.ping.PingTask;
 
 public class UDCService extends AbstractLifecycleComponent {
 
@@ -86,7 +86,7 @@ public class UDCService extends AbstractLifecycleComponent {
         TimeValue interval = UDC_INTERVAL_SETTING.get(settings);
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
+            LOGGER.debug("Starting with delay {} and period {}.", initialDelay.seconds(), interval.seconds());
         }
         PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());

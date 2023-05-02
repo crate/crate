@@ -19,7 +19,18 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -34,23 +45,15 @@ import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult;
 import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult.ShardStoreInfo;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import javax.annotation.Nullable;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 
 public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
 
@@ -224,7 +227,7 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                 UnassignedInfo unassignedInfo = unassignedShard.unassignedInfo();
                 Metadata metadata = allocation.metadata();
                 IndexMetadata indexMetadata = metadata.index(unassignedShard.index());
-                totalDelayMillis = INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.get(indexMetadata.getSettings()).getMillis();
+                totalDelayMillis = INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.get(indexMetadata.getSettings()).millis();
                 long remainingDelayNanos = unassignedInfo.getRemainingDelay(System.nanoTime(), indexMetadata.getSettings());
                 remainingDelayMillis = TimeValue.timeValueNanos(remainingDelayNanos).millis();
             }

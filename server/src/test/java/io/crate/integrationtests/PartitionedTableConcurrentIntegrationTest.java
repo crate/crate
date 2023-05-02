@@ -172,8 +172,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
             }
         });
         relocatingThread.start();
-        relocations.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
-        selects.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
+        relocations.await(SQLTransportExecutor.REQUEST_TIMEOUT.seconds() + 1, TimeUnit.SECONDS);
+        selects.await(SQLTransportExecutor.REQUEST_TIMEOUT.seconds() + 1, TimeUnit.SECONDS);
 
         Throwable throwable = lastThrowable.get();
         if (throwable != null) {
@@ -335,8 +335,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         insertThread.start();
         deleteThread.start();
-        deleteLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
-        insertLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
+        deleteLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.seconds() + 1, TimeUnit.SECONDS);
+        insertLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.seconds() + 1, TimeUnit.SECONDS);
 
         Exception exception = exceptionRef.get();
         if (exception != null) {

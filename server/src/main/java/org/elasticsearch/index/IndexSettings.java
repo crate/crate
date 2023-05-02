@@ -19,6 +19,10 @@
 
 package org.elasticsearch.index;
 
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.index.MergePolicy;
@@ -31,15 +35,11 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.node.Node;
 
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /**
  * This class encapsulates all index level settings and handles settings updates.
@@ -320,7 +320,7 @@ public final class IndexSettings {
         generationThresholdSize = scopedSettings.get(INDEX_TRANSLOG_GENERATION_THRESHOLD_SIZE_SETTING);
         flushAfterMergeThresholdSize = scopedSettings.get(INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING);
         mergeSchedulerConfig = new MergeSchedulerConfig(this);
-        gcDeletesInMillis = scopedSettings.get(INDEX_GC_DELETES_SETTING).getMillis();
+        gcDeletesInMillis = scopedSettings.get(INDEX_GC_DELETES_SETTING).millis();
         softDeleteEnabled = scopedSettings.get(INDEX_SOFT_DELETES_SETTING);
         softDeleteRetentionOperations = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING);
         retentionLeaseMillis = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING).millis();
@@ -401,7 +401,7 @@ public final class IndexSettings {
     }
 
     private void setGCDeletes(TimeValue timeValue) {
-        this.gcDeletesInMillis = timeValue.getMillis();
+        this.gcDeletesInMillis = timeValue.millis();
     }
 
     private void setRefreshInterval(TimeValue timeValue) {

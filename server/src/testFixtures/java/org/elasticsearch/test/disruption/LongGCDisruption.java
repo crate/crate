@@ -19,13 +19,6 @@
 
 package org.elasticsearch.test.disruption;
 
-import javax.annotation.Nullable;
-
-import io.crate.common.SuppressForbidden;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.test.TestCluster;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -36,6 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.test.TestCluster;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Suspends all threads on the specified node in order to simulate a long gc.
@@ -285,7 +286,7 @@ public class LongGCDisruption extends SingleNodeDisruption {
 
     // for testing
     protected long getSuspendingTimeoutInMillis() {
-        return TimeValue.timeValueSeconds(30).getMillis();
+        return TimeValue.timeValueSeconds(30).millis();
     }
 
     public boolean isBlockDetectionSupported() {

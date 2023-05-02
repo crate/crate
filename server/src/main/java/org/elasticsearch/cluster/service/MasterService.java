@@ -581,7 +581,7 @@ public class MasterService extends AbstractLifecycleComponent {
     }
 
     private void logExecutionTime(TimeValue executionTime, String activity, String summary) {
-        if (executionTime.getMillis() > slowTaskLoggingThreshold.getMillis()) {
+        if (executionTime.millis() > slowTaskLoggingThreshold.millis()) {
             LOGGER.warn("took [{}], which is over [{}], to {} for [{}]", executionTime, slowTaskLoggingThreshold, activity, summary);
         } else {
             LOGGER.debug("took [{}] to {} for [{}]", executionTime, activity, summary);

@@ -21,14 +21,14 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
-import io.crate.expression.reference.sys.job.ContextLog;
-
 import java.util.Queue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.reference.sys.job.ContextLog;
 
 final class TimeBasedQEviction {
 
@@ -41,7 +41,7 @@ final class TimeBasedQEviction {
                                                ScheduledExecutorService scheduler,
                                                TimeValue expiration) {
         return scheduler.scheduleWithFixedDelay(
-            () -> removeExpiredLogs(q, System.currentTimeMillis(), expiration.getMillis()),
+            () -> removeExpiredLogs(q, System.currentTimeMillis(), expiration.millis()),
             delayInMs,
             intervalInMs,
             TimeUnit.MILLISECONDS);

@@ -62,11 +62,11 @@ public abstract class RetryableAction<Response> {
                            ActionListener<Response> listener, String executor) {
         this.logger = logger;
         this.threadPool = threadPool;
-        this.initialDelayMillis = initialDelay.getMillis();
+        this.initialDelayMillis = initialDelay.millis();
         if (initialDelayMillis < 1) {
             throw new IllegalArgumentException("Initial delay was less than 1 millisecond: " + initialDelay);
         }
-        this.timeoutMillis = timeoutValue.getMillis();
+        this.timeoutMillis = timeoutValue.millis();
         this.startMillis = threadPool.relativeTimeInMillis();
         this.finalListener = listener;
         this.executor = executor;

@@ -391,7 +391,7 @@ public class IndexSettingsTests extends ESTestCase {
             TimeValue.parseTimeValue(
                 gcDeleteSetting.getStringRep(),
                 new TimeValue(1, TimeUnit.DAYS),
-                IndexSettings.INDEX_GC_DELETES_SETTING.getKey()).getMillis(),
+                IndexSettings.INDEX_GC_DELETES_SETTING.getKey()).millis(),
             is(settings.getGcDeletesInMillis())
         );
         TimeValue newGCDeleteSetting = new TimeValue(Math.abs(randomInt()), TimeUnit.MILLISECONDS);
@@ -407,7 +407,7 @@ public class IndexSettingsTests extends ESTestCase {
             TimeValue.parseTimeValue(
                 newGCDeleteSetting.getStringRep(),
                 new TimeValue(1, TimeUnit.DAYS),
-                IndexSettings.INDEX_GC_DELETES_SETTING.getKey()).getMillis(),
+                IndexSettings.INDEX_GC_DELETES_SETTING.getKey()).millis(),
             is(settings.getGcDeletesInMillis())
         );
         settings.updateIndexMetadata(
