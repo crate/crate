@@ -65,6 +65,13 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused ``AssertionError`` to be thrown when referencing
+  previous relations, not explicitly joined, in an join condition, e.g.::
+
+    SELECT * FROM t1
+    CROSS JOIN t2
+    INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
+
 - Fixed an issue that caused ``DROP TABLE IF EXISTS`` to wrongly return ``1``
   row affected or ``SQLParseException`` (depending on user privileges), when
   called on an existent schema, a non-existent table and with the ``crate``
@@ -75,3 +82,4 @@ Fixes
 - Improved an optimization rule to enable index lookups instead of table scans
   in more cases. This is a follow up to a fix in 5.2.7 which fixed a regression
   introduced in 5.2.3.
+

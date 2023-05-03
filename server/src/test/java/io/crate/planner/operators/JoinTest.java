@@ -645,8 +645,26 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, is(isPlan(expectedPlan)));
     }
 
+    /**
+     * Verifies a bug fix
+     * See: <a href="https://github.com/crate/crate/issues/13942"/>
+     */
     @Test
-    public void test_can_create_execution_plan_from_join_condition_depending_on_multiple_tables() throws Exception {
+    public void test_can_create_execution_plan_from_join_condition_depending_on_multiple_tables() {
+        LogicalPlan logicalPlan = e.logicalPlan("""
+            SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
+            """);
+        assertThat(logicalPlan, is(isPlan(
+            "HashJoin[((z = x) AND (z = y))]\n" +
+            "  ├ NestedLoopJoin[CROSS]\n" +
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]\n" +
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]\n" +
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        )));
+    }
+
+    @Test
+    public void test_can_create_execution_plan_from_join_condition_depending_on_multiple_aliased_tables() throws Exception {
         var executor = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
             .addTable("""
                 CREATE TABLE IF NOT EXISTS sensor_readings (
