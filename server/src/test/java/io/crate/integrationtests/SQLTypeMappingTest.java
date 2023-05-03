@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import java.util.List;
@@ -463,6 +464,26 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 " table_name='arr' order by ordinal_position desc limit 1");
             assertThat(res).hasRows("new| double precision_array");
         });
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/13990
+     */
+    @Test
+    public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
+        execute("create table t (a int) with (column_policy ='dynamic')");
+        execute("insert into t (x) values ([])");
+        execute("insert into t (x) values (1)");
+        refresh();
+        execute("select * from t");
+        assertThat(printedTable(response.rows())).contains("NULL| NULL", "NULL| 1");
+        // takes different paths than without order by like above
+        execute("select * from t order by x nulls first");
+        assertThat(printedTable(response.rows())).isEqualTo(
+            """
+                NULL| NULL
+                NULL| 1
+                """);
     }
 
     @Test
