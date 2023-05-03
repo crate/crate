@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -254,5 +255,26 @@ public class SourceParserTest extends ESTestCase {
                    )
             )
         );
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/13990
+     */
+    @Test
+    public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
+        SourceParser sourceParser = new SourceParser();
+        var type = ObjectType.UNTYPED;
+        sourceParser.register(new ColumnIdent("_doc", List.of("x")), type);
+        var result = sourceParser.parse(
+            new BytesArray(
+                """
+                    {
+                        "x": [null]
+                    }
+                    """
+            ));
+        var expected = new HashMap<String, Object>();
+        expected.put("x", null);
+        assertThat(result).isEqualTo(expected);
     }
 }
