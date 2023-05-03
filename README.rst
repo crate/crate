@@ -15,6 +15,7 @@
 
 |
 
+`Help us improve CrateDB by taking our User Survey! <https://crate.io/user-survey/>`_
 
 About
 =====
