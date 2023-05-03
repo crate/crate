@@ -111,4 +111,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused ``AssertionError`` to be thrown when referencing
+  previous relations, not explicitly joined, in an join condition, e.g.::
+
+    SELECT * FROM t1
+    CROSS JOIN t2
+    INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
+
