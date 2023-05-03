@@ -87,6 +87,29 @@ Fixes
   first argument of :ref:`INTERVAL data type <type-interval>` contains month
   and/or year units.
 
+- Added a workaround for an issue that allowed inserting a non-array value onto
+  a column that is dynamically created by inserting an empty array, ultimately
+  modifying the type of the column. The empty arrays will be convert to
+  ``nulls`` when queried. For example::
+
+    CREATE TABLE t (o OBJECT);
+    INSERT INTO t VALUES ({x=[]});
+    INSERT INTO t VALUES ({x={}});  /* this is the culprit statement, inserting an object onto an array typed column */
+    SHOW CREATE TABLE t;
+    +-----------------------------------------------------+
+    | SHOW CREATE TABLE doc.t                             |
+    +-----------------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "doc"."t" (              |
+    |    "o" OBJECT(DYNAMIC) AS (                         |
+    |       "x" OBJECT(DYNAMIC)  /* an array type modified to an object type */
+    SELECT * FROM t;
+    +-------------+
+    | o           |
+    +-------------+
+    | {"x": {}}   |
+    | {"x": null} |  /* an empty array converted to null */
+    +-------------+
+
 - Fixed an issue that caused ``AssertionError`` to be thrown when referencing
   previous relations, not explicitly joined, in an join condition, e.g.::
 
