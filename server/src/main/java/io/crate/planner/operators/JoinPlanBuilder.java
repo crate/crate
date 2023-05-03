@@ -46,6 +46,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -163,12 +164,25 @@ public class JoinPlanBuilder {
             return false;
         }
         boolean[] hasAdditionalDependencies = {false};
-        FieldsVisitor.visitFields(condition, scopedSymbol -> {
-            RelationName relation = scopedSymbol.relation();
-            if (!relation.equals(joinPair.left()) && !relation.equals(joinPair.right())) {
+
+        // Un-aliased tables
+        RefVisitor.visitRefs(condition, ref -> {
+            RelationName relationName = ref.ident().tableIdent();
+            if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
                 hasAdditionalDependencies[0] = true;
             }
         });
+
+        // Aliased tables
+        if (hasAdditionalDependencies[0] == false) {
+            FieldsVisitor.visitFields(condition, scopedSymbol -> {
+                RelationName relationName = scopedSymbol.relation();
+                if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
+                    hasAdditionalDependencies[0] = true;
+                }
+            });
+        }
+
         return hasAdditionalDependencies[0];
     }
 
