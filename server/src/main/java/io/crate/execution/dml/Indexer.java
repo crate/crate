@@ -546,7 +546,7 @@ public class Indexer {
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
                 xContentBuilder.field(reference.column().leafName());
                 valueIndexer.indexValue(
-                    value,
+                    reference.valueType().sanitizeValue(value),
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
