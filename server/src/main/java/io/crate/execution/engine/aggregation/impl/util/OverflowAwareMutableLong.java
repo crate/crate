@@ -71,4 +71,9 @@ public class OverflowAwareMutableLong implements NumericValueHolder {
         // Adding residual unflushed value before return.
         return bigDecimalSum.add(BigDecimal.valueOf(primitiveSum));
     }
+
+    @Override
+    public void setValue(BigDecimal value) {
+        throw new UnsupportedOperationException("setValue() is not supported");
+    }
 }

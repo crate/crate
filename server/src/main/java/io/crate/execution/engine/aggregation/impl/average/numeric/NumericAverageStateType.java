@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+@SuppressWarnings("rawtypes")
 public class NumericAverageStateType extends DataType<NumericAverageState> implements Streamer<NumericAverageState> {
 
     public static final int ID = 1026;
@@ -72,11 +73,10 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
     public NumericAverageState readValueFrom(StreamInput in) throws IOException {
         // Cannot use NumericType.INSTANCE as it has default precision and scale values
         // which might not be equal to written BigDecimal's precision and scale.
-        NumericAverageState numericAverageState = new NumericAverageState(
+        return new NumericAverageState<>(
             new BigDecimalValueWrapper(NumericType.of(in.readInt(), in.readInt()).readValueFrom(in)),
             in.readVLong()
         );
-        return numericAverageState;
     }
 
     @Override
