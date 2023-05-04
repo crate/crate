@@ -27,7 +27,7 @@ import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-public class NumericAverageState<T extends NumericValueHolder> implements Comparable<NumericAverageState> {
+public class NumericAverageState<T extends NumericValueHolder> implements Comparable<NumericAverageState<T>> {
 
     @Nonnull
     T sum;
@@ -67,6 +67,7 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
         return "sum: " + sum + " count: " + count;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -75,7 +76,7 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        NumericAverageState that = (NumericAverageState) o;
+        NumericAverageState<T> that = (NumericAverageState<T>) o;
         return count == that.count && sum.value().equals(that.value());
     }
 

@@ -41,6 +41,7 @@ public final class BigDecimalValueWrapper implements NumericValueHolder {
         return hasValue;
     }
 
+    @Override
     public void setValue(BigDecimal value) {
         hasValue = true;
         this.value = value;

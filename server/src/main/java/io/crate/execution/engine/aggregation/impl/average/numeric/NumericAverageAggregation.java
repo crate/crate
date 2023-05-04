@@ -62,7 +62,7 @@ import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 
-public class NumericAverageAggregation extends AggregationFunction<NumericAverageState, BigDecimal> {
+public class NumericAverageAggregation extends AggregationFunction<NumericAverageState<?>, BigDecimal> {
 
     static {
         DataTypes.register(NumericAverageStateType.ID, in -> NumericAverageStateType.INSTANCE);
@@ -95,7 +95,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         // the return type from the signature `avg(count::numeric(16, 2))`
         // should return the type `numeric(16, 2)` not `numeric`
         var argumentType = boundSignature.argTypes().get(0);
-        if (argumentType instanceof NumericAverageStateType partialType) {
+        if (argumentType instanceof NumericAverageStateType) {
             this.returnType = (DataType<BigDecimal>) boundSignature.returnType();
         } else {
             this.returnType = (DataType<BigDecimal>) argumentType;
@@ -104,25 +104,25 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Nullable
     @Override
-    public NumericAverageState newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
-                               Version minNodeInCluster,
-                               MemoryManager memoryManager) {
+    public NumericAverageState<?> newState(RamAccounting ramAccounting,
+                                           Version indexVersionCreated,
+                                           Version minNodeInCluster,
+                                           MemoryManager memoryManager) {
         ramAccounting.addBytes(INIT_SIZE);
-        return new NumericAverageState(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
+        return new NumericAverageState<>(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
     }
 
     @Override
-    public NumericAverageState iterate(RamAccounting ramAccounting,
+    public NumericAverageState<?> iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
-                              NumericAverageState state,
+                              NumericAverageState<?> state,
                               Input<?>[]args) throws CircuitBreakingException {
         if (state != null) {
             BigDecimal value = returnType.implicitCast(args[0].value());
             if (value != null) {
                 BigDecimal newValue = state.sum.value().add(value);
                 ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
-                ((BigDecimalValueWrapper) state.sum).setValue(newValue);
+                (state.sum).setValue(newValue);
                 state.count++;
             }
         }
@@ -130,9 +130,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     }
 
     @Override
-    public NumericAverageState reduce(RamAccounting ramAccounting,
-                               NumericAverageState state1,
-                               NumericAverageState state2) {
+    public NumericAverageState<?> reduce(RamAccounting ramAccounting,
+                                         NumericAverageState<?> state1,
+                                         NumericAverageState<?> state2) {
         if (state1 == null) {
             return state2;
         }
@@ -141,14 +141,13 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
         BigDecimal newValue = state1.sum.value().add(state2.sum.value());
         ramAccounting.addBytes(NumericType.sizeDiff(newValue, state1.sum.value()));
-        ((BigDecimalValueWrapper) state1.sum).setValue(newValue);
+        (state1.sum).setValue(newValue);
         state1.count += state2.count;
         return state1;
     }
 
     @Override
-    public BigDecimal terminatePartial(RamAccounting ramAccounting, NumericAverageState state) {
-
+    public BigDecimal terminatePartial(RamAccounting ramAccounting, NumericAverageState<?> state) {
         return state.value();
     }
 
@@ -173,16 +172,18 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     }
 
     @Override
-    public NumericAverageState removeFromAggregatedState(RamAccounting ramAccounting,
-                                                         NumericAverageState previousAggState,
-                                                         Input<?>[]stateToRemove) {
+    public NumericAverageState<?> removeFromAggregatedState(
+        RamAccounting ramAccounting,
+        NumericAverageState<?> previousAggState,
+        Input<?>[]stateToRemove) {
+
         if (previousAggState != null) {
             BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
             if (value != null) {
                 BigDecimal newValue = previousAggState.sum.value().subtract(value);
                 ramAccounting.addBytes(NumericType.sizeDiff(newValue, previousAggState.sum.value()));
                 previousAggState.count--;
-                ((BigDecimalValueWrapper) previousAggState.sum).setValue(newValue);
+                (previousAggState.sum).setValue(newValue);
             }
         }
         return previousAggState;
@@ -248,7 +249,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
     }
 
-    static class AvgDouble implements DocValueAggregator<NumericAverageState> {
+    static class AvgDouble implements DocValueAggregator<NumericAverageState<BigDecimalValueWrapper>> {
 
         private final DataType<BigDecimal> returnType;
         private final String columnName;
@@ -260,9 +261,11 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
 
         @Override
-        public NumericAverageState initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        public NumericAverageState<BigDecimalValueWrapper> initialState(RamAccounting ramAccounting,
+                                                                        MemoryManager memoryManager,
+                                                                        Version minNodeVersion) {
             ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
+            return new NumericAverageState<>(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
         }
 
         @Override
@@ -273,26 +276,25 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         @Override
         public void apply(RamAccounting ramAccounting,
                           int doc,
-                          NumericAverageState state) throws IOException {
+                          NumericAverageState<BigDecimalValueWrapper> state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (state != null) {
                     BigDecimal value = returnType.implicitCast(NumericUtils.sortableLongToDouble(values.nextValue()));
                     BigDecimal newValue = state.sum.value().add(value);
                     ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
-                    ((BigDecimalValueWrapper) state.sum).setValue(newValue);
+                    (state.sum).setValue(newValue);
                     state.count++;
-
                 }
             }
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<BigDecimalValueWrapper> state) {
             return state;
         }
     }
 
-    static class AvgFloat implements DocValueAggregator<NumericAverageState> {
+    static class AvgFloat implements DocValueAggregator<NumericAverageState<BigDecimalValueWrapper>> {
 
         private final DataType<BigDecimal> returnType;
         private final String columnName;
@@ -304,9 +306,11 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
 
         @Override
-        public NumericAverageState initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        public NumericAverageState<BigDecimalValueWrapper> initialState(RamAccounting ramAccounting,
+                                                                        MemoryManager memoryManager,
+                                                                        Version minNodeVersion) {
             ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
+            return new NumericAverageState<>(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
         }
 
         @Override
@@ -317,22 +321,21 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         @Override
         public void apply(RamAccounting ramAccounting,
                           int doc,
-                          NumericAverageState state) throws IOException {
+                          NumericAverageState<BigDecimalValueWrapper> state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (state != null) {
                     BigDecimal value = returnType.implicitCast(NumericUtils.sortableIntToFloat((int) values.nextValue()));
                     BigDecimal newValue = state.sum.value().add(value);
                     ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
-                    ((BigDecimalValueWrapper) state.sum).setValue(newValue);
+                    (state.sum).setValue(newValue);
                     state.count++;
                 }
             }
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<BigDecimalValueWrapper> state) {
             return state;
         }
     }
-
 }
