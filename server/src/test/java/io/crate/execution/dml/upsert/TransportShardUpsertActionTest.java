@@ -34,6 +34,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -77,6 +78,8 @@ import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -165,6 +168,14 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
+
+        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(
+            new SimpleReference(
+                new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
+                RowGranularity.DOC,
+                DataTypes.LONG,
+                0,
+                null));
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
@@ -297,5 +308,38 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).applyIndexOperationOnReplica(
             anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
+    }
+
+    @Test
+    public void test_dynamic_insert_of_integer_upcasted_to_long_can_be_replicated() throws IOException {
+        // A dynamic insert to primary creates the dynamic column,
+        // so the follow-up dynamic insert to replica is actually no longer dynamic.
+        // The follow-up dynamic insert to replica tries to resolve the DynamicReference to a SimpleReference
+        // and there can be a potential ClassCastException.
+        DynamicReference dynamicRefConvertedToSimpleRef = new DynamicReference(
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("dynamic_long_col")),
+            RowGranularity.DOC,
+            0
+        );
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            null,
+            new SimpleReference[]{dynamicRefConvertedToSimpleRef},
+            null,
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId);
+        request.add(1,
+                    ShardUpsertRequest.Item.forInsert(
+                        "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                        new Object[]{1}, // notice that it is not a 'long'
+                        null));
+
+        // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
+        transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
     }
 }
