@@ -55,6 +55,16 @@ public class DateBinFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_interval_with_years_or_months_exception_thrown() {
+        Assertions.assertThatThrownBy(() -> assertEvaluate("date_bin('2 mons' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot use intervals containing months or years");
+        Assertions.assertThatThrownBy(() -> assertEvaluate("date_bin('2 years' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot use intervals containing months or years");
+    }
+
+    @Test
     public void test_interval_is_zero_exception_thrown() {
         Assertions.assertThatThrownBy(() -> assertEvaluate("date_bin('0 days' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
