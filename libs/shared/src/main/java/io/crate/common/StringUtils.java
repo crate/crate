@@ -30,6 +30,8 @@ import javax.annotation.Nullable;
 
 public final class StringUtils {
 
+    private StringUtils() {}
+
     public static final ThreadLocal<long[]> PARSE_LONG_BUFFER = ThreadLocal.withInitial(() -> new long[1]);
 
     public static List<String> splitToList(char delim, String value) {
@@ -119,7 +121,7 @@ public final class StringUtils {
     }
 
     /**
-     * This is a copy of {@link Long.parseLong} but optimized to avoid
+     * This is a copy of {@link Long#parseLong} but optimized to avoid
      * creating an exception and filling its stacktrace if the input cannot be parsed.
      */
     public static boolean tryParseLong(String s, long[] out) {
