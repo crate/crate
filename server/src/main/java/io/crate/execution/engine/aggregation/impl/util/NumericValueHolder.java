@@ -25,4 +25,6 @@ import java.math.BigDecimal;
 
 public interface NumericValueHolder {
     BigDecimal value();
+
+    void setValue(BigDecimal value);
 }

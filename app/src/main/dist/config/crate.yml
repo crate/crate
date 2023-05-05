@@ -27,9 +27,14 @@
 # the owner to 'crate:crate'
 #path.data: /path/to/data1,/path/to/data2
 
-# Clustering: To avoid split-brain situations and data loss on recovery
-#gateway.expected_nodes: 5              # Total amount of nodes
-#gateway.recover_after_nodes: 3         # More than half of the nodes
+# Clustering: The settings below offer a way to delay recovery until a number
+# of data nodes are available, one reason to do this is to avoid the
+# unnecesary creation of new replicas.
+# The specified number of expected data nodes will also be used to give you a
+# health check warning when the actual number of data nodes does not match the
+# expected number.
+#gateway.expected_data_nodes: 5
+#gateway.recover_after_data_nodes: 3
 
 # Networking: Bind to an IP address or interface other than localhost.
 # Be careful! Never expose an unprotected node to the internet.
@@ -42,8 +47,8 @@
 #    - host2
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
+# master-eligible nodes must be set here for clusters upgraded from CrateDB <
+# 4.x which are non loop-back bound, otherwise the cluster is not able to
 # initially vote an initial master node:
 #
 #cluster.initial_master_nodes:
@@ -304,18 +309,18 @@ auth:
 # changes. This data is stored persistently across full cluster restarts
 # and recovered after nodes are started again.
 
-# Defines the number of nodes that need to be started before any cluster
+# Defines the number of data nodes that need to be started before any cluster
 # state recovery will start.
-#gateway.recover_after_nodes: 2
+#gateway.recover_after_data_nodes: 2
 
 # Defines the time to wait before starting the recovery once the number
 # of nodes defined in gateway.recover_after_nodes are started.
 #gateway.recover_after_time: 5m
 
-# Defines how many nodes should be waited for until the cluster state is
+# Defines how many data nodes should be waited for until the cluster state is
 # recovered immediately. The value should be equal to the number of nodes
 # in the cluster.
-#gateway.expected_nodes: 3
+#gateway.expected_data_nodes: 3
 
 
 ############################ Recovery Throttling #############################
@@ -374,8 +379,8 @@ auth:
 # 'config/log4j2.properties' to help you doing so.
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
+# master-eligible nodes must be set here for clusters upgraded from CrateDB <
+# 4.x which are non loop-back bound, otherwise the cluster is not able to
 # initially vote an initial master node:
 #
 #cluster.initial_master_nodes: ["host1", "host2"]
