@@ -40,13 +40,16 @@ public class TimestampArithmeticTest extends ScalarTestCase {
     @Test
     public void test_timestamp_subtract() {
         assertEvaluate("'2000-03-21T23:33:44.999999999'::timestamp - '2022-12-05T11:22:33.123456789'::timestamp",
-                       new Period(-22, -8, 0, -13, -11, -48, -48, -124,
+                       new Period(0, 0, 0, -8293, -11, -48, -48, -124,
                                   PeriodType.yearMonthDayTime()));
         assertEvaluate("'2022-12-05T11:22:33.123456789'::timestamp - '-2000-03-21T23:33:44.999999999'::timestamp",
-                       new Period(4022, 8, 0, 13, 11, 48, 48, 124,
+                       new Period(0, 0, 0, 1469263, 11, 48, 48, 124,
                                   PeriodType.yearMonthDayTime()));
         assertEvaluate("'2022-12-05T11:22:33.123456789+05:30'::timestamptz - '2022-12-03T11:22:33.123456789-02:15'::timestamptz",
                        new Period(0, 0, 0, 1, 16, 15, 0, 0,
+                                  PeriodType.yearMonthDayTime()));
+        assertEvaluate("'2022-11-13T01:22:33.123456789'::timestamp - '2022-12-05T21:22:33.123456789'::timestamp",
+                       new Period(0, 0, 0, -22, -20, 0, 0, 0,
                                   PeriodType.yearMonthDayTime()));
     }
 

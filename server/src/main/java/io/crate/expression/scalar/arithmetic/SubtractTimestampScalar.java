@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 import java.util.List;
 
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -33,7 +34,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.types.IntervalType;
 
 public class SubtractTimestampScalar extends Scalar<Period, Object> {
 
@@ -77,6 +77,6 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
         if (end == null || start == null) {
             return null;
         }
-        return IntervalType.subtractTimestamps(end, start);
+        return new Period(end - start).normalizedStandard(PeriodType.yearMonthDayTime());
     }
 }
