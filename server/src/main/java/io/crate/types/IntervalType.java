@@ -21,20 +21,18 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.interval.IntervalParser;
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.DateTimeConstants;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
-import org.joda.time.Interval;
 import org.joda.time.Period;
-import org.joda.time.PeriodType;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
-import java.io.IOException;
+import io.crate.Streamer;
+import io.crate.interval.IntervalParser;
 
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
@@ -171,32 +169,5 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         millis += (p.getMonths() * (DateTimeConstants.MILLIS_PER_DAY * 30L));
         millis += (p.getYears() * (DateTimeConstants.MILLIS_PER_DAY * 365L));
         return new Duration(millis);
-    }
-
-    /**
-     * returns Period in yearMonthDayTime which corresponds to Postgres default Interval output format.
-     * See https://www.postgresql.org/docs/14/datatype-datetime.html#DATATYPE-INTERVAL-OUTPUT
-     */
-    public static Period subtractTimestamps(long timestamp1, long timestamp2) {
-        /*
-         PeriodType is important as it affects the internal representation of the Period object.
-         PeriodType.yearMonthDayTime() is needed to return 8 days but not 1 week 1 day.
-         Streamer of the IntervalType will simply put 0 in 'out.writeVInt(p.getWeeks())' as getWeeks() returns zero for unused fields.
-         */
-
-        if (timestamp1 < timestamp2) {
-            /*
-            In Postgres second argument is subtracted from the first.
-            Interval's first argument must be smaller than second and thus we swap params and negate.
-
-            We need to pass UTC timezone to be sure that Interval doesn't end up using system default time zone.
-            Currently, timestamps are in UTC (see https://github.com/crate/crate/issues/10037 and
-            https://github.com/crate/crate/issues/12064) but if https://github.com/crate/crate/issues/7196 ever gets
-            implemented, we need to pass here not UTC but time zone set by SET TIMEZONE.
-            */
-            return new Interval(timestamp1, timestamp2, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime()).negated();
-        } else {
-            return new Interval(timestamp2, timestamp1, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime());
-        }
     }
 }
