@@ -64,6 +64,13 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused ``DROP TABLE IF EXISTS`` to wrongly return ``1``
+  row affected or ``SQLParseException`` (depending on user privileges), when
+  called on an existent schema, a non-existent table and with the ``crate``
+  catalog prefix, e.g.::
+
+    DROP TABLE IF EXISTS crate.doc.non_existent_table
+
 - Improved output representation of timestamp subtraction, by normalizing to
   bigger units, but no further than days, to be consistent with PostgreSQL
   behavior. e.g::

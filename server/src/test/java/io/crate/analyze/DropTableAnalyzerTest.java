@@ -22,13 +22,12 @@
 package io.crate.analyze;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Locale.ENGLISH;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,58 +51,68 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropNonExistingTable() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'unknown' unknown");
-        e.analyze("drop table unknown");
+    public void testDropNonExistingTable() {
+        assertThatThrownBy(() -> e.analyze("drop table unknown"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'unknown' unknown");
+        assertThatThrownBy(() -> e.analyze("drop table doc.unknown"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'doc.unknown' unknown");
+        assertThatThrownBy(() -> e.analyze("drop table crate.doc.unknown"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'doc.unknown' unknown");
     }
 
     @Test
-    public void testDropSystemTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
-                                        "operations, as it is read-only.");
-        e.analyze("drop table sys.cluster");
+    public void testDropSystemTable() {
+        assertThatThrownBy(() -> e.analyze("drop table sys.cluster"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
+                        "operations, as it is read-only.");
     }
 
     @Test
-    public void testDropInformationSchemaTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"information_schema.tables\" doesn't support or allow " +
-                                        "DROP operations, as it is read-only.");
-        e.analyze("drop table information_schema.tables");
+    public void testDropInformationSchemaTable() {
+        assertThatThrownBy(() -> e.analyze("drop table information_schema.tables"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"information_schema.tables\" doesn't support or allow " +
+                        "DROP operations, as it is read-only.");
     }
 
     @Test
-    public void testDropUnknownSchema() throws Exception {
-        expectedException.expect(SchemaUnknownException.class);
-        expectedException.expectMessage("Schema 'unknown_schema' unknown");
-        e.analyze("drop table unknown_schema.unknown");
+    public void testDropUnknownSchema() {
+        assertThatThrownBy(() -> e.analyze("drop table unknown_schema.unknown"))
+            .isExactlyInstanceOf(SchemaUnknownException.class)
+            .hasMessage("Schema 'unknown_schema' unknown");
+        assertThatThrownBy(() -> e.analyze("drop table crate.unknown_schema.unknown"))
+            .isExactlyInstanceOf(SchemaUnknownException.class)
+            .hasMessage("Schema 'unknown_schema' unknown");
     }
 
     @Test
-    public void testDropTableIfExistsWithUnknownSchema() throws Exception {
+    public void testDropTableIfExistsWithUnknownSchema() {
         // shouldn't raise SchemaUnknownException / RelationUnknown
         e.analyze("drop table if exists unknown_schema.unknown");
+        e.analyze("drop table if exists crate.unknown_schema.unknown");
     }
 
     @Test
-    public void testDropExistingTable() throws Exception {
+    public void testDropExistingTable() {
         AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
-        assertThat(dropTable.dropIfExists(), is(false));
-        assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
+        assertThat(dropTable.dropIfExists()).isFalse();
+        assertThat(dropTable.table().ident().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
-    public void testDropIfExistExistingTable() throws Exception {
+    public void testDropIfExistExistingTable() {
         AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
-        assertThat(dropTable.dropIfExists(), is(true));
-        assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
+        assertThat(dropTable.dropIfExists()).isTrue();
+        assertThat(dropTable.table().ident().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
-    public void testNonExistentTableIsRecognizedCorrectly() throws Exception {
+    public void testNonExistentTableIsRecognizedCorrectly() {
         AnalyzedDropTable<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
-        assertThat(dropTable.table(), Matchers.nullValue());
+        assertThat(dropTable.table()).isNull();
     }
 }
