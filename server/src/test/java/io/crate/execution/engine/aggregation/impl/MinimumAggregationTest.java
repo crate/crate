@@ -112,10 +112,10 @@ public class MinimumAggregationTest extends AggregationTestCase {
     @Test
     public void test_min_on_interval() throws Exception {
         Object result = executeAggregation(DataTypes.INTERVAL, new Object[][] {
-            { new Period(4, 30, 0, 0) },
-            { new Period(5, 50, 0, 0) }
+            { new Period(3, 2, 5, 7, 4, 30, 0, 0) },
+            { new Period(3, 2, 5, 7, 5, 50, 0, 0) }
         });
-        assertThat(result).isEqualTo(new Period(4, 30, 0, 0));
+        assertThat(result).isEqualTo(new Period(3, 2, 5, 7, 4, 30, 0, 0));
     }
 
     @Test

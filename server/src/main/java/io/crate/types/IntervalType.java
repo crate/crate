@@ -25,6 +25,8 @@ import io.crate.Streamer;
 import io.crate.interval.IntervalParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.DateTimeConstants;
+import org.joda.time.Duration;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
@@ -103,7 +105,7 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
     @Override
     public int compare(Period p1, Period p2) {
-        return p1.toStandardDuration().compareTo(p2.toStandardDuration());
+        return toStandardDuration(p1).compareTo(toStandardDuration(p2));
 
     }
 
@@ -150,5 +152,21 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     @Override
     public long valueBytes(Period value) {
         return 32;
+    }
+
+    /**
+     * A copy of {@link Period#toStandardDuration()} which allows also months and years
+     * using a standard number of 30 days per month and 365 days per year.
+     */
+    public static Duration toStandardDuration(Period p) {
+        long millis = p.getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs
+        millis += (((long) p.getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));
+        millis += (((long) p.getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));
+        millis += (((long) p.getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));
+        millis += (((long) p.getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));
+        millis += (((long) p.getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));
+        millis += (p.getMonths() * (DateTimeConstants.MILLIS_PER_DAY * 30L));
+        millis += (p.getYears() * (DateTimeConstants.MILLIS_PER_DAY * 365L));
+        return new Duration(millis);
     }
 }

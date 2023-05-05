@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -2168,26 +2167,28 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    @UseJdbc(0)
-    public void test_can_sort_on_interval() throws Exception {
+    @UseJdbc(0) // For consistent output format
+    public void test_can_sort_on_interval() {
         execute(
             """
             select x from unnest([
-                interval '3' hour,
-                interval '5' hour,
-                interval '4' hour
+                INTERVAL '6 years 3 mons' YEAR TO MONTH,
+                INTERVAL '4 days 3 hours' DAY TO HOUR,
+                INTERVAL '6 years 4 mons' YEAR TO MONTH,
+                INTERVAL '4 days 4 hours' DAY TO HOUR
             ]) t (x) order by 1 desc
             """
         );
         assertThat(response).hasRows(
-            "PT5H",
-            "PT4H",
-            "PT3H"
+            "P6Y4M",
+            "P6Y3M",
+            "P4DT4H",
+            "P4DT3H"
         );
         execute("select current_timestamp - process['probe_timestamp'] from sys.nodes order by 1");
         List<Period> sorted = Arrays.stream(response.rows())
             .map(row -> (Period) row[0])
-            .sorted((o1, o2) -> DataTypes.INTERVAL.compare(o1, o2))
+            .sorted(DataTypes.INTERVAL)
             .toList();
         List<Period> resultOrder = Arrays.stream(response.rows())
             .map(row -> (Period) row[0])

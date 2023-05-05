@@ -40,6 +40,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'abc' <= 'abd'", isLiteral(true));
         assertNormalize("'2 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 month 1 hour'::interval <= '1 month 2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true <= null");
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
@@ -51,7 +52,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("id < 8", isFunction("op_<"));
         assertNormalize("0.1 < 0.2", isLiteral(true));
         assertNormalize("'abc' < 'abd'", isLiteral(true));
-        assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 hour'::interval < '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 month 1 hour'::interval < '1 month 2 hour'::interval", isLiteral(true));
         assertEvaluateNull("true < null");
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
@@ -66,6 +68,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'abc' >= 'abd'", isLiteral(false));
         assertNormalize("'2 hour'::interval >= '2 hour'::interval", isLiteral(true));
         assertNormalize("'12 hour'::interval >= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 month 1 hour'::interval >= '1 month 2 hour'::interval", isLiteral(false));
         assertEvaluateNull("true >= null");
         assertEvaluateNull("null >= 1");
         assertEvaluateNull("null >= 'abc'");
@@ -79,6 +82,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("16 > 8", isLiteral(true));
         assertNormalize("'abd' > 'abc'", isLiteral(true));
         assertNormalize("'10 hour'::interval > '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 month 1 hour'::interval > '1 month 2 hour'::interval", isLiteral(false));
         assertEvaluateNull("true > null");
         assertEvaluateNull("null > 1");
         assertEvaluateNull("name > null", Literal.of("foo"));
