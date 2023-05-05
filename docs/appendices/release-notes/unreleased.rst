@@ -65,6 +65,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+
+- Improved error message for :ref:`date_bin <date-bin>` scalar function when the
+  first argument of :ref:`INTERVAL data type <type-interval>` contains month
+  and/or year units.
+
 - Fixed an issue that caused ``AssertionError`` to be thrown when referencing
   previous relations, not explicitly joined, in an join condition, e.g.::
 

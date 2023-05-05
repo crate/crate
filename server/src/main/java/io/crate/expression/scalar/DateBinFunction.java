@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -30,9 +34,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-import org.joda.time.Period;
-
-import java.util.List;
 
 public class DateBinFunction extends Scalar<Long, Object> {
 
@@ -85,7 +86,9 @@ public class DateBinFunction extends Scalar<Long, Object> {
         if (arguments.get(0) instanceof Input<?> input) {
             var value = input.value();
             if (value != null) {
-                long intervalInMs = ((Period) value).toStandardDuration().getMillis();
+                Period p = (Period) value;
+                checkMonthsAndYears(p);
+                long intervalInMs = p.toStandardDuration().getMillis();
                 if (intervalInMs == 0) {
                     throw new IllegalArgumentException("Interval cannot be zero");
                 }
@@ -107,7 +110,19 @@ public class DateBinFunction extends Scalar<Long, Object> {
             return null;
         }
 
-        return getBinnedTimestamp(((Period) interval).toStandardDuration().getMillis(), (long) timestamp, (long) origin);
+        Period p = (Period) interval;
+        checkMonthsAndYears(p);
+        return getBinnedTimestamp(p.toStandardDuration().getMillis(), (long) timestamp, (long) origin);
+    }
+
+    /**
+     * Similar to the check called in {@link Period#toStandardDuration()} anyway,
+     * but do it beforehand to provide a better error message.
+     */
+    private static void checkMonthsAndYears(Period p) {
+        if (p.getMonths() != 0 || p.getYears() != 0) {
+            throw new IllegalArgumentException("Cannot use intervals containing months or years");
+        }
     }
 
     private static long getBinnedTimestamp(long interval, long timestamp, long origin) {

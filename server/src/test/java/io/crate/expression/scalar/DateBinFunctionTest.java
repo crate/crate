@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isSameInstance;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,6 +53,16 @@ public class DateBinFunctionTest extends ScalarTestCase {
         assertEvaluateNull("date_bin(null, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
         assertEvaluateNull("date_bin('1 day' :: INTERVAL , null, CURRENT_TIMESTAMP)");
         assertEvaluateNull("date_bin('1 day' :: INTERVAL , CURRENT_TIMESTAMP, null)");
+    }
+
+    @Test
+    public void test_interval_with_years_or_months_exception_thrown() {
+        assertThatThrownBy(() -> assertEvaluate("date_bin('2 mons' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot use intervals containing months or years");
+        assertThatThrownBy(() -> assertEvaluate("date_bin('2 years' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot use intervals containing months or years");
     }
 
     @Test
