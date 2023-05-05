@@ -21,10 +21,14 @@
 
 package io.crate.expression.scalar;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.testing.Asserts;
 
 public class TypeInferenceTest extends ScalarTestCase {
 
@@ -37,9 +41,9 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("1.0::float = 1.2::double", false);
         assertEvaluate("'1' = 1", true);
 
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        assertEvaluate("'foo' = 1", true);
+        Asserts.assertThatThrownBy(() -> assertEvaluate("'foo' = 1", true))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
     }
 
     @Test
@@ -58,9 +62,9 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("case 1 when 1.1 then 'foo' else 'bar' end", "bar");
         assertEvaluate("case 1 when 1.0 then 'foo' else 'bar' end", "foo");
 
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        assertEvaluate("case 1 when 'foo' then 'foo' else 'bar' end", "bar");
+        assertThatThrownBy(() -> assertEvaluate("case 1 when 'foo' then 'foo' else 'bar' end", "bar"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
     }
 
     @Test
@@ -70,9 +74,9 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("1.2 in (1::integer, 2::long, 3.0)", false);
         assertEvaluateNull("1.2 in (null, 1::integer, 2::long, 3.0)");
 
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
-        assertEvaluate("1 in (null, 1::integer, 2::long, 3.0, 'foo')", true);
+        assertThatThrownBy(() -> assertEvaluate("1 in (null, 1::integer, 2::long, 3.0, 'foo')", true))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
     }
 
     @Test
@@ -82,9 +86,9 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("1.0 = ANY ([1::integer, 2::long, 3.0])", true);
         assertEvaluateNull("1.2 = ANY ([null, 1::integer, 2::long, 3.0])");
 
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
-        assertEvaluate("1 = ANY ([null, 1::integer, 2::long, 3.0, 'foo'])", true);
+        assertThatThrownBy(() -> assertEvaluate("1 = ANY ([null, 1::integer, 2::long, 3.0, 'foo'])", true))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
     }
 
     /**
@@ -92,8 +96,9 @@ public class TypeInferenceTest extends ScalarTestCase {
      */
     @Test
     public void testTimestampOperations() {
-        assertEvaluate("3::timestamp with time zone - 1", Period.millis(2));
+        assertEvaluate("3::timestamp with time zone - 1",
+                       Period.millis(2).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("3000::timestamp with time zone / 1000", 3L);
-        assertEvaluate("3000::timestamp with time zone/ 1000.0", 3.0);
+        assertEvaluate("3000::timestamp with time zone / 1000.0", 3.0);
     }
 }

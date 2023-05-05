@@ -64,6 +64,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Improved output representation of timestamp subtraction, by normalizing to
+  bigger units. e.g::
+
+    SELECT '2022-12-05T11:22:33.123456789+05:30'::timestamp - '2022-12-03T11:22:33.123456789-02:15'::timestamp
+
+  previously would return: ``PT40H15M`` and now returns: ``P1DT16H15M``.
 
 - Improved error message for :ref:`date_bin <date-bin>` scalar function when the
   first argument of :ref:`INTERVAL data type <type-interval>` contains month
