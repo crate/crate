@@ -55,6 +55,9 @@ None
 Changes
 =======
 
+- Added support for :ref:`AVG() aggregation <aggregation-avg>` on
+  :ref:`INTERVAL data type <type-interval>`.
+
 - Changed literal :ref:`INTERVAL data type <type-interval>` to do normalization
   up to day units, and comply with PostgreSQL behavior, e.g.::
 
