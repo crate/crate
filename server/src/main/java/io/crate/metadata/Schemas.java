@@ -141,7 +141,8 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             } else {
                 tableInfo = schemaInfo.getTableInfo(tableName);
                 if (tableInfo == null) {
-                    throw RelationUnknown.of(ident.toString(), getSimilarTables(user, tableName, schemaInfo.getTables()));
+                    throw RelationUnknown.of(identSchema + "." + tableName,
+                                             getSimilarTables(user, tableName, schemaInfo.getTables()));
                 }
             }
         }
