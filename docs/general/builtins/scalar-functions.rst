@@ -996,6 +996,8 @@ is placed.
 If you use an interval with a single unit like ``1 second`` or ``1 minute``,
 this function returns the same result as :ref:`date_trunc <scalar-date_trunc>`.
 
+Intervals with months and/or year units are not allowed.
+
 If the interval is ``1 week``, ``date_bin`` only returns the same result as
 ``date_trunc`` if the origin is a Monday.
 
