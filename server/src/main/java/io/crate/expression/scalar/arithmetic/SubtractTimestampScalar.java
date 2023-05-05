@@ -33,6 +33,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.IntervalType;
 
 public class SubtractTimestampScalar extends Scalar<Period, Object> {
 
@@ -76,6 +77,6 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
         if (end == null || start == null) {
             return null;
         }
-        return new Period(end - start);
+        return IntervalType.subtractTimestamps(end, start);
     }
 }
