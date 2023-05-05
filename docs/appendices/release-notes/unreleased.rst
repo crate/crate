@@ -66,7 +66,8 @@ Fixes
 .. an automated mergify backport.
 
 - Improved output representation of timestamp subtraction, by normalizing to
-  bigger units. e.g::
+  bigger units, but no further than days, to be consistent with PostgreSQL
+  behavior. e.g::
 
     SELECT '2022-12-05T11:22:33.123456789+05:30'::timestamp - '2022-12-03T11:22:33.123456789-02:15'::timestamp
 
