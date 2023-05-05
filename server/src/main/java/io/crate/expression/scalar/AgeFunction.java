@@ -22,6 +22,10 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
@@ -31,12 +35,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Interval;
-import org.joda.time.Period;
-import org.joda.time.PeriodType;
-
-import static io.crate.metadata.functions.Signature.scalar;
+import io.crate.types.IntervalType;
 
 public class AgeFunction extends Scalar<Period, Object> {
 
@@ -98,39 +97,13 @@ public class AgeFunction extends Scalar<Period, Object> {
         if (args.length == 1) {
             long curDateMillis = txnCtx.currentInstant().toEpochMilli();
             curDateMillis = curDateMillis - curDateMillis % 86400000; // current_date at midnight, similar to CurrentDateFunction implementation.
-            return getPeriod(curDateMillis, (long) arg1);
+            return IntervalType.subtractTimestamps(curDateMillis, (long) arg1);
         } else {
             var arg2 = args[1].value();
             if (arg2 == null) {
                 return null;
             }
-            return getPeriod((long) arg1, (long) arg2);
-        }
-    }
-
-    /**
-     * returns Period in yearMonthDayTime which corresponds to Postgres default Interval output format.
-     * See https://www.postgresql.org/docs/14/datatype-datetime.html#DATATYPE-INTERVAL-OUTPUT
-     */
-    private static Period getPeriod(long timestamp1, long timestamp2) {
-        /*
-         PeriodType is important as it affects the internal representation of the Period object.
-         PeriodType.yearMonthDayTime() is needed to return 8 days but not 1 week 1 day.
-         Streamer of the IntervalType will simply put 0 in 'out.writeVInt(p.getWeeks())' as getWeeks() returns zero for unused fields.
-         */
-
-        if (timestamp1 < timestamp2) {
-            /*
-            In Postgres second argument is subtracted from the first.
-            Interval's first argument must be smaller than second and thus we swap params and negate.
-
-            We need to pass UTC timezone to be sure that Interval doesn't end up using system default time zone.
-            Currently timestamps are in UTC (see https://github.com/crate/crate/issues/10037 and https://github.com/crate/crate/issues/12064)
-            but if https://github.com/crate/crate/issues/7196 ever gets implemented, we need to pass here not UTC but time zone set by SET TIMEZONE.
-            */
-            return new Interval(timestamp1, timestamp2, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime()).negated();
-        } else {
-            return new Interval(timestamp2, timestamp1, DateTimeZone.UTC).toPeriod(PeriodType.yearMonthDayTime());
+            return IntervalType.subtractTimestamps((long) arg1, (long) arg2);
         }
     }
 }
