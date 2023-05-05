@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -39,11 +40,14 @@ public class TimestampArithmeticTest extends ScalarTestCase {
     @Test
     public void test_timestamp_subtract() {
         assertEvaluate("'2000-03-21T23:33:44.999999999'::timestamp - '2022-12-05T11:22:33.123456789'::timestamp",
-                       Period.hours(-199043).withMinutes(-48).withSeconds(-48).withMillis(-124));
+                       new Period(-22, -8, 0, -13, -11, -48, -48, -124,
+                                  PeriodType.yearMonthDayTime()));
         assertEvaluate("'2022-12-05T11:22:33.123456789'::timestamp - '-2000-03-21T23:33:44.999999999'::timestamp",
-                       Period.hours(35262323).withMinutes(48).withSeconds(48).withMillis(124));
+                       new Period(4022, 8, 0, 13, 11, 48, 48, 124,
+                                  PeriodType.yearMonthDayTime()));
         assertEvaluate("'2022-12-05T11:22:33.123456789+05:30'::timestamptz - '2022-12-03T11:22:33.123456789-02:15'::timestamptz",
-                       Period.hours(40).withMinutes(15));
+                       new Period(0, 0, 0, 1, 16, 15, 0, 0,
+                                  PeriodType.yearMonthDayTime()));
     }
 
     @Test
