@@ -46,7 +46,7 @@ import io.crate.types.DataType;
 public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>> {
 
     public static final String NAME = "array_unnest";
-    private static final Signature SIGNATURE = Signature.scalar(
+    public static final Signature SIGNATURE = Signature.scalar(
         NAME,
         parseTypeSignature("array(array(E))"),
         parseTypeSignature("array(E)")

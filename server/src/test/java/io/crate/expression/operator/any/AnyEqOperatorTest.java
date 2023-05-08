@@ -22,10 +22,17 @@
 package io.crate.expression.operator.any;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.search.Query;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.testing.QueryTester;
 
 public class AnyEqOperatorTest extends ScalarTestCase {
 
@@ -68,5 +75,38 @@ public class AnyEqOperatorTest extends ScalarTestCase {
     @Test
     public void testArrayEqAnyNestedArrayDoesNotMatch() {
         assertNormalize("['foo', 'bar'] = ANY([ ['foobar'], ['foo', 'ar'], [] ])", isLiteral(false));
+    }
+
+    @Test
+    public void test_uses_terms_query_for_unnested_array_refs() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (obj_arr array(object as (xs integer[])))"
+        );
+        List<Map<String, List<Integer>>> value1 = List.of(
+            Map.of("xs", List.of(1, 2)),
+            Map.of("xs", List.of(3, 4))
+        );
+        List<Map<String, List<Integer>>> value2 = List.of(
+            Map.of("xs", List.of(5, 6))
+        );
+        builder.indexValues("obj_arr", value1, value2);
+        try (var queryTester = builder.build()) {
+            assertThat(queryTester.runQuery("obj_arr", "1 = ANY(obj_arr['xs'])"))
+                .contains(value1);
+
+            assertThat(queryTester.runQuery("obj_arr", "[1, 2] = ANY(obj_arr['xs'])"))
+                .contains(value1);
+
+            assertThat(queryTester.runQuery("obj_arr", "6 = ANY(obj_arr['xs'])"))
+                .contains(value2);
+            assertThat(queryTester.runQuery("obj_arr", "9 = ANY(obj_arr['xs'])"))
+                .hasSize(0);
+            Query query = queryTester.toQuery("1 = ANY(obj_arr['xs'])");
+            assertThat(query.toString()).isEqualTo("obj_arr.xs:[1 TO 1]");
+        }
     }
 }
