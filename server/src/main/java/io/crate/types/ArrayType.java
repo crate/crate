@@ -347,6 +347,18 @@ public class ArrayType<T> extends DataType<List<T>> {
         return dataType;
     }
 
+    /**
+     * @return number of array dimensions/levels of the type. 0 if not an array
+     */
+    public static int dimensions(DataType<?> type) {
+        int dimensions = 0;
+        while (type instanceof ArrayType<?> arrayType) {
+            type = arrayType.innerType;
+            dimensions++;
+        }
+        return dimensions;
+    }
+
     static class ArrayStreamer<T> implements Streamer<List<T>> {
 
         private final DataType<T> innerType;
