@@ -55,6 +55,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
+                                 null,
                                  1L,
                                  DataTypes.INTEGER.fixedSize());
         var memo = new Memo(source);
@@ -76,6 +77,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
+                                 null,
                                  1L,
                                  DataTypes.INTEGER.fixedSize());
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
@@ -98,6 +100,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
+                                 null,
                                  10L,
                                  DataTypes.INTEGER.fixedSize());
         TableStats tableStats = new TableStats();
@@ -121,6 +124,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
+                                 null,
                                  10L,
                                  DataTypes.INTEGER.fixedSize());
         TableStats tableStats = new TableStats();

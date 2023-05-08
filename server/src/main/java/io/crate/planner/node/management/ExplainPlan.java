@@ -366,6 +366,7 @@ public class ExplainPlan implements Plan {
                 collect.relation(),
                 collect.outputs(),
                 collect.where().map(s -> Optimizer.optimizeCasts(s, context)),
+                collect.params(),
                 collect.numExpectedRows(),
                 collect.estimatedRowSize()
             );

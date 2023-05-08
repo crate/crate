@@ -63,7 +63,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, null, 1L, DataTypes.INTEGER.fixedSize());
         var eval = new Eval(
             collect,
             List.of(
@@ -98,7 +98,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         Reference x = (Reference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, null, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1X = alias.getField(x.column(), Operation.READ, true);
         assertThat(t1X).isNotNull();
         var rename = new Rename(List.of(t1X), alias.relationName(), alias, collect);
@@ -135,7 +135,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = new AliasSymbol("x_alias", e.asSymbol("x"));
         var relation = new DocTableRelation(tableInfo);
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, null, 1L, DataTypes.INTEGER.fixedSize());
         var eval = new Eval(
             collect,
             List.of(x)

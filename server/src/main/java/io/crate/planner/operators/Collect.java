@@ -94,6 +94,8 @@ public class Collect implements LogicalPlan {
     private final long numExpectedRows;
     private final long estimatedRowSize;
     final WhereClause immutableWhere;
+    @Nullable
+    final Row params;
 
     WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
@@ -108,6 +110,7 @@ public class Collect implements LogicalPlan {
             relation,
             toCollect,
             where,
+            params,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
             stats.estimateSizeForColumns(toCollect)
         );
@@ -126,11 +129,14 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = collect.immutableWhere;
         this.tableInfo = collect.relation.tableInfo();
         this.detailedQuery = detailedQuery;
+        this.params = collect.params;
     }
 
     public Collect(AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where,
+                   @Nullable
+                   Row params,
                    long numExpectedRows,
                    long estimatedRowSize) {
         this.outputs = outputs;
@@ -144,6 +150,7 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = where;
         this.mutableBoundWhere = where;
         this.tableInfo = relation.tableInfo();
+        this.params = params;
     }
 
     @Override
@@ -188,6 +195,10 @@ public class Collect implements LogicalPlan {
             limitAndOffset,
             positionalOrderBy
         );
+    }
+
+    public Row params() {
+        return params;
     }
 
     @Override
@@ -367,6 +378,7 @@ public class Collect implements LogicalPlan {
             relation,
             newOutputs,
             immutableWhere,
+            params,
             numExpectedRows,
             stats.estimateSizeForColumns(newOutputs)
         );
@@ -413,6 +425,7 @@ public class Collect implements LogicalPlan {
                 relation,
                 newOutputs,
                 immutableWhere,
+                params,
                 numExpectedRows,
                 stats.estimateSizeForColumns(newOutputs)
             )

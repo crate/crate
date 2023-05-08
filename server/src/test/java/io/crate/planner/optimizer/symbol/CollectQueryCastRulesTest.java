@@ -97,6 +97,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             tr1,
             Collections.emptyList(),
             new WhereClause(e.asSymbol(query)),
+            null,
             100,
             10
         );

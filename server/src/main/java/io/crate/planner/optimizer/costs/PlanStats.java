@@ -43,6 +43,7 @@ import io.crate.planner.operators.TableFunction;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
+import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -166,7 +167,14 @@ public class PlanStats {
         @Override
         public Stats visitCollect(Collect collect, Void context) {
             var stats = tableStats.getStats(collect.relation().relationName());
-            return new Stats(stats.numDocs(), stats.averageSizePerRowInBytes(), stats.statsByColumn());
+            long numberOfRows;
+            var query = collect.where().query();
+            if (query == null) {
+                numberOfRows = stats.numDocs();
+            } else {
+                numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, collect.params());
+            }
+            return new Stats(numberOfRows, stats.averageSizePerRowInBytes(), stats.statsByColumn());
         }
 
         @Override

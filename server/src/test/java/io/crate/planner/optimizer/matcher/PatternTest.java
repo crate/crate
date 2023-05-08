@@ -63,7 +63,7 @@ public class PatternTest {
 
     @Test
     public void test_with_source_matching() {
-        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 1, 1);
+        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, null, 1, 1);
         Filter filter = new Filter(source, mock(Symbol.class));
         var pattern = typeOf(Filter.class).with(source(), typeOf(Collect.class));
         assertMatch(pattern, filter);
@@ -82,7 +82,7 @@ public class PatternTest {
 
     @Test
     public void test_with_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
+        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, null, 100, 10);
         var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
@@ -108,7 +108,7 @@ public class PatternTest {
 
     @Test
     public void test_with_property_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
+        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, null, 100, 10);
         var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
