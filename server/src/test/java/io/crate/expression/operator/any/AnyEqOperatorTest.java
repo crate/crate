@@ -96,13 +96,13 @@ public class AnyEqOperatorTest extends ScalarTestCase {
         builder.indexValues("obj_arr", value1, value2);
         try (var queryTester = builder.build()) {
             assertThat(queryTester.runQuery("obj_arr", "1 = ANY(obj_arr['xs'])"))
-                .contains(value1);
+                .containsExactly(value1);
 
             assertThat(queryTester.runQuery("obj_arr", "[1, 2] = ANY(obj_arr['xs'])"))
-                .contains(value1);
+                .containsExactly(value1);
 
             assertThat(queryTester.runQuery("obj_arr", "6 = ANY(obj_arr['xs'])"))
-                .contains(value2);
+                .containsExactly(value2);
             assertThat(queryTester.runQuery("obj_arr", "9 = ANY(obj_arr['xs'])"))
                 .hasSize(0);
             Query query = queryTester.toQuery("1 = ANY(obj_arr['xs'])");
