@@ -25,8 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.AbstractAssert;
 
+import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.Symbol;
 
 public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Projection> {
 
@@ -40,5 +42,12 @@ public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Pro
         assertThat(((LimitAndOffsetProjection) actual).limit()).isEqualTo(expectedLimit);
         assertThat(((LimitAndOffsetProjection) actual).offset()).isEqualTo(expectedOffset);
         return this;
+    }
+
+    public SymbolAssert isFilterWithQuery() {
+        isNotNull();
+        isExactlyInstanceOf(FilterProjection.class);
+        Symbol query = ((FilterProjection) actual).query();
+        return new SymbolAssert(query);
     }
 }
