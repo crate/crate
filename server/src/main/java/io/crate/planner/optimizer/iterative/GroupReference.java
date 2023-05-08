@@ -129,4 +129,9 @@ public class GroupReference implements LogicalPlan {
     public List<AbstractTableRelation<?>> baseTables() {
         throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
+
+    @Override
+    public String toString() {
+        return "GroupReference{" + groupId + "}";
+    }
 }
