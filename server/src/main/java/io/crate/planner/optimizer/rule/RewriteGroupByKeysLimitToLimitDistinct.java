@@ -96,11 +96,12 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
+        long rows = planStats.apply(groupAggregate).numDocs();
         long sourceRows = planStats.apply(groupAggregate.source()).numDocs();
         if (sourceRows == 0) {
             return false;
         }
-        var cardinalityRatio = groupAggregate.numExpectedRows() / sourceRows;
+        var cardinalityRatio = rows / sourceRows;
         /*
          * The threshold was chosen after comparing `with limitDistinct` vs. `without limitDistinct`
          *
