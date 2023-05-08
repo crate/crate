@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +53,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 200)
     public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException {
         execute("create table t (a int, b object as (x int)) partitioned by (a)");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
