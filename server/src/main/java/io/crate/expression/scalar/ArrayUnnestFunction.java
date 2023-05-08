@@ -28,11 +28,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 
 /**
  * <pre>
@@ -42,19 +46,27 @@ import io.crate.metadata.functions.Signature;
 public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>> {
 
     public static final String NAME = "array_unnest";
+    private static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        parseTypeSignature("array(array(E))"),
+        parseTypeSignature("array(E)")
+    ).withTypeVariableConstraints(typeVariable("E"));
 
     private final Signature signature;
     private final BoundSignature boundSignature;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature.scalar(
-                NAME,
-                parseTypeSignature("array(array(E))"),
-                parseTypeSignature("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
-            ArrayUnnestFunction::new
-        );
+        module.register(SIGNATURE, ArrayUnnestFunction::new);
+    }
+
+    public static Symbol unnest(Symbol arg, int dimensions) {
+        for (int i = 0; i < dimensions; i++) {
+            DataType<?> valueType = arg.valueType();
+            assert valueType instanceof ArrayType<?> : "Argument to unnest must be an array, not: " + valueType;
+            DataType<?> returnType = ((ArrayType<?>) valueType).innerType();
+            arg = new Function(SIGNATURE, List.of(arg), returnType);
+        }
+        return arg;
     }
 
     public ArrayUnnestFunction(Signature signature, BoundSignature boundSignature) {

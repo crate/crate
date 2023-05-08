@@ -25,16 +25,13 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.types.BitStringType;
 
 import org.joda.time.Period;
 import org.junit.Before;
@@ -46,12 +43,15 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.scalar.ArraySliceFunction;
+import io.crate.expression.scalar.ArrayUnnestFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
@@ -73,6 +73,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 
 /**
@@ -472,5 +473,38 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> executor.analyze("SELECT 1 OFFSET TRY_CAST('{\"name\"=\"Arthur\"}' AS object)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot cast to a datatype that is not convertable to `integer`");
+    }
+
+    @Test
+    public void test_any_automatically_levels_array_dimensions() throws Exception {
+        assertThat(executor.asSymbol("1 = ANY([1, 2])")).isLiteral(true);
+        assertThat(executor.asSymbol("3 = ANY([1, 2])")).isLiteral(false);
+
+        assertThat(executor.asSymbol("[1, 2] = ANY([[3, 4], [1, 2]])")).isLiteral(true);
+        assertThat(executor.asSymbol("[1, 3] = ANY([[3, 4], [1, 2]])")).isLiteral(false);
+
+        assertThat(executor.asSymbol("1 = ANY([ [1, 2, 3], [4, 5] ])")).isLiteral(true);
+        assertThat(executor.asSymbol("8 = ANY([ [1, 2, 3], [4, 5] ])")).isLiteral(false);
+
+        assertThat(executor.asSymbol("1 = ANY([ [[1, 2, 3], [1, 2]], [[4, 5], [5]] ])")).isLiteral(true);
+        assertThat(executor.asSymbol("[1] = ANY([ [[1, 2, 3], [1, 2]], [[4, 5], [5]] ])")).isLiteral(false);
+        assertThat(executor.asSymbol("[1, 2] = ANY([ [[1, 2, 3], [1, 2]], [[4, 5], [5]] ])")).isLiteral(true);
+
+        assertThat(executor.asSymbol("t1.x = ANY([ [1, 2, 3], [4, 5] ])")).isFunction(
+            AnyEqOperator.NAME,
+            x -> assertThat(x).isReference("x"),
+            x -> assertThat(x)
+                .as("array_unnest is eagerly normalized to array literal")
+                .isLiteral(List.of(1, 2, 3, 4, 5))
+        );
+
+        assertThat(executor.asSymbol("1 = ANY(o_arr['o_arr_nested']['y'])")).isFunction(
+            AnyEqOperator.NAME,
+            x -> assertThat(x).isLiteral(1),
+            x -> assertThat(x).isFunction(
+                ArrayUnnestFunction.NAME,
+                y -> assertThat(y).isReference("o_arr['o_arr_nested']['y']")
+            )
+        );
     }
 }

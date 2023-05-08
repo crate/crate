@@ -574,6 +574,19 @@ This query selects any locations with at least one (i.e., :ref:`ANY
     +-------------------+---------------------------+
     SELECT 2 rows in set (... sec)
 
+
+``ANY`` automatically unnests the array argument to the number of
+dimensions required::
+
+    cr> SELECT 1 = ANY([[1, 2], [3, 4]]);
+    +------+
+    | true |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
 .. NOTE::
 
     It is possible to use ``ANY`` to compare values directly against the

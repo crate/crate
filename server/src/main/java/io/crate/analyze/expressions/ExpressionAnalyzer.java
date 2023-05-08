@@ -73,6 +73,7 @@ import io.crate.expression.operator.RegexpMatchOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ArraySliceFunction;
+import io.crate.expression.scalar.ArrayUnnestFunction;
 import io.crate.expression.scalar.CurrentDateFunction;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
@@ -81,8 +82,8 @@ import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.conditional.CaseFunction;
+import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
@@ -103,8 +104,8 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
-import io.crate.sql.parser.ParsingException;
 import io.crate.sql.Identifiers;
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparison;
@@ -472,7 +473,7 @@ public class ExpressionAnalyzer {
                 default:
                     visitExpression(node, context);
             }
-            Optional p = node.getPrecision();
+            Optional<Integer> p = node.getPrecision();
             return allocateFunction(
                 funcName,
                 p.isPresent() ? List.of(Literal.ofUnchecked(DataTypes.INTEGER, p.get())) : List.of(),
@@ -786,6 +787,16 @@ public class ExpressionAnalyzer {
             context.parentIsOrderSensitive(false);
             Symbol leftSymbol = node.getLeft().accept(this, context);
             Symbol arraySymbol = node.getRight().accept(this, context);
+
+            // Automatically unnest right side to required number of dimensions
+            // E.g. `1 = ANY([ [1, 2], [3, 4] ])` behaves like `1 = ANY([1, 2, 3, 4])`
+            // This matches PostgreSQL semantics.
+            // If negative, the function lookup further below will fail with an appropriate error message
+            int leftDimensions = ArrayType.dimensions(leftSymbol.valueType());
+            int rightDimensions = ArrayType.dimensions(arraySymbol.valueType());
+            int diff = rightDimensions - leftDimensions;
+            arraySymbol = ArrayUnnestFunction.unnest(arraySymbol, diff - 1);
+
             context.parentIsOrderSensitive(true);
             ComparisonExpression.Type operationType = node.getType();
             final String operatorName;

@@ -55,6 +55,18 @@ None
 Changes
 =======
 
+- Array comparisons like ``= ANY`` will now automatically unnest the array
+  argument to the required dimensions.
+
+  An example::
+
+    cr> SELECT 1 = ANY([ [1, 2], [3, 4] ]);   -- automatic unnesting
+    True
+
+    cr> SELECT [1] = ANY([ [1, 2], [3, 4] ]); -- no unnesting
+    False
+
+
 - Added a :ref:`array_unnest <scalar-array_unnest>` scalar function.
 
 - Updated the bundled JDK to 20.0.1+9
