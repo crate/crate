@@ -116,6 +116,8 @@ analyzer as a parameter using the ``WITH`` statement::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. _named-index-column:
+
 Defining a named index column definition
 ----------------------------------------
 
