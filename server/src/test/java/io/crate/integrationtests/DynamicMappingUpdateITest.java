@@ -70,15 +70,13 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             while (dmlStatementsFinished.get() == false) {
                 synchronized (response) {
                     execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-                    for (int i = 0; i < response.rowCount(); i++) {
-                        String columnName = (String) response.rows()[0][0];
-                        Integer newPosition = (Integer) response.rows()[0][1];
-                        Integer previousPosition = columnPositions.put(columnName, newPosition);
-                        if (previousPosition != null && previousPosition.equals(newPosition) == false) {
-                            throw new IllegalStateException(
-                                String.format(Locale.ENGLISH, "Column %s had position %d which is recomputed to %d", columnName, previousPosition, newPosition)
-                            );
-                        }
+                    String columnName = (String) response.rows()[0][0];
+                    Integer newPosition = (Integer) response.rows()[0][1];
+                    Integer previousPosition = columnPositions.put(columnName, newPosition);
+                    if (previousPosition != null && previousPosition.equals(newPosition) == false) {
+                        throw new IllegalStateException(
+                            String.format(Locale.ENGLISH, "Column %s had position %d which is recomputed to %d", columnName, previousPosition, newPosition)
+                        );
                     }
                 }
             }
