@@ -21,8 +21,10 @@
 
 package io.crate.analyze;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -314,6 +316,12 @@ public class TableElementsAnalyzer {
 
             setAnalyzer(indexDefinition.properties(), context, indexDefinition.method());
 
+            Set<T> uniqueColumns = new HashSet<>(indexDefinition.columns());
+            if (uniqueColumns.size() != indexDefinition.columns().size()) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Index %s contains duplicate columns.", indexDefinition.ident())
+                );
+            }
             for (T symbol : indexDefinition.columns()) {
                 context.analyzedTableElements.addCopyTo(
                     symbol,

@@ -43,7 +43,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Raise an exception if duplicate columns are detected on
+  :ref:`named index column definition <named-index-column>` instead of
+  silently ignoring them.
 
 
 Deprecations
