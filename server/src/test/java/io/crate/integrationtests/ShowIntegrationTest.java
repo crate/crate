@@ -414,7 +414,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.\n" +
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.\n" +
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.\n" +
-            "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.\n" +
+            "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.\n" +
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.\n" +
             "optimizer_move_filter_beneath_hash_join| true| Indicates if the optimizer rule MoveFilterBeneathHashJoin is activated.\n" +
             "optimizer_move_filter_beneath_nested_loop| true| Indicates if the optimizer rule MoveFilterBeneathNestedLoop is activated.\n" +

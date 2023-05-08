@@ -636,8 +636,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, contains(
             instanceOf(GroupProjection.class), // parallel on shard-level
             instanceOf(GroupProjection.class), // node-level
-            instanceOf(EvalProjection.class),
             instanceOf(FilterProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(EvalProjection.class)
         ));
     }
@@ -1526,6 +1526,32 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).hasOperators(
             "Rename[o] AS doc.v",
             "  └ Collect[doc.tbl | [o] | ((o['ts'] < 1682489868000::bigint) AND (o['a'] = 'x'))]"
+        );
+    }
+
+    @Test
+    public void test_filter_on_aliased_object_col_in_view_is_pushed_down_to_collect() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (a text, b text))")
+            .addView(new RelationName("doc", "v1"), "select o['b'] as b from tbl where o['a'] = 'x'")
+            .addView(new RelationName("doc", "v2"), "select substr(o['b'], 0, 1) as b from tbl where o['a'] = 'x'")
+            .build();
+        LogicalPlan plan1 = e.logicalPlan("select * from v1 where b = 'y'");
+        assertThat(plan1).hasOperators(
+            "Rename[b] AS doc.v1",
+            "  └ Collect[doc.tbl | [o['b'] AS b] | ((o['b'] AS b = 'y') AND (o['a'] = 'x'))]"
+        );
+
+        LogicalPlan plan2 = e.logicalPlan("select * from v1 where substr(b, 0, 1) = 'y'");
+        assertThat(plan2).hasOperators(
+            "Rename[b] AS doc.v1",
+            "  └ Collect[doc.tbl | [o['b'] AS b] | ((substr(o['b'] AS b, 0, 1) = 'y') AND (o['a'] = 'x'))]"
+        );
+
+        LogicalPlan plan3 = e.logicalPlan("select * from v2 where substr(b, 0, 1) = 'y'");
+        assertThat(plan3).hasOperators(
+            "Rename[b] AS doc.v2",
+            "  └ Collect[doc.tbl | [substr(o['b'], 0, 1) AS b] | ((substr(substr(o['b'], 0, 1) AS b, 0, 1) = 'y') AND (o['a'] = 'x'))]"
         );
     }
 }
