@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -38,6 +39,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.ConversionException;
 
 public class ObjectTypeTest extends ESTestCase {
 
@@ -185,5 +187,12 @@ public class ObjectTypeTest extends ESTestCase {
             .setInnerType("inner field", DataTypes.STRING)
             .build();
         assertThat(objectType.getTypeSignature().createType(), is(objectType));
+    }
+
+    @Test
+    public void test_raises_conversion_exception_on_string_parsing_errors() throws Exception {
+        assertThatThrownBy(() -> ObjectType.UNTYPED.implicitCast("foo"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `foo` to type `object`");
     }
 }

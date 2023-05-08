@@ -172,10 +172,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @SuppressWarnings("unchecked")
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {
-        if (value instanceof String) {
-            value = mapFromJSONString((String) value);
+        if (value instanceof String str) {
+            value = mapFromJSONString(str);
         }
-        //noinspection unchecked
         Map<String, Object> map = (Map<String, Object>) value;
         if (map == null || innerTypes == null) {
             return map;
@@ -207,7 +206,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             );
             return parser.map();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            var conversionException = new ConversionException(value, UNTYPED);
+            conversionException.addSuppressed(e);
+            throw conversionException;
         }
     }
 
