@@ -55,6 +55,8 @@ None
 Changes
 =======
 
+- Added a :ref:`array_unnest <scalar-array_unnest>` scalar function.
+
 - Updated the bundled JDK to 20.0.1+9
 
 - Added support for setting session settings via a ``"options"`` property in the

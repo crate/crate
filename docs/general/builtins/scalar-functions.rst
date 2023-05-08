@@ -3159,6 +3159,41 @@ arguments, the return type is ``numeric``.
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-array_unnest:
+
+``array_unnest(nested_array)``
+------------------------------
+
+Takes a nested array and returns a flattened array. Only flattens one level at a
+time.
+
+Returns ``NULL`` if the argument is ``NULL``. ``NULL`` array elements are
+skipped and ``NULL`` leaf elements within arrays are preserved.
+
+::
+
+    cr> SELECT array_unnest([[1, 2], [3, 4, 5]]) AS result;
+    +-----------------+
+    | result          |
+    +-----------------+
+    | [1, 2, 3, 4, 5] |
+    +-----------------+
+    SELECT 1 row in set (... sec)
+
+
+    cr> SELECT array_unnest([[1, null, 2], null, [3, 4, 5]]) AS result;
+    +-----------------------+
+    | result                |
+    +-----------------------+
+    | [1, null, 2, 3, 4, 5] |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+.. SEEALSO::
+
+    :ref:`UNNEST table function <unnest>`
+
+
 .. _scalar-objects:
 
 Object functions
