@@ -31,6 +31,7 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.operator.any.AnyRangeOperator.Comparison;
+import io.crate.expression.scalar.ArrayUnnestFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -158,6 +159,9 @@ public abstract sealed class AnyOperator extends Operator<Object>
         List<Symbol> args = function.arguments();
         Symbol probe = args.get(0);
         Symbol candidates = args.get(1);
+        while (candidates instanceof Function fn && fn.signature().equals(ArrayUnnestFunction.SIGNATURE)) {
+            candidates = fn.arguments().get(0);
+        }
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
             return literalMatchesAnyArrayRef(function, literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
