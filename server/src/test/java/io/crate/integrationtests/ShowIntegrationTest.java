@@ -409,7 +409,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.",
             "optimizer_move_constant_join_conditions_beneath_nested_loop| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathNestedLoop is activated.",
             "optimizer_move_filter_beneath_correlated_join| true| Indicates if the optimizer rule MoveFilterBeneathCorrelatedJoin is activated.",
-            "optimizer_move_filter_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveFilterBeneathFetchOrEval is activated.",
+            "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.",
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.",
             "optimizer_move_filter_beneath_join| true| Indicates if the optimizer rule MoveFilterBeneathJoin is activated.",
             "optimizer_move_filter_beneath_order| true| Indicates if the optimizer rule MoveFilterBeneathOrder is activated.",

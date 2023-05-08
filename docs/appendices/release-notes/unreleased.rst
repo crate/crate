@@ -117,6 +117,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Improved an optimization rule to enable index lookups instead of table scans
+  in more cases. This is a follow up to a fix in 5.2.7 which fixed a regression
+  introduced in 5.2.3.
+
 - Fixed an issue that caused ``DROP TABLE IF EXISTS`` to wrongly return ``1``
   row affected or ``SQLParseException`` (depending on user privileges), when
   called on an existent schema, a non-existent table and with the ``crate``
