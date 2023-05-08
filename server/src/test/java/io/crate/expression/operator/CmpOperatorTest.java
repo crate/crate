@@ -41,6 +41,12 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'2 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval <= '1 month 2 hour'::interval", isLiteral(true));
+        assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval <= " +
+                        "'987 years 567 months 487 days 18 hours 45 mins 15 seconds'::interval",
+                        isLiteral(true)); // manual normalize up to days
+        assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval <= " +
+                        "'1035 years 7 months 2 days 18 hours 45 mins 13 seconds'::interval",
+                        isLiteral(false)); // manual normalize up to years
         assertEvaluateNull("true <= null");
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
@@ -54,6 +60,12 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'abc' < 'abd'", isLiteral(true));
         assertNormalize("'1 hour'::interval < '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval < '1 month 2 hour'::interval", isLiteral(true));
+        assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval < " +
+                        "'987 years 567 months 487 days 18 hours 45 mins 16 seconds'::interval",
+                        isLiteral(true)); // manual normalize up to days
+        assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval < " +
+                        "'1035 years 7 months 2 days 18 hours 45 mins 14 seconds'::interval",
+                        isLiteral(false)); // manual normalize up to years
         assertEvaluateNull("true < null");
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
