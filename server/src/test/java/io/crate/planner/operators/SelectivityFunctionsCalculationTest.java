@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -63,7 +64,8 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             .build();
 
         LogicalPlan plan = e.logicalPlan("select * from doc.tbl where x = 10");
-        assertThat(plan.numExpectedRows()).isEqualTo(1L);
+        PlanStats planStats = new PlanStats(tableStats);
+        assertThat(planStats.apply(plan).numDocs()).isEqualTo(1L);
     }
 
 
@@ -87,6 +89,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             .build();
 
         LogicalPlan plan = e.logicalPlan("select x, count(*) from doc.tbl group by x");
-        assertThat(plan.numExpectedRows()).isEqualTo(2L);
+        PlanStats planStats = new PlanStats(tableStats);
+        assertThat(planStats.apply(plan).numDocs()).isEqualTo(2L);
     }
 }
