@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -67,6 +68,10 @@ public class PlanStats {
 
     public TableStats tableStats() {
         return tableStats;
+    }
+
+    public Stats apply(RelationName relationName) {
+        return tableStats.getStats(relationName);
     }
 
     public Stats apply(LogicalPlan logicalPlan) {

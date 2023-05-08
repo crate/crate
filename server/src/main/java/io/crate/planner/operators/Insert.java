@@ -150,16 +150,6 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return 1;
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitInsert(this, context);
     }

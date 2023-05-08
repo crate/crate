@@ -34,7 +34,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
@@ -198,24 +197,6 @@ public interface LogicalPlan extends Plan {
      * It's not necessary for each operator to expose it's own SelectSymbols; propagation is usually sufficient.
      */
     Map<LogicalPlan, SelectSymbol> dependencies();
-
-    /**
-     * Returns the total number of rows this logical operation is expected to return.
-     * @return The number of expected rows if available, -1 otherwise.
-     *
-     * @deprecated Use {@link PlanStats} instead.
-     */
-    @Deprecated
-    long numExpectedRows();
-
-    /**
-     * Returns an estimation of the size (in bytes) of each row returned by the plan.
-     * The estimation is based on the average size of a row of the concrete table(s) of the plan.
-     *
-     * @deprecated Use {@link PlanStats} instead.
-     */
-    @Deprecated
-    long estimatedRowSize();
 
     @Override
     default void executeOrFail(DependencyCarrier executor,

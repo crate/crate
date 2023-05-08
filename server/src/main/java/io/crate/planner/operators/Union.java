@@ -243,19 +243,6 @@ public class Union implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        return lhs.numExpectedRows() + rhs.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return Math.max(lhs.estimatedRowSize(), rhs.estimatedRowSize());
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUnion(this, context);
     }

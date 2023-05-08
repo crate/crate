@@ -423,19 +423,6 @@ public class NestedLoopJoin extends JoinPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        if (joinType == JoinType.CROSS) {
-            return lhs.numExpectedRows() * rhs.numExpectedRows();
-        } else {
-            // We don't have any cardinality estimates, so just take the bigger table
-            return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
-        }
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitNestedLoopJoin(this, context);
     }

@@ -80,13 +80,4 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
         return source.dependencies();
     }
 
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
-    }
 }

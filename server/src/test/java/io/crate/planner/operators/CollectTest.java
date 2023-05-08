@@ -64,7 +64,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
         LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
-        assertThat(prunedCollect.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+        assertThat(e.planStats.apply(prunedCollect).numDocs(), is((long) DataTypes.INTEGER.fixedSize()));
     }
 
     @Test

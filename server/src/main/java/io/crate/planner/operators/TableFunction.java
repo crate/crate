@@ -154,17 +154,6 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return -1;
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        // We don't have any estimates for table functions, but could go through the types of `outputs` to make a guess
-        return 0;
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitTableFunction(this, context);
     }

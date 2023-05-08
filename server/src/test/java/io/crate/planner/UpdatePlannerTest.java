@@ -189,12 +189,12 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
         SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
         assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
-        assertThat(outerSubSelectPlan.numExpectedRows(), is(2L));
+        assertThat(e.planStats.apply(outerSubSelectPlan).numDocs(), is(2L));
 
         LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
         assertThat(innerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_MULTIPLE_VALUES));
-        assertThat(innerSubSelectPlan.numExpectedRows(), is(-1L));
+        assertThat(e.planStats.apply(innerSubSelectPlan).numDocs(), is(-1L));
     }
 
     @Test

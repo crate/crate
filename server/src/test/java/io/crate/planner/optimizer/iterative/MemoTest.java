@@ -338,16 +338,6 @@ public class MemoTest {
         }
 
         @Override
-        public long numExpectedRows() {
-            return 0;
-        }
-
-        @Override
-        public long estimatedRowSize() {
-            return 0;
-        }
-
-        @Override
         public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
             return visitor.visitPlan(this, context);
         }

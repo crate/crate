@@ -162,6 +162,7 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -204,6 +205,7 @@ public class SQLExecutor {
     public final JobsLogs jobsLogs;
     public final DependencyCarrier dependencyMock;
     public final TableStats tableStats;
+    public final PlanStats planStats;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -801,6 +803,7 @@ public class SQLExecutor {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
         this.tableStats = tableStats;
+        this.planStats = new PlanStats(tableStats);
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

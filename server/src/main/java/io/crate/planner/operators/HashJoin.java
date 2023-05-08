@@ -305,15 +305,6 @@ public class HashJoin extends JoinPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        // We don't have any cardinality estimates, so just take the bigger table
-        return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashJoin(this, context);
     }
