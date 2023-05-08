@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -33,136 +31,161 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
     @Test
     public void testAvgOnEmptyOver() {
         execute("select avg(unnest) OVER() from unnest([1, 2, null])");
-        assertThat(printedTable(response.rows()), is("1.5\n1.5\n1.5\n"));
+        assertThat(response).hasRows(
+            "1.5",
+            "1.5",
+            "1.5"
+        );
     }
 
     @Test
     public void testMultipleWindowFunctions() {
         execute("select col1, sum(col1) OVER(ORDER BY col1), sum(col2) OVER(ORDER BY col2) from unnest([1, 2, 2, 3, 4], [5, 6, 6, 7, 1])");
-        assertThat(printedTable(response.rows()), is("4| 12| 1\n1| 1| 6\n2| 5| 18\n2| 5| 18\n3| 8| 25\n"));
+        assertThat(response).hasRows(
+            "4| 12| 1",
+            "1| 1| 6",
+            "2| 5| 18",
+            "2| 5| 18",
+            "3| 8| 25"
+        );
     }
 
     @Test
     public void testOrderedWindow() {
         execute("select unnest, avg(unnest) OVER(ORDER BY unnest NULLS LAST) from unnest([2, 1, 1, 3, 3, null, 4]) order by 1 desc");
-        assertThat(printedTable(response.rows()), is("NULL| 2.3333333333333335\n" +
-                                                     "4| 2.3333333333333335\n" +
-                                                     "3| 2.0\n" +
-                                                     "3| 2.0\n" +
-                                                     "2| 1.3333333333333333\n" +
-                                                     "1| 1.0\n" +
-                                                     "1| 1.0\n"));
+        assertThat(response).hasRows(
+            "NULL| 2.3333333333333335",
+            "4| 2.3333333333333335",
+            "3| 2.0",
+            "3| 2.0",
+            "2| 1.3333333333333333",
+            "1| 1.0",
+            "1| 1.0");
     }
 
     @Test
     public void testOrderedWindowByMultipleColumns() {
         execute("select col1, sum(col1) OVER(ORDER BY col1, col2) from unnest([1, 2, 2, 2, 3, 2], [6, 7, 6, 9, -1, 6])");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 5\n" +
-                                                     "2| 5\n" +
-                                                     "2| 7\n" +
-                                                     "2| 9\n" +
-                                                     "3| 12\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 5",
+            "2| 5",
+            "2| 7",
+            "2| 9",
+            "3| 12"
+        );
     }
 
     @Test
     public void testOrderedWindowWithSingleRowWindows() {
         execute("select unnest, sum(unnest) OVER(ORDER BY unnest) from unnest([1, 2, 3, 4])");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 3\n" +
-                                                     "3| 6\n" +
-                                                     "4| 10\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 3",
+            "3| 6",
+            "4| 10"
+        );
     }
 
     @Test
     public void testPartitionedWindow() {
         execute("select col1, col2, sum(col1) over(partition by col1) FROM " +
                 "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
-        assertThat(printedTable(response.rows()), is("1| 6| 4\n" +
-                                                     "1| 6| 4\n" +
-                                                     "1| 7| 4\n" +
-                                                     "1| 9| 4\n" +
-                                                     "2| 6| 2\n" +
-                                                     "4| 8| 4\n"));
+        assertThat(response).hasRows(
+            "1| 6| 4",
+            "1| 6| 4",
+            "1| 7| 4",
+            "1| 9| 4",
+            "2| 6| 2",
+            "4| 8| 4"
+        );
     }
 
     @Test
     public void testPartitionedWindowResultSetUnordered() {
         execute("select unnest, sum(unnest) over(partition by unnest>2 order by unnest) from unnest([1, 2, 2, 3, 4, 5])");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 5\n" +
-                                                     "2| 5\n" +
-                                                     "3| 3\n" +
-                                                     "4| 7\n" +
-                                                     "5| 12\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 5",
+            "2| 5",
+            "3| 3",
+            "4| 7",
+            "5| 12");
 
         execute("select col1, col2, sum(col1) over(partition by col1 order by col2) FROM unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8])");
-        assertThat(printedTable(response.rows()), is("1| 6| 2\n" +
-                                                     "1| 6| 2\n" +
-                                                     "1| 7| 3\n" +
-                                                     "1| 9| 4\n" +
-                                                     "2| 6| 2\n" +
-                                                     "4| 8| 4\n"));
+        assertThat(response).hasRows(
+            "1| 6| 2",
+            "1| 6| 2",
+            "1| 7| 3",
+            "1| 9| 4",
+            "2| 6| 2",
+            "4| 8| 4");
     }
 
     @Test
     public void testPartitionByMultipleColumns() {
         execute("select col1, col2, row_number() over(partition by col1, col2) FROM " +
                 "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
-        assertThat(printedTable(response.rows()), is("1| 6| 1\n" +
-                                                     "1| 6| 2\n" +
-                                                     "1| 7| 1\n" +
-                                                     "1| 9| 1\n" +
-                                                     "2| 6| 1\n" +
-                                                     "4| 8| 1\n"));
+        assertThat(response).hasRows(
+            "1| 6| 1",
+            "1| 6| 2",
+            "1| 7| 1",
+            "1| 9| 1",
+            "2| 6| 1",
+            "4| 8| 1");
     }
 
     @Test
     public void testPartitionedOrderedWindow() {
         execute("select col1, col2, sum(col1) over(partition by col1 order by col2) FROM " +
                 "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
-        assertThat(printedTable(response.rows()), is("1| 6| 2\n" +
-                                                     "1| 6| 2\n" +
-                                                     "1| 7| 3\n" +
-                                                     "1| 9| 4\n" +
-                                                     "2| 6| 2\n" +
-                                                     "4| 8| 4\n"));
+        assertThat(response).hasRows(
+            "1| 6| 2",
+            "1| 6| 2",
+            "1| 7| 3",
+            "1| 9| 4",
+            "2| 6| 2",
+            "4| 8| 4");
     }
 
     @Test
     public void testSelectStandaloneColumnsAndWindowFunction() {
         execute("select col1, avg(col1) OVER(), col2 from unnest([1, 2, null], [3, 4, 5])");
-        assertThat(printedTable(response.rows()), is("1| 1.5| 3\n" +
-                                                     "2| 1.5| 4\n" +
-                                                     "NULL| 1.5| 5\n"));
+        assertThat(response).hasRows(
+            "1| 1.5| 3",
+            "2| 1.5| 4",
+            "NULL| 1.5| 5");
     }
 
     @Test
     public void testRowNumberOnEmptyOver() {
         execute("select unnest, row_number() OVER() from unnest(['a', 'c', 'd', 'b'])");
-        assertThat(printedTable(response.rows()), is("a| 1\n" +
-                                                     "c| 2\n" +
-                                                     "d| 3\n" +
-                                                     "b| 4\n"));
+        assertThat(response).hasRows(
+            "a| 1",
+            "c| 2",
+            "d| 3",
+            "b| 4");
     }
 
     @Test
     public void testRowNumberWithOrderByClauseNoPeers() {
         execute("select unnest, row_number() OVER(ORDER BY unnest) from unnest(['a', 'c', 'd', 'b'])");
-        assertThat(printedTable(response.rows()), is("a| 1\n" +
-                                                     "b| 2\n" +
-                                                     "c| 3\n" +
-                                                     "d| 4\n"));
+        assertThat(response).hasRows(
+            "a| 1",
+            "b| 2",
+            "c| 3",
+            "d| 4");
     }
 
     @Test
     public void testRowNumberWithOrderByClauseHavingPeers() {
         execute("select unnest, row_number() OVER(ORDER BY unnest) from unnest(['a', 'c', 'c', 'd', 'b'])");
-        assertThat(printedTable(response.rows()), is("a| 1\n" +
-                                                     "b| 2\n" +
-                                                     "c| 3\n" +
-                                                     "c| 4\n" +
-                                                     "d| 5\n"));
+        assertThat(response).hasRows(
+            "a| 1",
+            "b| 2",
+            "c| 3",
+            "c| 4",
+            "d| 5");
     }
 
     @Test
@@ -173,9 +196,10 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
 
         execute("select x, sum(y) OVER (partition by x) from t order by 2");
 
-        assertThat(printedTable(response.rows()), is("2| 3\n" +
-                                                     "1| 4\n" +
-                                                     "1| 4\n"));
+        assertThat(response).hasRows(
+            "2| 3",
+            "1| 4",
+            "1| 4");
     }
 
     @Test
@@ -189,11 +213,10 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "ORDER BY\n" +
                 "    col2\n" +
                 "LIMIT 3 offset 2\n");
-        assertThat(
-            printedTable(response.rows()),
-            is("30| 2.0| 40.0\n" +
-               "40| 2.5| 40.0\n" +
-               "50| 3.0| 40.0\n")
+        assertThat(response).hasRows(
+            "30| 2.0| 40.0",
+            "40| 2.5| 40.0",
+            "50| 3.0| 40.0"
         );
     }
 
@@ -204,16 +227,15 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "       sum(col1) OVER(ORDER BY power(col1, 2) RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
                 "FROM\n" +
                 "        unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)");
-        assertThat(
-            printedTable(response.rows()),
-            is("2.5| 2.5\n" +
-               "4.0| 4.0\n" +
-               "5.0| 5.0\n" +
-               "6.0| 6.0\n" +
-               "7.5| 7.5\n" +
-               "8.5| 8.5\n" +
-               "10.0| 10.0\n" +
-               "12.0| 12.0\n")
+        assertThat(response).hasRows(
+            "2.5| 2.5",
+            "4.0| 4.0",
+            "5.0| 5.0",
+            "6.0| 6.0",
+            "7.5| 7.5",
+            "8.5| 8.5",
+            "10.0| 10.0",
+            "12.0| 12.0"
         );
     }
 
@@ -224,16 +246,15 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "       sum(col1) OVER(ORDER BY 22 RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
                 "FROM\n" +
                 "    unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)");
-        assertThat(
-            printedTable(response.rows()),
-            is("2.5| 55.5\n" +
-               "4.0| 55.5\n" +
-               "5.0| 55.5\n" +
-               "6.0| 55.5\n" +
-               "7.5| 55.5\n" +
-               "8.5| 55.5\n" +
-               "10.0| 55.5\n" +
-               "12.0| 55.5\n")
+        assertThat(response).hasRows(
+            "2.5| 55.5",
+            "4.0| 55.5",
+            "5.0| 55.5",
+            "6.0| 55.5",
+            "7.5| 55.5",
+            "8.5| 55.5",
+            "10.0| 55.5",
+            "12.0| 55.5"
         );
     }
 
@@ -244,11 +265,12 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "   SUM(x) FILTER (WHERE x != 2) OVER(ORDER BY x)," +
                 "   SUM(x) FILTER (WHERE x > 3) OVER()" +
                 "FROM UNNEST([1, 2, 4, 3]) as t(x)");
-        assertThat(printedTable(response.rows()),
-                   is("1| 1| 4\n" +
-                      "3| 1| 4\n" +
-                      "3| 4| 4\n" +
-                      "7| 8| 4\n"));
+        assertThat(response).hasRows(
+            "1| 1| 4",
+            "3| 1| 4",
+            "3| 4| 4",
+            "7| 8| 4"
+        );
     }
 
     @Test
@@ -258,11 +280,12 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "       ORDER BY x" +
                 "       RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)" +
                 "FROM UNNEST([1, 2, 4, 3]) as t(x)");
-        assertThat(printedTable(response.rows()),
-                   is("7\n" +
-                      "6\n" +
-                      "4\n" +
-                      "4\n"));
+        assertThat(response).hasRows(
+            "7",
+            "6",
+            "4",
+            "4"
+        );
     }
 
     // the query execution plan (distributed, non-distributed)
@@ -274,7 +297,7 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("SELECT x, COLLECT_SET(y) OVER(PARTITION BY y) FROM t");
-        assertThat(printedTable(response.rows()), is("1| [1]\n"));
+        assertThat(response).hasRows("1| [1]");
     }
 
     @Test
@@ -287,7 +310,8 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "   y, " +
                 "   COLLECT_SET(x) FILTER (WHERE x IN (SELECT UNNEST([1]))) OVER(ORDER BY x) " +
                 "FROM t");
-        assertThat(printedTable(response.rows()), is("1| [1]\n" +
-                                                     "2| [1]\n"));
+        assertThat(response).hasRows(
+            "1| [1]",
+            "2| [1]");
     }
 }

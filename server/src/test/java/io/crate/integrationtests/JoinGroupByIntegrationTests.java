@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,9 +31,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.data.CollectionBucket;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
 public class JoinGroupByIntegrationTests extends IntegTestCase {
@@ -64,7 +62,10 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "group by colors.name " +
             "order by colors.name DESC"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("yellow| 3\nred| 3\n"));
+        assertThat(response).hasRows(
+            "yellow| 3",
+            "red| 3"
+        );
     }
 
     @Test
@@ -76,7 +77,7 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "order by colors.name DESC " +
             "limit 1 offset 1"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("red\n"));
+        assertThat(response).hasRows("red");
     }
 
     @Test
@@ -88,7 +89,7 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "group by colors.name " +
             "having count(colors.name) = 1"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| red\n"));
+        assertThat(response).hasRows("1| red");
     }
 
     @Test
@@ -99,7 +100,7 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "where colors.name='red' " +
             "group by colors.name"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("red\n"));
+        assertThat(response).hasRows("red");
     }
 
     @Test
@@ -112,9 +113,8 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "limit 1 offset 1"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.64| banana| 2\n")
+        assertThat(response).hasRows(
+            "banana| yellow| 20.64| banana| 2"
         );
     }
 
@@ -130,9 +130,8 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "limit 1 offset 1"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.64| banana| 1\n")
+        assertThat(response).hasRows(
+            "banana| yellow| 20.64| banana| 1"
         );
     }
 
@@ -146,11 +145,10 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "order by name, price"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("apple| 1.9\n" +
-               "banana| 0.8\n" +
-               "lemon| 0.5\n")
+        assertThat(response).hasRows(
+            "apple| 1.9",
+            "banana| 0.8",
+            "lemon| 0.5"
         );
     }
 
@@ -164,10 +162,9 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "order by fruit_name, price"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("apple| 2| 1.9\n" +
-               "banana| 2| 0.8\n")
+        assertThat(response).hasRows(
+            "apple| 2| 1.9",
+            "banana| 2| 0.8"
         );
     }
 
@@ -183,9 +180,8 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "limit 1 offset 1"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("banana\n")
+        assertThat(response).hasRows(
+            "banana"
         );
     }
 
@@ -201,9 +197,8 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "limit 1 offset 1"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.64\n")
+        assertThat(response).hasRows(
+            "banana| yellow| 20.64"
         );
     }
 
@@ -218,11 +213,10 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         rows.sort(OrderingByPosition.arrayOrdering(DataTypes.FLOAT, 1, false, false));
-        assertThat(
-            TestingHelpers.printedTable(new CollectionBucket(rows)),
-            is("yellow| 5.0\n" +
-               "yellow| 8.0\n" +
-               "red| 19.0\n")
+        assertThat(rows).containsExactly(
+            new Object[] { "yellow", 5.0f },
+            new Object[] { "yellow", 8.0f },
+            new Object[] { "red", 19.0f }
         );
     }
 
@@ -237,11 +231,10 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
         List<Object[]> rows = Arrays.asList(response.rows());
         rows.sort(OrderingByPosition.arrayOrdering(DataTypes.FLOAT, 1, false, false));
 
-        assertThat(
-            TestingHelpers.printedTable(new CollectionBucket(rows)),
-            is("yellow| 5.0\n" +
-               "yellow| 8.0\n" +
-               "yellow| 19.0\n")
+        assertThat(rows).containsExactly(
+            new Object[] { "yellow", 5.0f },
+            new Object[] { "yellow", 8.0f },
+            new Object[] { "yellow", 19.0f }
         );
     }
 
@@ -254,11 +247,10 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
             "order by fruits.price * 10"
         );
 
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("yellow| 5.0\n" +
-               "yellow| 8.0\n" +
-               "yellow| 19.0\n")
+        assertThat(response).hasRows(
+            "yellow| 5.0",
+            "yellow| 8.0",
+            "yellow| 19.0"
         );
     }
 }
