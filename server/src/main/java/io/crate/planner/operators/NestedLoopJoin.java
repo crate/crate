@@ -188,19 +188,24 @@ public class NestedLoopJoin extends JoinPlan {
                         (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
         JoinType joinType = this.joinType;
-        if ((isDistributed && swapSides) ||
-            (blockNlPossible && swapSides == false)) {
-            // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
-            //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
-            //    to be preserved, then the switch is not possible.
-            // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-            //    performance decreases if the left side is much larger and no limit is applied.
-            ExecutionPlan tmpExecutionPlan = left;
-            left = right;
-            right = tmpExecutionPlan;
-            leftLogicalPlan = rhs;
-            rightLogicalPlan = lhs;
-            joinType = joinType.invert();
+        PlanStats planStats = new PlanStats(plannerContext.tableStats());
+        var lhsStats = planStats.apply(leftLogicalPlan);
+        var rhsStats = planStats.apply(rightLogicalPlan);
+        if (lhsStats.numDocs() != -1 && rhsStats.numDocs() != -1) {
+            if ((isDistributed && swapSides) ||
+                (blockNlPossible && swapSides == false)) {
+                // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+                //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+                //    to be preserved, then the switch is not possible.
+                // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
+                //    performance decreases if the left side is much larger and no limit is applied.
+                ExecutionPlan tmpExecutionPlan = left;
+                left = right;
+                right = tmpExecutionPlan;
+                leftLogicalPlan = rhs;
+                rightLogicalPlan = lhs;
+                joinType = joinType.invert();
+            }
         }
 
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
@@ -213,9 +218,6 @@ public class NestedLoopJoin extends JoinPlan {
         if (joinCondition != null) {
             joinInput = InputColumns.create(paramBinder.apply(joinCondition), joinOutputs);
         }
-
-        var planStats = new PlanStats(plannerContext.tableStats());
-        var stats = planStats.apply(leftLogicalPlan);
 
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
@@ -230,8 +232,8 @@ public class NestedLoopJoin extends JoinPlan {
             joinType,
             joinInput,
             Symbols.typeView(leftLogicalPlan.outputs()),
-            stats.averageSizePerRowInBytes(),
-            stats.numDocs(),
+            lhsStats.averageSizePerRowInBytes(),
+            lhsStats.numDocs(),
             blockNlPossible
         );
         return new Join(

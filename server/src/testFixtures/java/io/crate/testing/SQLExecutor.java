@@ -246,11 +246,11 @@ public class SQLExecutor {
         private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         private final UserDefinedFunctionService udfService;
         private final LogicalReplicationService logicalReplicationService;
+        private TableStats tableStats = new TableStats();
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
 
-        private TableStats tableStats = new TableStats();
         private Schemas schemas;
         private LoadedRules loadedRules = new LoadedRules();
         private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
