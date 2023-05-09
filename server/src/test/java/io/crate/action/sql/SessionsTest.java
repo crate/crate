@@ -50,6 +50,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.sql.tree.Declare.Hold;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.user.Privilege;
 import io.crate.user.Privilege.State;
@@ -73,7 +74,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> dependencies,
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            new TableStats()
         );
 
         KeyData keyData = new KeyData(10, 20);
@@ -142,7 +144,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder()
                 .put("statement_timeout", "30s")
                 .build(),
-            clusterService
+            clusterService,
+            new TableStats()
         );
         Session session = sessions.createSession("doc", User.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
@@ -157,7 +160,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            new TableStats()
         );
         return sessions;
     }

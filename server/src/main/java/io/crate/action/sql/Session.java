@@ -91,6 +91,7 @@ import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 
 /**
@@ -158,6 +159,7 @@ public class Session implements AutoCloseable {
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
     private final Runnable onClose;
+    private final TableStats tableStats;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
 
@@ -170,6 +172,7 @@ public class Session implements AutoCloseable {
                    boolean isReadOnly,
                    DependencyCarrier executor,
                    CoordinatorSessionSettings sessionSettings,
+                   TableStats tableStats,
                    Runnable onClose) {
         this.id = sessionId;
         this.secret = ThreadLocalRandom.current().nextInt();
@@ -180,6 +183,7 @@ public class Session implements AutoCloseable {
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionSettings = sessionSettings;
+        this.tableStats = tableStats;
         this.parameterTypeExtractor = new ParameterTypeExtractor();
         this.onClose = onClose;
     }
@@ -220,7 +224,8 @@ public class Session implements AutoCloseable {
             0,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            tableStats
         );
         Plan plan;
         try {
@@ -273,7 +278,8 @@ public class Session implements AutoCloseable {
             0,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            tableStats
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -654,7 +660,8 @@ public class Session implements AutoCloseable {
             0,
             null,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            tableStats
         );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
@@ -741,7 +748,8 @@ public class Session implements AutoCloseable {
             maxRows,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            tableStats
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
