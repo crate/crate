@@ -22,6 +22,7 @@
 package io.crate.interval;
 
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.joda.time.format.ISOPeriodFormat;
 
 import javax.annotation.Nullable;
@@ -92,7 +93,7 @@ public final class IntervalParser {
                 }
             }
         }
-        return result.normalizedStandard();
+        return result.normalizedStandard(PeriodType.yearMonthDayTime());
     }
 
     static Period roundToPrecision(Period period, Precision start, Precision end) {

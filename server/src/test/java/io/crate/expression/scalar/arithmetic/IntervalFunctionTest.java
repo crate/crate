@@ -23,8 +23,8 @@ package io.crate.expression.scalar.arithmetic;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.hamcrest.Matchers;
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
@@ -34,19 +34,25 @@ public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_interval_to_interval() {
-        assertEvaluate("interval '1 second' + interval '1 second'", Period.seconds(2));
-        assertEvaluate("interval '1100 years' + interval '2000 years'", Period.years(3100));
-        assertEvaluate("interval '-10 years' + interval '1 years'", Period.years(-9));
-        assertEvaluate("interval '2 second' - interval '1 second'", Period.seconds(1));
-        assertEvaluate("interval '-1 second' - interval '-1 second'", Period.seconds(0));
-        assertEvaluate("interval '1 month' + interval '1 year'", Period.years(1).withMonths(1));
+        assertEvaluate("interval '1 second' + interval '1 second'",
+                       Period.seconds(2).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1100 years' + interval '2000 years'",
+                       Period.years(3100).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '-10 years' + interval '1 years'",
+                       Period.years(-9).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '2 second' - interval '1 second'",
+                       Period.seconds(1).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '-1 second' - interval '-1 second'",
+                       Period.seconds(0).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 month' + interval '1 year'",
+                       Period.years(1).withMonths(1).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_out_of_range_value() {
-        expectedException.expect(ArithmeticException.class);
-        expectedException.expectMessage("Interval field value out of range");
-        assertEvaluate("interval '9223372036854775807'", Period.seconds(1));
+        assertThatThrownBy(() -> assertEvaluate("interval '9223372036854775807'", null))
+            .isExactlyInstanceOf(ArithmeticException.class)
+            .hasMessageStartingWith("Interval field value out of range");
     }
 
     @Test
@@ -59,10 +65,11 @@ public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: (NULL * cast('1 second' AS interval))," +
-                                        " no overload found for matching argument types: (undefined, interval).");
-        assertEvaluate("null * interval '1 second'", Matchers.nullValue());
+        assertThatThrownBy(
+            () -> assertEvaluate("null * interval '1 second'", null))
+                .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: (NULL * cast('1 second' AS interval)), " +
+                                    "no overload found for matching argument types: (undefined, interval).");
     }
 
     @Test
