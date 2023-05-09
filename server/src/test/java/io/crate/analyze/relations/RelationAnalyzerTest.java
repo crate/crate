@@ -58,9 +58,10 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testValidateUsedRelationsInJoinConditions() {
-        expectedException.expect(RelationValidationException.class);
-        expectedException.expectMessage("missing FROM-clause entry for relation '[doc.t3]'");
-        executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
+        assertThatThrownBy(
+            () -> executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c"))
+            .isExactlyInstanceOf(RelationValidationException.class)
+            .hasMessage("missing FROM-clause entry for relation '[doc.t3]'");
     }
 
     @Test
