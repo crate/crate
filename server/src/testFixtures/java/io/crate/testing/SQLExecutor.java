@@ -175,6 +175,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -203,6 +204,7 @@ public class SQLExecutor {
     public final Cursors cursors = new Cursors();
     public final JobsLogs jobsLogs;
     public final DependencyCarrier dependencyMock;
+    private final TableStats tableStats;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -228,7 +230,8 @@ public class SQLExecutor {
             -1,
             null,
             cursors,
-            transactionState
+            transactionState,
+            tableStats
         );
     }
 
@@ -420,7 +423,8 @@ public class SQLExecutor {
                 schemas,
                 random,
                 fulltextAnalyzerResolver,
-                udfService
+                udfService,
+                tableStats
             );
         }
 
@@ -690,11 +694,6 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setTableStats(TableStats tableStats) {
-            this.tableStats = tableStats;
-            return this;
-        }
-
         public Builder setUserManager(UserManager userManager) {
             this.userManager = userManager;
             return this;
@@ -770,7 +769,8 @@ public class SQLExecutor {
                         Schemas schemas,
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                        UserDefinedFunctionService udfService) {
+                        UserDefinedFunctionService udfService,
+                        TableStats tableStats) {
         this.jobsLogsEnabled = false;
         this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
@@ -783,7 +783,9 @@ public class SQLExecutor {
             () -> dependencyMock,
             jobsLogs,
             clusterService.getSettings(),
-            clusterService
+            clusterService,
+            tableStats
+
         );
         this.analyzer = analyzer;
         this.planner = planner;
@@ -795,6 +797,7 @@ public class SQLExecutor {
         this.random = random;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
+        this.tableStats = tableStats;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
@@ -873,7 +876,8 @@ public class SQLExecutor {
             fetchSize,
             null,
             cursors,
-            transactionState
+            transactionState,
+            tableStats
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {
@@ -905,6 +909,14 @@ public class SQLExecutor {
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0);
+    }
+
+    public void updateTableStats(Map<RelationName, Stats> stats) {
+        tableStats.updateTableStats(stats);
+    }
+
+    public TableStats tableStats() {
+        return tableStats;
     }
 
     public Schemas schemas() {

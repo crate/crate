@@ -117,7 +117,6 @@ import io.crate.types.DataTypes;
 public class LogicalPlanner {
     @VisibleForTesting
     final IterativeOptimizer optimizer;
-    private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -162,7 +161,7 @@ public class LogicalPlanner {
     private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
         List.of(new RewriteInsertFromSubQueryToInsertFromValues());
 
-    public LogicalPlanner(NodeContext nodeCtx, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
+    public LogicalPlanner(NodeContext nodeCtx, Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
@@ -178,7 +177,6 @@ public class LogicalPlanner {
             minNodeVersionInCluster,
             WRITE_OPTIMIZER_RULES
         );
-        this.tableStats = tableStats;
     }
 
     public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
@@ -212,6 +210,7 @@ public class LogicalPlanner {
                 maybeApplySoftLimit = plan -> plan;
                 break;
         }
+        TableStats tableStats = plannerContext.tableStats();
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
         var planBuilder = new PlanBuilder(
@@ -259,6 +258,7 @@ public class LogicalPlanner {
                             SubqueryPlanner subqueryPlanner,
                             boolean avoidTopLevelFetch) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
+        TableStats tableStats = plannerContext.tableStats();
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             coordinatorTxnCtx,
@@ -606,7 +606,7 @@ public class LogicalPlanner {
                     context,
                     LogicalPlanner.this,
                     subqueryPlanner),
-                tableStats,
+                context.tableStats(),
                 context.transactionContext()
             );
         }

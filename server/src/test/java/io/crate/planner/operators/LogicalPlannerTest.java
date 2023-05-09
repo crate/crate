@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -43,7 +42,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -52,16 +50,13 @@ import io.crate.types.DataTypes;
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor sqlExecutor;
-    private TableStats tableStats;
 
     @Before
     public void prepare() throws IOException {
-        tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .setTableStats(tableStats)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1")
             .build();
@@ -80,7 +75,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         ColumnStats<Integer> columnStats = new ColumnStats<>(
             0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
-        tableStats.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
+        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");
@@ -474,7 +469,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_group_by_with_alias_and_limit_distinct_rewrite_creates_valid_plan() {
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
-        tableStats.updateTableStats(Map.of(t1.ident(), new Stats(100L, 100L, Map.of())));
+        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(100L, 100L, Map.of())));
         LogicalPlan plan = plan("SELECT a as b FROM doc.t1 GROUP BY a LIMIT 10");
         assertThat(plan).isEqualTo(
             """
