@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -48,12 +47,12 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import io.crate.user.User;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
+import io.crate.user.User;
 
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {
@@ -198,7 +197,7 @@ public class TasksService extends AbstractLifecycleComponent {
     private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @Nullable String reason) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
-        CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
+        CountdownFuture countDownFuture = new CountdownFuture(toKill.size());
         boolean isSuperUser = userName.equals(User.CRATE_USER.name());
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);

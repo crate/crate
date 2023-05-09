@@ -32,7 +32,7 @@ public class CountdownFutureCallbackTest {
 
     @Test
     public void test_tracks_multiple_failures() throws Exception {
-        CountdownFutureCallback cb = new CountdownFutureCallback(2);
+        CountdownFuture cb = new CountdownFuture(2);
         IllegalStateException dummy1 = new IllegalStateException("dummy1");
         IllegalStateException dummy2 = new IllegalStateException("dummy2");
         cb.onFailure(dummy1);
