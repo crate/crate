@@ -46,6 +46,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -77,14 +78,14 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(tableStats, Set.of());
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(planStats.tableStats(), Set.of());
         if (fetchRewrite == null) {
             return null;
         }

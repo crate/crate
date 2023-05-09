@@ -28,12 +28,12 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -59,12 +59,12 @@ public class MergeFilterAndCollect implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
-        Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
+        Stats stats = planStats.get(collect.relation().tableInfo().ident());
         WhereClause newWhere = collect.where().add(filter.query());
         return new Collect(
             collect.relation(),

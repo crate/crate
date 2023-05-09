@@ -36,7 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.costs.PlanStats;
 
 /**
  * The optimizer takes an operator tree of logical plans and creates an optimized plan.
@@ -56,8 +56,9 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
         var memo = new Memo(plan);
+        var planStatsWithMemo = new PlanStats(planStats.tableStats(), memo);
 
         // Memo is used to have a mutable view over the tree so it can change nodes without
         // having to re-build the full tree all the time.`GroupReference` is used as place-holder
@@ -70,7 +71,7 @@ public class IterativeOptimizer {
             return node;
         };
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, tableStats));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo));
         return memo.extract();
     }
 
@@ -120,7 +121,7 @@ public class IterativeOptimizer {
                 LogicalPlan transformed = Optimizer.tryMatchAndApply(
                     rule,
                     node,
-                    context.tableStats,
+                    context.planStats,
                     nodeCtx,
                     context.txnCtx,
                     resolvePlan,
@@ -163,6 +164,6 @@ public class IterativeOptimizer {
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
-        TableStats tableStats
+        PlanStats planStats
     ) {}
 }

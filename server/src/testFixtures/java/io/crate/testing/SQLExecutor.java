@@ -162,6 +162,7 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -175,6 +176,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -203,6 +205,7 @@ public class SQLExecutor {
     public final Cursors cursors = new Cursors();
     public final JobsLogs jobsLogs;
     public final DependencyCarrier dependencyMock;
+    private final PlanStats planStats;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -228,7 +231,8 @@ public class SQLExecutor {
             -1,
             null,
             cursors,
-            transactionState
+            transactionState,
+            planStats
         );
     }
 
@@ -420,7 +424,8 @@ public class SQLExecutor {
                 schemas,
                 random,
                 fulltextAnalyzerResolver,
-                udfService
+                udfService,
+                tableStats
             );
         }
 
@@ -690,11 +695,6 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setTableStats(TableStats tableStats) {
-            this.tableStats = tableStats;
-            return this;
-        }
-
         public Builder setUserManager(UserManager userManager) {
             this.userManager = userManager;
             return this;
@@ -770,7 +770,8 @@ public class SQLExecutor {
                         Schemas schemas,
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                        UserDefinedFunctionService udfService) {
+                        UserDefinedFunctionService udfService,
+                        TableStats tableStats) {
         this.jobsLogsEnabled = false;
         this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
@@ -783,7 +784,9 @@ public class SQLExecutor {
             () -> dependencyMock,
             jobsLogs,
             clusterService.getSettings(),
-            clusterService
+            clusterService,
+            tableStats
+
         );
         this.analyzer = analyzer;
         this.planner = planner;
@@ -795,6 +798,7 @@ public class SQLExecutor {
         this.random = random;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
+        this.planStats = new PlanStats(tableStats);
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
@@ -873,7 +877,8 @@ public class SQLExecutor {
             fetchSize,
             null,
             cursors,
-            transactionState
+            transactionState,
+            planStats
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {
@@ -905,6 +910,22 @@ public class SQLExecutor {
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0);
+    }
+
+    public void updateTableStats(Map<RelationName, Stats> stats) {
+        planStats.tableStats().updateTableStats(stats);
+    }
+
+    public PlanStats planStats() {
+        return planStats;
+    }
+
+    public Stats getStats(RelationName relationName) {
+        return planStats.get(relationName);
+    }
+
+    public Stats getStats(LogicalPlan logicalPlan) {
+        return planStats.get(logicalPlan);
     }
 
     public Schemas schemas() {

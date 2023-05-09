@@ -36,10 +36,10 @@ import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LimitDistinct;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 
@@ -79,7 +79,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
 
     private static boolean eagerTerminateIsLikely(Limit limit,
                                                   GroupHashAggregate groupAggregate,
-                                                  Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                                                  PlanStats planStats) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
             // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
@@ -95,11 +95,11 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = resolvePlan.apply(groupAggregate.source()).numExpectedRows();
+        long sourceRows = planStats.get(groupAggregate.source()).numDocs();
         if (sourceRows == 0) {
             return false;
         }
-        var cardinalityRatio = groupAggregate.numExpectedRows() / sourceRows;
+        var cardinalityRatio = planStats.get(groupAggregate).numDocs() / sourceRows;
         /*
          * The threshold was chosen after comparing `with limitDistinct` vs. `without limitDistinct`
          *
@@ -166,12 +166,12 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy, resolvePlan)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, planStats)) {
             return null;
         }
         return new LimitDistinct(

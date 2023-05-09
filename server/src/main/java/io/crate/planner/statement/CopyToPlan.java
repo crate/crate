@@ -73,6 +73,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
@@ -118,7 +119,7 @@ public final class CopyToPlan implements Plan {
             executor,
             boundedCopyTo,
             plannerContext,
-            tableStats,
+            plannerContext.planStats(),
             executor.projectionBuilder(),
             params,
             subQueryResults
@@ -140,7 +141,7 @@ public final class CopyToPlan implements Plan {
     static ExecutionPlan planCopyToExecution(DependencyCarrier executor,
                                              BoundCopyTo boundedCopyTo,
                                              PlannerContext context,
-                                             TableStats tableStats,
+                                             PlanStats planStats,
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
@@ -164,10 +165,10 @@ public final class CopyToPlan implements Plan {
             new DocTableRelation(boundedCopyTo.table()),
             boundedCopyTo.outputs(),
             boundedCopyTo.whereClause(),
-            tableStats,
+            planStats,
             context.params()
         );
-        LogicalPlan source = optimizeCollect(context, tableStats, collect);
+        LogicalPlan source = optimizeCollect(context, planStats, collect);
         ExecutionPlan executionPlan = source.build(
             executor, context, Set.of(), projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);
@@ -178,13 +179,13 @@ public final class CopyToPlan implements Plan {
             List.of(MergeCountProjection.INSTANCE));
     }
 
-    private static LogicalPlan optimizeCollect(PlannerContext context, TableStats tableStats, LogicalPlan collect) {
+    private static LogicalPlan optimizeCollect(PlannerContext context, PlanStats planStats, LogicalPlan collect) {
         OptimizeCollectWhereClauseAccess rewriteCollectToGet = new OptimizeCollectWhereClauseAccess();
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
                                                          match.captures(),
-                                                         tableStats,
+                                                         planStats,
                                                          context.transactionContext(),
                                                          context.nodeContext(),
                                                          Function.identity());

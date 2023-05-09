@@ -71,6 +71,7 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
@@ -101,9 +102,9 @@ public class Collect implements LogicalPlan {
     public static Collect create(AbstractTableRelation<?> relation,
                                  List<Symbol> toCollect,
                                  WhereClause where,
-                                 TableStats tableStats,
+                                 PlanStats planStats,
                                  Row params) {
-        Stats stats = tableStats.getStats(relation.tableInfo().ident());
+        Stats stats = planStats.get(relation.tableInfo().ident());
         return new Collect(
             relation,
             toCollect,

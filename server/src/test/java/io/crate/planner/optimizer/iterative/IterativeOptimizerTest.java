@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.iterative;
 
+import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 
@@ -38,7 +39,6 @@ import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
-import io.crate.statistics.TableStats;
 
 public class IterativeOptimizerTest {
 
@@ -55,7 +55,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters()));
 
-        var result = optimizer.optimize(filter2, new TableStats(), ctx);
+        var result = optimizer.optimize(filter2, PLAN_STATS_EMPTY, ctx);
         assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
                                              "  └ TestPlan[]");
     }
@@ -72,7 +72,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, new TableStats(), ctx);
+        var result = optimizer.optimize(order2, PLAN_STATS_EMPTY, ctx);
         assertThat(result).isEqualTo(
             """
             OrderBy[]
@@ -107,7 +107,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MoveFilterBeneathOrder(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, new TableStats(), ctx);
+        var result = optimizer.optimize(order2, PLAN_STATS_EMPTY, ctx);
 
         assertThat(result).isEqualTo(
             """
