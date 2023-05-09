@@ -21,6 +21,20 @@
 
 package io.crate.execution.engine.distribution;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
@@ -29,19 +43,6 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Consumer which sends requests to downstream nodes every {@link #pageSize} rows.
@@ -138,7 +139,7 @@ public class DistributingConsumer implements RowConsumer {
         }
     }
 
-    private void forwardFailure(@Nullable final BatchIterator it, final Throwable f) {
+    private void forwardFailure(@Nullable final BatchIterator<?> it, final Throwable f) {
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
@@ -178,7 +179,7 @@ public class DistributingConsumer implements RowConsumer {
         }
     }
 
-    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator it) {
+    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator<?> it) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (it != null) {
                 it.close();

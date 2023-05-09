@@ -64,7 +64,7 @@ import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexParts;
@@ -183,7 +183,7 @@ public final class MetadataTracker implements Closeable {
         // single volatile read
         var currentSubscriptionsToTrack = subscriptionsToTrack;
 
-        var countDown = new CountdownFutureCallback(currentSubscriptionsToTrack.size());
+        var countDown = new CountdownFuture(currentSubscriptionsToTrack.size());
         countDown.thenRun(this::schedule);
 
         for (String subscriptionName : currentSubscriptionsToTrack) {

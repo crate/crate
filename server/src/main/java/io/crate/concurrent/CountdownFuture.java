@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nonnull;
 
@@ -32,12 +33,12 @@ import javax.annotation.Nonnull;
  * A future acting as a FutureCallback. It is set when once numCalls have been made to the callback.
  * If a failure occurs the last failure will be used as exception. The result is always null.
  */
-public class CountdownFutureCallback extends CompletableFuture<Void> implements BiConsumer<Object, Throwable> {
+public class CountdownFuture extends CompletableFuture<Void> implements BiConsumer<Object, Throwable> {
 
     private final AtomicInteger counter;
     private final AtomicReference<Throwable> lastFailure = new AtomicReference<>();
 
-    public CountdownFutureCallback(int numCalls) {
+    public CountdownFuture(int numCalls) {
         counter = new AtomicInteger(numCalls);
     }
 
@@ -50,6 +51,11 @@ public class CountdownFutureCallback extends CompletableFuture<Void> implements 
         if (previousFailure != null) {
             t.addSuppressed(previousFailure);
         }
+        countdown();
+    }
+
+    public void onFailure(UnaryOperator<Throwable> updateLastFailure) {
+        lastFailure.updateAndGet(updateLastFailure);
         countdown();
     }
 

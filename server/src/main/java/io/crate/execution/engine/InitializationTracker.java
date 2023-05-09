@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.crate.concurrent.CountdownFuture;
 
 /**
  * Triggers {@link #future} after {@code numServer} calls to either
@@ -34,26 +33,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class InitializationTracker {
 
-    final CompletableFuture<Void> future = new CompletableFuture<>();
-    private final AtomicInteger serverToInitialize;
-    private volatile Throwable failure;
+    final CountdownFuture future;
 
     InitializationTracker(int numServer) {
-        if (numServer == 0) {
-            future.complete(null);
-        }
-        serverToInitialize = new AtomicInteger(numServer);
+        assert numServer > 0 : "Must have at least one server";
+        future = new CountdownFuture(numServer);
     }
 
     void jobInitialized() {
-        if (serverToInitialize.decrementAndGet() <= 0) {
-            // no need to synchronize here, since there cannot be a failure after all servers have finished
-            if (failure == null) {
-                future.complete(null);
-            } else {
-                future.completeExceptionally(failure);
-            }
-        }
+        future.onSuccess();
     }
 
     /**
@@ -63,11 +51,11 @@ class InitializationTracker {
      *          If no failure has been set so far or if it was an InterruptedException it is overwritten.
      */
     void jobInitializationFailed(Throwable t) {
-        synchronized (this) {
-            if (failure == null || failure instanceof InterruptedException) {
-                failure = t;
+        future.onFailure(prevFailure -> {
+            if (prevFailure == null || prevFailure instanceof InterruptedException) {
+                return t;
             }
-        }
-        jobInitialized();
+            return prevFailure;
+        });
     }
 }
