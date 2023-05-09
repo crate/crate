@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -44,7 +45,6 @@ import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -82,7 +82,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
 
         HashJoin result = (HashJoin) rule.apply(match.value(),
                                                 match.captures(),
-                                                new TableStats(),
+                                                PLAN_STATS_EMPTY,
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
                                                 Function.identity());

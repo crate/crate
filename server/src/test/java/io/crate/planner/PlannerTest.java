@@ -97,7 +97,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            e.planStats()
         );
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));

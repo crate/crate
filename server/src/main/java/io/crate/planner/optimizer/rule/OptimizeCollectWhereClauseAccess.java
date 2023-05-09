@@ -35,9 +35,9 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -65,7 +65,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
     @Override
     public LogicalPlan apply(Collect collect,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
@@ -87,7 +87,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                 docKeys.get(),
                 detailedQuery.query(),
                 collect.outputs(),
-                tableStats.estimatedSizePerRow(relation.relationName())
+                planStats.tableStats().estimatedSizePerRow(relation.relationName())
             );
         } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
             return new Collect(collect, detailedQuery);

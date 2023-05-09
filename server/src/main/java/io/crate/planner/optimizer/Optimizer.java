@@ -38,9 +38,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.statistics.TableStats;
 
 public class Optimizer {
 
@@ -58,14 +58,14 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, tableStats, txnCtx);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx);
+        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
-            tableStats,
+            planStats,
             txnCtx
         );
     }
@@ -88,7 +88,7 @@ public class Optimizer {
         return result;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
+    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, PlanStats planStats, TransactionContext txnCtx) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
@@ -103,7 +103,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, tableStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
                 if (transformedPlan != null) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
@@ -122,7 +122,7 @@ public class Optimizer {
     @Nullable
     public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
                                                    LogicalPlan node,
-                                                   TableStats tableStats,
+                                                   PlanStats planStats,
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
                                                    Function<LogicalPlan, LogicalPlan> resolvePlan,
@@ -132,7 +132,7 @@ public class Optimizer {
             if (traceEnabled) {
                 LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
             }
-            return rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx, resolvePlan);
+            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
         }
         return null;
     }

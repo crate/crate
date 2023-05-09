@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -83,7 +82,6 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -630,13 +628,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test3TableJoinQuerySplitting() throws Exception {
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .setTableStats(tableStats)
             .build();
+        e.updateTableStats(Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
         Join outerNl = e.plan("select" +
                                     "  u1.id as u1, " +
@@ -665,13 +660,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .setTableStats(tableStats)
             .build();
+
+        e.updateTableStats(
+            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
         // disable hash joins otherwise it will be a distributed join and the plan differs
         e.getSessionSettings().setHashJoinEnabled(false);
@@ -1043,13 +1037,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_distinct_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
+
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .setTableStats(tableStats)
             .build();
+
+        e.updateTableStats(Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
         String stmt = "select distinct name from users limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);

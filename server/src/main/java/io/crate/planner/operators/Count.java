@@ -162,16 +162,6 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return 1L;
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return Long.BYTES;
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCount(this, context);
     }

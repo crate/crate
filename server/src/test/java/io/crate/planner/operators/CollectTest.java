@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -59,12 +60,12 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,
-            tableStats,
+            PLAN_STATS_EMPTY,
             Row.EMPTY
         );
         assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
         LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
-        assertThat(prunedCollect.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+        assertThat(e.getStats(prunedCollect).sizeInBytes(), is((long) DataTypes.INTEGER.fixedSize()));
     }
 
     @Test
@@ -78,7 +79,6 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);

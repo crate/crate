@@ -48,6 +48,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.statistics.TableStats;
 import io.crate.user.Privilege.Clazz;
 import io.crate.user.Privilege.Type;
 import io.crate.user.User;
@@ -77,6 +78,7 @@ public class Sessions {
     private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
+    private final TableStats tableStats;
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
@@ -92,13 +94,15 @@ public class Sessions {
                     Provider<DependencyCarrier> executorProvider,
                     JobsLogs jobsLogs,
                     Settings settings,
-                    ClusterService clusterService) {
+                    ClusterService clusterService,
+                    TableStats tableStats) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
+        this.tableStats = tableStats;
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
         clusterService.getClusterSettings().addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
@@ -120,6 +124,7 @@ public class Sessions {
             isReadOnly,
             executorProvider.get(),
             sessionSettings,
+            tableStats,
             () -> sessions.remove(sessionId)
         );
         sessions.put(sessionId, session);

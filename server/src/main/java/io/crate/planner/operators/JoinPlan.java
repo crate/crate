@@ -69,10 +69,6 @@ public abstract class JoinPlan implements LogicalPlan {
         return joinType;
     }
 
-    @Override
-    public long estimatedRowSize() {
-        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
-    }
 
     protected static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
                                              ResultDescription resultDescription,
