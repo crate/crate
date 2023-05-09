@@ -65,33 +65,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Improved output representation of timestamp subtraction, by normalizing to
-  bigger units, but no further than days, to be consistent with PostgreSQL
-  behavior. e.g::
-
-    SELECT '2022-12-05T11:22:33.123456789+05:30'::timestamp - '2022-12-03T11:22:33.123456789-02:15'::timestamp
-
-  previously would return: ``PT40H15M`` and now returns: ``P1DT16H15M``.
-
-- Improved error message for :ref:`date_bin <date-bin>` scalar function when the
-  first argument of :ref:`INTERVAL data type <type-interval>` contains month
-  and/or year units.
-
-- Fixed an issue that caused ``AssertionError`` to be thrown when referencing
-  previous relations, not explicitly joined, in an join condition, e.g.::
-
-    SELECT * FROM t1
-    CROSS JOIN t2
-    INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
-
-- Fixed an issue that caused ``DROP TABLE IF EXISTS`` to wrongly return ``1``
-  row affected or ``SQLParseException`` (depending on user privileges), when
-  called on an existent schema, a non-existent table and with the ``crate``
-  catalog prefix, e.g.::
-
-    DROP TABLE IF EXISTS crate.doc.non_existent_table
-
-- Improved an optimization rule to enable index lookups instead of table scans
-  in more cases. This is a follow up to a fix in 5.2.7 which fixed a regression
-  introduced in 5.2.3.
-
+None
