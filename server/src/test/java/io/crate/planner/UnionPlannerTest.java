@@ -230,7 +230,6 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var context = e.getPlannerContext(clusterService.state());
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);

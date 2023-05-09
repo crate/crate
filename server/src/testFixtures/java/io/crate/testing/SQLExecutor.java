@@ -176,6 +176,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -412,7 +413,6 @@ public class SQLExecutor {
                         Settings.EMPTY,
                         clusterService,
                         nodeCtx,
-                        tableStats,
                         null,
                         null,
                         schemas,
@@ -764,6 +764,18 @@ public class SQLExecutor {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Stats stats(LogicalPlan plan) {
+        return planStats.apply(plan);
+    }
+
+    public Stats stats(RelationName relationName) {
+        return planStats.apply(relationName);
+    }
+
+    public void updateTableStats(Map<RelationName, Stats> stats) {
+        tableStats.updateTableStats(stats);
     }
 
     private SQLExecutor(ClusterService clusterService,

@@ -91,8 +91,6 @@ public class Collect implements LogicalPlan {
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation<?>> baseTables;
     final TableInfo tableInfo;
-    private final long numExpectedRows;
-    private final long estimatedRowSize;
     final WhereClause immutableWhere;
     @Nullable
     final Row params;
@@ -100,30 +98,12 @@ public class Collect implements LogicalPlan {
     WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
 
-    public static Collect create(AbstractTableRelation<?> relation,
-                                 List<Symbol> toCollect,
-                                 WhereClause where,
-                                 TableStats tableStats,
-                                 Row params) {
-        Stats stats = tableStats.getStats(relation.tableInfo().ident());
-        return new Collect(
-            relation,
-            toCollect,
-            where,
-            params,
-            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.estimateSizeForColumns(toCollect)
-        );
-    }
-
     public Collect(Collect collect, DetailedQuery detailedQuery) {
         assert detailedQuery.docKeys().isEmpty()
             : "`Collect` operator must not be used with queries that have docKeys. Use the `Get` operator instead";
 
         this.outputs = collect.outputs();
         this.baseTables = collect.baseTables;
-        this.numExpectedRows = collect.numExpectedRows;
-        this.estimatedRowSize = collect.estimatedRowSize;
         this.relation = collect.relation;
         this.mutableBoundWhere = collect.mutableBoundWhere;
         this.immutableWhere = collect.immutableWhere;
@@ -136,13 +116,9 @@ public class Collect implements LogicalPlan {
                    List<Symbol> outputs,
                    WhereClause where,
                    @Nullable
-                   Row params,
-                   long numExpectedRows,
-                   long estimatedRowSize) {
+                   Row params) {
         this.outputs = outputs;
         this.baseTables = List.of(relation);
-        this.numExpectedRows = numExpectedRows;
-        this.estimatedRowSize = estimatedRowSize;
         if (where.hasQuery() && !(relation instanceof DocTableRelation)) {
             EnsureNoMatchPredicate.ensureNoMatchPredicate(where.queryOrFallback(), "Cannot use MATCH on system tables");
         }
@@ -373,14 +349,11 @@ public class Collect implements LogicalPlan {
         if (newOutputs.equals(outputs)) {
             return this;
         }
-        Stats stats = tableStats.getStats(relation.relationName());
         return new Collect(
             relation,
             newOutputs,
             immutableWhere,
-            params,
-            numExpectedRows,
-            stats.estimateSizeForColumns(newOutputs)
+            params
         );
     }
 
@@ -425,9 +398,7 @@ public class Collect implements LogicalPlan {
                 relation,
                 newOutputs,
                 immutableWhere,
-                params,
-                numExpectedRows,
-                stats.estimateSizeForColumns(newOutputs)
+                params
             )
         );
     }
@@ -435,14 +406,6 @@ public class Collect implements LogicalPlan {
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return Map.of();
-    }
-
-    public long numExpectedRows() {
-        return numExpectedRows;
-    }
-
-    public long estimatedRowSize() {
-        return estimatedRowSize;
     }
 
     @Override

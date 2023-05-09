@@ -120,7 +120,6 @@ import io.crate.types.DataTypes;
 public class LogicalPlanner {
     @VisibleForTesting
     final IterativeOptimizer optimizer;
-    private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -167,7 +166,7 @@ public class LogicalPlanner {
     private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
         List.of(new RewriteInsertFromSubQueryToInsertFromValues());
 
-    public LogicalPlanner(NodeContext nodeCtx, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
+    public LogicalPlanner(NodeContext nodeCtx, Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
@@ -183,7 +182,6 @@ public class LogicalPlanner {
             minNodeVersionInCluster,
             WRITE_OPTIMIZER_RULES
         );
-        this.tableStats = tableStats;
     }
 
     public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
@@ -222,14 +220,14 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             txnCtx,
-            tableStats,
+            plannerContext.tableStats(),
             subSelectPlannerContext.params()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.tableStats(), txnCtx);
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(plannerContext.tableStats(), relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
     }
@@ -267,17 +265,17 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             coordinatorTxnCtx,
-            tableStats,
+            plannerContext.tableStats(),
             plannerContext.params()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, plannerContext.tableStats(), coordinatorTxnCtx);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(plannerContext.tableStats(), relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
-            tableStats,
+            plannerContext.tableStats(),
             coordinatorTxnCtx
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
@@ -290,7 +288,7 @@ public class LogicalPlanner {
         //
         // The reason for this is that some plans are cheaper to execute as fetch
         // even if there is no operator that reduces the number of records
-        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, tableStats);
+        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, plannerContext.tableStats());
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
@@ -330,12 +328,12 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, tableStats, params);
+            return new Collect(relation, outputs, WhereClause.MATCH_ALL, params);
         }
 
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, tableStats, params);
+            return new Collect(relation, outputs, WhereClause.MATCH_ALL, params);
         }
 
         @Override
@@ -621,7 +619,7 @@ public class LogicalPlanner {
                     context,
                     LogicalPlanner.this,
                     subqueryPlanner),
-                tableStats,
+                context.tableStats(),
                 context.transactionContext()
             );
         }

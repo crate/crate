@@ -97,9 +97,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             tr1,
             Collections.emptyList(),
             new WhereClause(e.asSymbol(query)),
-            null,
-            100,
-            10
+            null
         );
         var plan = (io.crate.planner.node.dql.Collect) collect.build(
             mock(DependencyCarrier.class),

@@ -40,7 +40,6 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -55,9 +54,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 null,
-                                 1L,
-                                 DataTypes.INTEGER.fixedSize());
+                                 null);
         var memo = new Memo(source);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, 1, Map.of())));
@@ -77,9 +74,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 null,
-                                 1L,
-                                 DataTypes.INTEGER.fixedSize());
+                                 null);
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
         var memo = new Memo(source);
         TableStats tableStats = new TableStats();
@@ -100,9 +95,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 null,
-                                 10L,
-                                 DataTypes.INTEGER.fixedSize());
+                                 null);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
@@ -124,9 +117,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
                                  WhereClause.MATCH_ALL,
-                                 null,
-                                 10L,
-                                 DataTypes.INTEGER.fixedSize());
+                                 null);
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
 

@@ -171,15 +171,15 @@ public class PlanStats {
 
         @Override
         public Stats visitCollect(Collect collect, Void context) {
-            var stats = tableStats.getStats(collect.relation().relationName());
-            long numberOfRows;
-            var query = collect.where().query();
-            if (query == null) {
-                numberOfRows = stats.numDocs();
+            var stats = tableStats.getStats(collect.relation().tableInfo().ident());
+            if (stats.equals(Stats.EMPTY)) {
+                var x = stats.estimateSizeForColumns(collect.outputs());
+                return new Stats(-1, stats.estimateSizeForColumns(collect.outputs()), Map.of());
             } else {
-                numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, collect.params());
+                var query = collect.where().queryOrFallback();
+                var numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, collect.params());
+                return new Stats(numberOfRows, stats.averageSizePerRowInBytes(), stats.statsByColumn());
             }
-            return new Stats(numberOfRows, stats.averageSizePerRowInBytes(), stats.statsByColumn());
         }
 
         @Override

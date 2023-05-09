@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
@@ -41,6 +42,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -53,18 +55,16 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table t (x int, y int)")
             .build();
-        TableStats tableStats = new TableStats();
         Symbol x = e.asSymbol("x");
-        Collect collect = Collect.create(
+        Collect collect = new Collect(
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,
-            tableStats,
             Row.EMPTY
         );
-        assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
-        LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
-        assertThat(e.planStats.apply(prunedCollect).numDocs(), is((long) DataTypes.INTEGER.fixedSize()));
+        assertThat(e.stats(collect).sizeInBytes(), is(DataTypes.INTEGER.fixedSize() * 2L));
+        LogicalPlan prunedCollect = collect.pruneOutputsExcept(new TableStats(), List.of(x));
+        assertThat(e.stats(prunedCollect).sizeInBytes(), is((long) DataTypes.INTEGER.fixedSize()));
     }
 
     @Test
@@ -78,7 +78,6 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);

@@ -157,7 +157,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
@@ -171,15 +170,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Planner(Settings settings,
                    ClusterService clusterService,
                    NodeContext nodeCtx,
-                   TableStats tableStats,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    Schemas schemas,
                    UserManager userManager,
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
-        this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(nodeCtx, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
+        this.logicalPlanner = new LogicalPlanner(nodeCtx, () -> clusterService.state().nodes().getMinNodeVersion());
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;
@@ -286,7 +283,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
-        return new CopyToPlan(analysis, tableStats);
+        return new CopyToPlan(analysis, context.tableStats());
     }
 
     @Override

@@ -66,8 +66,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
         var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
 
-        Collect c1 = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL, null, 1, 1);
-        Collect c2 = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL, null, 1, 1);
+        Collect c1 = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL, null);
+        Collect c2 = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL, null);
 
         // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
         var joinCondition = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");

@@ -70,9 +70,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
             collect.relation(),
             collect.outputs(),
             newWhere,
-            collect.params(),
-            SelectivityFunctions.estimateNumRows(stats, newWhere.queryOrFallback(), null),
-            stats.averageSizePerRowInBytes()
+            collect.params()
         );
     }
 }

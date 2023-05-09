@@ -70,16 +70,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_collect_derives_estimated_size_per_row_from_stats_and_types() {
         // no stats -> size derived FROM fixed with type
         LogicalPlan plan = plan("SELECT x FROM t1");
-        assertThat(sqlExecutor.planStats.apply(plan).numDocs()).isEqualTo((long) DataTypes.INTEGER.fixedSize());
+        Stats stats = sqlExecutor.planStats.apply(plan);
+        assertThat(stats.sizeInBytes()).isEqualTo((long) DataTypes.INTEGER.fixedSize());
 
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
-        ColumnStats<Integer> columnStats = new ColumnStats<>(
-            0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
+        ColumnStats<Integer> columnStats = new ColumnStats<>(0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
         sqlExecutor.tableStats.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");
-        assertThat(sqlExecutor.planStats.apply(plan).numDocs()).isEqualTo(50L);
+        assertThat(sqlExecutor.planStats.apply(plan).sizeInBytes()).isEqualTo(50L);
     }
 
     @Test

@@ -161,11 +161,10 @@ public final class CopyToPlan implements Plan {
             outputFormat,
             boundedCopyTo.withClauseOptions());
 
-        LogicalPlan collect = Collect.create(
+        LogicalPlan collect = new Collect(
             new DocTableRelation(boundedCopyTo.table()),
             boundedCopyTo.outputs(),
             boundedCopyTo.whereClause(),
-            tableStats,
             context.params()
         );
         LogicalPlan source = optimizeCollect(context, tableStats, collect);

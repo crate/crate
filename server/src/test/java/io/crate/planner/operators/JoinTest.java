@@ -94,7 +94,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan createLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            e.tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
@@ -252,7 +251,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            e.tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
@@ -281,7 +279,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         context.transactionContext().sessionSettings().setHashJoinEnabled(false);
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            e.tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
@@ -482,7 +479,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
@@ -501,7 +497,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new TableStats(),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plannerCtx = e.getPlannerContext(clusterService.state());
