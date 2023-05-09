@@ -22,7 +22,6 @@
 package io.crate.planner.operators;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
-import static io.crate.planner.operators.NestedLoopJoin.buildMergePhaseForJoin;
 import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 
 import java.util.ArrayList;
@@ -101,11 +100,13 @@ public class HashJoin extends JoinPlan {
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
+        var lhStats = plannerContext.planStats().apply(leftLogicalPlan);
+        var rhStats = plannerContext.planStats().apply(rightLogicalPlan);
 
         // We move smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
-        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
-        if (expectedRowsAvailable && lhs.numExpectedRows() < rhs.numExpectedRows()) {
+        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
+        if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
 
@@ -195,8 +196,8 @@ public class HashJoin extends JoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows());
+            lhStats.averageSizePerRowInBytes(),
+            lhStats.numDocs());
         return new Join(
             joinPhase,
             leftExecutionPlan,
@@ -287,15 +288,6 @@ public class HashJoin extends JoinPlan {
                 joinCondition
             )
         );
-    }
-    
-    @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        // We don't have any cardinality estimates, so just take the bigger table
-        return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
     }
 
     @Override

@@ -857,16 +857,6 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return -1L;
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return 0L;
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitInsert(this, context);
     }

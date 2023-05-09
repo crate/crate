@@ -41,6 +41,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -59,12 +60,12 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,
-            tableStats,
+            PlanStats.EMPTY,
             Row.EMPTY
         );
         assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
         LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
-        assertThat(prunedCollect.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+        assertThat(e.getStats(prunedCollect).sizeInBytes(), is((long) DataTypes.INTEGER.fixedSize()));
     }
 
     @Test
@@ -78,7 +79,6 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);

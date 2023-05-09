@@ -33,10 +33,10 @@ import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public class MoveLimitBeneathRename implements Rule<Limit> {
 
@@ -57,7 +57,7 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {

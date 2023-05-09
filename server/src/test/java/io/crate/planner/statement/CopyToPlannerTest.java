@@ -50,7 +50,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -96,7 +96,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             mock(DependencyCarrier.class),
             boundedCopyTo,
             e.getPlannerContext(clusterService.state()),
-            new TableStats(),
+            PlanStats.EMPTY,
             new ProjectionBuilder(e.nodeCtx),
             Row.EMPTY,
             SubQueryResults.EMPTY);

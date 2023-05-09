@@ -178,11 +178,13 @@ public class NestedLoopJoin extends JoinPlan {
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
-        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
+        var lhStats = plannerContext.planStats().apply(lhs);
+        var rhStats = plannerContext.planStats().apply(rhs);
+        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
-                (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
-                (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
+                (isDistributed && lhStats.numDocs() < rhStats.numDocs() && orderByFromLeft == null) ||
+                (blockNlPossible && lhStats.numDocs() > rhStats.numDocs())) {
                 // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
                 //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
                 //    to be preserved, then the switch is not possible.
@@ -221,8 +223,8 @@ public class NestedLoopJoin extends JoinPlan {
             joinType,
             joinInput,
             Symbols.typeView(leftLogicalPlan.outputs()),
-            leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows(),
+            lhStats.averageSizePerRowInBytes(),
+            lhStats.numDocs(),
             blockNlPossible
         );
         return new Join(
@@ -399,19 +401,6 @@ public class NestedLoopJoin extends JoinPlan {
             outputs,
             new InputColumns.SourceSymbols(joinOutputs));
         return new EvalProjection(projectionOutputs);
-    }
-
-    @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        if (joinType == JoinType.CROSS) {
-            return lhs.numExpectedRows() * rhs.numExpectedRows();
-        } else {
-            // We don't have any cardinality estimates, so just take the bigger table
-            return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
-        }
     }
 
     @Override

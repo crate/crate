@@ -47,7 +47,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.statistics.TableStats;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -66,7 +66,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where()),
-                    new TableStats(),
+                    PlanStats.EMPTY,
                     null
                 ),
                 Literal.of(10L),

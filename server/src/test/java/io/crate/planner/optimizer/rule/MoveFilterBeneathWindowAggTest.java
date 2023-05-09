@@ -38,7 +38,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -73,7 +72,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -101,7 +100,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -128,7 +127,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -162,7 +161,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
@@ -197,7 +196,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            new TableStats(),
+            e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
             Function.identity()
