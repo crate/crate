@@ -25,7 +25,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -347,13 +347,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testInterval() throws Exception {
         Symbol literal = expressions.asSymbol("INTERVAL '1' MONTH");
-        assertThat(literal).isLiteral(new Period().withMonths(1), DataTypes.INTERVAL);
+        assertThat(literal).isLiteral(new Period().withMonths(1).withPeriodType(PeriodType.yearMonthDayTime()),
+                                      DataTypes.INTERVAL);
     }
 
     @Test
     public void testIntervalConversion() throws Exception {
         Symbol literal = expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
-        assertThat(literal).isLiteral(new Period().withSeconds(1), DataTypes.INTERVAL);
+        assertThat(literal).isLiteral(new Period().withSeconds(1).withPeriodType(PeriodType.yearMonthDayTime()),
+                                      DataTypes.INTERVAL);
     }
 
     @Test

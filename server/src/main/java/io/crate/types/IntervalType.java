@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -182,11 +183,32 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     }
 
     /**
+     * Copy of {@link Period#toStandardDuration()}, but also includes 30 days per month and
+     * 12 months per year calculation. Uses BigInteger to avoid long overflow in case of large
+     * numbers.
+     */
+    public static BigInteger toStandardDuration(Period p) {
+        // no overflow can happen up to WEEKS, even with Integer.MAX_VALUEs,
+        // so use a long to avoid BigInteger object allocations.
+        long millis = p.getMillis();
+        millis += (((long) p.getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));
+        millis += (((long) p.getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));
+        millis += (((long) p.getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));
+        millis += (((long) p.getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));
+        millis += (((long) p.getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));
+
+        BigInteger result = BigInteger.valueOf(millis);
+        result = result.add(BigInteger.valueOf(p.getMonths() * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
+        result = result.add(BigInteger.valueOf(p.getYears() * 12 * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
+        return result;
+    }
+
+    /**
      * It's half-copied from {@link Period#normalizedStandard(PeriodType)} to normalize first the time/days
      * units and then normalize the days/months/years. It's used to only create one {@link Period} result object
      * and make all necessary calculations in one go.
      */
-    private static Period normalize(Period p) {
+    public static Period normalize(Period p) {
         long millis = p.getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs
         millis += (((long) p.getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));
         millis += (((long) p.getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));

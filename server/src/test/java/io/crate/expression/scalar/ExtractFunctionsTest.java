@@ -106,7 +106,7 @@ public class ExtractFunctionsTest extends ScalarTestCase {
     public void testExtractDay() throws Exception {
         assertEvaluate("extract(day from timestamp_tz)", 15);
         assertEvaluate("extract(day_of_month from timestamp_tz)", 15);
-        assertEvaluate("extract(day from INTERVAL '14 years 58 months 1250 days 49 hours' DAY TO HOUR)", 6);
+        assertEvaluate("extract(day from INTERVAL '14 years 58 months 1250 days 49 hours' DAY TO HOUR)", 1252);
         assertEvaluate("extract(day from INTERVAL '49 hours 127 minutes 43250 seconds')", 2);
         assertEvaluateIntervalException("day_of_month");
     }
