@@ -2867,7 +2867,7 @@ constant array values.
 Nested arrays
 .............
 
-Nested arrays cannot be used directly in column definitions  (i.e. 
+Nested arrays cannot be used directly in column definitions  (i.e.
 ``ARRAY(ARRAY(DOUBLE))`` is not accepted), but multiple arrays can be nested
 as long as there are objects in-between:
 
@@ -2883,11 +2883,11 @@ Nested arrays can still be used directly in input and output to UDFs:
     CREATE FUNCTION sort_nested_array("data" ARRAY(ARRAY(DOUBLE)), sort_dimension SMALLINT)
     RETURNS ARRAY(ARRAY(DOUBLE))
     LANGUAGE JAVASCRIPT
-    AS 'function sort_nested_array(data, sort_dimension) {			
+    AS 'function sort_nested_array(data, sort_dimension) {
         data = data.sort(function compareFn(a, b) {
             if (a[sort_dimension] < b[sort_dimension]){return -1;}
             if (a[sort_dimension] > b[sort_dimension]){return 1;}
-            return 0; 
+            return 0;
         });
         return data;
     }';
@@ -2901,10 +2901,10 @@ requires an intermediate cast:
     CREATE TABLE metrics (ts TIMESTAMP, reading DOUBLE);
     INSERT INTO metrics SELECT '2022-11-01',2;
     INSERT INTO metrics SELECT '2022-10-01',1;
-    
+
     WITH sorteddata AS (
         SELECT sort_nested_array(ARRAY_AGG([ts,reading]),0) AS nestedarray
-        FROM metrics 
+        FROM metrics
     )
     SELECT (nestedarray[generate_series]::ARRAY(DOUBLE))[2] AS "ReadingsSortedByTimestamp"
     FROM generate_series(1, 2), sorteddata;
@@ -3585,7 +3585,7 @@ However, you cannot use it with any :ref:`scalar functions
 
 .. _BigDecimal documentation: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/math/BigDecimal.html
 .. _bit mask: https://en.wikipedia.org/wiki/Mask_(computing)
-.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
+.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_blocks
 .. _Coordinated Universal Time: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 .. _double-precision floating-point: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 .. _fixed-point fractional number: https://en.wikipedia.org/wiki/Fixed-point_arithmetic
