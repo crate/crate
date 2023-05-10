@@ -36,10 +36,6 @@ final class NumericalIntervalParser {
     private NumericalIntervalParser() {
     }
 
-    static Period apply(String value) {
-        return apply(value, null, null);
-    }
-
     static Period apply(String value,
                         @Nullable IntervalParser.Precision start,
                         @Nullable IntervalParser.Precision end) {

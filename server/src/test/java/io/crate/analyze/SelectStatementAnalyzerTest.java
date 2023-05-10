@@ -32,7 +32,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -45,6 +44,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -1152,7 +1152,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(stmt.orderBy().orderBySymbols()).satisfiesExactly(
             x -> assertThat(x)
                 .isAlias("interval")
-                .isLiteral(new Period(12, 0, 0, 0))
+                .isLiteral(new Period(12, 0, 0, 0)
+                               .withPeriodType(PeriodType.yearMonthDayTime()))
         );
         stmt = executor.analyze(
             "select current_timestamp - process['probe_timestamp'] AS \"interval\" from sys.nodes order by 1");

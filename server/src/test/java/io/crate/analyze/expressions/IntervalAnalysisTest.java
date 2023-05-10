@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,58 +47,63 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_psql_compact_format_from_string_with_start() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR");
-        assertThat(symbol).isLiteral(new Period().withYears(6));
+        assertThat(symbol).isLiteral(new Period().withYears(6).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_psql_compact_format_from_string_with_start_end() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR TO MONTH");
-        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5));
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_psql_compact_format_from_string_with_start_end1() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO HOUR");
-        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3));
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_interval() throws Exception {
         var symbol = e.asSymbol("INTERVAL '1' MONTH");
-        assertThat(symbol).isLiteral(new Period().withMonths(1));
+        assertThat(symbol).isLiteral(new Period().withMonths(1).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_negative_interval() throws Exception {
         var symbol = e.asSymbol("INTERVAL '-1' MONTH");
-        assertThat(symbol).isLiteral(new Period().withMonths(-1));
+        assertThat(symbol).isLiteral(new Period().withMonths(-1).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_negative_negative_interval() throws Exception {
         var symbol = e.asSymbol("INTERVAL -'-1' MONTH");
-        assertThat(symbol).isLiteral(new Period().withMonths(1));
+        assertThat(symbol).isLiteral(new Period().withMonths(1).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_interval_conversion() throws Exception {
         var symbol = e.asSymbol("INTERVAL '1' HOUR to SECOND");
-        assertThat(symbol).isLiteral(new Period().withSeconds(1));
+        assertThat(symbol).isLiteral(new Period().withSeconds(1).withPeriodType(PeriodType.yearMonthDayTime()));
 
         symbol = e.asSymbol("INTERVAL '100' DAY TO SECOND");
-        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(40));
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(40)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_seconds_millis() throws Exception {
         var symbol = e.asSymbol("INTERVAL '1'");
-        assertThat(symbol).isLiteral(new Period().withSeconds(1));
+        assertThat(symbol).isLiteral(new Period().withSeconds(1).withPeriodType(PeriodType.yearMonthDayTime()));
 
         symbol = e.asSymbol("INTERVAL '1.1'");
-        assertThat(symbol).isLiteral(new Period().withSeconds(1).withMillis(100));
+        assertThat(symbol).isLiteral(new Period().withSeconds(1).withMillis(100)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
 
         symbol = e.asSymbol("INTERVAL '60.1'");
-        assertThat(symbol).isLiteral(new Period().withMinutes(1).withMillis(100));
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withMillis(100)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
@@ -110,7 +116,8 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_odd() throws Exception {
         var symbol = e.asSymbol("INTERVAL '100.123' SECOND");
-        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(40).withMillis(123));
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(40).withMillis(123)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
@@ -118,5 +125,4 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.asSymbol("INTERVAL '1-2 3 4-5-6'"))
             .isExactlyInstanceOf(ConversionException.class);
     }
-
 }

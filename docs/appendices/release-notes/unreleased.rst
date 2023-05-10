@@ -55,6 +55,16 @@ None
 Changes
 =======
 
+- Changed literal :ref:`INTERVAL data type <type-interval>` to do normalization
+  up to day units, and comply with PostgreSQL behavior, e.g.::
+
+    cr> SELECT INTERVAL '1 month 42 days 126 hours 512 mins 7123 secs';
+    +------------------------------+
+    | 'P1M47DT16H30M43S'::interval |
+    +------------------------------+
+    | 1 mon 47 days 16:30:43       |
+    +------------------------------+
+
 - Array comparisons like ``= ANY`` will now automatically unnest the array
   argument to the required dimensions.
 
