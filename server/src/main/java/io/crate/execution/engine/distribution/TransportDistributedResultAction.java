@@ -110,6 +110,11 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         transportService.registerRequestHandler(
             DistributedResultAction.NAME,
             ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
+            true,
+            // Don't trip breaker on transport layer, but instead depend on ram-accounting in PageBucketReceivers
+            // We need to always handle requests to avoid jobs from getting stuck.
+            // (If we receive a request, but don't handle it, a task would remain open indefinitely)
+            false,
             DistributedResultRequest::new,
             new NodeActionRequestHandler<>(nodeAction));
     }
