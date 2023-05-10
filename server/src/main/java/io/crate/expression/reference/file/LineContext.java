@@ -22,23 +22,15 @@
 package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import org.apache.lucene.util.UnicodeUtil;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.xcontent.ParsedXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 public class LineContext {
 
-    private byte[] rawSource;
-    private LinkedHashMap<String, Object> parsedSource;
+    private LinkedHashMap<String, Object> valuesByColumnName;
     private String currentUri;
     private String currentUriFailure;
     private String currentParsingFailure;
@@ -46,41 +38,32 @@ public class LineContext {
 
     @Nullable
     String sourceAsString() {
-        if (rawSource != null) {
-            char[] chars = new char[rawSource.length];
-            int len = UnicodeUtil.UTF8toUTF16(rawSource, 0, rawSource.length, chars);
-            return new String(chars, 0, len);
+        if (valuesByColumnName != null) {
+            return valuesByColumnName.toString();
+            // TODO: Maybe replace with new String(valuesByColumnName.toString(), Charset.forName("UTF-16")) to align with the prev version?
         }
         return null;
     }
 
     @Nullable
     LinkedHashMap<String, Object> sourceAsMap() {
-        if (parsedSource == null) {
-            if (rawSource != null) {
-                try {
-                    // preserve the order of the rawSource
-                    ParsedXContent parsedXContent = XContentHelper.convertToMap(new BytesArray(rawSource), true, XContentType.JSON);
-                    parsedSource = (LinkedHashMap<String, Object>) parsedXContent.map();
-                } catch (ElasticsearchParseException | NotXContentException e) {
-                    throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
-                }
-            }
-        }
-        return parsedSource;
+        return valuesByColumnName;
     }
 
     public Object get(ColumnIdent columnIdent) {
-        Map<String, Object> parentMap = sourceAsMap();
-        if (parentMap == null) {
-            return null;
-        }
-        return ColumnIdent.get(parentMap, columnIdent);
+        // TODO: check, maybe need to use sqlFqn, depends on targetColumns format
+        return valuesByColumnName.get(columnIdent.fqn());
     }
 
-    public void rawSource(byte[] bytes) {
-        this.rawSource = bytes;
-        this.parsedSource = null;
+    /**
+     * Build a map (name -> value) so that we can quickly get column value by name.
+     * k-th element of the values contains value of the k-th target column.
+     */
+    public void values(Object[] values, List<String> targetColumns) {
+        assert targetColumns.size() == values.length : "target columns and their values must have the same size";
+        for (int i = 0; i < targetColumns.size(); i++) {
+            valuesByColumnName.put(targetColumns.get(i), values[i]);
+        }
     }
 
     /**

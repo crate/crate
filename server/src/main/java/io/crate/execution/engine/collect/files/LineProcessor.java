@@ -57,8 +57,8 @@ public final class LineProcessor {
     public void process(String line) throws IOException {
         lineContext.incrementCurrentLineNumber();
         lineContext.resetCurrentParsingFailure(); // Reset prev failure if there is any.
-        byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
-        lineContext.rawSource(jsonByteArray);
+        Object[] values = lineParser.getValues(line, lineContext.getCurrentLineNumber());
+        lineContext.values(values, lineParser.targetColumns());
     }
 
     /**

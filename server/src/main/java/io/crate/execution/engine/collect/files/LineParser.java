@@ -24,11 +24,14 @@ package io.crate.execution.engine.collect.files;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class LineParser {
@@ -39,7 +42,7 @@ public class LineParser {
 
     private InputType inputType;
 
-    public LineParser(CopyFromParserProperties parserProperties, List<String> targetColumns) {
+    public LineParser(CopyFromParserProperties parserProperties, @Nonnull List<String> targetColumns) {
         this.parserProperties = parserProperties;
         this.targetColumns = targetColumns;
     }
@@ -47,6 +50,10 @@ public class LineParser {
     private enum InputType {
         CSV,
         JSON
+    }
+
+    public List<String> targetColumns() {
+        return targetColumns;
     }
 
     public void readFirstLine(URI currentUri,
@@ -66,12 +73,24 @@ public class LineParser {
         }
     }
 
-    public byte[] getByteArray(String line, long rowNumber) throws IOException {
+    /**
+     * @return values of the targetColumns, k-th element of the result contains value of the k-th target column.
+     */
+    public Object[] getValues(String line, long rowNumber) throws IOException {
         if (inputType == InputType.CSV) {
-            return parserProperties.fileHeader() ?
-                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
+            return new Object[]{};
+            // TODO: line.split(delimiter) but there are some options, maybe let csvLineParser return object[] so that it still handles header and options.
+//            return parserProperties.fileHeader() ?
+//                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
         } else {
-            return line.getBytes(StandardCharsets.UTF_8);
+            var jsonMap =  JsonXContent.JSON_XCONTENT
+                .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, line)
+                .map();
+            Object[] values = new Object[targetColumns.size()];
+            for (int i = 0; i < targetColumns.size(); i++) {
+                values[i] = jsonMap.get(targetColumns.get(i));
+            }
+            return values;
         }
     }
 

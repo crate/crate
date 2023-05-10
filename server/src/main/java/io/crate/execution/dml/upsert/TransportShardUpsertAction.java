@@ -156,6 +156,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         } else {
             insertColumns = List.of(request.insertColumns());
         }
+        // TODO: pass request.validation to the indexer and implement logic to skip validation
         Indexer indexer = new Indexer(
             indexName,
             tableInfo,
@@ -553,6 +554,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
+    @Deprecated
     private IndexItemResponse legacyInsert(ShardUpsertRequest request,
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard,

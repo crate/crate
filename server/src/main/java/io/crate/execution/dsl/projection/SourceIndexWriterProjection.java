@@ -22,9 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import javax.annotation.Nullable;
 
@@ -55,6 +53,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final Boolean overwriteDuplicates;
     private final Reference rawSourceReference;
     private final InputColumn rawSourceSymbol;
+    private final List<Symbol> targetColsSymbolsExclPartition;
+    private final List<Reference> targetColsExclPartitionCols;
     private final List<? extends Symbol> outputs;
 
 
@@ -65,6 +65,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
                                        InputColumn rawSourcePtr,
+                                       List<Reference> targetColsExclPartitionCols,
+                                       List<Symbol> targetColsSymbolsExclPartition,
                                        List<ColumnIdent> primaryKeys,
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -80,6 +82,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
         this.rawSourceSymbol = rawSourcePtr;
+        this.targetColsExclPartitionCols = targetColsExclPartitionCols;
+        this.targetColsSymbolsExclPartition = targetColsSymbolsExclPartition;
         this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         this.failFast = settings.getAsBoolean(FAIL_FAST, false);
@@ -94,8 +98,29 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             failFast = false;
         }
         overwriteDuplicates = in.readBoolean();
-        rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
+            rawSourceReference = null;
+            rawSourceSymbol = null;
+            if (in.readBoolean()) {
+                targetColsSymbolsExclPartition = Symbols.listFromStream(in);
+            } else {
+                targetColsSymbolsExclPartition = Collections.emptyList();
+            }
+            if (in.readBoolean()) {
+                int length = in.readVInt();
+                targetColsExclPartitionCols = new ArrayList<>(length);
+                for (int i = 0; i < length; i++) {
+                    targetColsExclPartitionCols.add(Reference.fromStream(in));
+                }
+            } else {
+                targetColsExclPartitionCols = Collections.emptyList();
+            }
+        } else {
+            rawSourceReference = Reference.fromStream(in);
+            rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
+            targetColsExclPartitionCols = Collections.emptyList();
+            targetColsSymbolsExclPartition = Collections.emptyList();
+        }
 
         if (in.getVersion().before(Version.V_5_3_0)) {
             if (in.readBoolean()) {

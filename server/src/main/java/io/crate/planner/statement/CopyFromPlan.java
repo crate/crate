@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.crate.execution.dsl.projection.*;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -58,11 +59,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
-import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
-import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
@@ -267,6 +263,39 @@ public final class CopyFromPlan implements Plan {
                 List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
                 projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
             }
+
+
+//            List<Reference> targetColsExclPartitionCols = new ArrayList<>(
+//                Math.max(1, copyFrom.tableInfo().columns().size() - copyFrom.tableInfo().partitionedBy().size()));
+//            for (Reference column : copyFrom.tableInfo().columns()) {
+//                if (copyFrom.tableInfo().partitionedBy().contains(column.column())) {
+//                    continue;
+//                }
+//                targetColsExclPartitionCols.add(column);
+//            }
+//            List<Symbol> columnSymbols = InputColumns.create(
+//                targetColsExclPartitionCols,
+//                new InputColumns.SourceSymbols(copyFrom.tableInfo().columns()));
+
+
+//            ColumnIndexWriterProjection columnIndexWriterProjection = new ColumnIndexWriterProjection(
+//                table.ident(),
+//                partitionIdent,
+//                table.primaryKey(),
+//                new ArrayList<>(copyFrom.tableInfo().columns()),
+//                targetColsExclPartitionCols,
+//                columnSymbols,
+//                null , // statement.isIgnoreDuplicateKeys(), // TODO: derive from copyFrom  or create ctor without it can be skipped
+//                null, // statement.onDuplicateKeyAssignments(), // TODO: derive from copyFrom  or create ctor without it can be skipped
+//                null, //statement.primaryKeySymbols(), // TODO: derive from copyFrom  or create ctor without it can be skipped
+//                null, // statement.partitionedBySymbols(), // TODO: derive from copyFrom  or create ctor without it can be skipped
+//                copyFrom.tableInfo().clusteredBy(),
+//                null, //statement.clusteredBySymbol(), // TODO: derive from copyFrom  or create ctor without it can be skipped
+//                boundedCopyFrom.settings(),
+//                copyFrom.tableInfo().isPartitioned(), // autoCreateIndices
+//                projectionOutputs,
+//                null // return Values
+//            );
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
