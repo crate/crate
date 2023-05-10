@@ -69,6 +69,13 @@ When a not indexed column is queried the query will return an error.
     cr> select * from table_a where first_column = 'hello';
     SQLParseException[Cannot search on field [first_column] since it is not indexed.]
 
+
+.. NOTE::
+
+    ``INDEX OFF`` cannot be used with
+    :ref:`partition columns <gloss-partition-column>`, as those are not stored
+    as normal columns of a table.
+
 .. _sql_ddl_index_plain:
 
 Plain index (default)
