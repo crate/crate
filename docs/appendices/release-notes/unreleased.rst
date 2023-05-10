@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to queries to become stuck instead of failing
+  with a circuit breaker error if a node is under memory pressure.
+
 - Improved an optimization rule to enable index lookups instead of table scans
   in more cases. This is a follow up to a fix in 5.2.7 which fixed a regression
   introduced in 5.2.3.
