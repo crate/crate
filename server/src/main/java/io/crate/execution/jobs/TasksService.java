@@ -162,8 +162,12 @@ public class TasksService extends AbstractLifecycleComponent {
                 String.format(Locale.ENGLISH, "task for job %s already exists:%n%s", jobId, existing));
         }
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Task created for job {},  activeTasks: {}",
-                         jobId, activeTasks.size());
+            LOGGER.trace(
+                "RootTask created for job={} tasks={} totalTasks={}",
+                jobId,
+                builder.size(),
+                activeTasks.size()
+            );
         }
         return newRootTask;
     }
