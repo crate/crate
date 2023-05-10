@@ -181,9 +181,10 @@ array.
 
 The ``avg`` and ``mean`` aggregate function returns the arithmetic mean, the
 *average*, of all values in a column that are not ``NULL``. It accepts all
-numeric columns and timestamp columns as single argument. For ``numeric``
-argument type the return type is ``numeric`` and for other argument type the
-return type is ``double``.
+numeric, timestamp and interval types as single argument. For ``numeric``
+argument type the return type is ``numeric``, for ``interval`` argument type the
+return type is ``interval`` and for other argument type the return type is
+``double``.
 
 Example::
 

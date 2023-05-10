@@ -21,11 +21,9 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.hamcrest.Matchers;
 import org.joda.time.Period;
 import org.junit.Test;
 
@@ -40,7 +38,7 @@ public class IntervalTypeTest {
         var in = out.bytes().streamInput();
         var periodFromStream = IntervalType.INSTANCE.readValueFrom(in);
 
-        assertThat(periodFromStream, is(period));
+        assertThat(periodFromStream).isEqualTo(period);
     }
 
     @Test
@@ -48,6 +46,6 @@ public class IntervalTypeTest {
         var out = new BytesStreamOutput();
         IntervalType.INSTANCE.writeValueTo(out, null);
         var in = out.bytes().streamInput();
-        assertThat(IntervalType.INSTANCE.readValueFrom(in), Matchers.nullValue());
+        assertThat(IntervalType.INSTANCE.readValueFrom(in)).isNull();
     }
 }

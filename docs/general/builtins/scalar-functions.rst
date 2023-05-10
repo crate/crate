@@ -1127,14 +1127,14 @@ Synopsis::
 
 .. NOTE::
 
-    When extracting from an :ref:`INTERVAL <type-interval>` there is no
-    normalization of units, e.g.::
+    When extracting from an :ref:`INTERVAL <type-interval>` there is
+    normalization of units, up to days e.g.::
 
-       cr> SELECT extract(year from INTERVAL '14 years 1250 days 49 hours') AS year;
+       cr> SELECT extract(day from INTERVAL '14 years 1250 days 49 hours') AS days;
        +------+
-       | year |
+       | days |
        +------+
-       |   14 |
+       | 1252 |
        +------+
        SELECT 1 row in set (... sec)
 

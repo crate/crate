@@ -22,16 +22,18 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
+import io.crate.execution.engine.aggregation.impl.average.IntervalAverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageAggregation;
 import io.crate.expression.AbstractFunctionModule;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 
-public class AggregationImplModule extends AbstractFunctionModule<AggregationFunction> {
+public class AggregationImplModule extends AbstractFunctionModule<AggregationFunction<?, ?>> {
 
     @Override
     public void configureFunctions() {
         AverageAggregation.register(this);
         NumericAverageAggregation.register(this);
+        IntervalAverageAggregation.register(this);
         MinimumAggregation.register(this);
         MaximumAggregation.register(this);
         ArbitraryAggregation.register(this);
