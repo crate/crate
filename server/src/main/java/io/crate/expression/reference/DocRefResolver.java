@@ -24,8 +24,10 @@ package io.crate.expression.reference;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 import java.util.List;
+import java.util.Objects;
 
 import io.crate.common.collections.Maps;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
@@ -33,6 +35,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.ArrayType;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -104,7 +107,17 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), column));
+                    try {
+                        return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), column));
+                    } catch (ClassCastException | ConversionException e) {
+                        // due to a bug: https://github.com/crate/crate/issues/13990
+                        Object value = ValueExtractors.fromMap(response.getSource(), column);
+                        if (value instanceof List<?> list && list.stream().allMatch(Objects::isNull) &&
+                            !(ref.valueType() instanceof ArrayType<?>)) {
+                            return null;
+                        }
+                        throw e;
+                    }
                 });
         }
     }

@@ -113,6 +113,10 @@ public class RootTask implements CompletionListenable<Void> {
             return tasks.isEmpty();
         }
 
+        int size() {
+            return tasks.size();
+        }
+
         public UUID jobId() {
             return jobId;
         }
@@ -179,6 +183,7 @@ public class RootTask implements CompletionListenable<Void> {
     @Nullable
     public CompletableFuture<Void> start() {
         if (closed.get()) {
+            logger.trace("job={} killed before start was called", jobId);
             return CompletableFuture.completedFuture(null); // got killed before start was called
         }
         return start(0);
@@ -195,6 +200,7 @@ public class RootTask implements CompletionListenable<Void> {
                 }
             }
             try {
+                logger.trace("Starting task job={} phase={} name={}", jobId, phaseId, task.name());
                 CompletableFuture<Void> started = task.start();
                 if (started != null) {
                     return started.thenCompose(ignored -> start(taskIndex + 1));

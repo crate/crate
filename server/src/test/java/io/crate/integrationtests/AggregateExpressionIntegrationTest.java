@@ -21,15 +21,11 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
 public class AggregateExpressionIntegrationTest extends IntegTestCase {
@@ -41,9 +37,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select sum(x) from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("6\n")
-        );
+        assertThat(response).hasRows("6");
     }
 
     @Test
@@ -61,13 +55,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select max_by(name, x) from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "baz\n"
-        );
+        assertThat(response).hasRows("baz");
         execute("select min_by(name, x) from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "foo\n"
-        );
+        assertThat(response).hasRows("foo");
     }
 
     @Test
@@ -82,10 +72,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                     INTERVAL '4 days 3 hours' DAY TO HOUR,
                     INTERVAL '45.123']) AS col1) AS t
             """);
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("P6Y5M4DT3H45.123S\n")
-        );
+        assertThat(response).hasRows("P6Y5M4DT3H45.123S");
     }
 
     @Test
@@ -103,10 +90,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "       sum(y::numeric(16, 2))," +
                 "       sum(z::numeric) " + // overflow
                 "FROM tbl");
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("2.6| 3.12| 9223372036854775809\n")
-        );
+        assertThat(response).hasRows("2.6| 3.12| 9223372036854775809");
     }
 
     @Test
@@ -124,10 +108,25 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "       avg(y::numeric(16, 2))," +
                 "       avg(z::numeric) " + // Handle precision error by casting.
             "FROM tbl");
-        assertThat(
-            TestingHelpers.printedTable(response.rows()),
-            is("0.5| 2.25| 9223372036854775807\n")
-        );
+        assertThat(response).hasRows("0.5| 2.25| 9223372036854775807");
+    }
+
+    @Test
+    @UseJdbc(0) // For consistent output format
+    public void test_interval_avg() {
+        execute("CREATE TABLE tbl (ts timestamp) " +
+                "CLUSTERED INTO 1 SHARDS " +
+                "WITH (number_of_replicas=0)");
+        execute(
+            "INSERT INTO tbl VALUES (?)", new Object[][]{
+                new Object[]{"2022-01-01 00:00:00"},
+                new Object[]{"2023-01-01 00:00:00"},
+                new Object[]{"2023-02-01 00:00:33.678"},
+                new Object[]{"2023-11-22 11:22:33"}});
+        execute("refresh table tbl");
+
+        execute("SELECT avg('2023-05-04 22:33:11.123' - ts) FROM tbl");
+        assertThat(response).hasRows("P126DT1H42M24.453S");
     }
 
     @Test
@@ -141,10 +140,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   ['a', 'a', 'a', 'b', 'b', 'b']) as t(x, y) " +
                 "GROUP BY y " +
                 "ORDER BY y");
-        assertThat(printedTable(response.rows()),
-                   is("a| [4]| [3, 4]\n" +
-                      "b| [4, 5]| [3, 4, 5]\n")
-        );
+        assertThat(response).hasRows(
+            "a| [4]| [3, 4]",
+            "b| [4, 5]| [3, 4, 5]");
     }
 
     @Test
@@ -157,10 +155,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   ['a', 'a', null, null, null]) AS t(x, y) " +
                 "GROUP BY y " +
                 "ORDER BY y");
-        assertThat(printedTable(response.rows()),
-                   is("a| [4]\n" +
-                      "NULL| [4, 5]\n")
-        );
+        assertThat(response).hasRows(
+            "a| [4]",
+            "NULL| [4, 5]");
     }
 
     @Test
@@ -169,7 +166,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   COLLECT_SET(x) FILTER (WHERE x > 3), " +
                 "   COLLECT_SET(x) FILTER (WHERE x > 2) " +
                 "FROM UNNEST([1, 3, 4, 2, 5, 4]) AS t(x, y)");
-        assertThat(printedTable(response.rows()), is("[4, 5]| [3, 4, 5]\n"));
+        assertThat(response).hasRows("[4, 5]| [3, 4, 5]");
     }
 
     // grouping by a single numeric value would result in a different
@@ -182,9 +179,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   [1, 2, 1, 3]," +
                 "   [1, 1, 2, 2]) AS t(x, y) " +
                 "GROUP BY y");
-        assertThat(printedTable(response.rows()),
-                   is("[2]\n" +
-                      "[3]\n"));
+        assertThat(response).hasRows(
+            "[2]",
+            "[3]");
     }
 
     @Test
@@ -195,9 +192,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   [1, 2, 1, 3]," +
                 "   [1, 1, null, null]) AS t(x, y) " +
                 "GROUP BY y");
-        assertThat(printedTable(response.rows()),
-                   is("[3]\n" +
-                      "[2]\n"));
+        assertThat(response).hasRows(
+            "[3]",
+            "[2]");
     }
 
     @Test
@@ -205,8 +202,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("SELECT" +
                 "   COLLECT_SET(x) FILTER (WHERE x in (SELECT UNNEST([1, 3]))) " +
                 "FROM UNNEST([1, 2]) AS t(x)");
-        assertThat(printedTable(response.rows()),
-                   is("[1]\n"));
+        assertThat(response).hasRows("[1]");
     }
 
     @Test
@@ -220,9 +216,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "   ['a', 'a', 'a', 'b', 'b', 'b']) as t(x, y) " +
                 "GROUP BY y " +
                 "ORDER BY y");
-        assertThat(printedTable(response.rows()),
-                   is("a| [1, 4]| [3]\n" +
-                      "b| [4]| [3, 5]\n"));
+        assertThat(response).hasRows(
+            "a| [1, 4]| [3]",
+            "b| [4]| [3, 5]");
     }
 
     @Test
@@ -232,7 +228,7 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("REFRESH TABLE t");
 
         execute("SELECT COUNT(*) FILTER (WHERE x > 2) FROM t");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
     }
 
     @Test
@@ -247,9 +243,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "FROM t " +
                 "GROUP BY x " +
                 "ORDER BY x");
-        assertThat(printedTable(response.rows()),
-                   is("a| 3\n" +
-                      "b| 0\n"));
+        assertThat(response).hasRows(
+            "a| 3",
+            "b| 0");
     }
 
     @Test
@@ -259,27 +255,27 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("refresh table test");
 
         execute("select name from test group by name order by count(1)");
-        assertThat(printedTable(response.rows()),
-                   is("c\n" +
-                      "b\n" +
-                      "a\n"));
+        assertThat(response).hasRows(
+            "c",
+            "b",
+            "a");
 
         execute("select name from test group by name order by count(id)");
-        assertThat(printedTable(response.rows()),
-                   is("c\n" +
-                      "b\n" +
-                      "a\n"));
+        assertThat(response).hasRows(
+            "c",
+            "b",
+            "a");
 
         execute("select name from test group by name order by count(id) asc");
-        assertThat(printedTable(response.rows()),
-                   is("c\n" +
-                      "b\n" +
-                      "a\n"));
+        assertThat(response).hasRows(
+            "c",
+            "b",
+            "a");
 
         execute("select name from test group by name order by count(id) desc");
-        assertThat(printedTable(response.rows()),
-                   is("a\n" +
-                      "b\n" +
-                      "c\n"));
+        assertThat(response).hasRows(
+            "a",
+            "b",
+            "c");
     }
 }

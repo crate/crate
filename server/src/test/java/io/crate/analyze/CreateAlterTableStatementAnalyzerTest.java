@@ -418,6 +418,28 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(((List<String>) nameMapping.get("copy_to")).get(0), is("author_title_ft"));
     }
 
+    @Test
+    public void test_create_table_index_definition_cannot_contain_same_column() {
+        assertThatThrownBy(() -> analyze(
+            "create table test (" +
+                "   title string, " +
+                "   name string, " +
+                "INDEX test_ft using fulltext(title, title))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Index test_ft contains duplicate columns.");
+
+        // sub-column
+        assertThatThrownBy(() -> analyze(
+            "create table my_table1g (" +
+                "   title string, " +
+                "   author object(dynamic) as ( " +
+                "   name string" +
+                "), " +
+                "INDEX nested_ft using fulltext(author['name'], author['name']))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Index nested_ft contains duplicate columns.");
+    }
+
     @Test(expected = ColumnUnknownException.class)
     public void testCreateTableWithInvalidFulltextIndexDefinition() {
         analyze(

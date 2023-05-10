@@ -203,8 +203,12 @@ public class JobSetup {
             nodeOperations,
             sharedShardContexts);
         registerContextPhases(nodeOperations, context);
-        LOGGER.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}",
-                     nodeOperations, context.opCtx.targetToSourceMap);
+        LOGGER.trace(
+            "prepareOnRemote: job={} nodeOperations={} targetSourceMap={}",
+            contextBuilder.jobId(),
+            nodeOperations,
+            context.opCtx.targetToSourceMap
+        );
 
         for (IntCursor cursor : context.opCtx.findLeafs()) {
             prepareSourceOperations(cursor.value, context);
@@ -230,8 +234,13 @@ public class JobSetup {
             context.registerLeaf(handlerPhase.phase(), handlerPhase.consumer());
         }
         registerContextPhases(nodeOperations, context);
-        LOGGER.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
-                     nodeOperations, handlerPhases, context.opCtx.targetToSourceMap);
+        LOGGER.trace(
+            "prepareOnHandler: jobId={} nodeOperations={} handlerPhases={} targetSourceMap={}",
+            taskBuilder.jobId(),
+            nodeOperations,
+            handlerPhases,
+            context.opCtx.targetToSourceMap
+        );
 
         IntHashSet leafs = new IntHashSet();
         for (var handlerPhase : handlerPhases) {
