@@ -1,0 +1,16 @@
+---
+cluster.name: dev
+stats.service.interval: 0
+# bind to localhost, mainly to prevent the node from dying due to bootstrap checks (HEAP checks)
+network.host: _local_
+
+ssl.psql.enabled: false
+ssl.http.enabled: false
+ssl.keystore_filepath: ../server/src/test/resources/keystore.pcks12 # working dir is ${PROJEC_DIR}/app
+ssl.keystore_password: keystorePassword
+ssl.keystore_key_password: keystorePassword
+
+path.repo: ../sandbox/crate2/repo # working dir is ${PROJEC_DIR}/app
+
+http.cors.enabled: true
+http.cors.allow-origin: "*"

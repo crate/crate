@@ -15,6 +15,17 @@
         {
             "type": "java",
             "request": "launch",
+            "name": "Debug CrateDB Node 2",
+            "args": "-Cpath.home=${workspaceFolder}/sandbox/crate2",
+            "cwd": "${workspaceFolder}/app",
+            "vmArgs": "-Xms2G -Xmx2G",
+            "mainClass": "io.crate.bootstrap.CrateDB",
+            "projectName": "app",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "request": "launch",
             "name": "Run CrateDB",
             "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
             "cwd": "${workspaceFolder}/app",
