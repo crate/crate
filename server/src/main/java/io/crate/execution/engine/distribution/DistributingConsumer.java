@@ -217,6 +217,12 @@ public class DistributingConsumer implements RowConsumer {
                             downstream.needsMoreData = resp.needMore();
                             countdownAndMaybeContinue(it, numActiveRequests, false);
                         } else {
+                            LOGGER.trace(
+                                "Failure from downstream while sending result. job={} targetNode={} failure={}",
+                                jobId,
+                                downstream.nodeId,
+                                t
+                            );
                             failure = t;
                             downstream.needsMoreData = false;
                             // continue because it's necessary to send something to downstreams still waiting for data
