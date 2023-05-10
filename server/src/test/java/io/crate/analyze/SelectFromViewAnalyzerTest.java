@@ -26,11 +26,15 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isDocTable;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -56,5 +60,35 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
         QueriedSelectRelation queriedDocTable = (QueriedSelectRelation) ((AnalyzedView) query.from().get(0)).relation();
         assertThat(queriedDocTable.groupBy()).satisfiesExactly(isReference("name"));
         assertThat(queriedDocTable.from()).satisfiesExactly(isDocTable(new RelationName("doc", "t1")));
+    }
+
+    @Test
+    public void test_fqn_with_catalog() {
+        AnalyzedRelation relation = e.analyze("select * from crate.doc.v1");
+        Assertions.assertThat(relation.outputs()).hasSize(2);
+
+        relation = e.analyze("select crate.doc.v1.name from crate.doc.v1");
+        Assertions.assertThat(relation.outputs()).hasSize(1);
+        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+
+        relation = e.analyze("select crate.doc.v1.name from v1");
+        Assertions.assertThat(relation.outputs()).hasSize(1);
+        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+
+        relation = e.analyze("select v.name from crate.doc.v1 as v");
+        Assertions.assertThat(relation.outputs()).hasSize(1);
+        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+    }
+
+    @Test
+    public void test_fqn_with_invalid_catalog() {
+        assertThatThrownBy(
+            () -> e.analyze("select * from \"invalidCatalog\".doc.v1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: invalidCatalog. Only available catalog is crate");
+        assertThatThrownBy(
+            () -> e.analyze("select invalid.doc.t1.a from crate.doc.v1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: invalid. Only available catalog is crate");
     }
 }
