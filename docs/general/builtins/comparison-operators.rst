@@ -124,6 +124,6 @@ Operator                    Description
     - :ref:`sql_subquery_expressions`
 
 
-.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
+.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_blocks
 .. _ISO date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
 .. _lexicographical comparison: https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/TermRangeQuery.html
