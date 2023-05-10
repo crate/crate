@@ -61,4 +61,6 @@ out/
 # Misc
 sandbox/crate/data/
 sandbox/crate/repo/
+sandbox/crate2/data/
+sandbox/crate2/repo/
 **/antlr/
