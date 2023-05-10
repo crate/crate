@@ -34,6 +34,12 @@ Doing so will enable support for inserting strings longer than 32766 bytes into
 the ``url`` column, but the performance for global aggregations, groupings and
 sorting using this ``url`` column will decrease.
 
+.. NOTE::
+
+    ``INDEX OFF`` and therefore ``columnstore = false`` cannot be used with
+    :ref:`partition columns <gloss-partition-column>`, as those are not stored
+    as normal columns of a table.
+
 .. hide:
 
     cr> drop table t1;
