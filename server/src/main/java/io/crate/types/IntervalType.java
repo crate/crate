@@ -28,8 +28,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.DateTimeConstants;
 import org.joda.time.Period;
-import org.joda.time.PeriodType;
-import org.joda.time.chrono.ISOChronology;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
@@ -108,33 +106,9 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
     @Override
     public int compare(Period p1, Period p2) {
-        var period1 = normalize(p1);
-        var period2 = normalize(p2);
-        var cmp = Integer.compare(period1.getYears(), period2.getYears());
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = Integer.compare(period1.getMonths(), period2.getMonths());
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = Integer.compare(period1.getWeeks(), period2.getWeeks());
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = Integer.compare(period1.getHours(), period2.getHours());
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = Integer.compare(period1.getMinutes(), period2.getMinutes());
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = Integer.compare(period1.getSeconds(), period2.getSeconds());
-        if (cmp != 0) {
-            return cmp;
-        }
-        return Integer.compare(period1.getMillis(), period2.getMillis());
+        BigInteger p1Millis = toStandardDuration(p1);
+        BigInteger p2Millis = toStandardDuration(p2);
+        return p1Millis.compareTo(p2Millis);
     }
 
     @Override
@@ -201,41 +175,5 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         result = result.add(BigInteger.valueOf(p.getMonths() * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
         result = result.add(BigInteger.valueOf(p.getYears() * 12 * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
         return result;
-    }
-
-    /**
-     * It's half-copied from {@link Period#normalizedStandard(PeriodType)} to normalize first the time/days
-     * units and then normalize the days/months/years. It's used to only create one {@link Period} result object
-     * and make all necessary calculations in one go.
-     */
-    public static Period normalize(Period p) {
-        long millis = p.getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs
-        millis += (((long) p.getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));
-        millis += (((long) p.getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));
-        millis += (((long) p.getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));
-        millis += (((long) p.getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));
-        millis += (((long) p.getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));
-        Period result = new Period(millis, PeriodType.yearMonthDayTime(), ISOChronology.getInstanceUTC());
-
-        // Normalize days/months/years
-        int days = result.getDays();
-        int years = p.getYears();
-        if (days > 365) {
-            var oldDays = days;
-            days %= 365;
-            years += (oldDays / 365);
-        }
-        int months = p.getMonths();
-        if (days > 30) {
-            var oldDays = days;
-            days %= 30;
-            months += oldDays / 30;
-        }
-        if (months > 12) {
-            var oldMonths = months;
-            months %= 12;
-            years += (oldMonths / 12);
-        }
-        return result.withDays(days).withMonths(months).withYears(years);
     }
 }
