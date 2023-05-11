@@ -51,6 +51,8 @@ import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.IntervalSumAggregation;
+import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
+import io.crate.execution.engine.aggregation.impl.average.IntervalAverageAggregation;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
@@ -79,7 +81,8 @@ public class IntervalAggregationBenchmark {
         }).collect(Collectors.toList());
 
     private OnHeapMemoryManager onHeapMemoryManager;
-    private AggregateCollector onHeapCollector;
+    private AggregateCollector onHeapCollectorSum;
+    private AggregateCollector onHeapCollectorAvg;
 
     @Setup
     @SuppressWarnings("unchecked")
@@ -98,14 +101,34 @@ public class IntervalAggregationBenchmark {
                 DataTypes.INTERVAL
             );
 
+        final IntervalAverageAggregation intervalAvgAggregation = (IntervalAverageAggregation) functions.getQualified(
+            Signature.aggregate(
+                AverageAggregation.NAME,
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature()),
+            List.of(DataTypes.INTERVAL),
+            DataTypes.INTERVAL
+        );
+
         onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});
-        onHeapCollector = new AggregateCollector(
+        onHeapCollectorSum = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RamAccounting.NO_ACCOUNTING,
             onHeapMemoryManager,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { intervalSumAggregation },
+            Version.CURRENT,
+            new Input[][] { { inExpr0 } },
+            new Input[] { Literal.BOOLEAN_TRUE }
+        );
+        onHeapCollectorAvg = new AggregateCollector(
+            Collections.singletonList(inExpr0),
+            RamAccounting.NO_ACCOUNTING,
+            onHeapMemoryManager,
+            Version.CURRENT,
+            AggregateMode.ITER_FINAL,
+            new AggregationFunction[] { intervalAvgAggregation },
             Version.CURRENT,
             new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
@@ -118,10 +141,21 @@ public class IntervalAggregationBenchmark {
     }
 
     @Benchmark
-    public Iterable<Row> benchmarkIntervalAggregation() {
-        Object[] state = onHeapCollector.supplier().get();
-        BiConsumer<Object[], Row> accumulator = onHeapCollector.accumulator();
-        Function<Object[], Iterable<Row>> finisher = onHeapCollector.finisher();
+    public Iterable<Row> benchmarkIntervalSumAggregation() {
+        Object[] state = onHeapCollectorSum.supplier().get();
+        BiConsumer<Object[], Row> accumulator = onHeapCollectorSum.accumulator();
+        Function<Object[], Iterable<Row>> finisher = onHeapCollectorSum.finisher();
+        for (int i = 0; i < rows.size(); i++) {
+            accumulator.accept(state, rows.get(i));
+        }
+        return finisher.apply(state);
+    }
+
+    @Benchmark
+    public Iterable<Row> benchmarkIntervalAvgAggregation() {
+        Object[] state = onHeapCollectorAvg.supplier().get();
+        BiConsumer<Object[], Row> accumulator = onHeapCollectorAvg.accumulator();
+        Function<Object[], Iterable<Row>> finisher = onHeapCollectorAvg.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }

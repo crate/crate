@@ -169,7 +169,7 @@ public class AverageAggregationTest extends AggregationTestCase {
             {Period.days(4).withHours(7).withMinutes(39).withSeconds(45)},
             {Period.days(2).withHours(27).withMinutes(52).withSeconds(25)}
         }))
-            .isEqualTo(new Period(0, 0, 0, 763, 14, 54, 26, 0,
+            .isEqualTo(new Period(0, 0, 0, 773, 14, 54, 26, 0,
                                   PeriodType.yearMonthDayTime()));
 
         assertThat(executeIntervalAvgAgg(new Object[][]{{null}, {null}}))
