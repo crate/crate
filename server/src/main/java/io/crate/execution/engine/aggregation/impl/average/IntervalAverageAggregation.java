@@ -22,9 +22,15 @@
 package io.crate.execution.engine.aggregation.impl.average;
 
 import static io.crate.execution.engine.aggregation.impl.average.AverageAggregation.NAMES;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_DAY;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_HOUR;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_MINUTE;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_SECOND;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_WEEK;
 
 import java.io.IOException;
-import java.math.BigInteger;
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -42,13 +48,13 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
-import io.crate.types.IntervalType;
 
 public class IntervalAverageAggregation extends AggregationFunction<IntervalAverageAggregation.IntervalAverageState, Period> {
 
@@ -73,31 +79,57 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
 
     public static class IntervalAverageState implements Comparable<IntervalAverageState> {
 
-        private BigInteger sum = BigInteger.valueOf(0);
+        private long[] sum = new long[8];
         private long count = 0;
 
         public Period value() {
             if (count > 0) {
-                return new Period(sum.divide(BigInteger.valueOf(count)).longValue())
-                    .normalizedStandard(PeriodType.yearMonthDayTime());
+                OverflowAwareMutableLong sumMillis = new OverflowAwareMutableLong(sum[7]);
+                sumMillis.add(sum[6] * MILLIS_PER_SECOND);
+                sumMillis.add(sum[5] * MILLIS_PER_MINUTE);
+                sumMillis.add(sum[4] * MILLIS_PER_HOUR);
+                sumMillis.add(sum[3] * MILLIS_PER_DAY);
+                sumMillis.add(sum[2] * MILLIS_PER_WEEK);
+                sumMillis.add(sum[1] * MILLIS_PER_DAY * 30);
+                sumMillis.add(sum[0] * MILLIS_PER_DAY * 365);
+                long avg = sumMillis.value().divideToIntegralValue(BigDecimal.valueOf(count)).longValue();
+                return new Period(avg).normalizedStandard(PeriodType.yearMonthDayTime());
             } else {
                 return null;
             }
         }
 
         public void addPeriod(Period period) {
-            sum = sum.add(IntervalType.toStandardDuration(period));
+            sum[0] += period.getYears();
+            sum[1] += period.getMonths();
+            sum[2] += period.getWeeks();
+            sum[3] += period.getDays();
+            sum[4] += period.getHours();
+            sum[5] += period.getMinutes();
+            sum[6] += period.getSeconds();
+            sum[7] += period.getMillis();
+
             count++;
         }
 
         public void removePeriod(Period period) {
-            sum = sum.subtract(IntervalType.toStandardDuration(period));
+            sum[0] -= period.getYears();
+            sum[1] -= period.getMonths();
+            sum[2] -= period.getWeeks();
+            sum[3] -= period.getDays();
+            sum[4] -= period.getHours();
+            sum[5] -= period.getMinutes();
+            sum[6] -= period.getSeconds();
+            sum[7] -= period.getMillis();
+
             count--;
         }
 
         public void reduce(@Nonnull IntervalAverageState other) {
             this.count += other.count;
-            this.sum = this.sum.add(other.sum);
+            for (int i = 0; i < sum.length; i++) {
+                this.sum[i] += other.sum[i];
+            }
         }
 
         @Override
@@ -105,7 +137,7 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
             if (o == null) {
                 return 1;
             } else {
-                int compare = sum.compareTo(o.sum);
+                int compare = Arrays.compare(sum, o.sum);
                 if (compare == 0) {
                     return Long.compare(count, o.count);
                 }
@@ -115,7 +147,7 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
 
         @Override
         public String toString() {
-            return "sum: " + sum + " count: " + count;
+            return "sum: " + Arrays.toString(sum) + " count: " + count;
         }
 
         @Override
@@ -177,14 +209,14 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
         @Override
         public IntervalAverageState readValueFrom(StreamInput in) throws IOException {
             IntervalAverageState averageState = new IntervalAverageState();
-            averageState.sum = new BigInteger(in.readByteArray());
+            averageState.sum = in.readLongArray();
             averageState.count = in.readVLong();
             return averageState;
         }
 
         @Override
         public void writeValueTo(StreamOutput out, IntervalAverageState v) throws IOException {
-            out.writeByteArray(v.sum.toByteArray());
+            out.writeLongArray(v.sum);
             out.writeVLong(v.count);
         }
 
