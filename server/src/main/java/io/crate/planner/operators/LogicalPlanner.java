@@ -110,6 +110,7 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.rule.SwapHashJoin;
+import io.crate.planner.optimizer.rule.SwapNestedLoopJoin;
 import io.crate.types.DataTypes;
 
 /**
@@ -118,6 +119,7 @@ import io.crate.types.DataTypes;
 public class LogicalPlanner {
     @VisibleForTesting
     final IterativeOptimizer optimizer;
+    final IterativeOptimizer joinOrderOptimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -148,8 +150,12 @@ public class LogicalPlanner {
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathNestedLoop(),
-        new RewriteNestedLoopJoinToHashJoin(),
-        new SwapHashJoin()
+        new RewriteNestedLoopJoinToHashJoin()
+    );
+
+    public static final List<Rule<?>> JOIN_RULES = List.of(
+        new SwapHashJoin(),
+        new SwapNestedLoopJoin()
     );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
@@ -168,6 +174,11 @@ public class LogicalPlanner {
             nodeCtx,
             minNodeVersionInCluster,
             ITERATIVE_OPTIMIZER_RULES
+        );
+        this.joinOrderOptimizer = new IterativeOptimizer(
+            nodeCtx,
+            minNodeVersionInCluster,
+            JOIN_RULES
         );
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
@@ -223,8 +234,8 @@ public class LogicalPlanner {
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan),
-                                                       plannerContext.planStats(), txnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx);
+        optimizedPlan = joinOrderOptimizer.optimize(maybeApplySoftLimit.apply(optimizedPlan), plannerContext.planStats(), txnCtx);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(plannerContext.planStats().tableStats(), relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
@@ -269,6 +280,7 @@ public class LogicalPlanner {
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(planStats.tableStats(), relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";

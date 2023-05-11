@@ -110,7 +110,9 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     true,
                     nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                     false,
-                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone(),
+                    false,
+                    false
                 );
             }
         }

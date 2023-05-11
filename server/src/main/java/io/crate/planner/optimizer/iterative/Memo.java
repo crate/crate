@@ -151,9 +151,10 @@ public class Memo {
         return node;
     }
 
-    private void evictStats(int group) {
-        group(group).stats = null;
-        for (int parentGroup : group(group).incomingReferences) {
+    private void evictStats(int groupId) {
+        Group group = group(groupId);
+        group.stats = null;
+        for (int parentGroup : group.incomingReferences) {
             if (parentGroup != ROOT_GROUP_REF) {
                 evictStats(parentGroup);
             }

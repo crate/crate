@@ -27,8 +27,6 @@ import java.util.function.Function;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.EquiJoinDetector;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
@@ -36,11 +34,12 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
+public class SwapNestedLoopJoin implements Rule<NestedLoopJoin> {
 
     private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
-        .with(nl -> nl.isRewriteNestedLoopJoinToHashJoinDone() == false &&
-                    nl.orderByWasPushedDown() == false);
+        .with(j -> j.isSwapSidesDone() == false &&
+                   j.orderByWasPushedDown() == false &&
+                   j.joinType().supportsInversion() == true);
 
     @Override
     public Pattern<NestedLoopJoin> pattern() {
@@ -48,37 +47,34 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
+    public LogicalPlan apply(NestedLoopJoin nestedLoop,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-
-        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(nl.joinType(), nl.joinCondition())) {
-            return new HashJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinCondition(),
-                false,
-                false
-            );
-        } else {
-            return new NestedLoopJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
-                nl.isFiltered(),
-                nl.topMostLeftRelation(),
-                nl.orderByWasPushedDown(),
-                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                nl.isJoinConditionOptimised(),
-                true,
-                false,
-                false
-            );
+        // We move the smaller table to the right side since benchmarking
+        // revealed that this improves performance in most cases.
+        var lhStats = planStats.apply(nestedLoop.lhs());
+        var rhStats = planStats.apply(nestedLoop.rhs());
+        var swapSides = false;
+        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
+        if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
+            swapSides = true;
         }
+        return new NestedLoopJoin(
+            nestedLoop.lhs(),
+            nestedLoop.rhs(),
+            nestedLoop.joinType(),
+            nestedLoop.joinCondition(),
+            nestedLoop.isFiltered(),
+            nestedLoop.topMostLeftRelation(),
+            nestedLoop.orderByWasPushedDown(),
+            nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+            nestedLoop.isJoinConditionOptimised(),
+            nestedLoop.isRewriteNestedLoopJoinToHashJoinDone(),
+            swapSides,
+            true
+        );
     }
 }

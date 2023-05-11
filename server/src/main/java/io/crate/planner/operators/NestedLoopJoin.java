@@ -74,6 +74,8 @@ public class NestedLoopJoin extends JoinPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
+    private boolean swapSides = false;
+    private boolean swapSidesDone = false;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -102,11 +104,19 @@ public class NestedLoopJoin extends JoinPlan {
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised,
-                          boolean rewriteEquiJoinToHashJoinDone) {
+                          boolean rewriteEquiJoinToHashJoinDone,
+                          boolean swapSides,
+                          boolean swapSidesDone) {
         this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
+        this.swapSides = swapSides;
+        this.swapSidesDone = swapSidesDone;
+    }
+
+    public boolean isSwapSidesDone() {
+        return swapSidesDone;
     }
 
     @Override
@@ -183,7 +193,7 @@ public class NestedLoopJoin extends JoinPlan {
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
-                (isDistributed && lhStats.numDocs() < rhStats.numDocs() && orderByFromLeft == null) ||
+                (isDistributed && swapSides && orderByFromLeft == null) ||
                 (blockNlPossible && lhStats.numDocs() > rhStats.numDocs())) {
                 // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
                 //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
@@ -266,7 +276,9 @@ public class NestedLoopJoin extends JoinPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            swapSides,
+            swapSidesDone
         );
     }
 
@@ -297,7 +309,9 @@ public class NestedLoopJoin extends JoinPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            swapSides,
+            swapSidesDone
         );
     }
 
@@ -334,7 +348,9 @@ public class NestedLoopJoin extends JoinPlan {
                 orderByWasPushedDown,
                 rewriteFilterOnOuterJoinToInnerJoinDone,
                 joinConditionOptimised,
-                rewriteNestedLoopJoinToHashJoinDone
+                rewriteNestedLoopJoinToHashJoinDone,
+                swapSides,
+                swapSidesDone
             )
         );
     }

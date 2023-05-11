@@ -108,7 +108,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             new SubQueries(Map.of(), Map.of()),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true)
         );
-        return logicalPlanner.optimizer.optimize(plan, e.planStats(), txnCtx);
+        var optmizedPlan = logicalPlanner.optimizer.optimize(plan, e.planStats(), txnCtx);
+        return logicalPlanner.joinOrderOptimizer.optimize(optmizedPlan, e.planStats(), txnCtx);
     }
 
     private Join buildJoin(LogicalPlan operator) {
