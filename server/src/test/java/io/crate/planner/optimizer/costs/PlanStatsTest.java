@@ -114,7 +114,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                  WhereClause.MATCH_ALL,
                                  10L,
                                  DataTypes.INTEGER.fixedSize());
-        
+
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
 
@@ -201,7 +201,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             )
         );
 
-        var hashjoin = new HashJoin(lhs, rhs, x);
+        var hashjoin = new HashJoin(lhs, rhs, x, false, false);
 
         var memo = new Memo(hashjoin);
         PlanStats planStats = new PlanStats(tableStats, memo);

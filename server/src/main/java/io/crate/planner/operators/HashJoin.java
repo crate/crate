@@ -64,12 +64,18 @@ import io.crate.statistics.TableStats;
 public class HashJoin extends JoinPlan {
 
     private final List<Symbol> outputs;
+    private final boolean swapSides;
+    private final boolean swapSidesDone;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
+                    Symbol joinCondition,
+                    boolean swapSides,
+                    boolean swapSidesDone) {
         super(lhs, rhs, joinCondition, JoinType.INNER);
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+        this.swapSides = swapSides;
+        this.swapSidesDone = swapSidesDone;
     }
 
     @Override
@@ -100,13 +106,7 @@ public class HashJoin extends JoinPlan {
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
-        var lhStats = plannerContext.planStats().apply(leftLogicalPlan);
-        var rhStats = plannerContext.planStats().apply(rightLogicalPlan);
-
-        // We move smaller table to the right side since benchmarking
-        // revealed that this improves performance in most cases.
-        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
-        if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
+        if (swapSides) {
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
 
@@ -182,6 +182,7 @@ public class HashJoin extends JoinPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
+        var lhStats = plannerContext.planStats().apply(leftLogicalPlan);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -215,6 +216,14 @@ public class HashJoin extends JoinPlan {
         return outputs;
     }
 
+    public boolean swapSides() {
+        return swapSides;
+    }
+
+    public boolean isSwapSidesDone() {
+        return swapSidesDone;
+    }
+
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
@@ -235,7 +244,9 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            swapSides,
+            swapSidesDone
         );
     }
 
@@ -257,7 +268,9 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition
+            joinCondition,
+            swapSides,
+            swapSidesDone
         );
     }
 
@@ -285,8 +298,9 @@ public class HashJoin extends JoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition
-            )
+                joinCondition,
+                swapSides,
+                swapSidesDone)
         );
     }
 
