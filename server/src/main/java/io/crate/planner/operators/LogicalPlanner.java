@@ -149,11 +149,11 @@ public class LogicalPlanner {
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
-        new MoveConstantJoinConditionsBeneathNestedLoop(),
-        new RewriteNestedLoopJoinToHashJoin()
+        new MoveConstantJoinConditionsBeneathNestedLoop()
     );
 
     public static final List<Rule<?>> JOIN_RULES = List.of(
+        new RewriteNestedLoopJoinToHashJoin(),
         new SwapHashJoin(),
         new SwapNestedLoopJoin()
     );
