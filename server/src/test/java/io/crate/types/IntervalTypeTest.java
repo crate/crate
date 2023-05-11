@@ -48,4 +48,16 @@ public class IntervalTypeTest {
         var in = out.bytes().streamInput();
         assertThat(IntervalType.INSTANCE.readValueFrom(in)).isNull();
     }
+
+    @Test
+    public void test_compare() {
+        Period p1 = new Period(1, 13, 8, 568, 128, 678, 91234, 1234567);
+        Period p2 = new Period(1, 16, 68, 64, 20, 59, 8, 567);
+        assertThat(IntervalType.INSTANCE.compare(p1, p2)).isZero();
+        p2 = new Period(1, 17, 68, 64, 20, 59, 8, 567);
+        assertThat(IntervalType.INSTANCE.compare(p1, p2)).isEqualTo(-1);
+        p1 = new Period(1, 13, 8, 568, 129, 678, 91234, 1234567);
+        p2 = new Period(1, 16, 68, 64, 20, 59, 8, 567);
+        assertThat(IntervalType.INSTANCE.compare(p1, p2)).isEqualTo(1);
+    }
 }
