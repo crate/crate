@@ -173,7 +173,7 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
         BigInteger result = BigInteger.valueOf(millis);
         result = result.add(BigInteger.valueOf(p.getMonths() * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
-        result = result.add(BigInteger.valueOf(p.getYears() * 12 * 30 * (long) DateTimeConstants.MILLIS_PER_DAY));
+        result = result.add(BigInteger.valueOf(p.getYears() * 365 * (long) DateTimeConstants.MILLIS_PER_DAY));
         return result;
     }
 }
