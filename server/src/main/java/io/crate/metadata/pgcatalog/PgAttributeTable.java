@@ -25,7 +25,6 @@ import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 
@@ -63,7 +62,9 @@ public class PgAttributeTable {
             .add("attislocal", BOOLEAN, c -> true)
             .add("attinhcount", INTEGER, c -> 0)
             .add("attcollation", INTEGER, c -> 0)
-            .add("attacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L92
+            .add("attacl", DataTypes.STRING_ARRAY, ignored -> null)
             .add("attoptions", STRING_ARRAY, c -> null)
             .add("attfdwoptions", STRING_ARRAY, c -> null)
             .build();

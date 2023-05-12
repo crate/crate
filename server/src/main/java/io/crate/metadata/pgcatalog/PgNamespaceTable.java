@@ -24,12 +24,11 @@ package io.crate.metadata.pgcatalog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public class PgNamespaceTable {
 
@@ -40,7 +39,9 @@ public class PgNamespaceTable {
             .add("oid", INTEGER, s -> schemaOid(s.name()))
             .add("nspname", STRING, SchemaInfo::name)
             .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L508
+            .add("nspacl", STRING_ARRAY, c -> null)
             .build();
     }
 }

@@ -24,6 +24,7 @@ package io.crate.metadata.pgcatalog;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.statistics.TableStats;
+import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 
 import static io.crate.types.DataTypes.BOOLEAN;
@@ -72,8 +73,9 @@ public class PgClassTable {
             .add("relispartition", BOOLEAN, x -> false)
             .add("relfrozenxid", INTEGER,x -> 0)
             .add("relminmxid", INTEGER, x -> 0)
-            .startObjectArray("relacl", x -> null)
-            .endObjectArray()
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L181
+            .add("relacl", DataTypes.STRING_ARRAY, ignored -> null)
             .add("reloptions", STRING_ARRAY, x -> null)
             .add("relpartbound", STRING, x -> null)
             .build();

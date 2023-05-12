@@ -107,6 +107,8 @@ public class PgProcTable {
             .add("prosrc", STRING, x -> x.functionName.name())
             .add("probin", STRING, x -> null)
             .add("proconfig", STRING_ARRAY, x -> null)
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L608
             .add("proacl", STRING_ARRAY, x -> null)
             .build();
     }
