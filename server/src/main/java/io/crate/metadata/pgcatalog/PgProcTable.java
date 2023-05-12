@@ -74,9 +74,6 @@ public final class PgProcTable {
                     return 0;
                 }
             })
-            .add("protransform", REGPROC, x -> null)
-            .add("proisagg", BOOLEAN, x -> x.signature.getKind() == AGGREGATE)
-            .add("proiswindow", BOOLEAN, x -> x.signature.getKind() == WINDOW)
             .add("prosecdef", BOOLEAN, x -> null)
             .add("proleakproof", BOOLEAN, x -> null)
             .add("proisstrict", BOOLEAN, x -> null)
@@ -112,6 +109,9 @@ public final class PgProcTable {
             // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
             // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L608
             .add("proacl", STRING_ARRAY, x -> null)
+            .add("protransform", REGPROC, x -> null)
+            .add("proisagg", BOOLEAN, x -> x.signature.getKind() == AGGREGATE)
+            .add("proiswindow", BOOLEAN, x -> x.signature.getKind() == WINDOW)
             .build();
     }
 

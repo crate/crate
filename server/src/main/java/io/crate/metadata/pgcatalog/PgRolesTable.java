@@ -38,7 +38,6 @@ public final class PgRolesTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, ignored -> null)
             .add("rolname", STRING, ignored -> null)
             .add("rolsuper", BOOLEAN, ignored -> null)
             .add("rolinherit", BOOLEAN, ignored -> null)
@@ -51,6 +50,7 @@ public final class PgRolesTable {
             .add("rolvaliduntil", TIMESTAMPZ, ignored -> null)
             .add("rolbypassrls", BOOLEAN, ignored -> null)
             .add("rolconfig", STRING_ARRAY, ignored -> null)
+            .add("oid", INTEGER, ignored -> null)
             .build();
     }
 }

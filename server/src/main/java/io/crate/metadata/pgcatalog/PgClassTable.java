@@ -63,8 +63,6 @@ public final class PgClassTable {
             .add("relkind", STRING, x -> x.type.relKind)
             .add("relnatts", SHORT, x -> (short) x.numberOfAttributes)
             .add("relchecks", SHORT, x -> (short) 0)
-            .add("relhasoids", BOOLEAN, x -> false)
-            .add("relhaspkey", BOOLEAN, x -> x.hasPrimaryKey)
             .add("relhasrules", BOOLEAN, x -> false)
             .add("relhastriggers", BOOLEAN, x -> false)
             .add("relhassubclass", BOOLEAN, x -> false)
@@ -80,6 +78,8 @@ public final class PgClassTable {
             .add("relacl", DataTypes.STRING_ARRAY, ignored -> null)
             .add("reloptions", STRING_ARRAY, x -> null)
             .add("relpartbound", STRING, x -> null)
+            .add("relhasoids", BOOLEAN, x -> false)
+            .add("relhaspkey", BOOLEAN, x -> x.hasPrimaryKey)
             .build();
     }
 

@@ -38,7 +38,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
@@ -67,7 +66,7 @@ public final class PgCatalogTableDefinitions {
                 PgStatsTable.create().expressions()
             )
         );
-        tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<PGType<?>>(
+        tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
             PgTypeTable.create().expressions(),
             false));

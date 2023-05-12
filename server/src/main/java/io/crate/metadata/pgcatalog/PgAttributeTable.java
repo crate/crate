@@ -54,8 +54,8 @@ public final class PgAttributeTable {
             .add("attcacheoff", INTEGER, c -> -1)
             .add("atttypmod", INTEGER, c -> PGTypes.get(c.ref().valueType()).typeMod())
             .add("attbyval", BOOLEAN, c -> false)
-            .add("attstorage", STRING, c -> null)
             .add("attalign", STRING, c -> null)
+            .add("attstorage", STRING, c -> null)
             .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
             .add("atthasdef", BOOLEAN, c -> false) // don't support default values
             .add("attidentity", STRING, c -> "")
