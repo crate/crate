@@ -73,12 +73,17 @@ public class FulltextIntegrationTest extends IntegTestCase {
     public void testSelectOrderByScore() throws Exception {
         execute("create table quotes (quote string index off," +
                 "index quote_ft using fulltext(quote)) clustered into 1 shards");
-        execute("insert into quotes values (?)",
-            new Object[]{"Would it save you a lot of time if I just gave up and went mad now?"}
+        execute("alter table quotes add column added_indexed_col text index using fulltext"); // No analyzer, index type should not be lost
+
+        String phrase1 = "Would it save you a lot of time if I just gave up and went mad now?";
+        String phrase2 = "Time is an illusion. Lunchtime doubly so";
+        execute("insert into quotes (quote, added_indexed_col) values (?, ?)",
+            new Object[]{phrase1, phrase1}
         );
-        execute("insert into quotes values (?)",
-            new Object[]{"Time is an illusion. Lunchtime doubly so"}
+        execute("insert into quotes (quote, added_indexed_col) values (?, ?)",
+            new Object[]{phrase2, phrase2}
         );
+
         refresh();
 
         execute("select quote from quotes where match(quote_ft, ?) " +
@@ -89,6 +94,17 @@ public class FulltextIntegrationTest extends IntegTestCase {
             "Time is an illusion. Lunchtime doubly so",
             "Would it save you a lot of time if I just gave up and went mad now?"
         );
+
+        // Match added column
+        execute("select added_indexed_col from quotes where match(added_indexed_col, ?) " +
+                "order by \"_score\" desc",
+            new Object[]{"time"}
+        );
+        assertThat(response).hasRows(
+            "Time is an illusion. Lunchtime doubly so",
+            "Would it save you a lot of time if I just gave up and went mad now?"
+        );
+
     }
 
     @Test

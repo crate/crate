@@ -481,15 +481,29 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testCreateTableWithAnalyzer() {
+    public void test_create_table_inlined_index_with_analyzer() {
         BoundCreateTable analysis = analyze(
             "create table foo (id integer primary key, content string INDEX using fulltext with (analyzer='german'))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> contentMapping = (Map<String, Object>) mappingProperties.get("content");
 
-        assertThat(contentMapping.get("index"), nullValue());
-        assertThat(contentMapping.get("analyzer"), is("german"));
+        assertThat(contentMapping.get("type")).isEqualTo("text");
+        assertThat(contentMapping.get("index")).isNull();
+        assertThat(contentMapping.get("analyzer")).isEqualTo("german");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_create_table_inlined_index_without_analyzer() {
+        BoundCreateTable analysis = analyze(
+            "create table foo (id integer primary key, content string INDEX using fulltext)");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> contentMapping = (Map<String, Object>) mappingProperties.get("content");
+
+        assertThat(contentMapping.get("type")).isEqualTo("text");
+        assertThat(contentMapping.get("index")).isNull();
     }
 
     @Test

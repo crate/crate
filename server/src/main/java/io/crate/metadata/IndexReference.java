@@ -229,9 +229,9 @@ public class IndexReference extends SimpleReference {
     @Override
     public Map<String, Object> toMapping() {
         Map<String, Object> mapping = super.toMapping();
+        mapping.put("type", "text");
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
-            mapping.put("type", "text");
         }
 
         if (columns.isEmpty() == false) {

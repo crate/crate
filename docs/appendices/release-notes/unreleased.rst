@@ -202,3 +202,6 @@ Fixes
     CROSS JOIN t2
     INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
 
+- Fixed an issue that caused ``USING FULLTEXT`` to be ignored and behave as
+  ``USING PLAIN`` when adding a column with ``FULLTEXT`` index without
+  analyzer.

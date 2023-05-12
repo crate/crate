@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,6 +36,8 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -253,6 +256,52 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThatThrownBy(() -> addColumnTask.execute(state, request))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
+        }
+    }
+
+    @Test
+    public void test_add_column_with_inlined_index_without_analyzer() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            ReferenceIdent ident = new ReferenceIdent(tbl.ident(), "inlined_indexed");
+
+            // When a column with inlined index is added, planner represents it as an IndexReference
+            // to be able to send analyzer field if specified.
+            Reference inlinedIndexRef = new IndexReference(
+                ident,
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                ColumnPolicy.DYNAMIC,
+                IndexType.FULLTEXT, // Inlined index
+                true,
+                false,
+                2,
+                null,
+                List.of(),
+                null // Analyzer is not specified.
+            );
+            List<Reference> columns = List.of(inlinedIndexRef);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+
+            Reference addedColumn = newTable.getReference(ident.columnIdent());
+            assertThat(addedColumn.indexType()).isEqualTo(IndexType.FULLTEXT);
         }
     }
 }
