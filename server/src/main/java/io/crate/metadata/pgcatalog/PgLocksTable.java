@@ -25,9 +25,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
 
-public class PgLocksTable {
+public final class PgLocksTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_locks");
+
+    private PgLocksTable() {}
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)

@@ -49,11 +49,13 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgProcTable {
+public final class PgProcTable {
 
     public static final RelationName IDENT = new RelationName(
         PgCatalogSchemaInfo.NAME,
         "pg_proc");
+
+    private PgProcTable() {}
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)

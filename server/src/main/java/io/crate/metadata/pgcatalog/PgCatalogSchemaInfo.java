@@ -45,7 +45,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
 
 @Singleton
-public class PgCatalogSchemaInfo implements SchemaInfo {
+public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
     private final Map<String, TableInfo> tableInfoMap;

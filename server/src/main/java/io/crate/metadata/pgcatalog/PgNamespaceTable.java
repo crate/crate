@@ -30,9 +30,11 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgNamespaceTable {
+public final class PgNamespaceTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
+
+    private PgNamespaceTable() {}
 
     public static SystemTable<SchemaInfo> create() {
         return SystemTable.<SchemaInfo>builder(IDENT)

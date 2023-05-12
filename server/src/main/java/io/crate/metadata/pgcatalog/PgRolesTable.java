@@ -34,6 +34,8 @@ public final class PgRolesTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_roles");
 
+    private PgRolesTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
             .add("oid", INTEGER, ignored -> null)

@@ -29,6 +29,8 @@ public final class PgAmTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_am");
 
+    private PgAmTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
             .add("oid", DataTypes.INTEGER, ignored -> null)

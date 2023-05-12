@@ -33,6 +33,8 @@ public final class PgTablesTable {
     public static final String NAME = "pg_tables";
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
 
+    private PgTablesTable() {}
+
     public static SystemTable<TableInfo> create() {
         return SystemTable.<TableInfo>builder(IDENT)
             .add("schemaname", STRING, r -> r.ident().schema())

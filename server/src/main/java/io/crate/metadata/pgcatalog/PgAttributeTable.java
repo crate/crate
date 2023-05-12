@@ -36,9 +36,11 @@ import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.isArray;
 
-public class PgAttributeTable {
+public final class PgAttributeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attribute");
+
+    private PgAttributeTable() {}
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)

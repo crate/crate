@@ -32,6 +32,8 @@ public final class PgEnumTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_enum");
 
+    private PgEnumTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
             .add("oid", INTEGER, ignored -> null)

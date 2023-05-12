@@ -31,6 +31,8 @@ public final class PgDescriptionTable {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_description");
 
+    private PgDescriptionTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(NAME)
             .add("objoid", INTEGER, c -> null)
