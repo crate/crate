@@ -43,6 +43,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed ``pg_attribute.spcacl``, ``pg_class.relacl`` and
+  ``pg_namespace.nspacl`` columns type from ``OBJECT[]`` to ``STRING[]`` to be
+  in sync with other similar columns, e.g.: ``pg_database.datacl``.
+
 - Raise an exception if duplicate columns are detected on
   :ref:`named index column definition <named-index-column>` instead of
   silently ignoring them.

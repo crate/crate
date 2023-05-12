@@ -50,6 +50,8 @@ public class PgDatabaseTable {
             .add("datfrozenxid", INTEGER, c -> null)
             .add("datminmxid", INTEGER, c -> null)
             .add("dattablespace", INTEGER, c -> null)
+            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L277
             .add("datacl", STRING_ARRAY, c -> null)
             .build();
     }
