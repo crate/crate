@@ -562,7 +562,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(949);
+        assertThat(response.rowCount()).isEqualTo(957);
     }
 
     @Test
@@ -623,17 +623,23 @@ public class InformationSchemaTest extends IntegTestCase {
                 "order by 1 asc");
         assertThat(response).hasRows(
             "oid| integer",
+            "typacl| text",
+            "typalign| text",
+            "typanalyze| regproc",
             "typarray| integer",
             "typbasetype| integer",
             "typbyval| boolean",
             "typcategory| text",
             "typcollation| integer",
             "typdefault| text",
+            "typdefaultbin| text",
             "typdelim| text",
             "typelem| integer",
             "typinput| regproc",
             "typisdefined| boolean",
             "typlen| smallint",
+            "typmodin| regproc",
+            "typmodout| regproc",
             "typname| text",
             "typnamespace| integer",
             "typndims| integer",
@@ -643,6 +649,8 @@ public class InformationSchemaTest extends IntegTestCase {
             "typreceive| regproc",
             "typrelid| integer",
             "typsend| regproc",
+            "typstorage| text",
+            "typsubscript| regproc",
             "typtype| text",
             "typtypmod| integer"
         );
