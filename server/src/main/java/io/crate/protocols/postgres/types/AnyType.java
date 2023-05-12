@@ -21,6 +21,8 @@
 
 package io.crate.protocols.postgres.types;
 
+import static io.crate.types.Regproc.REGPROC_ZERO;
+
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -63,12 +65,12 @@ public class AnyType extends PGType<Integer> {
 
     @Override
     public Regproc typReceive() {
-        return Regproc.of(0, "-");
+        return REGPROC_ZERO;
     }
 
     @Override
     public Regproc typSend() {
-        return Regproc.of(0, "-");
+        return REGPROC_ZERO;
     }
 
     @Override

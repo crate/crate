@@ -43,6 +43,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added columns ``typacl``, ``typalign``, ``typanalyze``, ``typdefaultbin``,
+  ``typmodin``, ``typmodout``, ``typstorage``, ``typsubscript`` to ``pg_type``
+  table to be in sync with PostgreSQL version ``14``.
+
 - Changed ``pg_constraint.conbin`` column type from ``OBJECT`` to ``STRING`` and
   ``pg_proc.proargdefaults`` column type from ``OBJECT[]`` to ``STRING`` to be
   in sync with other similar columns, e.g.: ``pg_index.indexprs``.

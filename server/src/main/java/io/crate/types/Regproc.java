@@ -29,6 +29,8 @@ import java.util.Objects;
 
 public class Regproc {
 
+    public static final Regproc REGPROC_ZERO = Regproc.of(0, "-");
+
     private final int oid;
     private final String name;
 
