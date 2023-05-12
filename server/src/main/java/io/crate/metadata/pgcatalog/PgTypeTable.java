@@ -32,11 +32,13 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.types.PGType;
 
-public class PgTypeTable {
+public final class PgTypeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
 
     private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
+
+    private PgTypeTable() {}
 
     public static SystemTable<PGType<?>> create() {
         return SystemTable.<PGType<?>>builder(IDENT)

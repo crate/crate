@@ -48,7 +48,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.statistics.TableStats;
 import io.crate.user.Privilege;
 
-public class PgCatalogTableDefinitions {
+public final class PgCatalogTableDefinitions {
 
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 

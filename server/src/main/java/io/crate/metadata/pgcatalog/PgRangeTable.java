@@ -30,6 +30,8 @@ public final class PgRangeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_range");
 
+    private PgRangeTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
             .add("rngtypid", INTEGER, ignored -> null)

@@ -34,9 +34,11 @@ import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING;
 
-public class PgIndexTable {
+public final class PgIndexTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_index");
+
+    private PgIndexTable() {}
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)

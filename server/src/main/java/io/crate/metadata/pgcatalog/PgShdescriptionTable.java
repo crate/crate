@@ -31,6 +31,8 @@ public final class PgShdescriptionTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_shdescription");
 
+    private PgShdescriptionTable() {}
+
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
             .add("objoid", INTEGER, c -> null)

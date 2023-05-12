@@ -35,10 +35,12 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.REGCLASS;
 
-public class PgClassTable {
+public final class PgClassTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_class");
     private static final String PERSISTENCE_PERMANENT = "p";
+
+    private PgClassTable() {}
 
     public static SystemTable<Entry> create(TableStats tableStats) {
         return SystemTable.<Entry>builder(IDENT)

@@ -29,9 +29,11 @@ import io.crate.statistics.ColumnStatsEntry;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
-public class PgStatsTable {
+public final class PgStatsTable {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_stats");
+
+    private PgStatsTable() {}
 
     public static SystemTable<ColumnStatsEntry> create() {
         return SystemTable.<ColumnStatsEntry>builder(NAME)

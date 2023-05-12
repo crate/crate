@@ -31,6 +31,8 @@ public final class PgCursors {
     public static final String NAME = "pg_cursors";
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
 
+    private PgCursors() {}
+
     public static SystemTable<Cursor> create() {
         return SystemTable.<Cursor>builder(IDENT)
             .add("name", DataTypes.STRING, Cursor::name)

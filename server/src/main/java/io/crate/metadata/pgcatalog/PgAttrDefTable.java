@@ -29,9 +29,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 
 
-public class PgAttrDefTable {
+public final class PgAttrDefTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
+
+    private PgAttrDefTable() {}
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)

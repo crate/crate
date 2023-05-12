@@ -33,6 +33,8 @@ public final class PgViewsTable {
     public static final String NAME = "pg_views";
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
 
+    private PgViewsTable() {}
+
     public static SystemTable<ViewInfo> create() {
         return SystemTable.<ViewInfo>builder(IDENT)
             .add("schemaname", STRING, r -> r.ident().schema())

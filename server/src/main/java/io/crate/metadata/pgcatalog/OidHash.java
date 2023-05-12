@@ -39,6 +39,8 @@ import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
 public final class OidHash {
 
+    private OidHash() {}
+
     public enum Type {
         SCHEMA,
         TABLE,

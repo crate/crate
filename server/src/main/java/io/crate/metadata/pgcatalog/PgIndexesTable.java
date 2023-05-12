@@ -25,9 +25,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
 
-public class PgIndexesTable {
+public final class PgIndexesTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_indexes");
+
+    private PgIndexesTable() {}
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
