@@ -43,6 +43,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added column ``indnkeyatts`` to ``pg_index`` table to be in sync with
+  PostgreSQL version ``14``.
+
 - Added columns ``typacl``, ``typalign``, ``typanalyze``, ``typdefaultbin``,
   ``typmodin``, ``typmodout``, ``typstorage``, ``typsubscript`` to ``pg_type``
   table to be in sync with PostgreSQL version ``14``.
