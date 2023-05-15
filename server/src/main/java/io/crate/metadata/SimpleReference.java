@@ -46,6 +46,8 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public class SimpleReference implements Reference {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(SimpleReference.class);
@@ -53,6 +55,7 @@ public class SimpleReference implements Reference {
     protected DataType<?> type;
 
     protected final int position;
+    protected final long oid;
 
     protected final ReferenceIdent ident;
     protected final ColumnPolicy columnPolicy;
@@ -71,6 +74,11 @@ public class SimpleReference implements Reference {
             position = pos == null ? 0 : pos;
         } else {
             position = in.readVInt();
+        }
+        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
+            oid = in.readLong();
+        } else {
+            oid = COLUMN_OID_UNASSIGNED;
         }
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
@@ -100,6 +108,7 @@ public class SimpleReference implements Reference {
              true,
              false,
              position,
+             COLUMN_OID_UNASSIGNED,
              defaultExpression);
     }
 
@@ -111,6 +120,7 @@ public class SimpleReference implements Reference {
                            boolean nullable,
                            boolean hasDocValues,
                            int position,
+                           long oid,
                            @Nullable Symbol defaultExpression) {
         this.position = position;
         this.ident = ident;
@@ -121,6 +131,7 @@ public class SimpleReference implements Reference {
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
         this.defaultExpression = defaultExpression;
+        this.oid = oid;
     }
 
     /**
@@ -136,6 +147,7 @@ public class SimpleReference implements Reference {
             nullable,
             hasDocValues,
             position,
+            oid,
             defaultExpression
         );
     }
@@ -200,6 +212,10 @@ public class SimpleReference implements Reference {
         return position;
     }
 
+    public long oid() {
+        return oid;
+    }
+
     @Nullable
     public Symbol defaultExpression() {
         return defaultExpression;
@@ -216,6 +232,7 @@ public class SimpleReference implements Reference {
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
+        mapping.put("oid", oid);
         if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
         }
@@ -266,6 +283,9 @@ public class SimpleReference implements Reference {
         if (indexType != reference.indexType) {
             return false;
         }
+        if (oid != reference.oid) {
+            return false;
+        }
         return Objects.equals(defaultExpression, reference.defaultExpression);
     }
 
@@ -279,6 +299,7 @@ public class SimpleReference implements Reference {
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
         result = 31 * result + (hasDocValues ? 1 : 0);
+        result = 31 * result + Long.hashCode(oid);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
     }
@@ -290,6 +311,9 @@ public class SimpleReference implements Reference {
             out.writeOptionalVInt(position);
         } else {
             out.writeVInt(position);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
+            out.writeLong(oid);
         }
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);

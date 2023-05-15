@@ -75,6 +75,8 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public class AnalyzedTableElements<T> {
 
     public List<AnalyzedColumnDefinition<T>> partitionedByColumns = new ArrayList<>();
@@ -532,6 +534,7 @@ public class AnalyzedTableElements<T> {
                 IndexType.PLAIN,
                 isNullable,
                 columnDefinition.position,
+                COLUMN_OID_UNASSIGNED,
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
@@ -551,6 +554,7 @@ public class AnalyzedTableElements<T> {
                 isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
+                COLUMN_OID_UNASSIGNED,
                 (Symbol) columnDefinition.defaultExpression(),
                 List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
@@ -565,6 +569,7 @@ public class AnalyzedTableElements<T> {
                 isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
+                COLUMN_OID_UNASSIGNED,
                 (Symbol) columnDefinition.defaultExpression()
             );
         }
@@ -615,6 +620,7 @@ public class AnalyzedTableElements<T> {
                 !columnDefinition.hasNotNullConstraint(),
                 columnDefinition.docValues(),
                 columnDefinition.position,
+                COLUMN_OID_UNASSIGNED,
                 null, // default expression is irrelevant for INDEX definition
                 sources,
                 columnDefinition.analyzer()
