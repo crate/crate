@@ -51,6 +51,8 @@ import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
 import io.crate.types.UndefinedType;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
@@ -101,6 +103,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 nullable,
                 storageSupport.docValuesDefault(),
                 position,
+                COLUMN_OID_UNASSIGNED,
                 defaultExpression
             );
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
