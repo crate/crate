@@ -42,8 +42,8 @@ public final class PgIndexTable {
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)
-            .add("indrelid", REGCLASS, x -> x.indRelId)
             .add("indexrelid", REGCLASS, x -> x.indexRelId)
+            .add("indrelid", REGCLASS, x -> x.indRelId)
             .add("indnatts", SHORT, x -> (short) 0)
             .add("indisunique", BOOLEAN, x -> false)
             .add("indisprimary", BOOLEAN, x -> true)
