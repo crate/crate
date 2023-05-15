@@ -419,6 +419,7 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
+        // TODO: Add MetadataBuilder parameter to this method, so that analyzers test code and SQlExecutor.addTable can also assign oid.
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
@@ -431,7 +432,8 @@ public class TestingHelpers {
             boundCreateTable.getCheckConstraints(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
+            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn(),
+            null
         );
 
     }

@@ -71,7 +71,12 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 refIdent,
                 RowGranularity.DOC,
                 DataTypes.INTEGER,
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                true,
                 3,
+                0,
                 null
             );
             List<Reference> columns = List.of(newColumn);
@@ -85,7 +90,21 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
 
             Reference addedColumn = newTable.getReference(newColumn.column());
-            assertThat(addedColumn).isEqualTo(newColumn);
+            // TODO: Update TestingHelpers to assign OID-s so that expression .addTable("create table tbl (x int, o object)") actually shifts the OID.
+            // Need to create a clone of request column to imitate the expected OID. Currently it's 2 and will be 3 once ^ is implemented.
+            Reference newColumnWithOid = new SimpleReference(
+                newColumn.ident(),
+                newColumn.granularity(),
+                newColumn.valueType(),
+                newColumn.columnPolicy(),
+                newColumn.indexType(),
+                newColumn.isNullable(),
+                newColumn.hasDocValues(),
+                newColumn.position(),
+                2,
+                newColumn.defaultExpression()
+            );
+            assertThat(addedColumn).isEqualTo(newColumnWithOid);
         }
     }
 
@@ -181,8 +200,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             new IntArrayList()
         );
 
-        var updatedRequest = AddColumnTask.addMissingParentColumns(request, table);
-        assertThat(updatedRequest.references()).hasSize(3);
+        var updatedRefs = AddColumnTask.normalizeColumns(request, table);
+        assertThat(updatedRefs).hasSize(3);
     }
 
     @Test

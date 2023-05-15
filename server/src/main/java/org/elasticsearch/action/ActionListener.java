@@ -278,7 +278,7 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
      * Creates a listener that delegates all responses it receives to another listener.
      *
      * @param delegate ActionListener to wrap and delegate any exception to
-     * @param bc BiConsumer invoked with delegate listener and exception
+     * @param onFailure BiConsumer invoked with delegate listener and exception
      * @param <T> Type of the listener
      * @return Delegating listener
      */
