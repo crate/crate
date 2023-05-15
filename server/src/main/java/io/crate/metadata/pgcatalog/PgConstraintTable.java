@@ -33,7 +33,6 @@ import static io.crate.types.DataTypes.STRING;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.ConstraintInfo;
-import io.crate.types.DataTypes;
 
 public final class PgConstraintTable {
 
@@ -56,6 +55,7 @@ public final class PgConstraintTable {
             .add("conrelid", INTEGER, c -> relationOid(c.relationInfo()))
             .add("contypid", INTEGER, c -> 0)
             .add("conindid", INTEGER, c -> 0)
+            .add("conparentid", INTEGER, c -> 0)
             .add("confrelid", INTEGER, c -> 0)
             .add("confupdtype", STRING, c -> NO_ACTION)
             .add("confdeltype", STRING, c -> NO_ACTION)
@@ -69,8 +69,7 @@ public final class PgConstraintTable {
             .add("conppeqop", INTEGER_ARRAY, c -> null)
             .add("conffeqop", INTEGER_ARRAY, c -> null)
             .add("conexclop", INTEGER_ARRAY, c -> null)
-            .add("conbin", DataTypes.UNTYPED_OBJECT, c -> null)
-            .add("consrc", STRING, c -> null)
+            .add("conbin", STRING, c -> null)
            .build();
     }
 }

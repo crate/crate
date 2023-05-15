@@ -43,6 +43,31 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added columns ``prosupport``, ``prokind``, ``prosqlbody`` and removed columns
+  ``protransform``, ``proisagg`` and ``proiswindow`` from ``pg_proc`` table to
+  be in sync with PostgreSQL version ``14``.
+
+- Added column ``relrewrite`` and removed columns ``relhasoids`` and
+  ``relhaspkey``from ``pg_class`` table to be in sync with PostgreSQL version
+  ``14``.
+
+- Added columns ``atthasmissing`` and ``attmissingval`` to ``pg_attribute`` table
+  to be in sync with PostgreSQL version ``14``.
+
+- Added column ``conparentid`` and removed column ``consrc`` from
+  ``pg_constraint`` table to be in sync with PostgreSQL version ``14``.
+
+- Added column ``indnkeyatts`` to ``pg_index`` table to be in sync with
+  PostgreSQL version ``14``.
+
+- Added columns ``typacl``, ``typalign``, ``typanalyze``, ``typdefaultbin``,
+  ``typmodin``, ``typmodout``, ``typstorage``, ``typsubscript`` to ``pg_type``
+  table to be in sync with PostgreSQL version ``14``.
+
+- Changed ``pg_constraint.conbin`` column type from ``OBJECT`` to ``STRING`` and
+  ``pg_proc.proargdefaults`` column type from ``OBJECT[]`` to ``STRING`` to be
+  in sync with other similar columns, e.g.: ``pg_index.indexprs``.
+
 - Changed ``pg_attribute.spcacl``, ``pg_class.relacl`` and
   ``pg_namespace.nspacl`` columns type from ``OBJECT[]`` to ``STRING[]`` to be
   in sync with other similar columns, e.g.: ``pg_database.datacl``.
@@ -60,6 +85,8 @@ None
 
 Changes
 =======
+
+- Updated Lucene to 9.6.0
 
 - Added support for :ref:`AVG() aggregation <aggregation-avg>` on
   :ref:`INTERVAL data type <type-interval>`.

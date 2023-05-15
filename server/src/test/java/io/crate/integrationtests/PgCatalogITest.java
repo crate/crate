@@ -60,10 +60,10 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(response).hasRows(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
-            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0",
-            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0");
+            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
+            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
+            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
+            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0");
     }
 
     @Test
@@ -89,11 +89,11 @@ public class PgCatalogITest extends IntegTestCase {
             "select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where" +
             " c.relname = 't1' order by a.attnum");
         assertThat(response).hasRows(
-            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1",
-            "NULL| NULL| false| -1| 0| NULL| s| false| | 0| false| true| -1| g| 0| false| 5| NULL| 728874843| 0| NULL| 1043| -1");
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| s| false| false| | 0| false| true| -1| NULL| g| 0| false| 5| NULL| 728874843| 0| NULL| 1043| -1");
     }
 
     @Test
@@ -112,8 +112,8 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgConstraintTable() {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(response).hasRows(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| NULL| NULL| " +
-            "728874843| NULL| p| 0| true| -874078436");
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| 0| NULL| " +
+            "NULL| 728874843| p| 0| true| -874078436");
     }
 
     @Test
@@ -217,33 +217,33 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select * from pg_proc");
         assertThat(response).hasColumns(
             "oid", "proacl", "proallargtypes", "proargdefaults", "proargmodes", "proargnames", "proargtypes",
-            "probin", "proconfig", "procost", "proisagg", "proisstrict", "proiswindow", "prolang", "proleakproof",
-            "proname", "pronamespace", "pronargdefaults", "pronargs", "proowner", "proparallel", "proretset",
-            "prorettype", "prorows", "prosecdef", "prosrc", "protransform", "protrftypes", "provariadic", "provolatile"
+            "probin", "proconfig", "procost", "proisstrict", "prokind", "prolang", "proleakproof", "proname",
+            "pronamespace", "pronargdefaults", "pronargs", "proowner", "proparallel", "proretset", "prorettype",
+            "prorows", "prosecdef", "prosqlbody", "prosrc", "prosupport", "protrftypes", "provariadic", "provolatile"
         );
     }
 
     @Test
     public void test_pg_proc_select_variadic_and_non_variadic_functions() {
         execute(
-            "SELECT oid, proname, pronamespace, " +
-            "            prorows, provariadic, proisagg, " +
-            "            proiswindow, proretset, prorettype, " +
-            "            proargtypes, proargmodes, prosrc " +
-            "FROM pg_proc " +
-            "WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference'])");
+            """
+                    SELECT oid, proname, pronamespace, prorows, provariadic, prokind,
+                           proretset, prorettype, proargtypes, proargmodes, prosrc
+                    FROM pg_proc
+                    WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference'])
+                """);
 
         // sort by name signature args length
         Arrays.sort(response.rows(), (o1, o2) -> {
             int cmp = ((String) o1[1]).compareTo((String) o2[1]);
-            return cmp == 0 ? ((List<?>) o1[9]).size() - ((List<?>) o2[9]).size() : cmp;
+            return cmp == 0 ? ((List<?>) o1[8]).size() - ((List<?>) o2[8]).size() : cmp;
         });
         assertThat(response).hasRows(
-            "-1329052381| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference",
-            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| []| NULL| current_timestamp",
-            "-359449865| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp",
-            "-277796690| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format",
-            "89277575| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least");
+            "-1329052381| array_difference| -1861355723| 1000.0| 0| f| true| 2277| [2277, 2277]| NULL| array_difference",
+            "726540318| current_timestamp| -1861355723| 0.0| 0| f| false| 1184| []| NULL| current_timestamp",
+            "-359449865| current_timestamp| -1861355723| 0.0| 0| f| false| 1184| [23]| NULL| current_timestamp",
+            "-277796690| format| -1861355723| 0.0| 2276| f| false| 1043| [1043, 2276]| [i, v]| format",
+            "89277575| least| -1861355723| 0.0| 2276| f| false| 2276| [2276]| [v]| least");
     }
 
     @Test

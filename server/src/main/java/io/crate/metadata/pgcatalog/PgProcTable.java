@@ -31,6 +31,7 @@ import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
 
@@ -51,9 +52,7 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public final class PgProcTable {
 
-    public static final RelationName IDENT = new RelationName(
-        PgCatalogSchemaInfo.NAME,
-        "pg_proc");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_proc");
 
     private PgProcTable() {}
 
@@ -74,6 +73,8 @@ public final class PgProcTable {
                     return 0;
                 }
             })
+            .add("prosupport", REGPROC, x -> Regproc.REGPROC_ZERO)
+            .add("prokind", STRING, x -> prokind(x.signature))
             .add("prosecdef", BOOLEAN, x -> null)
             .add("proleakproof", BOOLEAN, x -> null)
             .add("proisstrict", BOOLEAN, x -> null)
@@ -101,17 +102,15 @@ public final class PgProcTable {
                 }
             })
             .add("proargnames", STRING_ARRAY, x -> null)
-            .startObjectArray("proargdefaults", x -> null).endObjectArray()
+            .add("proargdefaults", STRING, x -> null)
             .add("protrftypes", INTEGER_ARRAY, x -> null)
             .add("prosrc", STRING, x -> x.functionName.name())
             .add("probin", STRING, x -> null)
+            .add("prosqlbody", STRING, x -> null)
             .add("proconfig", STRING_ARRAY, x -> null)
             // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
             // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L608
             .add("proacl", STRING_ARRAY, x -> null)
-            .add("protransform", REGPROC, x -> null)
-            .add("proisagg", BOOLEAN, x -> x.signature.getKind() == AGGREGATE)
-            .add("proiswindow", BOOLEAN, x -> x.signature.getKind() == WINDOW)
             .build();
     }
 
@@ -154,5 +153,13 @@ public final class PgProcTable {
                 return PGTypes.get(crateDataType).oid();
             }
         }
+    }
+
+    private static String prokind(Signature signature) {
+        if (signature.getKind() == WINDOW) {
+            return "w";
+        } else if (signature.getKind() == AGGREGATE) {
+            return "a";
+        } else return "f";
     }
 }

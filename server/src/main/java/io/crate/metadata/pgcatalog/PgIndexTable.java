@@ -45,6 +45,7 @@ public final class PgIndexTable {
             .add("indexrelid", REGCLASS, x -> x.indexRelId)
             .add("indrelid", REGCLASS, x -> x.indRelId)
             .add("indnatts", SHORT, x -> (short) 0)
+            .add("indnkeyatts", SHORT, x -> (short) 0)
             .add("indisunique", BOOLEAN, x -> false)
             .add("indisprimary", BOOLEAN, x -> true)
             .add("indisexclusion", BOOLEAN, x -> false)
