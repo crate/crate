@@ -21,6 +21,7 @@ package org.elasticsearch.index.mapper;
 
 import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeStringValue;
 
 import java.util.ArrayList;
@@ -31,6 +32,8 @@ import java.util.Map;
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
+
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import io.crate.server.xcontent.XContentMapValues;
 
@@ -192,6 +195,9 @@ public class TypeParsers {
                 iterator.remove();
             } else if (propName.equals("default_expr")) {
                 builder.defaultExpression(nodeStringValue(propNode, null));
+                iterator.remove();
+            } else if (propName.equals("oid")) {
+                builder.columnOID(nodeLongValue(propNode, COLUMN_OID_UNASSIGNED));
                 iterator.remove();
             }
         }
