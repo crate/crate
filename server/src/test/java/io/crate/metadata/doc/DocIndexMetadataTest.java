@@ -1686,4 +1686,31 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         indexReference = md.indices().get(new ColumnIdent("ft"));
         assertThat(indexReference.columns().get(0).isNullable()).isFalse();
     }
+
+    @Test
+    public void test_copy_to_ft_refers_to_sources() throws Exception {
+        XContentBuilder builder = JsonXContent.builder()
+            .startObject()
+            .startObject("properties")
+            .startObject("description")
+            .field("type", "string")
+            .field("position", 1)
+            .array("copy_to", "description_ft")
+            .endObject()
+            .startObject("description_ft")
+            .field("type", "string")
+            .field("position", 2)
+            .endObject()
+            .endObject()
+            .endObject();
+
+        IndexMetadata metadata = getIndexMetadata("test1", builder);
+        DocIndexMetadata md = newMeta(metadata, "test1");
+
+        assertThat(md.indices()).hasSize(1);
+        IndexReference ref = md.indices().values().iterator().next();
+        assertThat(ref.columns()).satisfiesExactly(
+            x -> Asserts.assertThat(x).isReference("description")
+        );
+    }
 }
