@@ -527,12 +527,10 @@ public class AnalyzedTableElements<T> {
             // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new GeoReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                RowGranularity.DOC,
                 realType,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 IndexType.PLAIN,
                 isNullable,
-                columnDefinition.docValues(),
                 columnDefinition.position,
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),

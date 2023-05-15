@@ -207,7 +207,7 @@ public class DocIndexMetadata {
     private void add(int position,
                      ColumnIdent column,
                      DataType<?> type,
-                     @Nullable String defaultExpression,
+                     @Nullable Symbol defaultExpression,
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
@@ -218,7 +218,17 @@ public class DocIndexMetadata {
         if (partitionByColumn) {
             indexType = IndexType.PLAIN;
         }
-        Reference simpleRef = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, nullable, hasDocValues);
+        Reference simpleRef = new SimpleReference(
+            refIdent(column),
+            granularity(column),
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            defaultExpression
+        );
         if (generatedExpression == null) {
             ref = simpleRef;
         } else {
@@ -236,6 +246,7 @@ public class DocIndexMetadata {
 
     private void addGeoReference(Integer position,
                                  ColumnIdent column,
+                                 Symbol defaultExpression,
                                  @Nullable String tree,
                                  @Nullable String precision,
                                  @Nullable Integer treeLevels,
@@ -243,10 +254,13 @@ public class DocIndexMetadata {
                                  boolean nullable,
                                  DataType<?> type) {
         Reference info = new GeoReference(
-            position,
             refIdent(column),
-            nullable,
             type,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            nullable,
+            position,
+            defaultExpression,
             tree,
             precision,
             treeLevels,
@@ -275,34 +289,6 @@ public class DocIndexMetadata {
             return RowGranularity.PARTITION;
         }
         return RowGranularity.DOC;
-    }
-
-    private Reference newInfo(Integer position,
-                              ColumnIdent column,
-                              DataType<?> type,
-                              @Nullable String formattedDefaultExpression,
-                              ColumnPolicy columnPolicy,
-                              IndexType indexType,
-                              boolean nullable,
-                              boolean hasDocValues) {
-        Symbol defaultExpression = null;
-        if (formattedDefaultExpression != null) {
-            Expression expression = SqlParser.createExpression(formattedDefaultExpression);
-            defaultExpression = this.expressionAnalyzer.convert(
-                expression,
-                new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
-        }
-        return new SimpleReference(
-            refIdent(column),
-            granularity(column),
-            type,
-            columnPolicy,
-            indexType,
-            nullable,
-            hasDocValues,
-            position,
-            defaultExpression
-        );
     }
 
     record InnerObjectType(String name, int position, DataType<?> type) {}
@@ -460,7 +446,14 @@ public class DocIndexMetadata {
             int position = (int) columnProperties.getOrDefault("position", 0);
             assert !takenPositions.containsKey(position) : "Duplicate column position assigned to " + newIdent.fqn() + " and " + takenPositions.get(position);
             takenPositions.put(position, newIdent.fqn());
-            String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
+            String formattedDefaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
+            Symbol defaultExpression = null;
+            if (formattedDefaultExpression != null) {
+                Expression expression = SqlParser.createExpression(formattedDefaultExpression);
+                defaultExpression = this.expressionAnalyzer.convert(
+                    expression,
+                    new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
+            }
             IndexType columnIndexType = getColumnIndexType(columnProperties);
             StorageSupport<?> storageSupport = columnDataType.storageSupport();
             assert storageSupport != null
@@ -476,6 +469,7 @@ public class DocIndexMetadata {
                 addGeoReference(
                     position,
                     newIdent,
+                    defaultExpression,
                     geoTree,
                     precision,
                     treeLevels,
@@ -502,15 +496,16 @@ public class DocIndexMetadata {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(
-                            position,
-                            newIdent,
+                        builder.addColumn(new SimpleReference(
+                            refIdent(targetIdent),
+                            granularity(targetIdent),
                             columnDataType,
-                            defaultExpression,
-                            ColumnPolicy.DYNAMIC,
+                            columnPolicy,
                             columnIndexType,
                             nullable,
-                            hasDocValues
+                            hasDocValues,
+                            position,
+                            defaultExpression
                         ));
                     }
                 }

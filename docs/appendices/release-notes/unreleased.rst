@@ -233,3 +233,6 @@ Fixes
     CROSS JOIN t2
     INNER JOIN t3 ON t3.x = t1.x AND t3.y = t2
 
+- Fixed an issue that caused the default expressions on columns of type
+  ``GEO_SHAPE`` to be ignored on writes.
+
