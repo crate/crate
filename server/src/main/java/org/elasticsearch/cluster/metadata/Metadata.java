@@ -476,7 +476,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             clusterUUID = in.readString();
             clusterUUIDCommitted = in.readBoolean();
             version = in.readLong();
-            if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
+            if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
                 columnOID = in.readLong();
             } else {
                 columnOID = COLUMN_OID_UNASSIGNED;
@@ -494,7 +494,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             out.writeString(clusterUUID);
             out.writeBoolean(clusterUUIDCommitted);
             out.writeLong(version);
-            if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
+            if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
                 out.writeLong(columnOID);
             }
             coordinationMetadata.writeTo(out);
@@ -525,10 +525,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     public static Metadata readFrom(StreamInput in) throws IOException {
         Builder builder = new Builder();
         builder.version = in.readLong();
-        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
-            builder.columnOID = in.readLong();
+        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+            builder.columnOID(in.readLong());
         } else {
-            builder.columnOID = COLUMN_OID_UNASSIGNED;
+            builder.columnOID(COLUMN_OID_UNASSIGNED);
         }
         builder.clusterUUID = in.readString();
         builder.clusterUUIDCommitted = in.readBoolean();
@@ -554,7 +554,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(version);
-        if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
+        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
             out.writeLong(columnOID);
         }
         out.writeString(clusterUUID);
@@ -593,12 +593,25 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return new Builder(metadata);
     }
 
+    public static class ColumnOidSupplier {
+        private long columnOID;
+
+        private ColumnOidSupplier(long columnOID) {
+            this.columnOID = columnOID;
+        }
+
+        public long nextOid() {
+            columnOID++;
+            return columnOID;
+        }
+    }
+
     public static class Builder {
 
         private String clusterUUID;
         private boolean clusterUUIDCommitted;
         private long version;
-        private long columnOID;
+        private ColumnOidSupplier columnOidSupplier;
         private CoordinationMetadata coordinationMetadata = CoordinationMetadata.EMPTY_METADATA;
         private Settings transientSettings = Settings.Builder.EMPTY_SETTINGS;
         private Settings persistentSettings = Settings.Builder.EMPTY_SETTINGS;
@@ -612,6 +625,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             indices = ImmutableOpenMap.builder();
             templates = ImmutableOpenMap.builder();
             customs = ImmutableOpenMap.builder();
+            columnOidSupplier = new ColumnOidSupplier(COLUMN_OID_UNASSIGNED);
             indexGraveyard(IndexGraveyard.builder().build()); // create new empty index graveyard to initialize
         }
 
@@ -622,7 +636,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             this.transientSettings = metadata.transientSettings;
             this.persistentSettings = metadata.persistentSettings;
             this.version = metadata.version;
-            this.columnOID = metadata.columnOID;
+            this.columnOidSupplier = new ColumnOidSupplier(metadata.columnOID);
             this.indices = ImmutableOpenMap.builder(metadata.indices);
             this.templates = ImmutableOpenMap.builder(metadata.templates);
             this.customs = ImmutableOpenMap.builder(metadata.customs);
@@ -781,7 +795,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
 
         public Builder columnOID(long columnOID) {
-            this.columnOID = columnOID;
+            this.columnOidSupplier = new ColumnOidSupplier(columnOID);
             return this;
         }
 
@@ -800,6 +814,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                 clusterUUID = UUIDs.randomBase64UUID();
             }
             return this;
+        }
+
+        public ColumnOidSupplier columnOidSupplier() {
+            return columnOidSupplier;
         }
 
         public Metadata build() {
@@ -852,7 +870,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             String[] allOpenIndicesArray = allOpenIndices.toArray(new String[allOpenIndices.size()]);
             String[] allClosedIndicesArray = allClosedIndices.toArray(new String[allClosedIndices.size()]);
 
-            return new Metadata(clusterUUID, clusterUUIDCommitted, version, columnOID, coordinationMetadata, transientSettings, persistentSettings,
+            return new Metadata(clusterUUID, clusterUUIDCommitted, version, columnOidSupplier.columnOID, coordinationMetadata, transientSettings, persistentSettings,
                                 indices.build(), templates.build(), customs.build(), allIndicesArray, allOpenIndicesArray, allClosedIndicesArray,
                                 aliasAndIndexLookup);
         }
@@ -991,7 +1009,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                     if ("version".equals(currentFieldName)) {
                         builder.version = parser.longValue();
                     } else if ("column_oid".equals(currentFieldName)) {
-                        builder.columnOID = parser.longValue();
+                        builder.columnOidSupplier = new ColumnOidSupplier(parser.longValue());
                     } else if ("cluster_uuid".equals(currentFieldName) || "uuid".equals(currentFieldName)) {
                         builder.clusterUUID = parser.text();
                     } else if ("cluster_uuid_committed".equals(currentFieldName)) {
@@ -1005,6 +1023,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             }
             return builder.build();
         }
+
+
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {

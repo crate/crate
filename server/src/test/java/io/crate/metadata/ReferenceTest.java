@@ -130,15 +130,16 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position());
+        // TODO: Assign OID in TestingHelpers
+        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
         assertThat(mapping)
-            .containsEntry("oid", 0L)
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
-            .hasSize(4);
+            .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -148,15 +149,16 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position());
+        // TODO: Assign OID in TestingHelpers
+        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
         assertThat(mapping)
-            .containsEntry("oid", 0L)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
             .containsEntry("doc_values", "false")
-            .hasSize(4);
+            .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -166,16 +168,15 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                 .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position());
+        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
         assertThat(mapping)
-                .containsEntry("oid", 0L)
                 .containsEntry("position", 1)
                 .containsEntry("type", "float")
                 .containsEntry("doc_values", "false")
-                .hasSize(4);
+                .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -185,31 +186,14 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position());
+        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
         assertThat(mapping)
-            .containsEntry("oid", 0L)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
             .containsEntry("default_expr", "'foo'")
-            .hasSize(4);
-
+            .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        compareMappings(indexMetadata.mapping().sourceAsMap(), "xs", mapping);
-    }
-
-    /**
-     * Jackson optimizes writes of small long values as stores them as ints:
-     * if (v > MIN_INT_AS_LONG) {
-     *     return outputInt((int) v, b, off);
-     * }
-     * It makes sourceAsMap return int OIDS for small values.
-     * We check OIDS by explicitly turning mapping oid to LONG.
-     * This is done similar to how OID is handled in DocIndexMetadata.internalExtractColumnDefinitions
-     */
-    @SuppressWarnings("unchecked")
-    static void compareMappings(Map<String, Object> sourceAsMap, String columnName, Map<String, Object> expected) {
-        Map<String, Object> actual = (Map<String, Object>) Maps.getByPath(sourceAsMap, "properties." + columnName);
-        assertThat(Long.valueOf(actual.remove("oid").toString())).isEqualTo(expected.remove("oid"));
-        assertThat(actual).isEqualTo(expected);
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 }
