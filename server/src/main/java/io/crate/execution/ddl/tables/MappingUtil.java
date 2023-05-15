@@ -29,6 +29,7 @@ import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
@@ -47,6 +48,9 @@ public class MappingUtil {
      * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
+     *
+     * @param columnOidSupplier is used to get next OID.
+     * Must be NULL if used in BWC code which doesn't expect OID in the mapping.
      */
     public static Map<String, Object> createMapping(List<Reference> columns,
                                                     IntArrayList pKeyIndices,
@@ -54,10 +58,11 @@ public class MappingUtil {
                                                     Map<String, Object> indices,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
-                                                    @Nullable String routingColumn) {
+                                                    @Nullable String routingColumn,
+                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(null, tree);
+        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(null, tree, columnOidSupplier);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
@@ -105,38 +110,45 @@ public class MappingUtil {
 
      */
     @Nullable
-    private static Map<String, Map<String, Object>> createPropertiesMap(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Map<String, Object>> createPropertiesMap(@Nullable ColumnIdent currentNode,
+                                                                        HashMap<ColumnIdent, List<Reference>> tree,
+                                                                        @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
+            allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree, columnOidSupplier));
         }
         return allColumnsMap;
     }
 
-    private static Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Object> addColumnProperties(Reference reference,
+                                                           HashMap<ColumnIdent, List<Reference>> tree,
+                                                           @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
 
-        Map<String, Object> columnProperties = reference.toMapping();
+        Map<String, Object> columnProperties = reference.toMapping(columnOidSupplier);
         if (reference.valueType().id() == ArrayType.ID) {
             HashMap<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
             if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
-                objectMapping(columnProperties, reference, tree);
+                objectMapping(columnProperties, reference, tree, columnOidSupplier);
             }
             outerMapping.put("inner", columnProperties);
             return outerMapping;
         } else if (reference.valueType().id() == ObjectType.ID) {
-            objectMapping(columnProperties, reference, tree);
+            objectMapping(columnProperties, reference, tree, columnOidSupplier);
         }
         return columnProperties;
     }
 
-    private static void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static void objectMapping(Map<String, Object> propertiesMap,
+                                      Reference reference,
+                                      HashMap<ColumnIdent, List<Reference>> tree,
+                                      @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(reference.column(), tree, columnOidSupplier);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

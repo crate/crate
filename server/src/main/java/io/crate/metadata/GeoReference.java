@@ -32,6 +32,7 @@ import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -178,8 +179,8 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Map<String, Object> toMapping(@Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+        Map<String, Object> mapping = super.toMapping(columnOidSupplier);
         Maps.putNonNull(mapping, "tree", geoTree);
         Maps.putNonNull(mapping, "precision", precision);
         Maps.putNonNull(mapping, "tree_levels", treeLevels);
