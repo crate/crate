@@ -217,33 +217,33 @@ public class PgCatalogITest extends IntegTestCase {
         execute("select * from pg_proc");
         assertThat(response).hasColumns(
             "oid", "proacl", "proallargtypes", "proargdefaults", "proargmodes", "proargnames", "proargtypes",
-            "probin", "proconfig", "procost", "proisagg", "proisstrict", "proiswindow", "prolang", "proleakproof",
-            "proname", "pronamespace", "pronargdefaults", "pronargs", "proowner", "proparallel", "proretset",
-            "prorettype", "prorows", "prosecdef", "prosrc", "protransform", "protrftypes", "provariadic", "provolatile"
+            "probin", "proconfig", "procost", "proisstrict", "prokind", "prolang", "proleakproof", "proname",
+            "pronamespace", "pronargdefaults", "pronargs", "proowner", "proparallel", "proretset", "prorettype",
+            "prorows", "prosecdef", "prosqlbody", "prosrc", "prosupport", "protrftypes", "provariadic", "provolatile"
         );
     }
 
     @Test
     public void test_pg_proc_select_variadic_and_non_variadic_functions() {
         execute(
-            "SELECT oid, proname, pronamespace, " +
-            "            prorows, provariadic, proisagg, " +
-            "            proiswindow, proretset, prorettype, " +
-            "            proargtypes, proargmodes, prosrc " +
-            "FROM pg_proc " +
-            "WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference'])");
+            """
+                    SELECT oid, proname, pronamespace, prorows, provariadic, prokind,
+                           proretset, prorettype, proargtypes, proargmodes, prosrc
+                    FROM pg_proc
+                    WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference'])
+                """);
 
         // sort by name signature args length
         Arrays.sort(response.rows(), (o1, o2) -> {
             int cmp = ((String) o1[1]).compareTo((String) o2[1]);
-            return cmp == 0 ? ((List<?>) o1[9]).size() - ((List<?>) o2[9]).size() : cmp;
+            return cmp == 0 ? ((List<?>) o1[8]).size() - ((List<?>) o2[8]).size() : cmp;
         });
         assertThat(response).hasRows(
-            "-1329052381| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference",
-            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| []| NULL| current_timestamp",
-            "-359449865| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp",
-            "-277796690| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format",
-            "89277575| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least");
+            "-1329052381| array_difference| -1861355723| 1000.0| 0| f| true| 2277| [2277, 2277]| NULL| array_difference",
+            "726540318| current_timestamp| -1861355723| 0.0| 0| f| false| 1184| []| NULL| current_timestamp",
+            "-359449865| current_timestamp| -1861355723| 0.0| 0| f| false| 1184| [23]| NULL| current_timestamp",
+            "-277796690| format| -1861355723| 0.0| 2276| f| false| 1043| [1043, 2276]| [i, v]| format",
+            "89277575| least| -1861355723| 0.0| 2276| f| false| 2276| [2276]| [v]| least");
     }
 
     @Test
