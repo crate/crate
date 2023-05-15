@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 
 /**
  * A mapper for a builtin field containing metadata about a document.
@@ -63,6 +65,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
         super(
             mappedFieldType.name(),
             NOT_TO_BE_POSITIONED,
+            COLUMN_OID_UNASSIGNED,
             null,
             fieldType,
             mappedFieldType,

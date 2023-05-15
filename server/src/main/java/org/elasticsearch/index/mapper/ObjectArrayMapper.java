@@ -57,13 +57,14 @@ public class ObjectArrayMapper extends ObjectMapper {
         @Override
         protected ObjectMapper createMapper(String name,
                                             int position,
+                                            long columnOID,
                                             String fullPath,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             Settings settings) {
             return new ObjectArrayMapper(
                 name,
-                super.createMapper(name, position, fullPath, dynamic, mappers, settings),
+                super.createMapper(name, position, columnOID, fullPath, dynamic, mappers, settings),
                 settings
             );
         }
@@ -74,6 +75,7 @@ public class ObjectArrayMapper extends ObjectMapper {
     ObjectArrayMapper(String name, ObjectMapper innerMapper, Settings settings) {
         super(name,
               innerMapper.position(),
+              innerMapper.columnOID(),
               innerMapper.fullPath(),
               innerMapper.dynamic(),
               Collections.emptyMap(),
