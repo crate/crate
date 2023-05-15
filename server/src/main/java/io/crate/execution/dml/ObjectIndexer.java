@@ -51,6 +51,8 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final ObjectType objectType;
@@ -198,6 +200,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 nullable,
                 storageSupport.docValuesDefault(),
                 position,
+                COLUMN_OID_UNASSIGNED,
                 defaultExpression
             );
             position--;

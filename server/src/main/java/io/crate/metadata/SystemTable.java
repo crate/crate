@@ -54,6 +54,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public final class SystemTable<T> implements TableInfo {
 
     private final RelationName name;
@@ -292,6 +294,7 @@ public final class SystemTable<T> implements TableInfo {
                         column.isNullable,
                         false,
                         position,
+                        COLUMN_OID_UNASSIGNED, // No oid for system tables
                         null
                     )
                 );
