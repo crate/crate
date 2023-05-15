@@ -38,6 +38,8 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public class DocSysColumns {
 
 
@@ -93,6 +95,10 @@ public class DocSysColumns {
         ID, UID.name()
     );
 
+    /**
+     * Creates a Reference with unassigned OID since we need oid only for stored tables and system tables are not stored.
+     * Even if they were stored, a column cannot be dropped from a system table.
+     */
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
         return new SimpleReference(new ReferenceIdent(table, column),
                              RowGranularity.DOC,
@@ -102,6 +108,7 @@ public class DocSysColumns {
                              false,
                              false,
                              position,
+                             COLUMN_OID_UNASSIGNED,
                              null
         );
     }

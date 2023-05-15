@@ -123,6 +123,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
+                0,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -140,6 +141,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 IndexType.PLAIN,
                 true,
                 true,
+                0,
                 0,
                 null
             ),
@@ -183,6 +185,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
+                0,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -199,6 +202,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 1,
+                0,
                 null
             ),
             new SimpleReference(
@@ -210,6 +214,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 2,
+                0,
                 null
             )
         );
