@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -267,6 +269,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     nullable,
                     hasDocValues,
                     position,
+                    COLUMN_OID_UNASSIGNED,
                     defaultExpression,
                     sources,
                     analyzer == null ? (indexType == IndexType.PLAIN ? "keyword" : "standard") : analyzer
@@ -282,6 +285,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     indexType,
                     nullable,
                     position,
+                    COLUMN_OID_UNASSIGNED,
                     defaultExpression,
                     indexMethod,
                     (String) geoMap.get("precision"),
@@ -298,6 +302,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     nullable,
                     hasDocValues,
                     position,
+                    COLUMN_OID_UNASSIGNED,
                     defaultExpression
                 );
             }

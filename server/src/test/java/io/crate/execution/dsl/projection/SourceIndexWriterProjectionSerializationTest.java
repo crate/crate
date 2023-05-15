@@ -63,6 +63,7 @@ public class SourceIndexWriterProjectionSerializationTest {
             false,
             true,
             0,
+            0,
             Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
@@ -120,6 +121,7 @@ public class SourceIndexWriterProjectionSerializationTest {
             IndexType.FULLTEXT,
             false,
             true,
+            0,
             0,
             Literal.of(dataType, List.of(Map.of("f", 10))
             )

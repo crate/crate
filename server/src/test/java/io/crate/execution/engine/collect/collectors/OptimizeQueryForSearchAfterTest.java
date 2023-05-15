@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.List;
 
@@ -61,7 +62,7 @@ public class OptimizeQueryForSearchAfterTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
                 new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
-                                    IndexType.PLAIN, true, true, 1, null)
+                                    IndexType.PLAIN, true, true, 1, COLUMN_OID_UNASSIGNED, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
@@ -75,7 +76,7 @@ public class OptimizeQueryForSearchAfterTest {
 
         orderBy = new OrderBy(List.of(
                 new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
-                                    IndexType.PLAIN, true, false, 1, null)
+                                    IndexType.PLAIN, true, false, 1, COLUMN_OID_UNASSIGNED, null)
         ));
         optimize = new OptimizeQueryForSearchAfter(orderBy);
         lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });

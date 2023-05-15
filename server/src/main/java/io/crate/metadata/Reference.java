@@ -64,6 +64,11 @@ public interface Reference extends Symbol {
 
     int position();
 
+    /**
+     * This is used as a column name in the source
+     */
+    long oid();
+
     boolean hasDocValues();
 
     @Nullable
