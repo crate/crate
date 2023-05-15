@@ -89,7 +89,10 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.ddl.tables.CreateTableRequest;
+import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -202,18 +205,23 @@ public class MetadataCreateIndexService {
      * return true, otherwise if the operation timed out, then it will return false.
      *
      * @param request the index creation cluster state update request
+     * @param createTableRequest carries CrateDB specific objects to create mapping if request param above has NULL mapping. Null if used in resize.
      * @param listener the listener on which to send the index creation cluster state update response
      */
     public void createIndex(final NodeContext nodeContext,
-                            final CreateIndexClusterStateUpdateRequest request,
+                            @Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
+                            @Nullable final CreateTableRequest createTableRequest,
                             final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
-        onlyCreateIndex(nodeContext, request, ActionListener.wrap(response -> {
+        onlyCreateIndex(nodeContext, request, createTableRequest, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
                 activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
                     shardsAcknowledged -> {
                         if (shardsAcknowledged == false) {
                             LOGGER.debug("[{}] index created, but the operation timed out while waiting for " +
                                              "enough shards to be started.", request.index());
+                            // onlyCreateIndex is acknowledged, so global OID is already advanced.
+                            // CREATE TABLE is not successful because of timeout which means that we can have holes in OID sequence.
+                            // However, there won't be any duplicates so it's still safe to use OIDs as source column names.
                         }
                         listener.onResponse(new CreateIndexClusterStateUpdateResponse(response.isAcknowledged(), shardsAcknowledged));
                     }, listener::onFailure);
@@ -224,7 +232,8 @@ public class MetadataCreateIndexService {
     }
 
     private void onlyCreateIndex(final NodeContext nodeContext,
-                                 final CreateIndexClusterStateUpdateRequest request,
+                                 @Deprecated final CreateIndexClusterStateUpdateRequest request,
+                                 @Nullable final CreateTableRequest createTableRequest,
                                  final ActionListener<ClusterStateUpdateResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
         Settings build = updatedSettingsBuilder.put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
@@ -236,6 +245,7 @@ public class MetadataCreateIndexService {
                     LOGGER,
                     allocationService,
                     request,
+                    createTableRequest,
                     listener,
                     indicesService,
                     xContentRegistry,
@@ -254,6 +264,7 @@ public class MetadataCreateIndexService {
         private final IndicesService indicesService;
         private final NamedXContentRegistry xContentRegistry;
         private final CreateIndexClusterStateUpdateRequest request;
+        private final CreateTableRequest createTableRequest;
         private final Logger logger;
         private final AllocationService allocationService;
         private final Settings settings;
@@ -264,6 +275,7 @@ public class MetadataCreateIndexService {
         IndexCreationTask(Logger logger,
                           AllocationService allocationService,
                           CreateIndexClusterStateUpdateRequest request,
+                          @Nullable CreateTableRequest createTableRequest,
                           ActionListener<ClusterStateUpdateResponse> listener,
                           IndicesService indicesService,
                           NamedXContentRegistry xContentRegistry,
@@ -273,6 +285,7 @@ public class MetadataCreateIndexService {
                           NodeContext nodeContext) {
             super(Priority.URGENT, request, listener);
             this.request = request;
+            this.createTableRequest = createTableRequest;
             this.logger = logger;
             this.allocationService = allocationService;
             this.indicesService = indicesService;
@@ -316,11 +329,27 @@ public class MetadataCreateIndexService {
                 }
                 assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
+                Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
                 Map<String, Object> mapping;
                 String mappingStr = request.mapping();
                 if (mappingStr == null) {
-                    mapping = new HashMap<>();
+                    // Can be null on resize.
+                    if (createTableRequest == null) {
+                        mapping = new HashMap<>(); // resize doesn't change mapping, will be merged below as is.
+                    } else {
+                        mapping = MappingUtil.createMapping(
+                            MappingUtil.AllocPosition.forNewTable(),
+                            createTableRequest.references(),
+                            createTableRequest.pKeyIndices(),
+                            createTableRequest.checkConstraints(),
+                            createTableRequest.partitionedBy(),
+                            createTableRequest.tableColumnPolicy(),
+                            createTableRequest.routingColumn(),
+                            metadataBuilder.columnOidSupplier()
+                        );
+                    }
                 } else {
+                    // BWC code path. Do not remove in 5.5 or later since it's used on direct CreateIndexRequest creation.
                     mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
                 }
 
@@ -450,7 +479,7 @@ public class MetadataCreateIndexService {
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(indexMetadata.getIndex(),
                     indexMetadata.getSettings());
 
-                final Metadata newMetadata = Metadata.builder(currentState.metadata())
+                final Metadata newMetadata = metadataBuilder
                     .put(indexMetadata, false)
                     .build();
 
