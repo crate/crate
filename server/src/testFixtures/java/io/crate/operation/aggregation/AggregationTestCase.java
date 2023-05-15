@@ -25,6 +25,7 @@ import static io.crate.metadata.RelationName.fromIndexName;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
@@ -318,6 +319,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     true,
                     i + 1,
+                    COLUMN_OID_UNASSIGNED,
                     null
                 )
             );
@@ -623,6 +625,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     true,
                     i + 1,
+                    COLUMN_OID_UNASSIGNED,
                     null)
             );
         }
