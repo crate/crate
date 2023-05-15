@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -86,7 +87,7 @@ public interface Reference extends Symbol {
      *
      * @param position position to use in the mapping
      */
-    Map<String, Object> toMapping(int position);
+    Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier);
 
     static void toStream(StreamOutput out, Reference ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());
