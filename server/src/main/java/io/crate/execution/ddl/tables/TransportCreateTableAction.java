@@ -21,36 +21,45 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
-import java.io.IOException;
-import java.util.Collections;
-
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
+import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -67,24 +76,29 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     public static final String NAME = "internal:crate:sql/tables/admin/create";
 
-    private final TransportCreateIndexAction transportCreateIndexAction;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-
+    private final MetadataCreateIndexService createIndexService;
+    private final MetadataIndexTemplateService indexTemplateService;
+    private final NodeContext nodeContext;
+    private final IndexScopedSettings indexScopedSettings;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      TransportCreateIndexAction transportCreateIndexAction,
-                                      TransportPutIndexTemplateAction transportPutIndexTemplateAction) {
+                                      MetadataCreateIndexService createIndexService,
+                                      MetadataIndexTemplateService indexTemplateService,
+                                      NodeContext nodeContext,
+                                      IndexScopedSettings indexScopedSettings) {
         super(
             NAME,
             transportService,
             clusterService, threadPool,
             CreateTableRequest::new
         );
-        this.transportCreateIndexAction = transportCreateIndexAction;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.createIndexService = createIndexService;
+        this.indexTemplateService = indexTemplateService;
+        this.nodeContext = nodeContext;
+        this.indexScopedSettings = indexScopedSettings;
     }
 
     @Override
@@ -123,77 +137,104 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             return;
         }
 
-        CreateIndexRequest createIndexRequest = null;
-        PutIndexTemplateRequest putIndexTemplateRequest = null;
+        validateSettings(createTableRequest.settings(), state);
+
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_4_0)) {
             if (createTableRequest.partitionedBy().isEmpty()) {
-                createIndexRequest = toCreateIndexRequest(createTableRequest);
+                createIndex(createTableRequest, listener, null);
             } else {
-                putIndexTemplateRequest = toPutIndexTemplateRequest(createTableRequest);
+                createTemplate(createTableRequest, listener, null);
             }
         } else {
+            // TODO: Remove BWC branch in 5.5
+            assert createTableRequest.getCreateIndexRequest() != null || createTableRequest.getPutIndexTemplateRequest() != null : "Unknown request type";
             if (createTableRequest.getCreateIndexRequest() != null) {
-                createIndexRequest = createTableRequest.getCreateIndexRequest();
-            } else if (createTableRequest.getPutIndexTemplateRequest() != null) {
-                putIndexTemplateRequest = createTableRequest.getPutIndexTemplateRequest();
+                assert createTableRequest.getCreateIndexRequest().mapping() != null : "Pre 5.4 createTableRequest must have not-null mapping.";
+                createIndex(createTableRequest, listener, createTableRequest.getCreateIndexRequest().mapping());
+            } else {
+                assert createTableRequest.getPutIndexTemplateRequest().mapping() != null : "Pre 5.4 createTableRequest must have not-null mapping.";
+                createTemplate(createTableRequest, listener, createTableRequest.getPutIndexTemplateRequest().mapping());
             }
         }
-
-        assert createIndexRequest != null || putIndexTemplateRequest != null : "Unknown request type";
-
-        if (createIndexRequest != null) {
-            validateSettings(createIndexRequest.settings(), state);
-
-            transportCreateIndexAction.masterOperation(
-                createIndexRequest,
-                state,
-                listener.map(resp -> new CreateTableResponse(resp.isShardsAcknowledged()))
-            );
-        } else {
-            validateSettings(putIndexTemplateRequest.settings(), state);
-
-            transportPutIndexTemplateAction.masterOperation(
-                putIndexTemplateRequest,
-                state,
-                listener.map(resp -> new CreateTableResponse(resp.isAcknowledged()))
-            );
-        }
     }
 
-
-    private static PutIndexTemplateRequest toPutIndexTemplateRequest(CreateTableRequest request) {
-        var relationName = request.getTableName();
-        var mapping = createMapping(
-            AllocPosition.forNewTable(),
-            request.references(),
-            request.pKeyIndices(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
+    /**
+     * Similar to {@link TransportCreateIndexAction#masterOperation}
+     * but also can pass on CrateDB specific objects to build mapping only at the latest stage.
+     *
+     * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
+     * or NULL if we have to build it and assign OID out of references.
+     */
+    private void createIndex(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener, @Nullable String mapping) {
+        ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
+            response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
+            listener::onFailure
         );
-        return new PutIndexTemplateRequest(PartitionName.templateName(relationName.schema(), relationName.name()))
+        String cause = "api"; // Before we used CreateIndexRequest with an empty cause which turned into "api".
+
+        final String indexName = createTableRequest.getTableName().indexNameOrAlias(); // getTableName call is BWC.
+        final CreateIndexClusterStateUpdateRequest updateRequest = new CreateIndexClusterStateUpdateRequest(
+            cause, indexName, indexName)
+            .ackTimeout(DEFAULT_ACK_TIMEOUT) // Before we used CreateIndexRequest with default ack timeout.
+            .masterNodeTimeout(createTableRequest.masterNodeTimeout())
+            .settings(createTableRequest.settings())
             .mapping(mapping)
-            .create(true)
-            .settings(request.settings())
-            .patterns(Collections.singletonList(PartitionName.templatePrefix(relationName.schema(), relationName.name())))
-            .alias(new Alias(relationName.indexNameOrAlias()));
+            .aliases(new HashSet<>()) // Before we used CreateIndexRequest with an empty set, it's changed only on resizing indices.
+            .waitForActiveShards(ActiveShardCount.DEFAULT); // Before we used CreateIndexRequest with default active shards count, it's changed only on resizing indices.
+
+        createIndexService.createIndex(
+            nodeContext,
+            updateRequest,
+            createTableRequest,
+            wrappedListener.map(response ->
+                new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName))
+        );
+
     }
 
-    private static CreateIndexRequest toCreateIndexRequest(CreateTableRequest request) {
-        var mapping = createMapping(
-            AllocPosition.forNewTable(),
-            request.references(),
-            request.pKeyIndices(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
+    /**
+     * Similar to {@link TransportPutIndexTemplateAction#masterOperation}
+     * but also can pass on CrateDB specific objects to build mapping only at the latest stage.
+     *
+     * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
+     * or NULL if we have to build it and assign OID out of references.
+     */
+    private void createTemplate(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener, @Nullable String mapping) {
+        ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
+            response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
+            listener::onFailure
         );
-        return new CreateIndexRequest(
-            request.getTableName().indexNameOrAlias(),
-            request.settings()
-        ).mapping(mapping);
+
+        RelationName relationName = createTableRequest.getTableName(); // getTableName call is BWC.
+        final Settings.Builder templateSettingsBuilder = Settings.builder();
+        templateSettingsBuilder.put(createTableRequest.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
+        indexScopedSettings.validate(templateSettingsBuilder.build(), true); // templates must be consistent with regards to dependencies
+        String name = PartitionName.templateName(relationName.schema(), relationName.name());
+        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest("api", name)
+                .patterns(Collections.singletonList(PartitionName.templatePrefix(
+                    relationName.schema(),
+                    relationName.name())))
+                .settings(templateSettingsBuilder.build())
+                .mapping(mapping)
+                .aliases(Set.of(new Alias(relationName.indexNameOrAlias()))) // We used PutIndexTemplateRequest which creates a single alias
+                .create(true) // We used PutIndexTemplateRequest with explicit 'true'
+                .masterTimeout(createTableRequest.masterNodeTimeout())
+                .version(null),
+            // We used PutIndexTemplateRequest with default version value
+
+            createTableRequest,
+            new MetadataIndexTemplateService.PutListener() {
+                @Override
+                public void onResponse(MetadataIndexTemplateService.PutResponse response) {
+                    wrappedListener.onResponse(new AcknowledgedResponse(response.acknowledged()));
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    logger.debug(() -> new ParameterizedMessage("failed to put template [{}]", name), e);
+                    wrappedListener.onFailure(e);
+                }
+            });
     }
 
     private static boolean viewsExists(RelationName relationName, ClusterState state) {
