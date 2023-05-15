@@ -43,6 +43,7 @@ public class BitStringFieldMapper extends FieldMapper {
 
     protected BitStringFieldMapper(String simpleName,
                                    int position,
+                                   long columnOID,
                                    Integer length,
                                    String defaultExpression,
                                    FieldType fieldType,
@@ -51,6 +52,7 @@ public class BitStringFieldMapper extends FieldMapper {
         super(
             simpleName,
             position,
+            columnOID,
             defaultExpression,
             fieldType,
             mappedFieldType,
@@ -102,6 +104,7 @@ public class BitStringFieldMapper extends FieldMapper {
             var mapper = new BitStringFieldMapper(
                 name,
                 position,
+                columnOID,
                 length,
                 defaultExpression,
                 fieldType,

@@ -98,6 +98,7 @@ public class DateFieldMapper extends FieldMapper {
             var mapper = new DateFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 ft,
@@ -161,12 +162,13 @@ public class DateFieldMapper extends FieldMapper {
     private DateFieldMapper(
             String simpleName,
             int position,
+            long columnOID,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             Boolean ignoreTimezone,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
         this.ignoreTimezone = ignoreTimezone;
     }
 

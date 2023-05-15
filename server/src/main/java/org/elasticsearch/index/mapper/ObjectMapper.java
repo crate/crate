@@ -19,8 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -95,6 +97,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             var mapper = createMapper(
                 name,
                 position,
+                columnOID,
                 context.path().pathAsText(name),
                 dynamic,
                 mappers,
@@ -110,11 +113,12 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         protected ObjectMapper createMapper(String name,
                                             int position,
+                                            long columnOID,
                                             String fullPath,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
-            return new ObjectMapper(name, position, fullPath, dynamic, mappers, settings);
+            return new ObjectMapper(name, position, columnOID, fullPath, dynamic, mappers, settings);
         }
     }
 
@@ -140,6 +144,9 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
             if (fieldName.equals("position")) {
                 builder.position(nodeIntegerValue(fieldNode));
+                return true;
+            } else if (fieldName.equals("oid")) {
+                builder.columnOID(nodeLongValue(fieldNode));
                 return true;
             } else if (fieldName.equals("dynamic")) {
                 String value = fieldNode.toString();
@@ -233,6 +240,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     ObjectMapper(String name,
                  int position,
+                 long columnOID,
                  String fullPath,
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
@@ -244,6 +252,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         this.fullPath = fullPath;
         this.position = position;
+        this.columnOID = columnOID;
         this.dynamic = dynamic;
         if (mappers == null) {
             this.mappers = new CopyOnWriteHashMap<>();
@@ -349,6 +358,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
     }
 
+    protected long columnOID() {
+        return columnOID;
+    }
+
     protected int position() {
         return position;
     }
@@ -366,6 +379,9 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         if (position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
+        }
+        if (columnOID != COLUMN_OID_UNASSIGNED) {
+            builder.field("oid", columnOID);
         }
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(IsoLocale.ROOT));
