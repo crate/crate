@@ -43,6 +43,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added column ``atthasmissing`` and ``attmissingval`` to ``pg_attribute`` table
+  to be in sync with PostgreSQL version ``14``.
+
 - Added column ``conparentid`` and removed column ``consrc`` from
   ``pg_constraint`` table to be in sync with PostgreSQL version ``14``.
 

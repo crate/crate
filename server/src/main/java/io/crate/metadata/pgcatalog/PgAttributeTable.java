@@ -58,6 +58,7 @@ public final class PgAttributeTable {
             .add("attstorage", STRING, c -> null)
             .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
             .add("atthasdef", BOOLEAN, c -> false) // don't support default values
+            .add("atthasmissing", BOOLEAN, c -> false)
             .add("attidentity", STRING, c -> "")
             .add("attgenerated", STRING, c -> c.ref().isGenerated() ? "s" : "")
             .add("attisdropped", BOOLEAN, c -> false) // don't support dropping columns
@@ -69,6 +70,7 @@ public final class PgAttributeTable {
             .add("attacl", DataTypes.STRING_ARRAY, ignored -> null)
             .add("attoptions", STRING_ARRAY, c -> null)
             .add("attfdwoptions", STRING_ARRAY, c -> null)
+            .add("attmissingval", STRING_ARRAY, c -> null)
             .build();
     }
 }
