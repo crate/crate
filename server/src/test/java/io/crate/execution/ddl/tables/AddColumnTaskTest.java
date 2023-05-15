@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,6 +36,7 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -102,21 +104,28 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
 
             Reference geoShapeArrayRef = new GeoReference(
-                2,
                 shapesIdent,
-                true,
                 new ArrayType<>(DataTypes.GEO_SHAPE),
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                2,
+                null,
                 null,
                 null,
                 null,
                 null
             );
+
             ReferenceIdent pointsIdent = new ReferenceIdent(tbl.ident(), "points");
             Reference geoPointArrayRef = new GeoReference(
-                3,
                 pointsIdent,
-                true,
                 new ArrayType<>(DataTypes.GEO_POINT),
+                ColumnPolicy.DYNAMIC,
+                IndexType.PLAIN,
+                true,
+                3,
+                null,
                 null,
                 null,
                 null,
