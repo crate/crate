@@ -54,6 +54,7 @@ public class IndexReference extends SimpleReference {
 
         private String analyzer = null;
         private int position = 0;
+        private long oid;
 
         // Temporal source names holder, real references resolved by names on build();
         private List<String> sourceNames = new ArrayList<>();
@@ -89,16 +90,21 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
+        public Builder oid(long oid) {
+            this.oid = oid;
+            return this;
+        }
+
         public IndexReference build(Map<ColumnIdent, Reference> references) {
             assert (columns.isEmpty() ^ sourceNames.isEmpty()) : "Only one of columns/sourceNames can be set.";
             if (columns.isEmpty() == false) {
                 // columns is derived from copy_to which has been deprecated in 5.4.
                 // When a node is upgraded it can have shards on older nodes with outdated mapping (still having copy_to and no sources).
                 // This code handles outdated shards case.
-                return new IndexReference(position, ident, indexType, columns, analyzer);
+                return new IndexReference(position, oid, ident, indexType, columns, analyzer);
             }
             List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.column().fqn())).collect(Collectors.toList());
-            return new IndexReference(position, ident, indexType, sources, analyzer);
+            return new IndexReference(position, oid, ident, indexType, sources, analyzer);
         }
     }
 
@@ -118,11 +124,12 @@ public class IndexReference extends SimpleReference {
     }
 
     public IndexReference(int position,
+                          long oid,
                           ReferenceIdent ident,
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, false, position, null);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, false, position, oid, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
@@ -135,6 +142,7 @@ public class IndexReference extends SimpleReference {
                           boolean nullable,
                           boolean hasDocValues,
                           int position,
+                          long oid,
                           Symbol defaultExpression,
                           List<Reference> columns,
                           String analyzer) {
@@ -146,6 +154,7 @@ public class IndexReference extends SimpleReference {
               nullable,
               hasDocValues,
               position,
+              oid,
               defaultExpression
         );
         this.columns = columns;
@@ -208,6 +217,7 @@ public class IndexReference extends SimpleReference {
             nullable,
             hasDocValues,
             position,
+            oid,
             defaultExpression,
             columns,
             analyzer

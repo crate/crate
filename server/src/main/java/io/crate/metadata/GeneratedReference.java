@@ -97,6 +97,7 @@ public class GeneratedReference implements Reference {
                     ref.isNullable(),
                     ref.hasDocValues(),
                     ref.position(),
+                    ref.oid(),
                     ref.defaultExpression()
                 );
                 simpleReference.writeTo(out);
@@ -213,6 +214,11 @@ public class GeneratedReference implements Reference {
     @Override
     public int position() {
         return ref.position();
+    }
+
+    @Override
+    public long oid() {
+        return ref.oid();
     }
 
     @Override
