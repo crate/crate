@@ -96,8 +96,8 @@ public class DocSysColumns {
     );
 
     /**
-     * Creates a Reference with unassigned OID since we need oid only for stored tables and system tables are not stored.
-     * Even if they were stored, a column cannot be dropped from a system table.
+     * Creates a Reference for a system column.
+     * Don't use this for user table columns, it's not safe (e.g. Reference has no oid)
      */
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
         return new SimpleReference(new ReferenceIdent(table, column),
