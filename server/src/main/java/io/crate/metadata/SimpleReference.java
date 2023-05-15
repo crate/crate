@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.TypeParsers;
@@ -237,12 +238,14 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
+    public Map<String, Object> toMapping(@Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         DataType<?> innerType = ArrayType.unnest(type);
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
-        mapping.put("oid", oid);
+        if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
+            mapping.put("oid", columnOidSupplier.nextOid());
+        }
         if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
         }
