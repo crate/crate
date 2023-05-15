@@ -43,6 +43,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed ``pg_constraint.conbin`` column type from ``OBJECT`` to ``STRING`` and
+  ``pg_proc.proargdefaults`` column type from ``OBJECT[]`` to ``STRING`` to be
+  in sync with other similar columns, e.g.: ``pg_index.indexprs``.
+
 - Changed ``pg_attribute.spcacl``, ``pg_class.relacl`` and
   ``pg_namespace.nspacl`` columns type from ``OBJECT[]`` to ``STRING[]`` to be
   in sync with other similar columns, e.g.: ``pg_database.datacl``.
