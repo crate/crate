@@ -58,4 +58,18 @@ public class XContentMapValues {
     public static boolean nodeBooleanValue(Object node) {
         return Booleans.parseBoolean(node.toString());
     }
+
+    public static long nodeLongValue(Object node) {
+        if (node instanceof Number) {
+            return Numbers.toLongExact((Number) node);
+        }
+        return Long.parseLong(node.toString());
+    }
+
+    public static long nodeLongValue(Object node, long defaultValue) {
+        if (node == null) {
+            return defaultValue;
+        }
+        return nodeLongValue(node);
+    }
 }
