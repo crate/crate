@@ -21,12 +21,12 @@
 
 package io.crate.metadata;
 
+import static io.crate.metadata.ReferenceTest.compareMappings;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import io.crate.common.collections.Maps;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -48,6 +48,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(relationName, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(
             2,
+            123,
             indexReferenceIdent,
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
@@ -75,8 +76,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("sources", List.of("title", "description"))
             .containsEntry("analyzer", "stop");
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(Maps.getByPath(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
+        compareMappings(indexMetadata.mapping().sourceAsMap(), "title_desc_fulltext", mapping);
     }
 
 }
