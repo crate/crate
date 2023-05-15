@@ -79,6 +79,7 @@ public interface TableInfo extends RelationInfo {
                 ref.isNullable(),
                 ref.hasDocValues(),
                 ref.position(),
+                ref.oid(),
                 ref.defaultExpression()
             );
         }
