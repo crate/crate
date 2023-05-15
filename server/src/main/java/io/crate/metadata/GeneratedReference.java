@@ -29,6 +29,7 @@ import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -281,7 +282,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position) {
-        return ref.toMapping(position);
+    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+        return ref.toMapping(position, columnOidSupplier);
     }
 }
