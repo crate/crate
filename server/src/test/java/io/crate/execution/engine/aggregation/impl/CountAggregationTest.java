@@ -129,6 +129,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
+            0,
             null);
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
@@ -138,6 +139,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null
         );
@@ -177,6 +179,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
+            0,
             null);
         SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
@@ -186,6 +189,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null
         );
@@ -197,6 +201,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null
         );
@@ -306,6 +311,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
+            0,
             null);
         SimpleReference notNullGrandChild2 = new SimpleReference(
             new ReferenceIdent(
@@ -317,6 +323,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null);
         SimpleReference immediateChild = new SimpleReference(
@@ -331,6 +338,7 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
+            0,
             null
         );
         SimpleReference notNullImmediateChild = new SimpleReference(
@@ -341,6 +349,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null);
         SimpleReference countedObject = new SimpleReference(
@@ -354,6 +363,7 @@ public class CountAggregationTest extends AggregationTestCase {
             IndexType.PLAIN,
             true,
             true,
+            0,
             0,
             null
         );
