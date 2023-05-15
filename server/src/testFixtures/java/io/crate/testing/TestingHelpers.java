@@ -413,11 +413,13 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
+        // TODO: Add MetadataBuilder parameter to this method, so that analyzers test code and SQlExecutor.addTable can also assign oid.
         LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
         IntArrayList pKeysIndices = new IntArrayList();
         boundCreateTable.analyzedTableElements().collectReferences(boundCreateTable.tableIdent(), references, pKeysIndices, true);
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+
 
         return createMapping(
             new ArrayList<>(references.values()),
@@ -426,7 +428,8 @@ public class TestingHelpers {
             boundCreateTable.analyzedTableElements().indicesMap(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn()
+            boundCreateTable.routingColumn(),
+            null
         );
 
     }

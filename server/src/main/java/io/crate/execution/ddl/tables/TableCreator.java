@@ -93,7 +93,9 @@ public class TableCreator {
                 createTable.analyzedTableElements().indicesMap(),
                 createTable.partitionedBy(),
                 tableColumnPolicy,
-                createTable.routingColumn()
+                createTable.routingColumn(),
+                null // 5.3 requests don't expect OID in mapping
+
             );
             createTableRequest = templateName == null
                 ? new CreateTableRequest(

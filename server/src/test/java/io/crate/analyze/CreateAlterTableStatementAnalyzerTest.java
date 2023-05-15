@@ -484,11 +484,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-        assertThat(mapToSortedString(mappingProperties),
-                   is("details={inner={dynamic=true, oid=0, position=2, properties={age={oid=0, position=4, type=integer}, " +
-                      "name={oid=0, position=3, type=keyword}, " +
-                      "tags={inner={oid=0, position=5, type=keyword}, type=array}}, type=object}, type=array}, " +
-                      "id={oid=0, position=1, type=integer}"));
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
+                   "details={inner={dynamic=true, position=2, properties={age={position=4, type=integer}, " +
+                   "name={position=3, type=keyword}, " +
+                   "tags={inner={position=5, type=keyword}, type=array}}, type=object}, type=array}, " +
+                   "id={position=1, type=integer}");
     }
 
     @Test
@@ -1125,7 +1125,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo("arr={inner={oid=0, position=1, type=integer}, type=array}");
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo("arr={inner={position=1, type=integer}, type=array}");
     }
 
     @SuppressWarnings("unchecked")
@@ -1237,8 +1237,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties),
-                   is("name={default_expr='bar', oid=0, position=1, type=keyword}"));
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
+                   "name={default_expr='bar', position=1, type=keyword}");
     }
 
     @Test
@@ -1250,8 +1250,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties),
-                   is("name={default_expr='BAR', oid=0, position=1, type=keyword}"));
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
+                   "name={default_expr='BAR', position=1, type=keyword}");
     }
 
     @Test
@@ -1263,8 +1263,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties),
-                   is("id={default_expr=_cast(3.5, 'integer'), oid=0, position=1, type=integer}"));
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
+                   "id={default_expr=_cast(3.5, 'integer'), position=1, type=integer}");
     }
 
     @Test
@@ -1276,10 +1276,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties),
-                   is("ts={default_expr=current_timestamp(3), " +
-                      "format=epoch_millis||strict_date_optional_time, " +
-                      "oid=0, position=1, type=date}"));
+        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
+                   "ts={default_expr=current_timestamp(3), " +
+                   "format=epoch_millis||strict_date_optional_time, " +
+                   "position=1, type=date}");
     }
 
     @Test
@@ -1293,8 +1293,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), oid=0, position=3, type=long}, type=array}, " +
-            "obj={default_expr={\"key\"=''}, dynamic=true, oid=0, position=1, properties={key={oid=0, position=2, type=keyword}}, type=object}");
+            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), position=1, type=long}, type=array}");
     }
 
     @Test
@@ -1309,8 +1308,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "p={default_expr=_cast([0, 0], 'geo_point'), oid=0, position=1, type=geo_point}, " +
-            "s={default_expr=_cast('LINESTRING (0 0, 1 1)', 'geo_shape'), oid=0, position=2, tree=geohash, type=geo_shape}");
+            "p={default_expr=_cast([0, 0], 'geo_point'), position=1, type=geo_point}, " +
+            "s={default_expr=_cast('LINESTRING (0 0, 1 1)', 'geo_shape'), position=2, tree=geohash, type=geo_shape}");
     }
 
     @Test
@@ -1462,7 +1461,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(c.formattedGeneratedExpression()).isEqualTo("2");
         assertThat(TestingHelpers.toMapping(stmt).toString())
                    .isEqualTo("{_meta={generated_columns={obj.c=2}}, dynamic=strict, " +
-                      "properties={obj={dynamic=true, position=1, oid=0, type=object, properties={c={position=2, oid=0, type=integer}}}}}");
+                      "properties={obj={dynamic=true, position=1, type=object, properties={c={position=2, type=integer}}}}}");
     }
 
     @Test
@@ -1548,7 +1547,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         assertThat(
             mapToSortedString(mappingProperties))
-            .isEqualTo("name={oid=0, position=1, type=keyword}");
+            .isEqualTo("name={position=1, type=keyword}");
     }
 
     @Test
@@ -1561,7 +1560,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         assertThat(
             mapToSortedString(mappingProperties))
-            .isEqualTo("name={length_limit=2, oid=0, position=1, type=keyword}");
+            .isEqualTo("name={length_limit=2, position=1, type=keyword}");
     }
 
     @Test
@@ -1603,7 +1602,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=20, oid=0, position=1, type=bit}"
+            "xs={length=20, position=1, type=bit}"
         );
     }
 
@@ -1616,7 +1615,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=1, oid=0, position=1, type=bit}"
+            "xs={length=1, position=1, type=bit}"
         );
     }
 
@@ -1629,7 +1628,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=10, oid=0, position=1, type=keyword}"
+            "c={blank_padding=true, length_limit=10, position=1, type=keyword}"
         );
     }
 
@@ -1642,7 +1641,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, oid=0, position=1, type=keyword}"
+            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
         );
     }
 
@@ -1655,7 +1654,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, oid=0, position=1, type=keyword}"
+            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
         );
     }
 
@@ -1681,7 +1680,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).startsWith(
-            "user_name={default_expr=CURRENT_USER, oid=0, position=1, type=keyword}"
+            "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
         );
     }
 
