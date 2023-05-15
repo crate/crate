@@ -473,10 +473,13 @@ public class AnalyzedTableElements<T> {
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
             ref = new GeoReference(
-                columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                isNullable,
                 realType,
+                ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
+                IndexType.PLAIN,
+                isNullable,
+                columnDefinition.position,
+                (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
                 (Integer) geoMap.get("tree_levels"),

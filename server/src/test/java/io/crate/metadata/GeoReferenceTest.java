@@ -24,6 +24,7 @@ package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -38,10 +39,13 @@ public class GeoReferenceTest extends ESTestCase {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
         GeoReference geoReferenceInfo = new GeoReference(
-            1,
             referenceIdent,
-            true,
             DataTypes.GEO_SHAPE,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            1,
+            null,
             "some_tree",
             "1m",
             3,
@@ -56,10 +60,13 @@ public class GeoReferenceTest extends ESTestCase {
         assertThat(geoReferenceInfo2).isEqualTo(geoReferenceInfo);
 
         GeoReference geoReferenceInfo3 = new GeoReference(
-            2,
             referenceIdent,
-            false,
             DataTypes.GEO_SHAPE,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            false,
+            2,
+            null,
             "some_tree",
             null,
             null,
