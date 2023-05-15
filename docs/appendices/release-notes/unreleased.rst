@@ -43,6 +43,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added column ``conparentid`` and removed column ``consrc`` from
+  ``pg_constraint`` table to be in sync with PostgreSQL version ``14``.
+
 - Added column ``indnkeyatts`` to ``pg_index`` table to be in sync with
   PostgreSQL version ``14``.
 
