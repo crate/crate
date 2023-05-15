@@ -19,7 +19,9 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -130,6 +132,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
             var mapper = new GeoShapeFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 ft,
@@ -189,6 +192,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if ("position".equals(fieldName)) {
                     builder.position(nodeIntegerValue(fieldNode));
+                    iterator.remove();
+                } else if ("oid".equals(fieldName)) {
+                    builder.columnOID(nodeLongValue(fieldNode));
                     iterator.remove();
                 }
             }
@@ -299,11 +305,12 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
     public GeoShapeFieldMapper(String simpleName,
                                int position,
+                               long columnOID,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
@@ -369,6 +376,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
         }
         if (position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
+        }
+        if (columnOID != COLUMN_OID_UNASSIGNED) {
+            builder.field("oid", columnOID);
         }
         if (fieldType().treeLevels() != 0) {
             builder.field(Names.TREE_LEVELS, fieldType().treeLevels());
