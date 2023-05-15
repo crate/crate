@@ -59,29 +59,11 @@ public class GeoReference extends SimpleReference {
     @Nullable
     private final Double distanceErrorPct;
 
-    public GeoReference(int position,
-                        ReferenceIdent ident,
-                        boolean nullable,
-                        DataType<?> type,
-                        @Nullable String tree,
-                        @Nullable String precision,
-                        @Nullable Integer treeLevels,
-                        @Nullable Double distanceErrorPct) {
-        super(ident, RowGranularity.DOC, type, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
-        this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
-        this.precision = precision;
-        this.treeLevels = treeLevels;
-        this.distanceErrorPct = distanceErrorPct;
-    }
-
-
     public GeoReference(ReferenceIdent ident,
-                        RowGranularity granularity,
                         DataType<?> type,
                         ColumnPolicy columnPolicy,
                         IndexType indexType,
                         boolean nullable,
-                        boolean hasDocValues,
                         int position,
                         Symbol defaultExpression,
                         String geoTree,
@@ -89,12 +71,12 @@ public class GeoReference extends SimpleReference {
                         Integer treeLevels,
                         Double distanceErrorPct) {
         super(ident,
-            granularity,
+            RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
             type,
             columnPolicy,
             indexType,
             nullable,
-            hasDocValues,
+            false, //Geo shapes don't have doc values
             position,
             defaultExpression
         );
@@ -179,12 +161,10 @@ public class GeoReference extends SimpleReference {
     public Reference getRelocated(ReferenceIdent newIdent) {
         return new GeoReference(
             newIdent,
-            granularity,
             type,
             columnPolicy,
             indexType,
             nullable,
-            hasDocValues,
             position,
             defaultExpression,
             geoTree,

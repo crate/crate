@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import io.crate.expression.symbol.format.Style;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -1662,6 +1663,15 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(reference.valueType(), is(DataTypes.GEO_SHAPE));
         GeneratedReference genRef = (GeneratedReference) reference;
         assertThat(genRef.formattedGeneratedExpression()).isEqualTo("_cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')");
+    }
+
+    @Test
+    public void test_geo_shape_column_has_default_expression() throws Exception {
+        DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t (g geo_shape default 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
+        Reference reference = md.references().get(new ColumnIdent("g"));
+        assertThat(reference.valueType()).isEqualTo(DataTypes.GEO_SHAPE);
+        assertThat(reference.defaultExpression().toString(Style.UNQUALIFIED))
+            .isEqualTo("{\"coordinates\"=[[[5.0, 5.0], [5.0, 30.0], [30.0, 30.0], [30.0, 5.0], [5.0, 5.0]]], \"type\"='Polygon'}");
     }
 
     @Test
