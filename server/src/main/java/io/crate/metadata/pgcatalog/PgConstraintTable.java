@@ -55,6 +55,7 @@ public final class PgConstraintTable {
             .add("conrelid", INTEGER, c -> relationOid(c.relationInfo()))
             .add("contypid", INTEGER, c -> 0)
             .add("conindid", INTEGER, c -> 0)
+            .add("conparentid", INTEGER, c -> 0)
             .add("confrelid", INTEGER, c -> 0)
             .add("confupdtype", STRING, c -> NO_ACTION)
             .add("confdeltype", STRING, c -> NO_ACTION)
@@ -69,7 +70,6 @@ public final class PgConstraintTable {
             .add("conffeqop", INTEGER_ARRAY, c -> null)
             .add("conexclop", INTEGER_ARRAY, c -> null)
             .add("conbin", STRING, c -> null)
-            .add("consrc", STRING, c -> null)
            .build();
     }
 }
