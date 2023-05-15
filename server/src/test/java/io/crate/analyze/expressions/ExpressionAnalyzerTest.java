@@ -453,7 +453,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            IndexType.PLAIN,
                                            true,
                                            true,
-                                           1, null);
+                                           1,
+            0,
+            null
+        );
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         Symbol function = ExpressionAnalyzer.allocateFunction(
