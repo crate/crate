@@ -92,6 +92,7 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
         createIndexService.createIndex(
             nodeContext,
             updateRequest,
+            null,
             ActionListener.map(listener, response ->
                 new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName))
         );

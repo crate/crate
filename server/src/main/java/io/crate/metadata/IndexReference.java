@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -225,8 +226,8 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Map<String, Object> toMapping(@Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+        Map<String, Object> mapping = super.toMapping(columnOidSupplier);
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
         }
