@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,11 +41,13 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -53,10 +56,14 @@ import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
+import io.crate.Constants;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.CreateTableRequest;
+import io.crate.execution.ddl.tables.MappingUtil;
 
 /**
  * Service responsible for submitting index templates updates
@@ -129,7 +136,7 @@ public class MetadataIndexTemplateService {
         });
     }
 
-    public void putTemplate(final PutRequest request, final PutListener listener) {
+    public void putTemplate(final PutRequest request, @Nullable final CreateTableRequest createTableRequest, final PutListener listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
         updatedSettingsBuilder.put(request.settings).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
         request.settings(updatedSettingsBuilder.build());
@@ -171,8 +178,8 @@ public class MetadataIndexTemplateService {
                     if (request.create && currentState.metadata().templates().containsKey(request.name)) {
                         throw new IllegalArgumentException("index_template [" + request.name + "] already exists");
                     }
-
-                    validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry, currentState);
+                    Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+                    validateAndAddTemplate(request, createTableRequest, metadataBuilder, templateBuilder, indicesService, xContentRegistry, currentState);
 
                     for (Alias alias : request.aliases) {
                         AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
@@ -180,10 +187,10 @@ public class MetadataIndexTemplateService {
                     }
                     IndexTemplateMetadata template = templateBuilder.build();
 
-                    Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(template);
+                    metadataBuilder.put(template);
 
                     LOGGER.info("adding template [{}] for index patterns {}", request.name, request.indexPatterns);
-                    return ClusterState.builder(currentState).metadata(builder).build();
+                    return ClusterState.builder(currentState).metadata(metadataBuilder).build();
                 }
 
                 @Override
@@ -195,6 +202,8 @@ public class MetadataIndexTemplateService {
     }
 
     private static void validateAndAddTemplate(final PutRequest request,
+                                               @Nullable final CreateTableRequest createTableRequest,
+                                               Metadata.Builder metadataBuilder,
                                                IndexTemplateMetadata.Builder templateBuilder,
                                                IndicesService indicesService,
                                                NamedXContentRegistry xContentRegistry,
@@ -228,14 +237,35 @@ public class MetadataIndexTemplateService {
             setIndexVersionCreatedSetting(templateSettingsBuilder, currentState);
 
             templateBuilder.settings(templateSettingsBuilder.build());
-
-            if (request.mapping != null) {
+            if (createTableRequest != null) {
+                // New code path where we create mapping at the last stage and assign OID in the same cluster state update with template creation.
+                var mapping = MappingUtil.createMapping(
+                    MappingUtil.AllocPosition.forNewTable(),
+                    createTableRequest.references(),
+                    createTableRequest.pKeyIndices(),
+                    createTableRequest.checkConstraints(),
+                    createTableRequest.partitionedBy(),
+                    createTableRequest.tableColumnPolicy(),
+                    createTableRequest.routingColumn(),
+                    metadataBuilder.columnOidSupplier()
+                );
+                mapping = Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping); // We used PutIndexTemplateRequest.mapping which wraps mapping with default type
                 try {
-                    templateBuilder.putMapping(request.mapping);
+                    templateBuilder.putMapping(new CompressedXContent(Strings.toString(JsonXContent.builder().map(mapping))));
                 } catch (Exception e) {
                     throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
                 }
-                dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, request.mapping), MergeReason.MAPPING_UPDATE);
+                dummyIndexService.mapperService().merge(mapping, MergeReason.MAPPING_UPDATE);
+            } else {
+                // BWC code path. Do not remove in 5.5 or later since it's used on upgrade as well.
+                if (request.mapping != null) {
+                    try {
+                        templateBuilder.putMapping(request.mapping);
+                    } catch (Exception e) {
+                        throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
+                    }
+                    dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, request.mapping), MergeReason.MAPPING_UPDATE);
+                }
             }
         } finally {
             if (createdIndex != null) {

@@ -32,7 +32,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -93,8 +92,11 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
+/**
+ * Using TEST scope to reset OID after each test run otherwise OID assertions are non-deterministic.
+ */
 @UseRandomizedOptimizerRules(0)
-@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2, scope = IntegTestCase.Scope.TEST)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -1743,6 +1745,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("alter table t add name string");
+
+        // Verify that ADD COLUMN gets advanced OID.
+        String expectedMapping = "{\"default\":{" +
+            "\"dynamic\":\"strict\"," +
+            "\"_meta\":{\"primary_keys\":[\"id\",\"date\"]," +
+            "\"partitioned_by\":[[\"date\",\"date\"]]}," +
+            "\"properties\":" +
+            "{\"date\":{\"type\":\"date\",\"index\":false,\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
+            "\"name\":{\"type\":\"keyword\",\"position\":3,\"oid\":3}}}}";
+        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
+
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
 
