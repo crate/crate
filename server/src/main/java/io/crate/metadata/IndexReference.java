@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
@@ -224,8 +225,8 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position) {
-        Map<String, Object> mapping = super.toMapping(position);
+    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+        Map<String, Object> mapping = super.toMapping(position, columnOidSupplier);
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
         }

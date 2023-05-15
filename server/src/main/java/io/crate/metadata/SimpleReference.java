@@ -28,6 +28,7 @@ import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.TypeParsers;
@@ -74,7 +75,7 @@ public class SimpleReference implements Reference {
         } else {
             position = in.readVInt();
         }
-        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
+        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
             oid = in.readLong();
         } else {
             oid = COLUMN_OID_UNASSIGNED;
@@ -236,12 +237,14 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position) {
+    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         DataType<?> innerType = ArrayType.unnest(type);
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
-        mapping.put("oid", oid);
+        if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
+            mapping.put("oid", columnOidSupplier.nextOid());
+        }
         if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
         }
@@ -321,7 +324,7 @@ public class SimpleReference implements Reference {
         } else {
             out.writeVInt(position);
         }
-        if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
+        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
             out.writeLong(oid);
         }
         DataTypes.toStream(type, out);

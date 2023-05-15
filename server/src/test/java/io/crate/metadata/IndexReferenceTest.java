@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static io.crate.metadata.ReferenceTest.compareMappings;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import io.crate.common.collections.Maps;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -71,11 +71,14 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
-        Map<String, Object> mapping = reference.toMapping(reference.position());
+
+        // TODO: Assign OID in TestingHelpers
+        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
         assertThat(mapping)
             .containsEntry("sources", List.of("title", "description"))
             .containsEntry("analyzer", "stop");
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        compareMappings(indexMetadata.mapping().sourceAsMap(), "title_desc_fulltext", mapping);
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
     }
 }

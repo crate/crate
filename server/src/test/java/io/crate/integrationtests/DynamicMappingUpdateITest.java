@@ -23,39 +23,57 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.common.collections.Maps;
+import io.crate.server.xcontent.XContentHelper;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+
+
+/**
+ * Using TEST scope to reset OID after each test run otherwise OID assertions are non-deterministic.
+ */
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
+@UseRandomizedSchema(random = false)
 public class DynamicMappingUpdateITest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException {
+    public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int))");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
     }
 
     @Test
-    public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException {
+    public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int)) partitioned by (a)");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
     }
 
-    private void execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException {
+    @SuppressWarnings("unchecked")
+    private void execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         // update, insert, alter take slightly different paths to update mappings
         execute("""
                 insert into t values (1, {x=1})
@@ -219,6 +237,12 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             b| 2
             b['x']| 3
             """);
+
+        Map<String, Object> mapping = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, getIndexMapping("t"), false);
+        Set<Long> oids = new HashSet<>();
+        collectOID((Map<String, Map<String, Object>>) Maps.getByPath(mapping, "default.properties"), oids);
+        assertThat(oids.size()).isEqualTo(48);
+        assertThat(oids.stream().max(Long::compareTo).get()).isEqualTo(48);
     }
 
     @Test
@@ -400,5 +424,32 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             o['a']['b']| 11
             o['b']| 12
             """);
+    }
+
+    private static void collectOID(@Nullable Map<String, Map<String, Object>> propertiesMap, Set<Long> oids) {
+        if (propertiesMap != null) {
+            for (Map<String, Object> colProps: propertiesMap.values()) {
+                String type = (String) colProps.get("type"); // Can be null
+
+                if (ArrayType.NAME.equals(type)) {
+                    Map<String, Object> inner = Maps.get(colProps, "inner");
+                    Number oid = Maps.get(inner, "oid");
+                    assertThat(oid).isNotNull();
+                    oids.add(oid.longValue());
+
+                    String innerType = (String) inner.get("type");
+                    if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                        collectOID(Maps.get(inner, "properties"), oids);
+                    }
+                } else {
+                    Number oid = Maps.get(colProps, "oid");
+                    assertThat(oid).isNotNull();
+                    oids.add(oid.longValue());
+                    if (type == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
+                        collectOID(Maps.get(colProps,"properties"), oids);
+                    }
+                }
+            }
+        }
     }
 }
