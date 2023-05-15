@@ -452,10 +452,10 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[3][1]).isEqualTo(sqlExecutor.getCurrentSchema() + "_test_col3_not_null");
         assertThat(response.rows()[3][2]).isEqualTo("test");
         assertThat(response.rows()[4][0]).isEqualTo("CHECK");
-        assertThat(response.rows()[4][1]).isEqualTo("unnecessary_check");
+        assertThat(response.rows()[4][1]).isEqualTo("chk_1");
         assertThat(response.rows()[4][2]).isEqualTo("test");
         assertThat(response.rows()[5][0]).isEqualTo("CHECK");
-        assertThat(response.rows()[5][1]).isEqualTo("chk_1");
+        assertThat(response.rows()[5][1]).isEqualTo("unnecessary_check");
         assertThat(response.rows()[5][2]).isEqualTo("test");
     }
 
