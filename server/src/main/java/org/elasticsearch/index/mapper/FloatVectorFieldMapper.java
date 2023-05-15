@@ -85,6 +85,7 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
             var mapper = new FloatVectorFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 new VectorFieldType(buildFullName(context), indexed, hasDocValues),
@@ -113,12 +114,13 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
     }
 
     protected FloatVectorFieldMapper(String simpleName,
-                                int position,
-                                @Nullable String defaultExpression,
-                                FieldType fieldType,
-                                MappedFieldType mappedFieldType,
-                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+                                     int position,
+                                     long columnOID,
+                                     @Nullable String defaultExpression,
+                                     FieldType fieldType,
+                                     MappedFieldType mappedFieldType,
+                                     CopyTo copyTo) {
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
