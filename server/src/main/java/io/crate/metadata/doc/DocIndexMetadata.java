@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 import java.util.ArrayList;
@@ -205,6 +206,7 @@ public class DocIndexMetadata {
     }
 
     private void add(int position,
+                     long oid,
                      ColumnIdent column,
                      DataType<?> type,
                      @Nullable Symbol defaultExpression,
@@ -227,6 +229,7 @@ public class DocIndexMetadata {
             nullable,
             hasDocValues,
             position,
+            oid,
             defaultExpression
         );
         if (generatedExpression == null) {
@@ -245,6 +248,7 @@ public class DocIndexMetadata {
     }
 
     private void addGeoReference(Integer position,
+                                 long oid,
                                  ColumnIdent column,
                                  Symbol defaultExpression,
                                  @Nullable String tree,
@@ -260,6 +264,7 @@ public class DocIndexMetadata {
             IndexType.PLAIN,
             nullable,
             position,
+            oid,
             defaultExpression,
             tree,
             precision,
@@ -463,6 +468,11 @@ public class DocIndexMetadata {
             StorageSupport<?> storageSupport = columnDataType.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
+
+            // columnProperties.getOrDefault doesn't work here for OID values fitting into int.
+            // Jackson optimizes writes of small long values as stores them as ints:
+            long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
+
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
@@ -471,6 +481,7 @@ public class DocIndexMetadata {
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
                 addGeoReference(
                     position,
+                    oid,
                     newIdent,
                     defaultExpression,
                     geoTree,
@@ -484,7 +495,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
+                add(position, oid, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -508,6 +519,7 @@ public class DocIndexMetadata {
                             nullable,
                             hasDocValues,
                             position,
+                            oid,
                             defaultExpression
                         ));
                     }
@@ -523,7 +535,7 @@ public class DocIndexMetadata {
                             .sources(sources);
                     }
                 } else {
-                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
+                    add(position, oid, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
         }

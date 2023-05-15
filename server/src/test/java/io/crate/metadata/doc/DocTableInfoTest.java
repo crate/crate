@@ -130,6 +130,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             true,
             false,
             1,
+            0,
             null
         );
 
