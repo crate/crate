@@ -61,6 +61,8 @@ None
 Changes
 =======
 
+- Updated Lucene to 9.6.0
+
 - Added support for :ref:`AVG() aggregation <aggregation-avg>` on
   :ref:`INTERVAL data type <type-interval>`.
 
