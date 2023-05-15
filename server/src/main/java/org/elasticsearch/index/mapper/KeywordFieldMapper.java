@@ -113,6 +113,7 @@ public final class KeywordFieldMapper extends FieldMapper {
             var mapper = new KeywordFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 buildFieldType(context),
@@ -183,6 +184,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     private KeywordFieldMapper(String simpleName,
                                int position,
+                               long columnOID,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
@@ -190,7 +192,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                                Integer lengthLimit,
                                boolean blankPadding,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.lengthLimit = lengthLimit;
         this.blankPadding = blankPadding;
