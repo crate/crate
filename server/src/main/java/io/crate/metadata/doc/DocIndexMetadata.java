@@ -497,10 +497,10 @@ public class DocIndexMetadata {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
                         builder.addColumn(new SimpleReference(
-                            refIdent(targetIdent),
-                            granularity(targetIdent),
+                            refIdent(newIdent),
+                            granularity(newIdent),
                             columnDataType,
-                            columnPolicy,
+                            ColumnPolicy.DYNAMIC,
                             columnIndexType,
                             nullable,
                             hasDocValues,
