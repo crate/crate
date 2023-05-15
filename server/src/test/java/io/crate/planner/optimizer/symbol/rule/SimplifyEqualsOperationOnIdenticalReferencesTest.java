@@ -80,6 +80,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         true,
         false,
         0,
+        0,
         null
     );
     private static final Symbol NOT_NULLABLE_REF = new SimpleReference(
@@ -90,6 +91,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         IndexType.PLAIN,
         false,
         false,
+        0,
         0,
         null
     );

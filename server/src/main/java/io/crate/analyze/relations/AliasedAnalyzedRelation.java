@@ -121,7 +121,6 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             return new VoidReference(
                 new ReferenceIdent(alias, voidReference.column()),
                 voidReference.granularity(),
-                voidReference.columnPolicy(),
                 voidReference.position());
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
