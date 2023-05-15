@@ -71,6 +71,7 @@ public final class PgClassTable {
             .add("relispopulated", BOOLEAN, x -> true)
             .add("relreplident", STRING, x -> "p")
             .add("relispartition", BOOLEAN, x -> false)
+            .add("relrewrite", INTEGER, x -> 0)
             .add("relfrozenxid", INTEGER,x -> 0)
             .add("relminmxid", INTEGER, x -> 0)
             // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
@@ -78,8 +79,6 @@ public final class PgClassTable {
             .add("relacl", DataTypes.STRING_ARRAY, ignored -> null)
             .add("reloptions", STRING_ARRAY, x -> null)
             .add("relpartbound", STRING, x -> null)
-            .add("relhasoids", BOOLEAN, x -> false)
-            .add("relhaspkey", BOOLEAN, x -> x.hasPrimaryKey)
             .build();
     }
 
