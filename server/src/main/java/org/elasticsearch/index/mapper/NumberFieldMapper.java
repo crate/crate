@@ -74,6 +74,7 @@ public class NumberFieldMapper extends FieldMapper {
             var mapper = new NumberFieldMapper(
                 name,
                 position,
+                columnOID,
                 defaultExpression,
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
@@ -396,11 +397,12 @@ public class NumberFieldMapper extends FieldMapper {
     private NumberFieldMapper(
             String simpleName,
             int position,
+            long columnOID,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
