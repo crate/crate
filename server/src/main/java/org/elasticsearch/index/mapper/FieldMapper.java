@@ -37,6 +37,8 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
     public abstract static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
@@ -103,12 +105,14 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     protected FieldMapper(String simpleName,
                           int position,
+                          long columnOID,
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
                           CopyTo copyTo) {
         super(simpleName);
         this.position = position;
+        this.columnOID = columnOID;
         this.defaultExpression = defaultExpression;
         if (mappedFieldType.name().isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
@@ -121,6 +125,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     public int position() {
         return position;
+    }
+
+    public long columnOID() {
+        return columnOID;
     }
 
     @Override
@@ -312,6 +320,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
         if (includeDefaults || fieldType.stored() != storedByDefault()) {
             builder.field("store", fieldType.stored());
+        }
+        if (columnOID != COLUMN_OID_UNASSIGNED) {
+            builder.field("oid", columnOID);
         }
 
         copyTo.toXContent(builder);
