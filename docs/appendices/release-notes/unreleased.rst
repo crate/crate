@@ -43,6 +43,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Added column ``relrewrite`` and removed columns ``relhasoids`` and
+  ``relhaspkey``from ``pg_class`` table to be in sync with PostgreSQL version
+  ``14``.
+
 - Added column ``atthasmissing`` and ``attmissingval`` to ``pg_attribute`` table
   to be in sync with PostgreSQL version ``14``.
 
