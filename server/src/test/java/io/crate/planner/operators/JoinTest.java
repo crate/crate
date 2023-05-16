@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.Randomness;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +46,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -55,7 +53,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
@@ -70,7 +67,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private ProjectionBuilder projectionBuilder;
-    private final CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void setUpExecutor() throws IOException {
@@ -85,30 +81,18 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         projectionBuilder = new ProjectionBuilder(e.nodeCtx);
     }
 
-    @After
-    public void resetEnableHashJoinFlag() {
-        txnCtx.sessionSettings().setHashJoinEnabled(true);
-    }
-
-    private LogicalPlan createLogicalPlan(QueriedSelectRelation mss) {
+    private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss) {
         var plannerCtx = e.getPlannerContext(clusterService.state());
-        return createLogicalPlan(mss, plannerCtx);
+        return buildLogicalPlan(mss, plannerCtx);
     }
 
-    private LogicalPlan createLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
+    private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
-        var plan = JoinPlanBuilder.buildJoinTree(
-            mss.from(),
-            mss.where(),
-            mss.joinPairs(),
-            new SubQueries(Map.of(), Map.of()),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true)
-        );
-        return logicalPlanner.optimizer.optimize(plan, e.planStats(), txnCtx);
+        return logicalPlanner.plan(mss, plannerCtx,subqueryPlanner, false);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -120,14 +104,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         return (Join) operator.build(mock(DependencyCarrier.class), plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
+    private Join plan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
+        return buildJoin(buildLogicalPlan(mss, plannerCtx), plannerCtx);
+    }
+
     private Join plan(QueriedSelectRelation mss) {
         var plannerCtx = e.getPlannerContext(clusterService.state());
-        return buildJoin(createLogicalPlan(mss, plannerCtx), plannerCtx);
+        return buildJoin(buildLogicalPlan(mss, plannerCtx), plannerCtx);
+    }
+
+    private static String tableName(ExecutionPlan plan) {
+        return ((Reference) ((Collect) plan).collectPhase().toCollect().get(0)).ident().tableIdent().name();
     }
 
     @Test
     public void testNestedLoop_TablesAreSwitchedIfLeftIsSmallerThanRight() {
-        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
@@ -135,20 +126,22 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        Join nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("locations");
+        var plannerCtx = e.getPlannerContext(clusterService.state());
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        Join nl = plan(mss, plannerCtx);
+        assertThat(tableName(nl.left())).isEqualTo("locations");
+        assertThat(tableName(nl.right())).isEqualTo("users");
 
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("users");
+        assertThat(tableName(nl.left())).isEqualTo("users");
     }
 
     @Test
     public void test_nestedloop_tables_are_not_switched_when_expected_numbers_of_rows_are_negative() {
-        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("select * from users left join locations on users.id = locations.id");
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
@@ -156,12 +149,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(0, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
-        Join nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("users");
-        assertThat(((Reference) ((Collect) nl.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("locations");
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        Join nl = plan(mss, context);
+        assertThat(tableName(nl.left())).isEqualTo("users");
+        assertThat(tableName(nl.right())).isEqualTo("locations");
     }
 
     @Test
@@ -172,7 +167,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .build();
 
-        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("select * from users left join locations on users.id = locations.id");
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
@@ -180,12 +174,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
+
+        LogicalPlan operator = buildLogicalPlan(mss, context);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
-        Join nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("users");
-        assertThat(((Reference) ((Collect) nl.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("locations");
+        Join nl = plan(mss, context);
+        assertThat(tableName(nl.left())).isEqualTo("users");
+        assertThat(tableName(nl.right())).isEqualTo("locations");
     }
 
     @Test
@@ -199,12 +196,18 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(0, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = createLogicalPlan(mss);
-        assertThat(operator).isExactlyInstanceOf(HashJoin.class);
+        LogicalPlan plan = buildLogicalPlan(mss);
+        assertThat(plan).isEqualTo("Eval[name, id]\n" +
+                                   "  └ HashJoin[(id = id)]\n" +
+                                   "    ├ Collect[doc.users | [name, id] | true]\n" +
+                                   "    └ Collect[doc.locations | [id] | true]");
 
-        Join join = buildJoin(operator);
-        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("users");
-        assertThat(((Reference) ((Collect) join.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo("locations");
+        var hashjoin = plan.sources().get(0);
+        assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
+
+        Join join = buildJoin(hashjoin);
+        assertThat(tableName(join.left())).isEqualTo("users");
+        assertThat(tableName(join.right())).isEqualTo("locations");
     }
 
     @Test
@@ -226,7 +229,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo(leftName.name());
+        assertThat(tableName(nl.left())).isEqualTo(leftName.name());
         assertThat(nl.joinPhase().joinType()).isEqualTo(JoinType.LEFT);
 
         rowCountByTable.put(leftName, new Stats(10_000, 0, Map.of()));
@@ -234,13 +237,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         nl = plan(mss);
-        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name()).isEqualTo(rightName.name());
+        assertThat(tableName(nl.left())).isEqualTo(rightName.name());
         assertThat(nl.joinPhase().joinType()).isEqualTo(JoinType.RIGHT);  // ensure that also the join type inverted
     }
 
     @Test
     public void testNestedLoop_TablesAreNotSwitchedIfLeftHasAPushedDownOrderBy() {
-        txnCtx.sessionSettings().setHashJoinEnabled(false);
         // we use a subselect to simulate the pushed-down order by
         QueriedSelectRelation mss = e.analyze("select users.id from (select id from users order by id) users, " +
                                               "locations where users.id = locations.id");
@@ -250,7 +252,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        Join nl = plan(mss);
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
+
+        Join nl = plan(mss, context);
         assertList(((Collect) nl.left()).collectPhase().toCollect()).isSQL("doc.users.id");
         assertThat(nl.resultDescription().orderBy()).isNotNull();
     }
@@ -262,19 +267,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
+        QueriedSelectRelation mss = e.analyze("select users.id from users, locations " +
+                  "where users.id = locations.id order by users.id");
+
         PlannerContext context = e.getPlannerContext(clusterService.state());
         context.transactionContext().sessionSettings().setHashJoinEnabled(false);
-        LogicalPlanner logicalPlanner = new LogicalPlanner(
-            e.nodeCtx,
-            () -> clusterService.state().nodes().getMinNodeVersion()
-        );
-        LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
-                                                         "where users.id = locations.id order by users.id"), context);
-        Merge merge = (Merge) plan.build(
-            mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
-        Join nl = (Join) merge.subPlan();
 
-        assertThat(nl.resultDescription().orderBy()).isNotNull();
+        LogicalPlan plan = buildLogicalPlan(mss, context);
+        assertThat(plan).isEqualTo("Eval[id]\n" +
+                                   "  └ NestedLoopJoin[INNER | (id = id)]\n" +
+                                   "    ├ OrderBy[id ASC]\n" +
+                                   "    │  └ Collect[doc.users | [id] | true]\n" +
+                                   "    └ Collect[doc.locations | [id] | true]");
+
+        var join = buildJoin(plan, context);
+        assertThat(join.resultDescription().orderBy()).isNotNull();
     }
 
     @Test
@@ -288,14 +295,22 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = createLogicalPlan(mss);
-        assertThat(operator).isExactlyInstanceOf(HashJoin.class);
-        assertThat(((HashJoin) operator).rhs().getRelationNames())
+        LogicalPlan plan = buildLogicalPlan(mss);
+        assertThat(plan).isEqualTo(
+            "Eval[name, id]\n" +
+            "  └ HashJoin[(id = id)]\n" +
+            "    ├ Collect[doc.users | [name, id] | true]\n" +
+            "    └ Collect[doc.locations | [id] | true]"
+        );
+        var hashJoin = plan.sources().get(0);
+        assertThat(hashJoin).isExactlyInstanceOf(HashJoin.class);
+        assertThat(((HashJoin) hashJoin).rhs().getRelationNames())
             .as("Smaller table must be on the right-hand-side")
             .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
 
-        Join join = buildJoin(operator);
-        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("other_id");
+        Join join = buildJoin(hashJoin);
+        assertThat(tableName(join.left())).isEqualTo("users");
+        assertThat(tableName(join.right())).isEqualTo("locations");
     }
 
     @Test
@@ -309,16 +324,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(100, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan eval = createLogicalPlan(mss);
-        assertThat(eval).isExactlyInstanceOf(Eval.class);
-        LogicalPlan hashjoin = eval.sources().get(0);
+        LogicalPlan plan = buildLogicalPlan(mss);
+        assertThat(plan).isEqualTo("Eval[name, id]\n" +
+                                   "  └ Eval[name, id, id]\n" +
+                                   "    └ HashJoin[(id = id)]\n" +
+                                   "      ├ Collect[doc.locations | [id] | true]\n" +
+                                   "      └ Collect[doc.users | [name, id] | true]");
+
+        LogicalPlan hashjoin = plan.sources().get(0).sources().get(0);
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
         assertThat(((HashJoin) hashjoin).lhs().getRelationNames())
             .as("Smaller table must be on the left-hand-side")
             .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
 
         Join join = buildJoin(hashjoin);
-        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
+        assertThat(tableName(join.left())).isEqualTo("locations");
     }
 
     @Test
@@ -327,7 +347,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "from t1 inner join t2 on t1.a = t2.b " +
                                               "inner join t3 on t3.c = t2.b");
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(HashJoin.class);
         LogicalPlan leftPlan = ((HashJoin) operator).lhs;
         assertThat(leftPlan).isExactlyInstanceOf(HashJoin.class);
@@ -344,7 +364,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "from t1 inner join t2 on t1.a = t2.b " +
                                               "left join t3 on t3.c = t2.b");
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
         LogicalPlan leftPlan = ((NestedLoopJoin) operator).lhs;
         assertThat(leftPlan).isExactlyInstanceOf(HashJoin.class);
@@ -366,7 +386,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedSelectRelation mss = e.analyze("select * from t1, t4");
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
         Join join = buildJoin(operator);
@@ -392,7 +412,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedSelectRelation mss = e.analyze("select * from t1, t4");
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
         Join join = buildJoin(operator);
@@ -402,8 +422,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(join.left()).isExactlyInstanceOf(Collect.class);
         // no table switch should have been made
-        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent())
-            .isEqualTo(T3.T1);
+        assertThat(tableName(join.left())).isEqualTo(T3.T1.name());
     }
 
     @Test
@@ -422,7 +441,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         QueriedSelectRelation mss = e.analyze("select * from t4, t1");
 
-        LogicalPlan operator = createLogicalPlan(mss);
+        LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
         Join join = buildJoin(operator);
@@ -432,8 +451,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(join.left()).isExactlyInstanceOf(Collect.class);
         // right side will be flipped to the left
-        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent())
-            .isEqualTo(T3.T1);
+        assertThat(tableName(join.left())).isEqualTo(T3.T1.name());
     }
 
     @Test
@@ -466,7 +484,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPlanChainedJoinsWithWindowFunctionInOutput() {
-        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("SELECT t1.a, t2.b, row_number() OVER(ORDER BY t3.z) " +
                                               "FROM t1 t1 " +
                                               "JOIN t2 t2 on t1.a = t2.b " +
@@ -477,6 +494,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var plannerCtx = e.getPlannerContext(clusterService.state());
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+
         LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
         WindowAgg windowAggOperator = (WindowAgg) ((Eval) ((RootRelationBoundary) join).source).source;
         assertThat(join.outputs()).contains(windowAggOperator.windowFunctions().get(0));
