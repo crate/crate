@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
+import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLimitAndOffset;
 import static org.mockito.Mockito.mock;
@@ -47,7 +48,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -66,7 +66,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where()),
-                    new TableStats(),
+                    PLAN_STATS_EMPTY,
                     null
                 ),
                 Literal.of(10L),

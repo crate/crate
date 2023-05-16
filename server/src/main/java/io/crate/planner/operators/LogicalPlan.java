@@ -198,18 +198,6 @@ public interface LogicalPlan extends Plan {
      */
     Map<LogicalPlan, SelectSymbol> dependencies();
 
-    /**
-     * Returns the total number of rows this logical operation is expected to return.
-     * @return The number of expected rows if available, -1 otherwise.
-     */
-    long numExpectedRows();
-
-    /**
-     * Returns an estimation of the size (in bytes) of each row returned by the plan.
-     * The estimation is based on the average size of a row of the concrete table(s) of the plan.
-     */
-    long estimatedRowSize();
-
     @Override
     default void executeOrFail(DependencyCarrier executor,
                                PlannerContext plannerContext,

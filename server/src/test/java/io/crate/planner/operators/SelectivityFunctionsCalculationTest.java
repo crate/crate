@@ -34,14 +34,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-
 public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServiceUnitTest {
-
 
     @Test
     public void test_collect_operator_adapts_expected_row_count_based_on_selectivity_calculation() throws Throwable {
@@ -54,39 +51,38 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             new ColumnIdent("x"),
             ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, totalNumRows)
         );
-        Stats stats = new Stats(totalNumRows, DataTypes.INTEGER.fixedSize(), columnStats);
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .setTableStats(tableStats)
             .addTable("create table doc.tbl (x int)")
             .build();
 
-        LogicalPlan plan = e.logicalPlan("select * from doc.tbl where x = 10");
-        assertThat(plan.numExpectedRows()).isEqualTo(1L);
-    }
+        Stats stats = new Stats(totalNumRows, DataTypes.INTEGER.fixedSize(), columnStats);
+        e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
 
+        LogicalPlan plan = e.logicalPlan("select * from doc.tbl where x = 10");
+        assertThat(e.getStats(plan).numDocs()).isEqualTo(1L);
+    }
 
     @Test
     public void test_group_operator_adapt_expected_row_count_based_on_column_stats() throws Throwable {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.tbl (x int)")
+            .build();
+
         var samples = IntStream.concat(
             IntStream.generate(() -> 10).limit(50),
             IntStream.generate(() -> 20).limit(50)
         ).boxed().collect(Collectors.toList());
+
         long numDocs = 2_000L;
         Stats stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),
             Map.of(new ColumnIdent("x"), ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs))
         );
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .setTableStats(tableStats)
-            .addTable("create table doc.tbl (x int)")
-            .build();
+
+        e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
 
         LogicalPlan plan = e.logicalPlan("select x, count(*) from doc.tbl group by x");
-        assertThat(plan.numExpectedRows()).isEqualTo(2L);
+        assertThat(e.getStats(plan).numDocs()).isEqualTo(2L);
     }
 }
