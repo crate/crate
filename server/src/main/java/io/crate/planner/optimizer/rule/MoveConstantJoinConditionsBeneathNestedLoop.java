@@ -36,6 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
@@ -43,7 +44,6 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
 
@@ -64,7 +64,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
     @Override
     public LogicalPlan apply(NestedLoopJoin nl,
                              Captures captures,
-                             TableStats tableStats,
+                             PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
@@ -104,7 +104,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             return new HashJoin(
                 newLhs,
                 newRhs,
-                AndOperator.join(nonConstantConditions)
+                AndOperator.join(nonConstantConditions),
+                false
             );
         }
     }

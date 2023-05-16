@@ -21,9 +21,8 @@
 
 package io.crate.analyze.where;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,8 +50,8 @@ public class DocKeysTest extends ESTestCase {
         DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        assertThat(key.getRouting(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("Ford"));
-        assertThat(key.getId(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("AgRGb3JkATE="));
+        assertThat(key.getRouting(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("Ford");
+        assertThat(key.getId(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("AgRGb3JkATE=");
     }
 
     @Test
@@ -65,10 +64,10 @@ public class DocKeysTest extends ESTestCase {
         DocKeys.DocKey key = docKeys.getOnlyKey();
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Optional<Long> sequenceNo = key.sequenceNo(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(sequenceNo.isPresent(), is(true));
-        assertThat(sequenceNo.get(), is(22L));
+        assertThat(sequenceNo.isPresent()).isTrue();
+        assertThat(sequenceNo.get()).isEqualTo(22L);
         Optional<Long> primaryTerm = key.primaryTerm(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(primaryTerm.isPresent(), is(true));
-        assertThat(primaryTerm.get(), is(5L));
+        assertThat(primaryTerm.isPresent()).isTrue();
+        assertThat(primaryTerm.get()).isEqualTo(5L);
     }
 }

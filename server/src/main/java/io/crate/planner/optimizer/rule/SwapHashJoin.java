@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,76 +21,55 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.Symbol;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
+import java.util.function.Function;
+
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.Eval;
+import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.Order;
-import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-import java.util.List;
-import java.util.function.Function;
+public class SwapHashJoin implements Rule<HashJoin> {
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-
-/**
- * <pre>
- *     Order
- *       |
- *     Rename
- *       |
- *     Source
- * </pre>
- *
- * to
- *
- * <pre>
- *     Rename
- *       |
- *     Order
- *       |
- *     Source
- * </pre>
- */
-public final class MoveOrderBeneathRename implements Rule<Order> {
-
-    private final Capture<Rename> renameCapture;
-    private final Pattern<Order> pattern;
-
-    public MoveOrderBeneathRename() {
-        this.renameCapture = new Capture<>();
-        this.pattern = typeOf(Order.class)
-            .with(source(), typeOf(Rename.class).capturedAs(renameCapture));
-    }
+    private final Pattern<HashJoin> pattern = typeOf(HashJoin.class)
+        .with(j -> j.isSwapSidesDone() == false);
 
     @Override
-    public Pattern<Order> pattern() {
+    public Pattern<HashJoin> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(Order plan,
+    public LogicalPlan apply(HashJoin plan,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        Rename rename = captures.get(renameCapture);
-        Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
-        OrderBy mappedOrderBy = plan.orderBy().map(mapField);
-        if (rename.source().outputs().containsAll(mappedOrderBy.orderBySymbols())) {
-            Order newOrder = new Order(rename.source(), mappedOrderBy);
-            return rename.replaceSources(List.of(newOrder));
-        } else {
-            return null;
+        var lhStats = planStats.get(plan.lhs());
+        var rhStats = planStats.get(plan.rhs());
+        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
+        // We move the smaller table to the right side since benchmarking
+        // revealed that this improves performance in most cases.
+        if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
+            // We need to preserve the output order even when lhs/rhs are swapped
+            // therefore we add an Eval on top
+            return Eval.create(
+                new HashJoin(
+                    plan.rhs(),
+                    plan.lhs(),
+                    plan.joinCondition(),
+                    true
+                ),
+                plan.outputs()
+            );
         }
+        return null;
     }
 }

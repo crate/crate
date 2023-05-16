@@ -21,6 +21,7 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -50,7 +51,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -96,7 +96,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             mock(DependencyCarrier.class),
             boundedCopyTo,
             e.getPlannerContext(clusterService.state()),
-            new TableStats(),
+            PLAN_STATS_EMPTY,
             new ProjectionBuilder(e.nodeCtx),
             Row.EMPTY,
             SubQueryResults.EMPTY);

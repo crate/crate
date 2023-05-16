@@ -87,16 +87,6 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        throw new UnsupportedOperationException(ERROR_MESSAGE);
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        throw new UnsupportedOperationException(ERROR_MESSAGE);
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitGroupReference(this, context);
     }

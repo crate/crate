@@ -234,17 +234,12 @@ public class Union implements LogicalPlan {
         return Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
-    @Override
-    public long numExpectedRows() {
-        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
-            return -1;
-        }
-        return lhs.numExpectedRows() + rhs.numExpectedRows();
+    public LogicalPlan lhs() {
+        return lhs;
     }
 
-    @Override
-    public long estimatedRowSize() {
-        return Math.max(lhs.estimatedRowSize(), rhs.estimatedRowSize());
+    public LogicalPlan rhs() {
+        return rhs;
     }
 
     @Override

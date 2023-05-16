@@ -29,11 +29,14 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.statistics.Stats;
 
 /**
  * Memo is used as part of an iterative Optimizer as an in-place
@@ -144,7 +147,17 @@ public class Memo {
         incrementReferenceCounts(node, groupId);
         group.membership = node;
         decrementReferenceCounts(old, groupId);
+        evictStats(groupId);
         return node;
+    }
+
+    private void evictStats(int group) {
+        group(group).stats = null;
+        for (int parentGroup : group(group).incomingReferences) {
+            if (parentGroup != ROOT_GROUP_REF) {
+                evictStats(parentGroup);
+            }
+        }
     }
 
     private void incrementReferenceCounts(LogicalPlan fromNode, int fromGroup) {
@@ -217,6 +230,8 @@ public class Memo {
 
         private LogicalPlan membership;
         private final List<Integer> incomingReferences = new ArrayList<>();
+        @Nullable
+        private Stats stats;
 
         private Group(LogicalPlan member) {
             this.membership = requireNonNull(member, "member is null");
@@ -226,6 +241,19 @@ public class Memo {
     public static LogicalPlan resolveGroupReferences(LogicalPlan node, GroupReferenceResolver lookup) {
         requireNonNull(node, "node is null");
         return node.accept(new ResolvingVisitor(lookup), null);
+    }
+
+    public void addStats(int groupId, Stats stats) {
+        Group group = group(groupId);
+        if (group.stats != null) {
+            evictStats(groupId);
+        }
+        group.stats = stats;
+    }
+
+    @Nullable
+    public Stats stats(int groupId) {
+        return group(groupId).stats;
     }
 
     private static class ResolvingVisitor extends LogicalPlanVisitor<Void, LogicalPlan> {

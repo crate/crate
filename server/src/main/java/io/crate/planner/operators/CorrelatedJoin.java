@@ -184,16 +184,6 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return inputPlan.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return inputPlan.estimatedRowSize();
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCorrelatedJoin(this, context);
     }

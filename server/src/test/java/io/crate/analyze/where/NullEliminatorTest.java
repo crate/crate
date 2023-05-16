@@ -21,8 +21,7 @@
 
 package io.crate.analyze.where;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.function.Function;
 
@@ -60,7 +59,7 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
     private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {
         Symbol query = sqlExpressions.asSymbol(expression);
         Symbol replacedQuery = NullEliminator.eliminateNullsIfPossible(query, postProcessor);
-        assertThat(replacedQuery.toString(), is(expectedString));
+        assertThat(replacedQuery.toString()).isEqualTo(expectedString);
     }
 
     @Test

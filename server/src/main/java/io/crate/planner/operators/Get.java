@@ -260,12 +260,10 @@ public class Get implements LogicalPlan {
         return Map.of();
     }
 
-    @Override
     public long estimatedRowSize() {
         return estimatedSizePerRow;
     }
 
-    @Override
     public long numExpectedRows() {
         return docKeys.size();
     }

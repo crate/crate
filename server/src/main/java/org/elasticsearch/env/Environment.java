@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Setting;
@@ -64,8 +63,6 @@ public class Environment {
     private final Settings settings;
 
     private final Path[] dataFiles;
-
-    private final Path[] dataWithClusterFiles;
 
     private final Path[] repoFiles;
 
@@ -115,22 +112,18 @@ public class Environment {
         pluginsFile = homeFile.resolve("plugins");
 
         List<String> dataPaths = PATH_DATA_SETTING.get(settings);
-        final ClusterName clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         if (DiscoveryNode.nodeRequiresLocalStorage(settings)) {
             if (dataPaths.isEmpty() == false) {
                 dataFiles = new Path[dataPaths.size()];
-                dataWithClusterFiles = new Path[dataPaths.size()];
                 for (int i = 0; i < dataPaths.size(); i++) {
                     dataFiles[i] = PathUtils.get(dataPaths.get(i));
-                    dataWithClusterFiles[i] = dataFiles[i].resolve(clusterName.value());
                 }
             } else {
                 dataFiles = new Path[]{homeFile.resolve("data")};
-                dataWithClusterFiles = new Path[]{homeFile.resolve("data").resolve(clusterName.value())};
             }
         } else {
             if (dataPaths.isEmpty()) {
-                dataFiles = dataWithClusterFiles = EMPTY_PATH_ARRAY;
+                dataFiles = EMPTY_PATH_ARRAY;
             } else {
                 final String paths = String.join(",", dataPaths);
                 throw new IllegalStateException("node does not require local storage yet path.data is set to [" + paths + "]");

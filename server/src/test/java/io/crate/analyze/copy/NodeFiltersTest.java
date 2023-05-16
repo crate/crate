@@ -21,9 +21,8 @@
 
 package io.crate.analyze.copy;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -34,25 +33,25 @@ public class NodeFiltersTest extends ESTestCase {
     public void testIdFilter() {
         NodeFilters filters = new NodeFilters(null, "n[1-3]");
 
-        assertThat(filters.test(newNode("n1", "n1")), is(true));
-        assertThat(filters.test(newNode("n2", "n2")), is(true));
-        assertThat(filters.test(newNode("n3", "n3")), is(true));
-        assertThat(filters.test(newNode("n4", "n4")), is(false));
+        assertThat(filters.test(newNode("n1", "n1"))).isTrue();
+        assertThat(filters.test(newNode("n2", "n2"))).isTrue();
+        assertThat(filters.test(newNode("n3", "n3"))).isTrue();
+        assertThat(filters.test(newNode("n4", "n4"))).isFalse();
     }
 
     @Test
     public void testNodeNameFilter() {
         NodeFilters filters = new NodeFilters("node[1-3]", null);
-        assertThat(filters.test(newNode("node1", "n2")), is(true));
-        assertThat(filters.test(newNode("node4", "n1")), is(false));
+        assertThat(filters.test(newNode("node1", "n2"))).isTrue();
+        assertThat(filters.test(newNode("node4", "n1"))).isFalse();
     }
 
     @Test
     public void testNameAndIdFilter() {
         NodeFilters filters = new NodeFilters("node[1-3]", "n[1-2]");
 
-        assertThat(filters.test(newNode("node1", "n1")), is(true));
-        assertThat(filters.test(newNode("node1", "n4")), is(false));
-        assertThat(filters.test(newNode("node4", "n2")), is(false));
+        assertThat(filters.test(newNode("node1", "n1"))).isTrue();
+        assertThat(filters.test(newNode("node1", "n4"))).isFalse();
+        assertThat(filters.test(newNode("node4", "n2"))).isFalse();
     }
 }

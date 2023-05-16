@@ -5,9 +5,8 @@
 Array comparisons
 =================
 
-An array comparison :ref:`operator <gloss-operator>` tests the relationship
-between two arrays and returns a corresponding value of ``true``, ``false``, or
-``NULL``.
+An array comparison :ref:`operator <gloss-operator>` test the relationship
+between a value and an array and return ``true``, ``false``, or ``NULL``.
 
 .. SEEALSO::
 
@@ -29,20 +28,8 @@ Syntax:
 
     expression IN (value [, ...])
 
-Here's an example::
-
-    cr> select 1 in (1,2,3) AS a, 4 in (1,2,3) AS b;
-    +------+-------+
-    | a    | b     |
-    +------+-------+
-    | TRUE | FALSE |
-    +------+-------+
-    SELECT 1 row in set (... sec)
-
-The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if any of the
-right-hand values matches the left-hand :ref:`operand <gloss-operand>`.
-Otherwise, it returns ``false`` (including the case where there are no
-right-hand values).
+The ``IN`` :ref:`operator <gloss-operator>` returns ``true`` if the left-hand
+matches at least one value contained within the right-hand side.
 
 The operator returns ``NULL`` if:
 
@@ -51,6 +38,19 @@ The operator returns ``NULL`` if:
 
 - There are no matching right-hand values and at least one right-hand value is
   ``NULL``
+
+Here's an example::
+
+    cr> SELECT
+    ...   1 in (1, 2, 3) AS a,
+    ...   4 in (1, 2, 3) AS b,
+    ...   5 in (1, 2, null) as c;
+    +------+-------+------+
+    | a    | b     | c    |
+    +------+-------+------+
+    | TRUE | FALSE | NULL |
+    +------+-------+------+
+    SELECT 1 row in set (... sec)
 
 
 .. _sql_any_array_comparison:
@@ -62,15 +62,16 @@ Syntax:
 
 .. code-block:: sql
 
-    expression comparison ANY | SOME (array_expression)
+    expression <comparison> ANY | SOME (array_expression)
 
-Here, ``comparison`` can be any :ref:`basic comparison operator
-<comparison-operators-basic>`. Objects and arrays of objects are not supported
-for either :ref:`operand <gloss-operand>`.
+Here, ``<comparison>`` can be any :ref:`basic comparison operator
+<comparison-operators-basic>`.
 
-Here's an example::
+An example::
 
-    cr> select 1 = any ([1,2,3]) AS a, 4 = any ([1,2,3]) AS b;
+    cr> SELECT
+    ...   1 = ANY ([1,2,3]) AS a,
+    ...   4 = ANY ([1,2,3]) AS b;
     +------+-------+
     | a    | b     |
     +------+-------+
@@ -82,8 +83,27 @@ The ``ANY`` :ref:`operator <gloss-operator>` returns ``true`` if the defined
 comparison is ``true`` for any of the values in the right-hand array
 :ref:`expression <gloss-expression>`.
 
+If the right side is a multi-dimension array it is automatically unnested to the
+required dimension.
+
+An example::
+
+
+    cr> SELECT
+    ...   4 = ANY ([[1, 2], [3, 4]]) as a,
+    ...   5 = ANY ([[1, 2], [3, 4]]) as b,
+    ...   [1, 2] = ANY ([[1,2], [3, 4]]) as c,
+    ...   [1, 3] = ANY ([[1,2], [3, 4]]) as d;
+    +------+-------+------+-------+
+    | a    | b     | c    | d     |
+    +------+-------+------+-------+
+    | TRUE | FALSE | TRUE | FALSE |
+    +------+-------+------+-------+
+    SELECT 1 row in set (... sec)
+
+
 The operator returns ``false`` if the comparison returns ``false`` for all
-right-hand values or there are no right-hand values.
+right-hand values or if there are no right-hand values.
 
 The operator returns ``NULL`` if:
 

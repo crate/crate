@@ -27,9 +27,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.common.inject.Singleton;
+
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
  */
+@Singleton
 public class TableStats {
 
     private volatile Map<RelationName, Stats> tableStats = new HashMap<>();

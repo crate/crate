@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnValidationException;
@@ -41,9 +43,9 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for i: Updating a primary key is not supported");
-        rel.ensureColumnCanBeUpdated(new ColumnIdent("i"));
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for i: Updating a primary key is not supported");
     }
 
     @Test
@@ -54,9 +56,9 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for i: Updating a primary key is not supported");
-        rel.ensureColumnCanBeUpdated(new ColumnIdent("i"));
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for i: Updating a primary key is not supported");
     }
 
     @Test
@@ -67,8 +69,8 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for i: Updating a clustered-by column is not supported");
-        rel.ensureColumnCanBeUpdated(new ColumnIdent("i"));
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for i: Updating a clustered-by column is not supported");
     }
 }

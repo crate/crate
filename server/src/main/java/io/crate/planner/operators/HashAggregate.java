@@ -194,11 +194,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public long numExpectedRows() {
-        return 1L;
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashAggregate(this, context);
     }

@@ -230,17 +230,16 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var context = e.getPlannerContext(clusterService.state());
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            tableStats,
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
         var union = (Union) plan.sources().get(0);
-        assertThat(union.numExpectedRows()).isEqualTo(-1L);
+        assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(1, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
         plan = logicalPlanner.plan(e.analyze(stmt), context);
         union = (Union) plan.sources().get(0);
-        assertThat(union.numExpectedRows()).isEqualTo(-1L);
+        assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
     }
 }
