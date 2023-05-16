@@ -48,7 +48,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -116,8 +115,7 @@ import io.crate.types.DataTypes;
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
  */
 public class LogicalPlanner {
-    @VisibleForTesting
-    final IterativeOptimizer optimizer;
+    private final IterativeOptimizer optimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
