@@ -64,12 +64,15 @@ import io.crate.statistics.TableStats;
 public class HashJoin extends JoinPlan {
 
     private final List<Symbol> outputs;
+    private final boolean swapSidesDone;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
+                    Symbol joinCondition,
+                    boolean swapSidesDone) {
         super(lhs, rhs, joinCondition, JoinType.INNER);
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+        this.swapSidesDone = swapSidesDone;
     }
 
     @Override
@@ -98,28 +101,11 @@ public class HashJoin extends JoinPlan {
         ExecutionPlan rightExecutionPlan = rhs.build(
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        LogicalPlan leftLogicalPlan = lhs;
-        LogicalPlan rightLogicalPlan = rhs;
-        var lhStats = plannerContext.planStats().get(leftLogicalPlan);
-        var rhStats = plannerContext.planStats().get(rightLogicalPlan);
-
-        // We move smaller table to the right side since benchmarking
-        // revealed that this improves performance in most cases.
-        boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
-        if (expectedRowsAvailable && lhStats.numDocs() < rhStats.numDocs()) {
-            leftLogicalPlan = rhs;
-            rightLogicalPlan = lhs;
-
-            ExecutionPlan tmp = leftExecutionPlan;
-            leftExecutionPlan = rightExecutionPlan;
-            rightExecutionPlan = tmp;
-        }
-
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
         // First extract the symbols that belong to rhs
         var rhsHashSymbols = new ArrayList<Symbol>();
-        for (var relationName : rightLogicalPlan.getRelationNames()) {
+        for (var relationName : rhs.getRelationNames()) {
             var symbols = hashSymbols.remove(relationName);
             if (symbols != null) {
                 for (var symbol : symbols) {
@@ -139,8 +125,8 @@ public class HashJoin extends JoinPlan {
         ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
         Collection<String> joinExecutionNodes = leftResultDesc.nodeIds();
 
-        List<Symbol> leftOutputs = leftLogicalPlan.outputs();
-        List<Symbol> rightOutputs = rightLogicalPlan.outputs();
+        List<Symbol> leftOutputs = lhs.outputs();
+        List<Symbol> rightOutputs = rhs.outputs();
         MergePhase leftMerge = null;
         MergePhase rightMerge = null;
 
@@ -169,8 +155,8 @@ public class HashJoin extends JoinPlan {
         } else {
             if (isDistributed) {
                 // Run the join distributed by modulo distribution algorithm
-                leftOutputs = setModuloDistribution(lhsHashSymbols, leftLogicalPlan.outputs(), leftExecutionPlan);
-                rightOutputs = setModuloDistribution(rhsHashSymbols, rightLogicalPlan.outputs(), rightExecutionPlan);
+                leftOutputs = setModuloDistribution(lhsHashSymbols, lhs.outputs(), leftExecutionPlan);
+                rightOutputs = setModuloDistribution(rhsHashSymbols, rhs.outputs(), rightExecutionPlan);
             } else {
                 // Run the join non-distributed on the handler node
                 joinExecutionNodes = Collections.singletonList(plannerContext.handlerNode());
@@ -182,6 +168,7 @@ public class HashJoin extends JoinPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
+        var lhStats = plannerContext.planStats().get(lhs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -215,6 +202,10 @@ public class HashJoin extends JoinPlan {
         return outputs;
     }
 
+    public boolean isSwapSidesDone() {
+        return swapSidesDone;
+    }
+
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
@@ -235,7 +226,8 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            swapSidesDone
         );
     }
 
@@ -257,7 +249,8 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition
+            joinCondition,
+            swapSidesDone
         );
     }
 
@@ -285,8 +278,8 @@ public class HashJoin extends JoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition
-            )
+                joinCondition,
+                swapSidesDone)
         );
     }
 

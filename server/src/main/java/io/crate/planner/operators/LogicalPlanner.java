@@ -109,6 +109,7 @@ import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.rule.SwapHashJoin;
 import io.crate.types.DataTypes;
 
 /**
@@ -147,7 +148,8 @@ public class LogicalPlanner {
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new MoveConstantJoinConditionsBeneathNestedLoop(),
-        new RewriteNestedLoopJoinToHashJoin()
+        new RewriteNestedLoopJoinToHashJoin(),
+        new SwapHashJoin()
     );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
