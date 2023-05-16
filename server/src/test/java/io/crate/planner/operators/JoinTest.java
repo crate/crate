@@ -309,13 +309,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(100, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = createLogicalPlan(mss);
-        assertThat(operator).isExactlyInstanceOf(HashJoin.class);
-        assertThat(((HashJoin) operator).rhs().getRelationNames())
-            .as("Smaller table must be on the right-hand-side")
+        LogicalPlan eval = createLogicalPlan(mss);
+        assertThat(eval).isExactlyInstanceOf(Eval.class);
+        LogicalPlan hashjoin = eval.sources().get(0);
+        assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
+        assertThat(((HashJoin) hashjoin).lhs().getRelationNames())
+            .as("Smaller table must be on the left-hand-side")
             .containsExactly(TEST_DOC_LOCATIONS_TABLE_IDENT);
 
-        Join join = buildJoin(operator);
+        Join join = buildJoin(hashjoin);
         assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
     }
 
