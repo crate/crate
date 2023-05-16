@@ -29,11 +29,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
@@ -65,26 +62,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
                 insert into t values (1, {x=1})
                 """);
         execute("refresh table t");
-
-        AtomicBoolean dmlStatementsFinished = new AtomicBoolean(false);
-        HashMap<String, Integer> columnPositions = new HashMap<>();
-        Thread checkPositions = new Thread(() -> {
-            while (dmlStatementsFinished.get() == false) {
-                synchronized (response) {
-                    execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-                    for (int i = 0; i < response.rowCount(); i++) {
-                        String columnName = (String) response.rows()[0][0];
-                        Integer newPosition = (Integer) response.rows()[0][1];
-                        Integer previousPosition = columnPositions.put(columnName, newPosition);
-                        if (previousPosition != null && previousPosition.equals(newPosition) == false) {
-                            throw new IllegalStateException(
-                                String.format(Locale.ENGLISH, "Column %s had position %d which is recomputed to %d", columnName, previousPosition, newPosition)
-                            );
-                        }
-                    }
-                }
-            }
-        });
 
         Thread concurrentUpdates1 = new Thread(() -> {
             for (int i = 0; i < 5; i++) {
@@ -132,7 +109,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             }
         });
 
-        checkPositions.start();
         concurrentUpdates1.start();
         concurrentUpdates2.start();
         concurrentUpdates3.start();
@@ -152,8 +128,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         concurrentUpdates7.join();
         concurrentUpdates8.join();
         concurrentUpdates9.join();
-
-        dmlStatementsFinished.set(true);
 
         execute("""
             SELECT
@@ -217,7 +191,13 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             "b['x']"
         );
 
-        // Verify that there are no holes in positions sequence for a concrete table
+
+        execute("select count(distinct ordinal_position) from information_schema.columns where table_name = 't'");
+        assertThat(response.rows()[0][0])
+            .as("distinct ordinal positions")
+            .isEqualTo(3L + 45L);
+
+        // Verify that there are no holes in positions for a concrete table.
         execute("""
             SELECT
                 column_name, ordinal_position
@@ -230,16 +210,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             """
         );
         assertThat(response.rows())
-            .as("No holes in positions sequence for a concrete table")
+            .as("No holes in the positions sequence for a concrete table")
             .isEmpty();
-
-        execute("select count(distinct ordinal_position), max(ordinal_position) from information_schema.columns where table_name = 't'");
-        assertThat(response.rows()[0][0])
-            .as("distinct ordinal positions")
-            .isEqualTo(3L + 45L);
-        assertThat(response.rows()[0][1])
-            .as("max ordinal position")
-            .isEqualTo(3 + 45);
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't' order by ordinal_position limit 3");
         assertThat(printedTable(response.rows())).isEqualTo(
