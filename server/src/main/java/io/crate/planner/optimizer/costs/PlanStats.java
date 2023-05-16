@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.costs;
 
 import java.util.List;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -57,6 +58,8 @@ public class PlanStats {
     // Memo can be null when there are no Group References in the Logical Plans involved
     @Nullable
     private final Memo memo;
+    //Stats for LogicalPlans will be cache by reference-equality of LogicalPlan
+    private final IdentityHashMap<LogicalPlan, Stats> cache = new IdentityHashMap<>();
 
     public PlanStats(TableStats tableStats) {
         this(tableStats, null);
@@ -76,8 +79,34 @@ public class PlanStats {
     }
 
     public Stats get(LogicalPlan logicalPlan) {
+        if (logicalPlan instanceof GroupReference group) {
+            return getGroupStats(group);
+        }
+
+        var cachedStats = cache.get(logicalPlan);
+        if (cachedStats != null) {
+            return cachedStats;
+        }
+
+        return getStats(logicalPlan);
+    }
+
+    private Stats getStats(LogicalPlan logicalPlan) {
         var visitor = new StatsVisitor(tableStats, memo);
-        return logicalPlan.accept(visitor, null);
+        var stats = logicalPlan.accept(visitor, null);
+        cache.put(logicalPlan, stats);
+        return stats;
+    }
+
+    private Stats getGroupStats(GroupReference group) {
+        if (memo == null) {
+            throw new UnsupportedOperationException("Stats cannot be provided for GroupReference without a Memo");
+        }
+        var stats = memo.stats(group.groupId());
+        if (stats == null) {
+            stats = getStats(group);
+        }
+        return stats;
     }
 
     private static class StatsVisitor extends LogicalPlanVisitor<Void, Stats> {
