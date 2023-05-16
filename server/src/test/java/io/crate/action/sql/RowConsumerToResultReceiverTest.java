@@ -21,16 +21,13 @@
 
 package io.crate.action.sql;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.data.Row;
@@ -44,9 +41,9 @@ public class RowConsumerToResultReceiverTest {
     public void testBatchedIteratorConsumption() throws Exception {
         List<Object[]> expectedResult = IntStream.range(0, 10)
             .mapToObj(i -> new Object[]{i})
-            .collect(Collectors.toList());
+            .toList();
 
-        BatchSimulatingIterator batchSimulatingIterator =
+        BatchSimulatingIterator<Row> batchSimulatingIterator =
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
                 2,
                 5,
@@ -66,8 +63,10 @@ public class RowConsumerToResultReceiverTest {
         batchConsumer.accept(batchSimulatingIterator, null);
         resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
 
-        assertThat(collectedRows.size(), is(10));
-        assertThat(collectedRows, Matchers.contains(expectedResult.toArray(new Object[0])));
+        assertThat(collectedRows).hasSize(10);
+        for (int i = 0; i < collectedRows.size(); i++) {
+            assertThat(collectedRows.get(i)).isEqualTo(expectedResult.get(i));
+        }
     }
 
     @Test
@@ -76,6 +75,6 @@ public class RowConsumerToResultReceiverTest {
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
-        assertThat(resultReceiver.completionFuture().isCompletedExceptionally(), is(true));
+        assertThat(resultReceiver.completionFuture().isCompletedExceptionally()).isTrue();
     }
 }

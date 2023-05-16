@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.function.Function;
@@ -97,10 +97,10 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
         Settings settings = buildSettings(analysis);
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
     }
 
     @Test
@@ -108,15 +108,15 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedCreateBlobTable analysis = e.analyze("create blob table screenshots");
         Settings settings = buildSettings(analysis);
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(4));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(4);
     }
 
     @Test
     public void testCreateBlobTableRaisesErrorIfAlreadyExists() {
-        expectedException.expect(RelationAlreadyExists.class);
-        e.analyze("create blob table blobs");
+        assertThatThrownBy(() -> e.analyze("create blob table blobs"))
+            .isExactlyInstanceOf(RelationAlreadyExists.class);
     }
 
     @Test
@@ -125,9 +125,9 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
         Settings settings = buildSettings(analysis);
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(10));
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
     }
 
     @Test
@@ -136,9 +136,9 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
         Settings settings = buildSettings(analysis);
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(settings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey()),
-            is("/tmp/crate_blob_data"));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(settings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey())).isEqualTo(
+            "/tmp/crate_blob_data");
     }
 
     @Test
@@ -147,23 +147,23 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create blob table screenshots with (blobs_path=?)");
         Settings settings = buildSettings(analysis, "/tmp/crate_blob_data");
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(settings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey()),
-            is("/tmp/crate_blob_data"));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(settings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey())).isEqualTo(
+            "/tmp/crate_blob_data");
     }
 
     @Test
     public void testCreateBlobTableWithPathInvalidType() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'blobs_path'");
-        buildSettings(e.analyze("create blob table screenshots with (blobs_path=1)"));
+        assertThatThrownBy(() -> buildSettings(e.analyze("create blob table screenshots with (blobs_path=1)")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for argument 'blobs_path'");
     }
 
     @Test
     public void testCreateBlobTableWithPathInvalidParameter() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'blobs_path'");
-        buildSettings(e.analyze("create blob table screenshots with (blobs_path=?)"), 1);
+        assertThatThrownBy(() -> buildSettings(e.analyze("create blob table screenshots with (blobs_path=?)"), 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for argument 'blobs_path'");
     }
 
     @Test(expected = InvalidRelationName.class)
@@ -174,38 +174,41 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropBlobTable() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
-        assertThat(analysis.table().ident().name(), is("blobs"));
-        assertThat(analysis.table().ident().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
+        assertThat(analysis.table().ident().schema()).isEqualTo(BlobSchemaInfo.NAME);
     }
 
     @Test
     public void testDropBlobTableWithInvalidSchema() {
-        expectedException.expectMessage("No blob tables in schema `doc`");
-        e.analyze("drop blob table doc.users");
+        assertThatThrownBy(() -> e.analyze("drop blob table doc.users"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("No blob tables in schema `doc`");
     }
 
     @Test
     public void testDropBlobTableWithValidSchema() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
-        assertThat(analysis.table().ident().name(), is("blobs"));
+        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
     }
 
-    @Test(expected = RelationUnknown.class)
+    @Test
     public void testDropBlobTableThatDoesNotExist() {
-        e.analyze("drop blob table unknown");
+        assertThatThrownBy(() -> e.analyze("drop blob table unknown"))
+            .isExactlyInstanceOf(RelationUnknown.class);
+
     }
 
     @Test
     public void testDropBlobTableIfExists() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
-        assertThat(analysis.dropIfExists(), is(true));
-        assertThat(analysis.table().ident().fqn(), is("blob.blobs"));
+        assertThat(analysis.dropIfExists()).isTrue();
+        assertThat(analysis.table().ident().fqn()).isEqualTo("blob.blobs");
     }
 
     @Test
     public void testDropNonExistentBlobTableIfExists() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists unknown");
-        assertThat(analysis.dropIfExists(), is(true));
+        assertThat(analysis.dropIfExists()).isTrue();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -218,28 +221,28 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAlterBlobTableWithReplicas() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
-        assertThat(analysis.tableInfo().ident().name(), is("blobs"));
+        assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
-        assertThat(parameter.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
+        assertThat(parameter.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)).isEqualTo(2);
     }
 
     @Test
     public void test_alter_setting_block_read_only() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
-        assertThat(analysis.tableInfo().ident().name(), is("blobs"));
+        assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
-        assertThat(parameter.settings().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false), is(true));
+        assertThat(parameter.settings().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false)).isTrue();
     }
 
     @Test
     public void testAlterBlobTableWithPath() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        assertThatThrownBy(() -> getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test
@@ -248,44 +251,44 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)");
         Settings settings = buildSettings(analysis, 2, "0-all");
 
-        assertThat(analysis.relationName().name(), is("screenshots"));
-        assertThat(analysis.relationName().schema(), is(BlobSchemaInfo.NAME));
-        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(2));
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
+        assertThat(analysis.relationName().name()).isEqualTo("screenshots");
+        assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(2);
+        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
     }
 
     @Test
     public void testCreateBlobTableWithInvalidShardsParam() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid number 'foo'");
-        buildSettings(e.analyze("create blob table screenshots clustered into ? shards"), "foo");
+        assertThatThrownBy(() -> buildSettings(e.analyze("create blob table screenshots clustered into ? shards"), "foo"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid number 'foo'");
     }
 
     @Test
     public void testAlterBlobTableRename() {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
-        e.analyze("alter blob table blobs rename to blobbier");
+        assertThatThrownBy(() -> e.analyze("alter blob table blobs rename to blobbier"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
     }
 
     @Test
     public void testAlterBlobTableRenameWithExplicitSchema() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
-        e.analyze("alter blob table schema.blobs rename to blobbier");
+        assertThatThrownBy(() -> e.analyze("alter blob table schema.blobs rename to blobbier"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
     }
 
     @Test
     public void testAlterBlobTableOpenClose() {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
-        e.analyze("alter blob table blobs close");
+        assertThatThrownBy(() -> e.analyze("alter blob table blobs close"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
     }
 
     @Test
     public void testAlterBlobTableOpenCloseWithExplicitSchema() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
-        e.analyze("alter blob table schema.blob close");
+        assertThatThrownBy(() -> e.analyze("alter blob table schema.blob close"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
     }
 }

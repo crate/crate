@@ -21,9 +21,8 @@
 
 package io.crate.action.sql.parser;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.List;
 
@@ -51,24 +50,20 @@ public class SQLBulkArgsParseElementTest extends ESTestCase {
     @Test
     public void testBulkArgsArray() throws Exception {
         String bulkArgs = "[[\"200\", \"Somewhere\", \"planet\"], [\"201\", \"Somewhere else\", \"city\"]]";
-        assertThat(
-            parse(bulkArgs),
-            is(List.of(
+        assertThat(parse(bulkArgs)).containsExactly(
                 List.of("200", "Somewhere", "planet"),
-                List.of("201", "Somewhere else", "city"))));
+                List.of("201", "Somewhere else", "city"));
     }
 
     @Test
     public void testEmptyBulkArgsArray() throws Exception {
-        assertThat(parse("[]").isEmpty(), is(true));
+        assertThat(parse("[]").isEmpty()).isTrue();
     }
 
     @Test
     public void testInvalidBulkArgsArray() throws Exception {
-        try {
-            parse("[[\"hello\"], null]");
-        } catch (SQLParseSourceException e) {
-            assertEquals("Parse Failure [Field [null] has an invalid value]", e.getMessage());
-        }
+        assertThatThrownBy(() -> parse("[[\"hello\"], null]"))
+            .isExactlyInstanceOf(SQLParseSourceException.class)
+            .hasMessage("Parse Failure [Field [null] has an invalid value]");
     }
 }
