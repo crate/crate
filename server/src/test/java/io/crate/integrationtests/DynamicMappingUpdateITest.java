@@ -241,20 +241,24 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("update t set name = 'abc'");
         execute("update t set o = {a={b=1}, b=1}");
         execute("update t set o = {q={r={s=1}}}");
+        execute("update t set gp = 'POINT(-0.35842 51.46961)'");
+        // same with geo_shape
 
-        execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
+        execute("select column_name, data_type, ordinal_position from information_schema.columns where table_name = 't'");
         assertThat(printedTable(response.rows())).isEqualTo(
             """
-            id| 1
-            name| 2
-            o| 3
-            o['a']| 4
-            o['b']| 5
-            o['a']['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
+            id| integer| 1
+            name| text| 2
+            o| object| 3
+            o['a']| object| 4
+            o['b']| bigint| 5
+            o['a']['b']| bigint| 6
+            o['q']| object| 7
+            o['q']['r']| object| 8
+            o['q']['r']['s']| bigint| 9
+            gp| geo_point| 10
             """);
+        // gp has type text because DynamicIndexer operates only with SimpleReference-s
     }
 
     @Test
