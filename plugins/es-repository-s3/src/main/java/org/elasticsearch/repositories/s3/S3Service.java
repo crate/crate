@@ -19,6 +19,15 @@
 
 package org.elasticsearch.repositories.s3;
 
+import java.io.Closeable;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.common.Strings;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
@@ -30,20 +39,14 @@ import com.amazonaws.http.IdleConnectionReaper;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.internal.Constants;
-import io.crate.exceptions.InvalidArgumentException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.RepositoryMetadata;
-import org.elasticsearch.common.Strings;
 
-import java.io.Closeable;
+import io.crate.exceptions.InvalidArgumentException;
 
 class S3Service implements Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(S3Service.class);
 
-    private volatile AmazonS3Reference clientCache;
-    private volatile S3ClientSettings clientSettingsCache;
+    private volatile Map<S3ClientSettings, AmazonS3Reference> clientsCache = new HashMap<>();
 
     /**
      * Attempts to retrieve a client by name from the cache.
@@ -54,22 +57,20 @@ class S3Service implements Closeable {
     public AmazonS3Reference client(RepositoryMetadata metadata) {
         final S3ClientSettings clientSettings = S3ClientSettings
             .getClientSettings(metadata.settings());
-        boolean settingsUpdated = !clientSettings.equals(clientSettingsCache);
+
+        var client = clientsCache.get(clientSettings);
+        if (client != null && client.tryIncRef()) {
+            return client;
+        }
 
         synchronized (this) {
-            final AmazonS3Reference localClientRef = clientCache;
-            if (localClientRef != null) {
-                if (!settingsUpdated && localClientRef.tryIncRef()) {
-                    return localClientRef;
-                }
+            var existing = clientsCache.get(clientSettings);
+            if (existing != null && existing.tryIncRef()) {
+                return existing;
             }
-
-            final AmazonS3Reference newClientRef = new AmazonS3Reference(
-                buildClient(clientSettings)
-            );
+            final AmazonS3Reference newClientRef = new AmazonS3Reference(buildClient(clientSettings));
             newClientRef.incRef();
-            clientCache = newClientRef;
-            clientSettingsCache = clientSettings;
+            clientsCache.put(clientSettings, newClientRef);
             return newClientRef;
         }
     }
@@ -145,15 +146,14 @@ class S3Service implements Closeable {
     @Override
     public void close() {
         synchronized (this) {
-            var localClientRef = clientCache;
-            if (localClientRef != null) {
-                localClientRef.decRef();
+            // the clients will shutdown when they will not be used anymore
+            for (final AmazonS3Reference clientReference : clientsCache.values()) {
+                clientReference.decRef();
             }
-            clientCache = null;
-            clientSettingsCache = null;
+            clientsCache = new HashMap<>();
+            // shutdown IdleConnectionReaper background thread
+            // it will be restarted on new client usage
+            IdleConnectionReaper.shutdown();
         }
-        // shutdown IdleConnectionReaper background thread
-        // it will be restarted on new client usage
-        IdleConnectionReaper.shutdown();
     }
 }
