@@ -21,7 +21,6 @@ package org.elasticsearch.repositories.azure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -47,7 +46,6 @@ public class AzureRepositorySettingsTests extends ESTestCase {
         final AzureRepository azureRepository = new AzureRepository(
             new RepositoryMetadata("foo", "azure", internalSettings),
             NamedXContentRegistry.EMPTY,
-            mock(AzureStorageService.class),
             BlobStoreTestUtil.mockClusterService(),
             new RecoverySettings(settings, new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS))
         );

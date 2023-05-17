@@ -64,6 +64,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue with :ref:`Azure repositories<sql-create-repo-azure>`, which
+  could lead to wrong results for queries to ``sys.snapshots``, create snapshots
+  to a wrong repository, or drop snapshots from a wrong repository when more
+  than 1 repositories are configured to the same CrateDB cluster.
+
 - Fixed an issue that could lead to queries to become stuck instead of failing
   with a circuit breaker error if a node is under memory pressure.
 

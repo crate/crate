@@ -19,15 +19,6 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.io.Streams;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -42,12 +33,26 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
+
+import com.microsoft.azure.storage.OperationContext;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.Streams;
+
 /**
  * In memory storage for unit tests
  */
 public class AzureStorageServiceMock extends AzureStorageService {
 
     protected final Map<String, ByteArrayOutputStream> blobs = new ConcurrentHashMap<>();
+
+    AzureStorageServiceMock(AzureStorageSettings storageSettings) {
+        super(storageSettings);
+    }
 
     @Override
     public boolean doesContainerExist(String container) {
@@ -145,10 +150,5 @@ public class AzureStorageServiceMock extends AzureStorageService {
     @Override
     public Tuple<CloudBlobClient, Supplier<OperationContext>> client() {
         return null;
-    }
-
-    @Override
-    public void refreshSettings(AzureStorageSettings clientsSettings) {
-        AzureStorageSettings.getClientSettings(Settings.EMPTY);
     }
 }
