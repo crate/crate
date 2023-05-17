@@ -24,9 +24,19 @@ package org.elasticsearch.repositories.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,19 +44,25 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.exceptions.InvalidArgumentException;
 
 public class AwsS3ServiceImplTests extends ESTestCase {
 
     private S3Service service;
+    private ExecutorService executor;
 
     @Before
     public void beforeTest() {
         service = new S3Service();
+        executor = Executors.newFixedThreadPool(20);
     }
 
-    public void afterTest() {
+    @After
+    public void afterTest() throws Exception {
+        executor.shutdown();
+        executor.awaitTermination(500, TimeUnit.MILLISECONDS);
         service.close();
         service = null;
     }
@@ -93,6 +109,59 @@ public class AwsS3ServiceImplTests extends ESTestCase {
 
         clientRef.client().shutdown();
         newClientRef.client().shutdown();
+    }
+
+    @Repeat(iterations = 100)
+    @Test
+    public void test_concurrent_repro_access_does_not_return_wrong_client() throws Exception {
+        Settings settings1 = Settings.builder()
+                .put("access_key", "repo1_access_key")
+                .put("secret_key", "repo1_secret_key")
+                .build();
+
+        Settings settings2 = Settings.builder()
+                .put("access_key", "repo2_access_key")
+                .put("secret_key", "repo2_secret_key")
+                .build();
+
+        RepositoryMetadata metadata1 = new RepositoryMetadata("repo1", "", settings1);
+        RepositoryMetadata metadata2 = new RepositoryMetadata("repo2", "", settings2);
+
+        int numThreads = 20;
+        final CyclicBarrier barrier = new CyclicBarrier(1 + numThreads);
+        AtomicReference<AmazonS3Reference> clientRef1 = new AtomicReference<>();
+        AtomicReference<AmazonS3Reference> clientRef2 = new AtomicReference<>();
+        final CountDownLatch latch = new CountDownLatch(numThreads);
+
+        for (int i = 0; i < numThreads; i++) {
+            if (randomBoolean()) {
+                executor.submit(() -> {
+                    try {
+                        barrier.await();
+                    } catch (final BrokenBarrierException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    clientRef1.set(service.client(metadata1));
+                    latch.countDown();
+                    clientRef1.get().close();
+                });
+            } else {
+                executor.submit(() -> {
+                    try {
+                        barrier.await();
+                    } catch (final BrokenBarrierException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    clientRef2.set(service.client(metadata2));
+                    latch.countDown();
+                    clientRef2.get().close();
+                });
+            }
+        }
+        barrier.await();
+        latch.await();
+
+        assertThat(clientRef1.get().client()).isNotEqualTo(clientRef2.get().client());
     }
 
     @Test
