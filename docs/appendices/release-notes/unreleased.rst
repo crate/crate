@@ -139,3 +139,5 @@ Fixes
 - Fixed an issue that caused the default expressions on columns of type
   ``GEO_SHAPE`` to be ignored on writes.
 
+- Fixed a race condition issue while concurrently accessing S3 repositories
+  with different settings, e.g. by queries against ``sys.snapshots``.
