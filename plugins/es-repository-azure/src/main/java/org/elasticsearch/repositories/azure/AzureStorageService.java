@@ -77,7 +77,11 @@ public class AzureStorageService {
     public static final ByteSizeValue MAX_CHUNK_SIZE = new ByteSizeValue(256, ByteSizeUnit.MB);
 
     @VisibleForTesting
-    volatile AzureStorageSettings storageSettings;
+    AzureStorageSettings storageSettings;
+
+    AzureStorageService(AzureStorageSettings storageSettings) {
+        this.storageSettings = storageSettings;
+    }
 
     /**
      * Creates a {@code CloudBlobClient} on each invocation using the current client
@@ -128,7 +132,8 @@ public class AzureStorageService {
         return context;
     }
 
-    public void refreshSettings(AzureStorageSettings clientSettings) {
+    @VisibleForTesting
+    void refreshSettings(AzureStorageSettings clientSettings) {
         this.storageSettings = AzureStorageSettings.copy(clientSettings);
     }
 

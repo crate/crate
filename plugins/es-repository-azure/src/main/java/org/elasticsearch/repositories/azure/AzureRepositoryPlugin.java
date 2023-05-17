@@ -19,6 +19,10 @@
 
 package org.elasticsearch.repositories.azure;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
@@ -31,20 +35,10 @@ import org.elasticsearch.repositories.Repository;
 
 import io.crate.analyze.repositories.TypeSettings;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 /**
  * A plugin to add a repository type that writes to and from the Azure cloud storage service.
  */
 public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
-
-    private final AzureStorageService azureStoreService;
-
-    public AzureRepositoryPlugin() {
-        this.azureStoreService = new AzureStorageService();
-    }
 
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
@@ -66,7 +60,6 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                     return new AzureRepository(
                         metadata,
                         namedXContentRegistry,
-                        azureStoreService,
                         clusterService,
                         recoverySettings
                     );
