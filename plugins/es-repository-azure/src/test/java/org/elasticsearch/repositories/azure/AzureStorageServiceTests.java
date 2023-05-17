@@ -42,9 +42,7 @@ import com.microsoft.azure.storage.core.Base64;
 public class AzureStorageServiceTests extends ESTestCase {
 
     private AzureStorageService storageServiceWithSettings(Settings settings) {
-        AzureStorageService storageService = new AzureStorageService();
-        storageService.refreshSettings(AzureStorageSettings.getClientSettings(settings));
-        return storageService;
+        return new AzureStorageService(AzureStorageSettings.getClientSettings(settings));
     }
 
     public void testCreateClientWithEndpointSuffix() {
@@ -52,8 +50,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("endpoint_suffix", "my_endpoint_suffix").build();
         final AzureStorageService azureStorageService = storageServiceWithSettings(settings);
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getEndpoint().toString())
-            .isEqualTo("https://myaccount1.blob.my_endpoint_suffix");
+        assertThat(client.getEndpoint()).hasToString("https://myaccount1.blob.my_endpoint_suffix");
     }
 
     public void testGetSelectedClientDefaultTimeout() {

@@ -19,19 +19,30 @@
 
 package org.elasticsearch.repositories.azure;
 
+import java.util.Locale;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.ESBlobStoreContainerTestCase;
+
+import io.crate.common.unit.TimeValue;
 
 public class AzureBlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
     @Override
     protected BlobStore newBlobStore() {
         RepositoryMetadata repositoryMetadata = new RepositoryMetadata("azure", "ittest", Settings.EMPTY);
-        AzureStorageServiceMock client = new AzureStorageServiceMock();
+        AzureStorageServiceMock client = new AzureStorageServiceMock(randomMockAzureStorageSettings());
         try (AzureBlobStore azureBlobStore = new AzureBlobStore(repositoryMetadata, client)) {
             return azureBlobStore;
         }
+    }
+
+    static AzureStorageSettings randomMockAzureStorageSettings() {
+        String account = randomAlphaOfLength(randomIntBetween(1, 10)).toLowerCase(Locale.ROOT);
+        String key = randomAlphaOfLength(randomIntBetween(10, 20)).toLowerCase(Locale.ROOT);
+        String endpointSuffix = randomAlphaOfLength(randomIntBetween(1, 10)).toLowerCase(Locale.ROOT);
+        return new AzureStorageSettings(account, key, endpointSuffix, TimeValue.timeValueMinutes(-1), 3, null, null);
     }
 }
