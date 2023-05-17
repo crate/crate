@@ -42,18 +42,15 @@ import com.microsoft.azure.storage.core.Base64;
 public class AzureStorageServiceTests extends ESTestCase {
 
     private AzureStorageService storageServiceWithSettings(Settings settings) {
-        AzureStorageService storageService = new AzureStorageService();
-        storageService.refreshSettings(AzureStorageSettings.getClientSettings(settings));
-        return storageService;
+        return new AzureStorageService(AzureStorageSettings.getClientSettings(settings));
     }
 
     public void testCreateClientWithEndpointSuffix() {
         final Settings settings = Settings.builder().put(buildClientCredSettings())
             .put("endpoint_suffix", "my_endpoint_suffix").build();
         final AzureStorageService azureStorageService = storageServiceWithSettings(settings);
-        final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getEndpoint().toString())
-            .isEqualTo("https://myaccount1.blob.my_endpoint_suffix");
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
+        assertThat(client.getEndpoint()).hasToString("https://myaccount1.blob.my_endpoint_suffix");
     }
 
     public void testGetSelectedClientDefaultTimeout() {
@@ -61,19 +58,19 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put(buildClientCredSettings())
             .build();
         final AzureStorageService azureStorageService = storageServiceWithSettings(timeoutSettings);
-        final CloudBlobClient client = azureStorageService.client().v1();
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
     public void testGetSelectedClientNoTimeout() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
-        final CloudBlobClient client = azureStorageService.client().v1();
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
     public void testGetSelectedClientBackoffPolicy() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
-        final CloudBlobClient client = azureStorageService.client().v1();
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }
@@ -85,7 +82,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
 
         final AzureStorageService azureStorageService = storageServiceWithSettings(timeoutSettings);
-        final CloudBlobClient client = azureStorageService.client().v1();
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }

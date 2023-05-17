@@ -101,7 +101,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(numberOfDocs);
 
         execute("DROP SNAPSHOT r1.s1");
-        handler.blobs().keySet().forEach(x -> assertThat(x.endsWith("dat")).isFalse());
+        handler.blobs().keySet().forEach(x -> assertThat(x).doesNotEndWith("dat"));
     }
 
     @Test
