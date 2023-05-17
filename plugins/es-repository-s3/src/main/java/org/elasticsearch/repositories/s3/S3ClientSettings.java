@@ -19,17 +19,6 @@
 
 package org.elasticsearch.repositories.s3;
 
-import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.BasicSessionCredentials;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.Objects;
-
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ENDPOINT_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_RETRIES_SETTING;
@@ -42,6 +31,19 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.READ_TIMEOU
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SESSION_TOKEN_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_THROTTLE_RETRIES_SETTING;
+
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+
+import com.amazonaws.Protocol;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 
 /**
  * A container for settings used to create an S3 client.
@@ -176,6 +178,21 @@ final class S3ClientSettings {
                Objects.equals(proxyHost, that.proxyHost) &&
                Objects.equals(proxyUsername, that.proxyUsername) &&
                Objects.equals(proxyPassword, that.proxyPassword);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(credentials.getAWSAccessKeyId(),
+                            credentials.getAWSSecretKey(),
+                            endpoint,
+                            protocol,
+                            proxyHost,
+                            proxyPort,
+                            proxyUsername,
+                            proxyPassword,
+                            readTimeoutMillis,
+                            maxRetries,
+                            throttleRetries);
     }
 
     private boolean compareCredentials(@Nullable AWSCredentials first, @Nullable AWSCredentials second) {
