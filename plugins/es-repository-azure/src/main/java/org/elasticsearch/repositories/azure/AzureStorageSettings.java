@@ -19,18 +19,21 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.LocationMode;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.UnknownHostException;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
-import io.crate.common.unit.TimeValue;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.UnknownHostException;
+import com.microsoft.azure.storage.LocationMode;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 
 public final class AzureStorageSettings {
 
@@ -42,13 +45,14 @@ public final class AzureStorageSettings {
     private final Proxy proxy;
     private final LocationMode locationMode;
 
-    private AzureStorageSettings(String account,
-                                 String key,
-                                 String endpointSuffix,
-                                 TimeValue timeout,
-                                 int maxRetries,
-                                 Proxy proxy,
-                                 LocationMode locationMode) {
+    @VisibleForTesting
+    AzureStorageSettings(String account,
+                         String key,
+                         String endpointSuffix,
+                         TimeValue timeout,
+                         int maxRetries,
+                         Proxy proxy,
+                         LocationMode locationMode) {
         this.account = account;
         this.key = key;
         this.endpointSuffix = endpointSuffix;
