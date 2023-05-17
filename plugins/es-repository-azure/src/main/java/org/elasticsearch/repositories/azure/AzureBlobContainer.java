@@ -102,8 +102,11 @@ public class AzureBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists) throws IOException {
-        logger.trace("writeBlob({}, stream, {})", buildKey(blobName), blobSize);
+    public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists)
+        throws IOException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("writeBlob({}, stream, {})", buildKey(blobName), blobSize);
+        }
 
         try {
             blobStore.writeBlob(buildKey(blobName), inputStream, blobSize, failIfAlreadyExists);

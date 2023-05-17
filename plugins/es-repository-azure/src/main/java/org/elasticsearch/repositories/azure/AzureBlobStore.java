@@ -45,7 +45,6 @@ public class AzureBlobStore implements BlobStore {
 
     private final AzureStorageService service;
 
-    private final String clientName;
     private final String container;
     private final LocationMode locationMode;
 
@@ -56,7 +55,6 @@ public class AzureBlobStore implements BlobStore {
     @VisibleForTesting
     AzureBlobStore(RepositoryMetadata metadata, AzureStorageService service) {
         this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
-        this.clientName = Repository.CLIENT_NAME.get(metadata.settings());
         this.locationMode = Repository.LOCATION_MODE_SETTING.get(metadata.settings());
 
         AzureStorageSettings repositorySettings = AzureStorageSettings
@@ -87,10 +85,6 @@ public class AzureBlobStore implements BlobStore {
     public void close() {
     }
 
-    public boolean containerExist() throws URISyntaxException, StorageException {
-        return service.doesContainerExist(container);
-    }
-
     public boolean blobExists(String blob) throws URISyntaxException, StorageException {
         return service.blobExists(container, blob);
     }
@@ -104,7 +98,7 @@ public class AzureBlobStore implements BlobStore {
     }
 
     public Map<String, BlobContainer> children(BlobPath path) throws URISyntaxException, StorageException {
-        return Collections.unmodifiableMap(service.children(clientName, container, path).stream().collect(
+        return Collections.unmodifiableMap(service.children(container, path).stream().collect(
             Collectors.toMap(Function.identity(), name -> new AzureBlobContainer(path.add(name), this))));
     }
 
