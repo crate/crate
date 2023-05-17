@@ -18,6 +18,8 @@
  */
 package org.elasticsearch.repositories.azure;
 
+import static org.elasticsearch.repositories.azure.AzureBlobStoreContainerTests.randomMockAzureStorageSettings;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.settings.Settings;
@@ -28,7 +30,7 @@ public class AzureBlobStoreTests extends ESBlobStoreTestCase {
     @Override
     protected BlobStore newBlobStore() {
         RepositoryMetadata repositoryMetadata = new RepositoryMetadata("azure", "ittest", Settings.EMPTY);
-        AzureStorageServiceMock client = new AzureStorageServiceMock();
+        AzureStorageServiceMock client = new AzureStorageServiceMock(randomMockAzureStorageSettings());
         try (AzureBlobStore azureBlobStore = new AzureBlobStore(repositoryMetadata, client)) {
             return azureBlobStore;
         }

@@ -27,10 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.RetryPolicy;
-
-import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -47,6 +43,10 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
+import com.microsoft.azure.storage.LocationMode;
+import com.microsoft.azure.storage.RetryPolicy;
+
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.types.DataTypes;
 
@@ -162,17 +162,14 @@ public class AzureRepository extends BlobStoreRepository {
     }
 
     private final ByteSizeValue chunkSize;
-    private final AzureStorageService storageService;
     private final boolean readonly;
 
     public AzureRepository(RepositoryMetadata metadata,
                            NamedXContentRegistry namedXContentRegistry,
-                           AzureStorageService storageService,
                            ClusterService clusterService,
                            RecoverySettings recoverySettings) {
         super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
-        this.storageService = storageService;
 
         // If the user explicitly did not define a readonly value, we set it by ourselves depending on the location mode setting.
         // For secondary_only setting, the repository should be read only
@@ -211,7 +208,7 @@ public class AzureRepository extends BlobStoreRepository {
      */
     @Override
     protected AzureBlobStore createBlobStore() {
-        final AzureBlobStore blobStore = new AzureBlobStore(metadata, storageService);
+        final AzureBlobStore blobStore = new AzureBlobStore(metadata);
 
         LOGGER.debug((org.apache.logging.log4j.util.Supplier<?>) () -> new ParameterizedMessage(
             "using container [{}], chunk_size [{}], compress [{}], base_path [{}]",
