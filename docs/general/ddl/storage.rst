@@ -53,9 +53,9 @@ following data types:
 
  - :ref:`type-text`
 
-For all other :ref:`data-types-primitive`, it is enabled by default and
-cannot be disabled. :ref:`data-types-container` and
-:ref:`data-types-geo` do not support storing values into a
+For all other :ref:`data-types-primitive` and :ref:`data-types-geo-point` it is
+enabled by default and cannot be disabled. :ref:`data-types-container` and
+:ref:`data-types-geo-shape` do not support storing values into a
 `Column Store`_ at all.
 
 .. _Column Store: https://en.wikipedia.org/wiki/Column-oriented_DBMS
