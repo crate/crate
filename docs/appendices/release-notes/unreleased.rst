@@ -76,6 +76,12 @@ Breaking Changes
   :ref:`named index column definition <named-index-column>` instead of
   silently ignoring them.
 
+- Adjusted allowed array index range to be from ``Integer.MIN_VALUE`` to
+  ``Integer.MAX_VALUE``. The behavior is now also consistent between subscripts
+  on array literals and on columns, and between index literals and index
+  expressions. That means something like ``tags[-1]`` will now return ``NULL``
+  just like ``ARRAY['AUT', 'GER'][-1]`` or ``ARRAY['AUT', 'GER'][1 - 5]`` did.
+
 
 Deprecations
 ============

@@ -24,10 +24,10 @@ package io.crate.expression.scalar;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -41,6 +41,28 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     @Test
     public void test_long_can_be_used_as_array_index() {
         assertEvaluate("['Youri', 'Ruben'][x]", "Youri", Literal.of(1L));
+    }
+
+    @Test
+    public void test_index_out_of_range_array_access() {
+        assertThatThrownBy(
+            () -> assertEvaluate("['Youri', 'Ruben'][x]",
+                                 null,
+                                 Literal.of((long) Integer.MAX_VALUE + 1)))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `2147483648` to type `integer`");
+        assertThatThrownBy(
+            () -> assertEvaluate("['Youri', 'Ruben'][x]",
+                                 null,
+                                 Literal.of((long) Integer.MIN_VALUE - 1)))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `-2147483649` to type `integer`");
+    }
+
+    @Test
+    public void test_valid_min_and_max_array_index_access() {
+        assertNormalize("subscript([1,2,3], 2147483647)", isLiteral(null));
+        assertNormalize("subscript([1,2,3], -2147483648)", isLiteral(null));
     }
 
     @Test
@@ -78,15 +100,16 @@ public class SubscriptFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIndexExpressionIsNotInteger() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben"));
+        assertThatThrownBy(
+            () -> assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben")))
+            .isExactlyInstanceOf(ConversionException.class)
+                .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
     }
 
     @Test
     public void testLookupByNameWithUnknownName() throws Exception {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
-        Assertions.assertThatThrownBy(() -> assertEvaluate("{}['y']", null))
+        assertThatThrownBy(() -> assertEvaluate("{}['y']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("The object `{}` does not contain the key `y`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);

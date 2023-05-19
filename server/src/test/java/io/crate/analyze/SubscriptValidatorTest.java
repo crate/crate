@@ -78,21 +78,21 @@ public class SubscriptValidatorTest extends ESTestCase {
         SubscriptContext context = analyzeSubscript("[1,2,3][1]");
         assertThat(context.expression()).isNotNull();
         assertThat(context.expression()).isExactlyInstanceOf(ArrayLiteral.class);
-        assertThat(context.index()).isSQL("CAST(1 AS integer)");
+        assertThat(context.index()).isSQL("1");
     }
 
     @Test
     public void testSubscriptOnCast() throws Exception {
         SubscriptContext context = analyzeSubscript("cast([1.1,2.1] as array(integer))[2]");
         assertThat(context.expression()).isExactlyInstanceOf(Cast.class);
-        assertThat(context.index()).isSQL("CAST(2 AS integer)");
+        assertThat(context.index()).isSQL("2");
     }
 
     @Test
     public void testSubscriptOnTryCast() throws Exception {
         SubscriptContext context = analyzeSubscript("try_cast([1] as array(double))[1]");
         assertThat(context.expression()).isExactlyInstanceOf(TryCast.class);
-        assertThat(context.index()).isSQL("CAST(1 AS integer)");
+        assertThat(context.index()).isSQL("1");
     }
 
     @Test
@@ -117,12 +117,8 @@ public class SubscriptValidatorTest extends ESTestCase {
         assertThatThrownBy(() -> analyzeSubscript("a[1][2]"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Nested array access is not supported");
-    }
-
-    @Test
-    public void testNegativeArrayAccess() throws Exception {
-        assertThatThrownBy(() -> analyzeSubscript("ref[-1]"))
+        assertThatThrownBy(() -> analyzeSubscript("a[2147483648][1]"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Array index must be in range 1 to 2147483648");
+            .hasMessage("Nested array access is not supported");
     }
 }
