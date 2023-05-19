@@ -177,6 +177,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that would cause all tables within a
+  :ref:`Snapshot <snapshot-restore>` to be restored, when trying to restore an
+  empty partitioned table, e.g.::
+
+    RESTORE SNAPSHOT repo1.snap1 TABLE empty_parted
+
 - Fixed an issue with :ref:`Azure repositories<sql-create-repo-azure>`, which
   could lead to wrong results for queries to ``sys.snapshots``, create snapshots
   to a wrong repository, or drop snapshots from a wrong repository when more
