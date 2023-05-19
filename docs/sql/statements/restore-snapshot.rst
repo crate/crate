@@ -24,7 +24,7 @@ Synopsis
     RESTORE SNAPSHOT repository_name.snapshot_name
     { ALL |
       METADATA |
-      TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) |
+      TABLE table_ident [ PARTITION (partition_column = value [, ...])] [, ...] |
       data_section [, ...] }
     [ WITH (restore_parameter [= value], [, ...]) ]
 
@@ -120,7 +120,7 @@ exclusively.
 
 ::
 
-    [ PARTITION ( partition_column = value [ , ... ] ) ]
+    [ PARTITION ( partition_column = value [, ...] ) ]
 
 :partition_column:
   One of the column names used for table partitioning
