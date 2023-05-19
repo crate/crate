@@ -23,7 +23,7 @@ Synopsis
 ::
 
     CREATE SNAPSHOT repository_name.snapshot_name
-    { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
+    { TABLE table_ident [ PARTITION (partition_column = value [, ...])] [, ...] | ALL }
     [ WITH (snapshot_parameter [= value], [, ...]) ]
 
 
@@ -35,8 +35,8 @@ Description
 Create a new incremental snapshot inside a repository.
 
 A snapshot is a backup of the current state of the given tables and the cluster
-metadata at the point the CREATE SNAPSHOT query starts executing. Changes made
-after that are not considered for the snapshot.
+metadata at the point the ``CREATE SNAPSHOT`` query starts executing. Changes
+made after that are not considered for the snapshot.
 
 A snapshot is fully qualified by its ``snapshot_name`` and the name of the
 repository it should be created in (``repository_name``). A ``snapshot_name``
@@ -154,6 +154,6 @@ is created:
   ``false``.
 
 :ignore_unavailable:
-  (Default ``false``) if a given table does not exist the command will
+  (Default ``false``) If a given table does not exist the command will
   fail by default. If set to ``true`` these tables are ignored and not
   included in the snapshot.
