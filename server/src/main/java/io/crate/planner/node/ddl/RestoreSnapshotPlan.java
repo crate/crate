@@ -112,9 +112,11 @@ public class RestoreSnapshotPlan implements Plan {
             .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
                 if (t == null) {
                     String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
-                    String[] templateNames = stmt.includeTables() && stmt.restoreTables().isEmpty()
+                    String[] templateNames = stmt.includeTables() && ctx.resolvedTemplates().isEmpty()
                         ? new String[]{ALL_TEMPLATES}
                         : ctx.resolvedTemplates().toArray(new String[0]);
+                    boolean includeTables = stmt.includeTables() &&
+                                            (indexNames.length > 0 || ctx.resolvedTemplates().isEmpty());
 
                     // ignore_unavailable as set by statement
                     IndicesOptions indicesOptions = IndicesOptions.fromOptions(
@@ -132,8 +134,8 @@ public class RestoreSnapshotPlan implements Plan {
                         .indicesOptions(indicesOptions)
                         .settings(settings)
                         .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-                        .includeIndices(stmt.includeTables())
-                        .includeAliases(stmt.includeTables())
+                        .includeIndices(includeTables)
+                        .includeAliases(includeTables)
                         .includeCustomMetadata(stmt.includeCustomMetadata())
                         .customMetadataTypes(stmt.customMetadataTypes())
                         .includeGlobalSettings(stmt.includeGlobalSettings())
