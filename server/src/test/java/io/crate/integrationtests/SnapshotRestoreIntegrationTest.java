@@ -23,16 +23,10 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -106,7 +100,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute(
             "CREATE REPOSITORY my_repo_ro TYPE \"fs\" with (location=?, compress=true, readonly=true)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()}
@@ -149,6 +143,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     private void createTable(String tableName, boolean partitioned) {
+        createTable(tableName, partitioned, true);
+    }
+
+    private void createTable(String tableName, boolean partitioned, boolean withData) {
         execute("CREATE TABLE " + tableName + " (" +
                 "  id long primary key, " +
                 "  name string, " +
@@ -156,18 +154,20 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "  ft string index using fulltext with (analyzer='default')" +
                 ") " + (partitioned ? "partitioned by (date) " : "") +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
-            {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
-            {2L, "bar", "2015-10-27T11:29:00+01:00", "Morgenstund hat Gold im Mund."},
-            {3L, "baz", "1989-11-09", "Reden ist Schweigen. Silber ist Gold."},
-        });
-        execute("REFRESH TABLE " + tableName);
+        if (withData) {
+            execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
+                {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
+                {2L, "bar", "2015-10-27T11:29:00+01:00", "Morgenstund hat Gold im Mund."},
+                {3L, "baz", "1989-11-09", "Reden ist Schweigen. Silber ist Gold."},
+            });
+            execute("REFRESH TABLE " + tableName);
+        }
     }
 
     private void createSnapshot(String snapshotName, String... tables) {
         execute("CREATE SNAPSHOT " + REPOSITORY_NAME + "." + snapshotName + " TABLE " + String.join(", ", tables) +
                 " WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     private static String snapshotName() {
@@ -180,10 +180,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         createTableAndSnapshot("my_table", snapshotName);
 
         execute("drop snapshot " + REPOSITORY_NAME + "." + snapshotName);
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select * from sys.snapshots where name = ?", new Object[]{snapshotName});
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
         assertAllRepoSnapshotFilesAreDeleted(defaultRepositoryLocation);
     }
 
@@ -210,23 +210,20 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     public void testCreateSnapshot() throws Exception {
         createTable("backmeup", false);
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
-        assertThat(printedTable(response.rows()),
-                   is(String.format(
-                "my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n" +
-                // shows up twice because both repos have the same data path
-                "my_snapshot| my_repo_ro| [%s.backmeup]| SUCCESS\n",
-                sqlExecutor.getCurrentSchema(),
-                sqlExecutor.getCurrentSchema())));
+        assertThat(response).hasRows(
+            String.format("my_snapshot| my_repo| [%s.backmeup]| SUCCESS", sqlExecutor.getCurrentSchema()),
+            // shows up twice because both repos have the same data path
+            String.format("my_snapshot| my_repo_ro| [%s.backmeup]| SUCCESS", sqlExecutor.getCurrentSchema()));
     }
 
     @Test
     public void testCreateSnapshotWithoutWaitForCompletion() throws Exception {
         // this test just verifies that no exception is thrown if wait_for_completion is false
         execute("CREATE SNAPSHOT my_repo.snapshot_no_wait ALL WITH (wait_for_completion=false)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
@@ -248,7 +245,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             }
             Thread.sleep(100);
         }
-        fail("Timeout waiting for snapshot completion!");
+        Asserts.fail("Timeout waiting for snapshot completion!");
     }
 
     @Test
@@ -257,13 +254,13 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("CREATE SNAPSHOT " + snapshotName() +
                 " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select name, \"repository\", concrete_indices, tables, state from sys.snapshots order by 2");
-        assertThat(printedTable(response.rows()),
-                   is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS\n" +
-               // shows up twice because the repos have the same fs path.
-               "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS\n"));
+        assertThat(response).hasRows(
+            "my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS",
+            // shows up twice because the repos have the same fs path.
+            "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS");
     }
 
     @Test
@@ -272,10 +269,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE BLOB TABLE b1");
         ensureYellow();
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select concrete_indices from sys.snapshots");
-        assertThat(response.rows()[0][0], is(List.of(getFqn("t1"))));
+        assertThat(response.rows()[0][0]).isEqualTo(List.of(getFqn("t1")));
     }
 
     @Test
@@ -283,7 +280,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         createTable("backmeup", randomBoolean());
 
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
@@ -327,10 +324,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("restore snapshot " + snapshotName() + " ALL with (wait_for_completion=true)");
 
         execute("select * from survivor order by bla");
-        assertThat(printedTable(response.rows()), is(
-            "bar| 1.4\n" +
-            "baz| 1.2\n" +
-            "foo| 1.2\n"));
+        assertThat(response).hasRows(
+            "bar| 1.4",
+            "baz| 1.2",
+            "foo| 1.2");
     }
 
     @Test
@@ -364,14 +361,15 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("DROP table test");
 
         execute("select state from sys.snapshots where name=?", new Object[]{SNAPSHOT_NAME});
-        assertThat(response.rows()[0][0], is("SUCCESS"));
+        assertThat(response.rows()[0][0]).isEqualTo("SUCCESS");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (wait_for_completion=true)");
 
         waitNoPendingTasksOnAll();
 
         SnapshotsInProgress finalSnapshotsInProgress = clusterService().state().custom(SnapshotsInProgress.TYPE);
-        assertFalse(finalSnapshotsInProgress.entries().stream().anyMatch(entry -> entry.state().completed() == false));
+        assertThat(finalSnapshotsInProgress.entries().stream().anyMatch(entry -> entry.state().completed() == false))
+            .isFalse();
 
         ImmutableOpenMap<String, IndexMetadata> state = clusterService().state().metadata().indices();
         IndexMetadata indexMetadata = state.values().iterator().next().value;
@@ -379,9 +377,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("select count(*) from test");
 
-        assertThat(
-            "Documents were restored but the restored index mapping was older than some documents and misses some of their fields",
-            (Long)response.rows()[0][0], lessThanOrEqualTo((long) sizeOfProperties));
+        assertThat((Long)response.rows()[0][0])
+            .as("Documents were restored but the restored index mapping was older than some " +
+                "documents and misses some of their fields")
+            .isLessThanOrEqualTo(sizeOfProperties);
     }
 
     @Test
@@ -395,7 +394,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "wait_for_completion=true)");
         ensureGreen();
         execute("select * from my_table order by id");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
     }
 
     @Test
@@ -410,7 +409,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "wait_for_completion=true)");
 
         execute("select date from my_parted_table");
-        assertThat(printedTable(response.rows()), is("0\n"));
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -424,7 +423,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
         execute("select date from parted_table order by id");
-        assertThat(printedTable(response.rows()), is("0\n1445941740000\n626572800000\n"));
+        assertThat(response).hasRows("0",
+                                     "1445941740000",
+                                     "626572800000");
     }
 
     @Test
@@ -438,7 +439,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
         execute("select date from parted_table order by id");
-        assertThat(printedTable(response.rows()), is("0\n"));
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -452,7 +453,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "wait_for_completion=true)");
 
         execute("select date from my_parted_table");
-        assertThat(printedTable(response.rows()), is("0\n"));
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -466,7 +467,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "wait_for_completion=true)");
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(printedTable(response.rows()), is(getFqn("my_table") + "\n"));
+        assertThat(response).hasRows(getFqn("my_table"));
     }
 
     @Test
@@ -483,7 +484,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ? order by 1",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(printedTable(response.rows()), is(getFqn("my_table_1") + "\n" + getFqn("my_table_2") + "\n"));
+        assertThat(response).hasRows(getFqn("my_table_1"), getFqn("my_table_2"));
     }
 
     @Test
@@ -505,10 +506,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "select table_name from information_schema.tables where table_schema = ? order by 1",
                 new Object[] { sqlExecutor.getCurrentSchema() }
             );
-            assertThat(printedTable(response.rows()), is(
-                "my_table_1\n" +
-                "my_table_2\n"
-            ));
+            assertThat(response).hasRows(
+                "my_table_1",
+                "my_table_2");
         });
     }
 
@@ -531,7 +531,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                 "wait_for_completion=true)");
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(printedTable(response.rows()), is(getFqn("my_parted_1") + "\n"));
+        assertThat(response).hasRows(getFqn("my_parted_1"));
     }
 
     @Test
@@ -546,7 +546,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(printedTable(response.rows()), is(getFqn("employees") + "\n"));
+        assertThat(response).hasRows(getFqn("employees"));
     }
 
     @Test
@@ -561,7 +561,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(printedTable(response.rows()), is(getFqn("employees") + "\n"));
+        assertThat(response).hasRows(getFqn("employees"));
     }
 
     @Test
@@ -601,7 +601,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         var repositoryData = getRepositoryData();
         var indexIds = repositoryData.getIndices();
-        assertThat(indexIds.size(), equalTo(1));
+        assertThat(indexIds).hasSize(1);
 
         var corruptedIndex = indexIds.entrySet().iterator().next().getValue();
         var shardIndexFile = defaultRepositoryLocation.toPath().resolve("indices")
@@ -620,7 +620,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is((long) numberOfDocs));
+        assertThat(response.rows()[0][0]).isEqualTo((long) numberOfDocs);
 
         int numberOfAdditionalDocs = randomIntBetween(0, 10);
         bulkArgs = new Object[numberOfAdditionalDocs][1];
@@ -646,21 +646,22 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
 
         execute("select table_name from information_schema.tables where table_name = 'my_table'");
-        assertThat(printedTable(response.rows()), is("my_table\n"));
+        assertThat(response).hasRows("my_table");
 
         execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
-        assertThat(printedTable(response.rows()), is("my_view\n"));
+        assertThat(response).hasRows("my_view");
 
         execute("select name from sys.users where name = 'my_user'");
-        assertThat(printedTable(response.rows()), is("my_user\n"));
+        assertThat(response).hasRows("my_user");
 
         execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
-        assertThat(printedTable(response.rows()), is("DQL\n"));
+        assertThat(response).hasRows("DQL");
 
         execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
                 " routine_name IN ('a1', 'custom') ORDER BY 1");
-        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n" +
-                                                     "custom| FUNCTION\n"));
+        assertThat(response).hasRows(
+            "a1| ANALYZER",
+            "custom| FUNCTION");
     }
 
     @Test
@@ -675,8 +676,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("select table_name from information_schema.tables where table_schema = ? order by 1",
                 $(sqlExecutor.getCurrentSchema()));
-        assertThat(printedTable(response.rows()), is("my_table\n" +
-                                                     "t2\n"));
+        assertThat(response).hasRows(
+            "my_table",
+            "t2");
     }
 
     @Test
@@ -688,22 +690,23 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
 
         execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
-        assertThat(printedTable(response.rows()), is("my_view\n"));
+        assertThat(response).hasRows("my_view");
 
         execute("SELECT name FROM sys.users WHERE name = 'my_user'");
-        assertThat(printedTable(response.rows()), is("my_user\n"));
+        assertThat(response).hasRows("my_user");
 
         execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
-        assertThat(printedTable(response.rows()), is("DQL\n"));
+        assertThat(response).hasRows("DQL");
 
         execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
                 " routine_name IN ('a1', 'custom') ORDER BY 1");
-        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n" +
-                                                     "custom| FUNCTION\n"));
+        assertThat(response).hasRows(
+            "a1| ANALYZER",
+            "custom| FUNCTION");
 
         // NO tables must be restored
         execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'my_table'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
     }
 
@@ -719,20 +722,20 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         execute("SELECT routine_name, routine_type FROM information_schema.routines WHERE" +
                 " routine_name IN ('a1', 'custom') ORDER BY 1");
-        assertThat(printedTable(response.rows()), is("a1| ANALYZER\n"));
+        assertThat(response).hasRows("a1| ANALYZER");
 
         // All other MUST NOT be restored
         execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'my_table'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("SELECT table_name FROM information_schema.views WHERE table_name = 'my_view'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("SELECT name FROM sys.users WHERE name = 'my_user'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("SELECT type FROM sys.privileges WHERE grantee = 'my_user'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     /**
@@ -748,7 +751,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
 
         execute("SELECT name FROM sys.users WHERE name = 'my_user'");
-        assertThat(printedTable(response.rows()), is("my_user\n"));
+        assertThat(response).hasRows("my_user");
     }
 
     @Test
@@ -765,10 +768,12 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("RESTORE SNAPSHOT " + snapshotName() + " ALL");
 
         execute("SELECT table_name FROM information_schema.tables WHERE table_name = 't1'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("SELECT name FROM sys.users WHERE name = 'my_user'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
+    }
+
     }
 
     private void createSnapshotWithTablesAndMetadata() throws Exception {
@@ -782,7 +787,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE ANALYZER a1 (TOKENIZER keyword)");
 
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitNoPendingTasksOnAll();
 
         // drop all created
@@ -799,15 +804,15 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "SELECT state, array_length(concrete_indices, 1) FROM sys.snapshots where name = ? and repository = ?",
             new Object[]{snapShotName, REPOSITORY_NAME});
 
-        assertThat(response.rows()[0][0], is(state.name()));
-        assertThat(response.rows()[0][1], is(1));
+        assertThat(response.rows()[0][0]).isEqualTo(state.name());
+        assertThat(response.rows()[0][1]).isEqualTo(1);
     }
 
     private static void assertAllRepoSnapshotFilesAreDeleted(File location) throws IOException {
         //Make sure the file location does not consist of any .dat file
         Files.walk(location.toPath())
             .filter(Files::isRegularFile)
-            .forEach(x -> assertThat(x.getFileName().endsWith(".dat"), is(false)));
+            .forEach(x -> assertThat(x.getFileName().endsWith(".dat")).isFalse());
     }
 
     private RepositoryData getRepositoryData() throws Exception {

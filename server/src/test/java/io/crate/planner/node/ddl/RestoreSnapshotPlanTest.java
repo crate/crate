@@ -22,10 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.metadata.PartitionName.templateName;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.Set;
@@ -51,12 +48,10 @@ public class RestoreSnapshotPlanTest {
             null
         ).get();
 
-        assertThat(
-            context.resolvedIndices(),
-            containsInAnyOrder(
+        assertThat(context.resolvedIndices()).containsExactlyInAnyOrder(
                 "my_table",
-                templateName(Schemas.DOC_SCHEMA_NAME, "my_table") + "*"));
-        assertThat(context.resolvedTemplates(), contains(".partitioned.my_table."));
+                templateName(Schemas.DOC_SCHEMA_NAME, "my_table") + "*");
+        assertThat(context.resolvedTemplates()).containsExactly(".partitioned.my_table.");
     }
 
     @Test
@@ -73,8 +68,8 @@ public class RestoreSnapshotPlanTest {
             context
         );
 
-        assertThat(context.resolvedIndices(), contains("custom.restoreme"));
-        assertThat(context.resolvedTemplates().size(), is(0));
+        assertThat(context.resolvedIndices()).containsExactly("custom.restoreme");
+        assertThat(context.resolvedTemplates()).isEmpty();
     }
 
     @Test
@@ -89,8 +84,8 @@ public class RestoreSnapshotPlanTest {
         );
 
         String template = templateName(Schemas.DOC_SCHEMA_NAME, "restoreme");
-        assertThat(context.resolvedIndices(), contains(template + "*"));
-        assertThat(context.resolvedTemplates(), contains(template));
+        assertThat(context.resolvedIndices()).containsExactly(template + "*");
+        assertThat(context.resolvedTemplates()).containsExactly(template);
     }
 
     @Test
@@ -101,10 +96,12 @@ public class RestoreSnapshotPlanTest {
             List.of(new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), List.of(), 0L, false)),
             context
         );
-        assertThat(context.resolvedIndices().size(), is(0));
+        assertThat(context.resolvedIndices()).isEmpty();
         // If the snapshot doesn't contain any index which belongs to the table, it could be that the user
         // restores an empty partitioned table. For that case we attempt to restore the table template.
-        assertThat(context.resolvedTemplates(), contains(templateName(Schemas.DOC_SCHEMA_NAME, "restoreme")));
+        assertThat(context.resolvedTemplates()).containsExactly(
+            templateName(Schemas.DOC_SCHEMA_NAME, "restoreme"));
+
     }
 
     @Test
@@ -130,13 +127,11 @@ public class RestoreSnapshotPlanTest {
         var context = new RestoreSnapshotPlan.ResolveIndicesAndTemplatesContext();
         RestoreSnapshotPlan.resolveTablesFromSnapshots(tables, snapshots, context);
 
-        assertThat(
-            context.resolvedIndices(),
-            containsInAnyOrder(
+        assertThat(context.resolvedIndices()).containsExactlyInAnyOrder(
                 "my_table",
                 templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table") +
-                "*"));
-        assertThat(context.resolvedTemplates(),
-                   contains(templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table")));
+                "*");
+        assertThat(context.resolvedTemplates()).containsExactly(
+            templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"));
     }
 }
