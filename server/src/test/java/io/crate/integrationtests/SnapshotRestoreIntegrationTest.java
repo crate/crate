@@ -774,6 +774,33 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(0L);
     }
 
+    @Test
+    public void test_restore_empty_partitioned_table_does_not_restore_other_tables() {
+        createTable("custom.empty_parted1", true, false);
+        createTable("custom.empty_parted2", true, false);
+        createTable("custom.parted", true);
+        createTable("custom.t1", false);
+        createTable("custom.t2", false);
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+
+        execute("DROP TABLE custom.empty_parted1");
+        execute("DROP TABLE custom.empty_parted2");
+        execute("DROP TABLE custom.parted");
+        execute("DROP TABLE custom.t1");
+        execute("DROP TABLE custom.t2");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE custom.empty_parted1");
+        execute("SELECT table_name FROM information_schema.tables WHERE table_schema='custom'");
+        assertThat(response).hasRows("empty_parted1");
+
+        execute("DROP TABLE custom.empty_parted1");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE custom.empty_parted1, custom.empty_parted2");
+        execute("SELECT table_name FROM information_schema.tables WHERE table_schema='custom' ORDER BY 1");
+        assertThat(response).hasRows(
+            "empty_parted1",
+            "empty_parted2");
     }
 
     private void createSnapshotWithTablesAndMetadata() throws Exception {
