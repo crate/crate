@@ -28,14 +28,17 @@ import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -59,7 +62,6 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.JobLauncher;
@@ -226,29 +228,29 @@ public final class CopyFromPlan implements Plan {
             .map(table::getReference)
             .collect(Collectors.toList());
 
-        List<Symbol> toCollect = getSymbolsRequiredForShardIdCalc(
-            primaryKeyRefs,
-            table.partitionedByColumns(),
-            clusteredBy == null ? null : table.getReference(clusteredBy)
-        );
-        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
-        final int rawOrDocIdx = toCollect.size();
-        toCollect.add(rawOrDoc);
-
-        String[] excludes = partitionedByNames.size() > 0
-            ? partitionedByNames.toArray(new String[0]) : null;
-
-        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
-        Symbol clusteredByInputCol = null;
-        if (clusteredBy != null) {
-            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
-        }
-
-        SourceIndexWriterProjection sourceIndexWriterProjection;
+        List<Symbol> toCollect;
+        AbstractIndexWriterProjection indexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
         boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
+
         if (returnSummary || failFast) {
+
+            toCollect = getSymbolsRequiredForShardIdCalc(
+                primaryKeyRefs,
+                table.partitionedByColumns(),
+                clusteredBy == null ? null : table.getReference(clusteredBy)
+            );
+            Reference rawOrDoc = rawOrDoc(table, partitionIdent);
+            final int rawOrDocIdx = toCollect.size();
+            toCollect.add(rawOrDoc);
+
+            InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
+            Symbol clusteredByInputCol = null;
+            if (clusteredBy != null) {
+                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
+            }
+
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
@@ -266,7 +268,10 @@ public final class CopyFromPlan implements Plan {
                 projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
             }
 
-            sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
+            String[] excludes = partitionedByNames.size() > 0
+                ? partitionedByNames.toArray(new String[0]) : null;
+
+            indexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
                 partitionIdent,
                 table.getReference(DocSysColumns.RAW),
@@ -286,20 +291,58 @@ public final class CopyFromPlan implements Plan {
                 lineNumberSymbol
             );
         } else {
-            sourceIndexWriterProjection = new SourceIndexWriterProjection(
+
+            // Those columns must be collected regardless of their presence in targetColumns
+            // since they are used for calculating shard id.
+            // Collecting all top-level table columns might miss those columns if they are sub-columns.
+            Set<Reference> targetColumns = new HashSet<>();
+            targetColumns.addAll(primaryKeyRefs);
+            targetColumns.addAll(table.partitionedByColumns());
+            if (clusteredBy != null) {
+                targetColumns.add(table.getReference(clusteredBy));
+            }
+
+            // Add top-level columns (filter if we know already target columns) in addition to required sub-columns added above.
+            // If required columns are top-level columns, they are already added and ignored here.
+            table.columns()
+                .stream()
+                .filter(ref ->
+                    // if targetColumns are empty, CSV header/json keys are source of the truth and plan has to be adjusted in runtime to
+                    // dynamically add columns not listed in header.
+                    boundedCopyFrom.targetColumns().isEmpty()
+                        ||
+                    // Regular filtering
+                    (boundedCopyFrom.targetColumns().isEmpty() == false && boundedCopyFrom.targetColumns().contains(ref.column().sqlFqn()))
+                )
+                .forEach(ref -> targetColumns.add(ref));
+
+            // Ensure that order of the columns in _raw column is deterministic.
+            List<Reference> targetColsInCorrectOrder = new ArrayList<>(targetColumns);
+            Collections.sort(targetColsInCorrectOrder, Comparator.comparingInt(Reference::position));
+
+            toCollect = new ArrayList<>(targetColsInCorrectOrder);
+
+            InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
+            Symbol clusteredByInputCol = null;
+            if (clusteredBy != null) {
+                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
+            }
+
+            indexWriterProjection = new ColumnIndexWriterProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
-                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
-                clusteredBy,
-                boundedCopyFrom.settings(),
-                excludes,
+                targetColsInCorrectOrder,
+                !boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
+                Collections.emptyMap(), // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
+                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                table.clusteredBy(),
                 clusteredByInputCol,
+                boundedCopyFrom.settings(),
+                table.isPartitioned(), // autoCreateIndices
                 projectionOutputs,
-                table.isPartitioned() // autoCreateIndices
+                List.of() // copyFrom.outputs() is null
             );
         }
 
@@ -331,7 +374,7 @@ public final class CopyFromPlan implements Plan {
 
         Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, -1, null);
         // add the projection to the plan to ensure that the outputs are correctly set to the projection outputs
-        collect.addProjection(sourceIndexWriterProjection);
+        collect.addProjection(indexWriterProjection);
 
         List<Projection> handlerProjections;
         if (returnSummary) {
