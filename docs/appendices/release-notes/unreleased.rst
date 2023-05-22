@@ -64,6 +64,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that :ref:`LIKE and ILIKE <sql_dql_like>` operators would
+  produce wrong results when the ``?`` is used in the pattern string, e.g.::
+
+    SELECT * FROM tbl WHERE q ILIKE '%.com?apiPath%'
+
 - Fixed an issue that would cause all tables within a
   :ref:`Snapshot <snapshot-restore>` to be restored, when trying to restore an
   empty partitioned table, e.g.::
