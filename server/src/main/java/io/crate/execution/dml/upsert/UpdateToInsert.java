@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
@@ -96,6 +98,18 @@ import io.crate.metadata.doc.DocTableInfo;
  *  Result:
  *      targetColumns: [x,  y, z]
  *      values:        [1, 12, 3]
+ *  </pre>
+ *
+ *  <pre>
+ *      Table with columns (x, y, z) and existing record: (1, 2, 3)
+ *
+ *  INSERT INTO tbl (z) VALUES (3)
+ *  ON CONFLICT (z) DO UPDATE SET
+ *      y = 20
+ *
+ *  Result:
+ *      targetColumns: [z, x,  y]
+ *      values:        [3, 1, 20]
  **/
 public final class UpdateToInsert {
 
@@ -134,13 +148,19 @@ public final class UpdateToInsert {
     public UpdateToInsert(NodeContext nodeCtx,
                           TransactionContext txnCtx,
                           DocTableInfo table,
-                          String[] updateColumns) {
+                          String[] updateColumns,
+                          @Nullable Reference[] insertColumns) {
         var refResolver = new DocRefResolver(table.partitionedBy());
         this.table = table;
         this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
         this.updateColumns = new ArrayList<>(updateColumns.length);
         this.columns = new ArrayList<>();
         boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
+        if (insertColumns != null) {
+            for (Reference insertColumn : insertColumns) {
+                this.columns.add(insertColumn);
+            }
+        }
         for (var column : table.columns()) {
             // The Indexer later on injects the generated column values
             // We only include them here if they are provided in the `updateColumns` to validate
@@ -148,7 +168,9 @@ public final class UpdateToInsert {
             if (column instanceof GeneratedReference && !Arrays.asList(updateColumns).contains(column.column().fqn())) {
                 continue;
             }
-            this.columns.add(column);
+            if (!this.columns.contains(column)) {
+                this.columns.add(column);
+            }
         }
         for (String columnName : updateColumns) {
             ColumnIdent column = ColumnIdent.fromPath(columnName);

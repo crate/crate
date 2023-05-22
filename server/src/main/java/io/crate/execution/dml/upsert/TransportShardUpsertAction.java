@@ -25,6 +25,7 @@ import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -149,10 +150,29 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
         UpdateToInsert updateToInsert = request.updateColumns() == null || request.updateColumns().length == 0
             ? null
-            : new UpdateToInsert(nodeCtx, txnCtx, tableInfo, request.updateColumns());
+            : new UpdateToInsert(
+                nodeCtx,
+                txnCtx,
+                tableInfo,
+                request.updateColumns(),
+                request.insertColumns()
+            );
         List<Reference> insertColumns;
         if (updateToInsert != null) {
             insertColumns = updateToInsert.columns();
+
+            // updateToInsert.columns() must have an exact overlap with the insert
+            // target-column-list because the supplied values
+            // will be in that order.
+            //
+            // Example where it adds columns:
+            //
+            // INSERT INTO tbl (x) VALUES (1)
+            //  ON CONFLICT (x) DO UPDATE SET y = 20
+            //
+            //  Would need to have [x, y, ...]
+            assert request.insertColumns() == null || insertColumns.subList(0, request.insertColumns().length).equals(Arrays.asList(request.insertColumns()))
+                : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
         } else {
             insertColumns = List.of(request.insertColumns());
         }

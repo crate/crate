@@ -30,13 +30,13 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Offset.offset;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -49,6 +49,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
@@ -1723,5 +1724,67 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4003)
                 .hasMessageContaining("Column name 'a\nb' contains illegal whitespace character");
+    }
+
+
+    // See https://github.com/crate/crate/issues/14159
+    @Test
+    public void test_insert_into_with_on_conflict_insert_column_order_different_to_table_column_order() throws Exception {
+        execute("""
+            create table tbl (
+                system text not null,
+                company_id text not null,
+                enabled boolean not null,
+                options array(object(strict) as (
+                    name text,
+                    value text
+                )),
+                primary key ("system", "company_id")
+            ) clustered into 1 shards;
+            """
+        );
+        Object[][] bulkArgs = new Object[][] {
+            new Object[] {
+                "df1a821d8c9",
+                true,
+                List.of(
+                    Map.of("name", "username", "value", "a7dd8f8bbd7"),
+                    Map.of("name", "password", "value", "fa390881aea")
+                ),
+                "xyz"
+            },
+        };
+        long[] counts = execute("""
+            insert into tbl
+                (company_id, enabled, options, system)
+                values
+                (?, ?, ?, ?)
+            on conflict (company_id, system) do update set enabled = $2, options = $3
+            """,
+            bulkArgs
+        );
+        assertThat(counts).containsExactly(1);
+        execute("refresh table tbl");
+        execute("select company_id, enabled, options, system from tbl");
+        assertThat(response).hasRows(
+            "df1a821d8c9| true| [{name=username, value=a7dd8f8bbd7}, {name=password, value=fa390881aea}]| xyz"
+        );
+
+        bulkArgs[0][1] = false;
+        counts = execute("""
+            insert into tbl
+                (company_id, enabled, options, system)
+                values
+                (?, ?, ?, ?)
+            on conflict (company_id, system) do update set enabled = $2, options = $3
+            """,
+            bulkArgs
+        );
+        assertThat(counts).containsExactly(1);
+        execute("refresh table tbl");
+        execute("select company_id, enabled, options, system from tbl");
+        assertThat(response).hasRows(
+            "df1a821d8c9| false| [{name=username, value=a7dd8f8bbd7}, {name=password, value=fa390881aea}]| xyz"
+        );
     }
 }
