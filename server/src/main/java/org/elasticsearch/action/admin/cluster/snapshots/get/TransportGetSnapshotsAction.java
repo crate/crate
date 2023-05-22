@@ -217,34 +217,6 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
         return unmodifiableList(snapshotList);
     }
 
-    /**
-     * Retrieves snapshot from repository
-     *
-     * @param snapshotsInProgress snapshots in progress in the cluster state
-     * @param repositoryName      repository name
-     * @param snapshotId          snapshot id
-     * @return snapshot
-     * @throws SnapshotMissingException if snapshot is not found
-     */
-    private CompletableFuture<SnapshotInfo> snapshot(@Nullable SnapshotsInProgress snapshotsInProgress,
-                                                     String repositoryName, SnapshotId snapshotId) {
-        List<SnapshotsInProgress.Entry> entries =
-            SnapshotsService.currentSnapshots(snapshotsInProgress, repositoryName, Collections.singletonList(snapshotId.getName()));
-        if (!entries.isEmpty()) {
-            return CompletableFuture.completedFuture(new SnapshotInfo(entries.iterator().next()));
-        }
-        return repositoriesService.repository(repositoryName).getSnapshotInfo(snapshotId);
-    }
-
-    private static SnapshotInfo inProgressSnapshot(SnapshotsInProgress.Entry entry) {
-        return new SnapshotInfo(
-            entry.snapshot().getSnapshotId(),
-            entry.indices().stream().map(IndexId::getName).collect(Collectors.toList()),
-            entry.startTime(),
-            entry.includeGlobalState()
-        );
-    }
-
 
     /**
      * Gets the {@link RepositoryData} for the given repository.
