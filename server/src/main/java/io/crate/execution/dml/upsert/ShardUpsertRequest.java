@@ -450,6 +450,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
             if (in.readBoolean()) {
                 source = in.readBytesReference();
+            } else if (in.getVersion().before(Version.V_5_3_0)) {
+                // Below 5.3.0 a NULL source indicates a item to be skipped instead of the later introduced marker.
+                seqNo = SequenceNumbers.SKIP_ON_REPLICA;
             }
             if (streamPkValues(in.getVersion())) {
                 pkValues = in.readList(StreamInput::readString);
