@@ -104,8 +104,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             return new HashJoin(
                 newLhs,
                 newRhs,
-                AndOperator.join(nonConstantConditions),
-                false
+                AndOperator.join(nonConstantConditions)
             );
         }
     }

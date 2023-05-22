@@ -60,8 +60,7 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
             return new HashJoin(
                 nl.lhs(),
                 nl.rhs(),
-                nl.joinCondition(),
-                false
+                nl.joinCondition()
             );
         } else {
             return new NestedLoopJoin(

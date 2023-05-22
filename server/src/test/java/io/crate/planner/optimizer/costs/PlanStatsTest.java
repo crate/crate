@@ -203,7 +203,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             )
         );
 
-        var hashjoin = new HashJoin(lhs, rhs, x, false);
+        var hashjoin = new HashJoin(lhs, rhs, x);
 
         var memo = new Memo(hashjoin);
         PlanStats planStats = new PlanStats(tableStats, memo);

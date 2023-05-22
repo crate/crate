@@ -37,8 +37,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 public class SwapHashJoin implements Rule<HashJoin> {
 
-    private final Pattern<HashJoin> pattern = typeOf(HashJoin.class)
-        .with(j -> j.isSwapSidesDone() == false);
+    private final Pattern<HashJoin> pattern = typeOf(HashJoin.class);
 
     @Override
     public Pattern<HashJoin> pattern() {
@@ -64,8 +63,7 @@ public class SwapHashJoin implements Rule<HashJoin> {
                 new HashJoin(
                     plan.rhs(),
                     plan.lhs(),
-                    plan.joinCondition(),
-                    true
+                    plan.joinCondition()
                 ),
                 plan.outputs()
             );
