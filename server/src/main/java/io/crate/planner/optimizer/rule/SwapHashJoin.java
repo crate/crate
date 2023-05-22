@@ -70,6 +70,11 @@ public class SwapHashJoin implements Rule<HashJoin> {
                 plan.outputs()
             );
         }
-        return null;
+        return new HashJoin(
+            plan.lhs(),
+            plan.rhs(),
+            plan.joinCondition(),
+            true
+        );
     }
 }
