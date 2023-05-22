@@ -167,7 +167,6 @@ public class NestedLoopJoin extends JoinPlan {
         ExecutionPlan right = rhs.build(
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
-        PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables().stream().anyMatch(r -> r instanceof DocTableRelation);
         boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
 
@@ -183,13 +182,9 @@ public class NestedLoopJoin extends JoinPlan {
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
-                (isDistributed && lhStats.numDocs() < rhStats.numDocs() && orderByFromLeft == null) ||
                 (blockNlPossible && lhStats.numDocs() > rhStats.numDocs())) {
-                // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
-                //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
-                //    to be preserved, then the switch is not possible.
-                // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-                //    performance decreases if the left side is much larger and no limit is applied.
+                // For block nested loop, the left side should always be smaller. Benchmarks have shown that the
+                // performance decreases if the left side is much larger and no limit is applied.
                 ExecutionPlan tmpExecutionPlan = left;
                 left = right;
                 right = tmpExecutionPlan;
@@ -210,6 +205,7 @@ public class NestedLoopJoin extends JoinPlan {
             joinInput = InputColumns.create(paramBinder.apply(joinCondition), joinOutputs);
         }
 
+
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -227,6 +223,9 @@ public class NestedLoopJoin extends JoinPlan {
             lhStats.numDocs(),
             blockNlPossible
         );
+
+        PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
+
         return new Join(
             nlPhase,
             left,
