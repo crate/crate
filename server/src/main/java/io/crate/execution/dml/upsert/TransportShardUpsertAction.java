@@ -278,7 +278,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         boolean traceEnabled = logger.isTraceEnabled();
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA || item.source() == null) {
                 if (traceEnabled) {
                     logger.trace(
                         "[{} (R)] Document with id={}, marked as skip_on_replica",
