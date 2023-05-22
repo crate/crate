@@ -231,6 +231,7 @@ public class LikeOperators {
                             case '+':
                             case '{':
                             case '}':
+                            case '?':
                                 regex.append('\\');
                                 break;
                             default:

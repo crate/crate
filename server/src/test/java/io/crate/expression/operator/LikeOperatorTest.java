@@ -153,8 +153,8 @@ public class LikeOperatorTest extends ScalarTestCase {
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
-        String expression = "fo(ooo)o[asdf]o\\bar^$.*";
-        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
+        String expression = "fo(ooo)?o[asdf]o\\bar^$.*";
+        assertEquals("^fo\\(ooo\\)\\?o\\[asdf\\]obar\\^\\$\\.\\*$", patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
@@ -162,6 +162,7 @@ public class LikeOperatorTest extends ScalarTestCase {
         assertEvaluate("'foobarbaz' like 'foo%baz'", true);
         assertEvaluate("'foobarbaz' like 'foo_baz'", false);
         assertEvaluate("'characters' like 'charac%'", true);
+        assertEvaluate("'my.domain.com?path' like '%com?path%'", true);
 
         assertEvaluateNull("'foobarbaz' like name", Literal.NULL);
         assertEvaluateNull("name like 'foobarbaz'", Literal.NULL);
@@ -172,6 +173,7 @@ public class LikeOperatorTest extends ScalarTestCase {
         assertEvaluate("'FOOBARBAZ' ilike 'foo%baz'", true);
         assertEvaluate("'FOOBARBAZ' ilike 'foo___baz'", true);
         assertEvaluate("'characters' ilike 'CHaraC%'", true);
+        assertEvaluate("'my.domain.com?path' ilike '%com?pATh%'", true);
 
         assertEvaluateNull("'foobarbaz' ilike name", Literal.NULL);
         assertEvaluateNull("name ilike 'foobarbaz'", Literal.NULL);
