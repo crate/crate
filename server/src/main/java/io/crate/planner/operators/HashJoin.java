@@ -64,15 +64,12 @@ import io.crate.statistics.TableStats;
 public class HashJoin extends JoinPlan {
 
     private final List<Symbol> outputs;
-    private final boolean swapSidesDone;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition,
-                    boolean swapSidesDone) {
+                    Symbol joinCondition) {
         super(lhs, rhs, joinCondition, JoinType.INNER);
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
-        this.swapSidesDone = swapSidesDone;
     }
 
     @Override
@@ -202,10 +199,6 @@ public class HashJoin extends JoinPlan {
         return outputs;
     }
 
-    public boolean isSwapSidesDone() {
-        return swapSidesDone;
-    }
-
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
@@ -226,8 +219,7 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition,
-            swapSidesDone
+            joinCondition
         );
     }
 
@@ -249,8 +241,7 @@ public class HashJoin extends JoinPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition,
-            swapSidesDone
+            joinCondition
         );
     }
 
@@ -278,8 +269,7 @@ public class HashJoin extends JoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition,
-                swapSidesDone)
+                joinCondition)
         );
     }
 
