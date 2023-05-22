@@ -145,3 +145,6 @@ Fixes
 
 - Fixed a race condition issue while concurrently accessing S3 repositories
   with different settings, e.g. by queries against ``sys.snapshots``.
+
+- Fixed an issue in a mixed cluster scenario that may cause incoming writes
+  written on a node < ``5.3.0`` to fail when replicated to a node >= ``5.3.0``.

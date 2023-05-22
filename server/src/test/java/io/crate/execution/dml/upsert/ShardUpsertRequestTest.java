@@ -21,15 +21,17 @@
 
 package io.crate.execution.dml.upsert;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
@@ -114,7 +116,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest(in);
 
-        assertThat(request, equalTo(request2));
+        assertThat(request).isEqualTo(request2);
     }
 
     @Test
@@ -166,6 +168,41 @@ public class ShardUpsertRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest(in);
 
-        assertThat(request, equalTo(request2));
+        assertThat(request).isEqualTo(request2);
+    }
+
+    @Test
+    public void test_streaming_item_without_source_from_older_node() throws Exception {
+        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
+        String[] assignmentColumns = new String[]{"id", "name"};
+        UUID jobId = UUID.randomUUID();
+        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+                new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+                TimeValue.timeValueSeconds(30),
+                DuplicateKeyAction.UPDATE_OR_FAIL,
+                false,
+                assignmentColumns,
+                missingAssignmentColumns,
+                null,
+                jobId,
+                false
+        ).newRequest(shardId);
+
+        request.add(42, ShardUpsertRequest.Item.forInsert(
+                "42",
+                List.of(),
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                new Object[]{42, "Marvin"},
+                new Symbol[0]
+        ));
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_2_0);
+        ShardUpsertRequest request2 = new ShardUpsertRequest(in);
+        assertThat(request2.items().get(0).seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA);
     }
 }
