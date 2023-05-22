@@ -243,9 +243,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedLoop_TablesAreNotSwitchedIfLeftHasAPushedDownOrderBy() {
-        // we use a subselect to simulate the pushed-down order by
-        QueriedSelectRelation mss = e.analyze("select users.id from (select id from users order by id) users, " +
-                                              "locations where users.id = locations.id");
+        QueriedSelectRelation mss = e.analyze("select users.id from users, locations where users.id = locations.id order by users.id");
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
