@@ -48,6 +48,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -341,5 +342,40 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
+    }
+
+    /**
+     * This tests verifies a regression introduced in 5.3 where a marker was introduced in order to skip items instead
+     * of relying on a NULL source. On request coming from older nodes this marker isn't available and the source NULL
+     * check wasn't working as expected, resulted in an NPE.
+     */
+    @Test
+    public void testItemsWithoutSourceAreSkippedOnReplicaOperationBWC() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+                DUMMY_SESSION_INFO,
+                TimeValue.timeValueSeconds(30),
+                DuplicateKeyAction.UPDATE_OR_FAIL,
+                false,
+                null,
+                new SimpleReference[]{ID_REF},
+                null,
+                UUID.randomUUID(),
+                false
+        ).newRequest(shardId);
+
+        var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
+        itemWithSource.source(new BytesArray("{}"));
+        request.add(1, itemWithSource);
+
+        var itemWithoutSourceAndMarker = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
+        request.add(2, itemWithoutSourceAndMarker);
+
+        reset(indexShard);
+
+        // would fail with NPE if not skipped
+        transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
+        verify(indexShard, times(1)).applyIndexOperationOnReplica(
+                anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
     }
 }
