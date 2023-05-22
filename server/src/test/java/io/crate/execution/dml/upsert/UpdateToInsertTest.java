@@ -39,7 +39,9 @@ import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -67,7 +69,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "y" }
+            new String[] { "y" },
+            null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -91,7 +94,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "y" }
+            new String[] { "y" },
+            null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -115,7 +119,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "o.y" }
+            new String[] { "o.y" },
+            null
         );
         Map<String, Object> source = Map.of("x", 1, "o", Map.of("y", 2));
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -138,7 +143,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "x" }
+            new String[] { "x" },
+            null
         );
         Map<String, Object> source = Map.of("x", 1, "y", 5);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -164,7 +170,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "x" }
+            new String[] { "x" },
+            null
         );
         Map<String, Object> source = Map.of("x", 12);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -185,7 +192,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "x", "y" }
+            new String[] { "x", "y" },
+            null
         );
         Map<String, Object> source = Map.of("x", 12);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -212,7 +220,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "y" }
+            new String[] { "y" },
+            null
         );
         Map<String, Object> source = Map.of("y", 1, "o", Map.of("x", 3));
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -234,8 +243,44 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
-            new String[] { "o.x" }
+            new String[] { "o.x" },
+            null
         )).isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot add new child `o['x']` if parent column is missing");
+    }
+
+    @Test
+    public void test_preserves_insert_column_order() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int, z int)")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y = ?
+        Reference[] insertColumns = new Reference[] { table.getReference(new ColumnIdent("z")) };
+        String[] updateColumns = new String[] { "y" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            updateColumns,
+            insertColumns
+        );
+        assertThat(updateToInsert.columns())
+            .as("Start References of columns() must match insertColumns")
+            .satisfiesExactly(
+                x -> assertThat(x).isReference("z"),
+                x -> assertThat(x).isReference("x"),
+                x -> assertThat(x).isReference("y")
+            );
+
+        Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+            doc,
+            new Symbol[] { Literal.of(20) },
+            new Object[] { Literal.of(3) }
+        );
+        assertThat(item.insertValues()).containsExactly(3, 1, 20);
     }
 }
