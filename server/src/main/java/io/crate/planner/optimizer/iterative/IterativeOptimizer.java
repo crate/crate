@@ -109,10 +109,13 @@ public class IterativeOptimizer {
         var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
 
-        var done = false;
-        var progress = false;
+        int numIteration = 0;
+        int maxIterations = 10_000;
+        boolean progress = false;
+        boolean done = false;
         var minVersion = minNodeVersionInCluster.get();
-        while (!done) {
+        while (!done && numIteration < maxIterations) {
+            numIteration++;
             done = true;
             for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
@@ -139,6 +142,8 @@ public class IterativeOptimizer {
                 }
             }
         }
+        assert numIteration < maxIterations
+            : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
 
         return progress;
     }
