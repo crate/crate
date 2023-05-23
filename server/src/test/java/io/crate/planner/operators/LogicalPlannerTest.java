@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -68,9 +69,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_collect_derives_estimated_size_per_row_from_stats_and_types() {
-        // no stats -> size derived FROM fixed with type
         LogicalPlan plan = plan("SELECT x FROM t1");
-        assertThat(sqlExecutor.getStats(plan).sizeInBytes()).isEqualTo((long) DataTypes.INTEGER.fixedSize());
+        assertThat(sqlExecutor.getStats(plan).sizeInBytes())
+            .as("No stats available")
+            .isEqualTo(-1L);
 
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         ColumnStats<Integer> columnStats = new ColumnStats<>(
@@ -79,7 +81,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");
-        assertThat(sqlExecutor.getStats(plan).sizeInBytes()).isEqualTo(50L);
+        assertThat(sqlExecutor.getStats(plan).sizeInBytes()).isEqualTo(100L);
     }
 
     @Test

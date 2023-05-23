@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.costs;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -173,11 +174,11 @@ public class PlanStats {
         public Stats visitCollect(Collect collect, Void context) {
             var stats = tableStats.getStats(collect.relation().tableInfo().ident());
             if (stats.equals(Stats.EMPTY)) {
-                return new Stats(-1, stats.estimateSizeForColumns(collect.outputs()), Map.of());
+                return stats;
             } else {
                 var query = collect.where().queryOrFallback();
                 var numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, null);
-                return new Stats(numberOfRows, stats.averageSizePerRowInBytes(), stats.statsByColumn());
+                return new Stats(numberOfRows, stats.sizeInBytes(), stats.statsByColumn());
             }
         }
 
@@ -223,8 +224,9 @@ public class PlanStats {
         @Override
         public Stats visitPlan(LogicalPlan logicalPlan, Void context) {
             // This covers all sub-classes of LogicalForwardPlan
-            if (logicalPlan.sources().size() == 1) {
-                return logicalPlan.sources().get(0).accept(this, context);
+            List<LogicalPlan> sources = logicalPlan.sources();
+            if (sources.size() == 1) {
+                return sources.get(0).accept(this, context);
             }
             throw new UnsupportedOperationException("Plan stats not available for " + logicalPlan.getClass().getSimpleName());
         }
