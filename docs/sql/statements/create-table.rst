@@ -130,6 +130,40 @@ statement that doesn't contain an explicit value for it.
 The default clause :ref:`expression <gloss-expression>` is variable-free, it
 means that subqueries and cross-references to other columns are not allowed.
 
+.. NOTE::
+
+    Default values are not allowed for columns of type ``OBJECT``, e.g.::
+
+      CREATE TABLE tbl(obj OBJECT DEFAULT {key='foo'}
+
+    but they are allowed for sub columns of an object column, e.g.::
+
+      CREATE TABLE tbl(obj OBJECT AS(key TEXT DEFAULT 'foo'))
+
+    The effect of the later, is different though, as if no value is provided for
+    the column ``obj`` then the value inserted is ``NULL``, but if a value for
+    the ``obj`` column is provided, but there is no value for ``key``
+    sub-column, then the ``key`` acquires the default value defined. e.g.::
+
+      CREATE TABLE tbl(i INT, obj OBJECT AS(key TEXT DEFAULT 'foo'))
+      INSERT INTO tbl(i) VALUES(1)
+      SELECT * FROM tbl
+      +---+------+
+      | i | obj  |
+      +---+------+
+      | 1 | NULL |
+      +---+------+
+
+    vs::
+
+      INSERT INTO tbl(i, obj) VALUES(1, {value=10})
+      SELECT * FROM tbl
+      +---+-----------------------------+
+      | i | obj                         |
+      +---+-----------------------------+
+      | 1 | {"key": "foo", "value": 10} |
+      +---+-----------------------------+
+
 
 .. _sql-create-table-generated-columns:
 

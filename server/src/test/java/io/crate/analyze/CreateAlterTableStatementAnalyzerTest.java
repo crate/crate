@@ -1189,12 +1189,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
         BoundCreateTable analysis = analyze(
             "create table foo (" +
-            "   obj object as (key text) default {key=''}," +
             "   arr array(long) default [1, 2])");
 
         assertThat(mapToSortedString(analysis.mappingProperties())).isEqualTo(
-            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), position=3, type=long}, type=array}, " +
-                "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={position=2, type=keyword}}, type=object}");
+            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), position=1, type=long}, type=array}");
     }
 
     @Test
@@ -1207,6 +1205,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(mapToSortedString(analysis.mappingProperties()), is(
             "p={default_expr=_cast([0, 0], 'geo_point'), position=1, type=geo_point}, " +
             "s={default_expr=_cast('LINESTRING (0 0, 1 1)', 'geo_shape'), position=2, type=geo_shape}"));
+    }
+
+    @Test
+    public void test_object_cols_with_default_value_not_allowed() {
+        assertThatThrownBy(() -> analyze("""
+                                             create table foo (
+                                                obj object as (key text) default {key=''}
+                                             )"""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Default values are not allowed for object columns: obj");
     }
 
     @Test
