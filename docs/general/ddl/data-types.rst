@@ -220,7 +220,7 @@ are likely to be larger due to additional metadata.
         including further child objects.
     * - ``ARRAY``
       - variable
-      - The theoretical maximum length is slightly below Java's ``Integer.MAX_VALUE``.
+      - The theoretical maximum length (number of elements) is slightly below Java's ``Integer.MAX_VALUE``.
       - An array is structured as a sequence of any other type.
     * - ``GEO_POINT``
       - 16 bytes
