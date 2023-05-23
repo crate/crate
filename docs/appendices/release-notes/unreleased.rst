@@ -177,6 +177,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Improved error message when providing
+  :ref:`DEFAULT clause <sql-create-table-default-clause>` for columns of type
+  ``OBJECT``.
+
 - Fixed a regression introduced in 5.3.0 that could lead to ``INSERT INTO``
   statements with a ``ON CONFLICT`` clause to mix up values and target columns,
   leading to validation errors or storing the wrong values in the wrong columns.
