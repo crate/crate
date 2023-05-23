@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
@@ -51,7 +50,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
@@ -74,7 +72,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         MAPPING_RECOVERY;
     }
 
-    public static final String SINGLE_MAPPING_NAME = Constants.DEFAULT_MAPPING_TYPE;
     public static final Setting<Long> INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_DEPTH_LIMIT_SETTING =
@@ -97,17 +94,14 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     public MapperService(IndexSettings indexSettings,
                          IndexAnalyzers indexAnalyzers,
                          NamedXContentRegistry xContentRegistry,
-                         MapperRegistry mapperRegistry,
-                         Supplier<QueryShardContext> queryShardContextSupplier) {
+                         MapperRegistry mapperRegistry) {
         super(indexSettings);
         this.indexAnalyzers = indexAnalyzers;
         this.fieldTypes = new FieldTypeLookup();
         this.documentParser = new DocumentMapperParser(
-            indexSettings,
             this,
             xContentRegistry,
-            mapperRegistry,
-            queryShardContextSupplier
+            mapperRegistry
         );
         this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), MappedFieldType::indexAnalyzer);
         this.searchAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchAnalyzer(), MappedFieldType::searchAnalyzer);
@@ -324,12 +318,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
         }
 
-        if (newMapper != null) {
-            this.mapper = newMapper;
-        }
+        this.mapper = newMapper;
         this.fullPathObjectMappers = fullPathObjectMappers;
 
-        assert newMapper == null || assertSerialization(newMapper);
+        assert assertSerialization(newMapper);
         return newMapper;
     }
 
@@ -380,7 +372,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     /**
      * Return the {@link DocumentMapper} for the given type. By using the special
-     * {@value #DEFAULT_MAPPING} type, you can get a {@link DocumentMapper} for
+     * {@link Constants#DEFAULT_MAPPING_TYPE} type, you can get a {@link DocumentMapper} for
      * the default mapping.
      */
     public DocumentMapper documentMapper() {
@@ -394,13 +386,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      */
     public MappedFieldType fieldType(String fullName) {
         return fieldTypes.get(fullName);
-    }
-
-    /**
-     * Returns all mapped field types.
-     */
-    public Iterable<MappedFieldType> fieldTypes() {
-        return fieldTypes;
     }
 
     public ObjectMapper getObjectMapper(String name) {

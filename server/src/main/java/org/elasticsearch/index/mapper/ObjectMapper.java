@@ -46,10 +46,7 @@ import javax.annotation.Nullable;
 public class ObjectMapper extends Mapper implements Cloneable {
 
     public static final String CONTENT_TYPE = "object";
-
-    public static class Defaults {
-        public static final Dynamic DYNAMIC = null; // not set, inherited from root
-    }
+    public static final Dynamic DYNAMIC = null; // not set, inherited from root
 
     public enum Dynamic {
         TRUE,
@@ -57,11 +54,11 @@ public class ObjectMapper extends Mapper implements Cloneable {
         STRICT
     }
 
-    public static class Builder<T extends Builder> extends Mapper.Builder<T> {
+    public static class Builder<T extends Builder<T>> extends Mapper.Builder<T> {
 
-        protected Dynamic dynamic = Defaults.DYNAMIC;
+        protected Dynamic dynamic = DYNAMIC;
 
-        protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
+        protected final List<Mapper.Builder<?>> mappersBuilders = new ArrayList<>();
 
         @SuppressWarnings("unchecked")
         public Builder(String name) {
@@ -74,7 +71,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return builder;
         }
 
-        public T add(Mapper.Builder builder) {
+        public T add(Mapper.Builder<?> builder) {
             mappersBuilders.add(builder);
             return this.builder;
         }
@@ -84,7 +81,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             context.path().add(name);
 
             Map<String, Mapper> mappers = new HashMap<>();
-            for (Mapper.Builder builder : mappersBuilders) {
+            for (Mapper.Builder<?> builder : mappersBuilders) {
                 Mapper mapper = builder.build(context);
                 Mapper existing = mappers.get(mapper.simpleName());
                 if (existing != null) {
@@ -153,7 +150,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 }
                 return true;
             } else if (fieldName.equals("properties")) {
-                if (fieldNode instanceof Collection && ((Collection) fieldNode).isEmpty()) {
+                if (fieldNode instanceof Collection fieldNodes && fieldNodes.isEmpty()) {
                     // nothing to do here, empty (to support "properties: []" case)
                 } else if (!(fieldNode instanceof Map)) {
                     throw new ElasticsearchParseException("properties must be a map type");
@@ -165,7 +162,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             return false;
         }
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings({"rawtypes", "unchecked"})
         protected static void parseProperties(ObjectMapper.Builder objBuilder, Map<String, Object> propsNode, ParserContext parserContext) {
             Iterator<Map.Entry<String, Object>> iterator = propsNode.entrySet().iterator();
             while (iterator.hasNext()) {
@@ -203,7 +200,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                     }
                     String[] fieldNameParts = fieldName.split("\\.");
                     String realFieldName = fieldNameParts[fieldNameParts.length - 1];
-                    Mapper.Builder<?> fieldBuilder = typeParser.parse(realFieldName, propNode, parserContext);
+                    Mapper.Builder fieldBuilder = typeParser.parse(realFieldName, propNode, parserContext);
                     for (int i = fieldNameParts.length - 2; i >= 0; --i) {
                         ObjectMapper.Builder<?> intermediate = new ObjectMapper.Builder<>(fieldNameParts[i]);
                         intermediate.add(fieldBuilder);
@@ -211,7 +208,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                     }
                     objBuilder.add(fieldBuilder);
                     propNode.remove("type");
-                    DocumentMapperParser.checkNoRemainingFields(fieldName, propNode, parserContext.indexVersionCreated());
+                    DocumentMapperParser.checkNoRemainingFields(fieldName, propNode);
                     iterator.remove();
                 } else if (isEmptyList) {
                     iterator.remove();
@@ -221,9 +218,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 }
             }
 
-            DocumentMapperParser.checkNoRemainingFields(propsNode, parserContext.indexVersionCreated(),
+            DocumentMapperParser.checkNoRemainingFields(propsNode,
                     "DocType mapping definition has unsupported parameters: ");
-
         }
 
     }
@@ -378,13 +374,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
 
         // sort the mappers so we get consistent serialization format
-        Mapper[] sortedMappers = mappers.values().stream().toArray(size -> new Mapper[size]);
-        Arrays.sort(sortedMappers, new Comparator<Mapper>() {
-            @Override
-            public int compare(Mapper o1, Mapper o2) {
-                return o1.name().compareTo(o2.name());
-            }
-        });
+        Mapper[] sortedMappers = mappers.values().toArray(Mapper[]::new);
+        Arrays.sort(sortedMappers, Comparator.comparing(Mapper::name));
 
         int count = 0;
         for (Mapper mapper : sortedMappers) {

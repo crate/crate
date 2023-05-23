@@ -52,8 +52,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
         IndexAnalyzers indexAnalyzers =
                 new IndexAnalyzers(indexSettings, defaultAnalyzer, defaultAnalyzer, defaultAnalyzer, emptyMap(), emptyMap(), emptyMap());
         MapperRegistry mapperRegistry = new IndicesModule(emptyList()).getMapperRegistry();
-        mapperService = new MapperService(indexSettings, indexAnalyzers, xContentRegistry, mapperRegistry,
-                () -> null);
+        mapperService = new MapperService(indexSettings, indexAnalyzers, xContentRegistry, mapperRegistry);
     }
 
     private DocumentMapper docMapper(String type) {

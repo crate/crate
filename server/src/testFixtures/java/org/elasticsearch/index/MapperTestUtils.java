@@ -65,8 +65,7 @@ public class MapperTestUtils {
             indexSettings,
             indexAnalyzers,
             xContentRegistry,
-            mapperRegistry,
-            () -> null
+            mapperRegistry
         );
     }
 }

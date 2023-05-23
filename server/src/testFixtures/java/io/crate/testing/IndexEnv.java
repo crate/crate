@@ -98,8 +98,7 @@ public final class IndexEnv implements AutoCloseable {
             idxSettings,
             indexAnalyzers,
             NamedXContentRegistry.EMPTY,
-            mapperRegistry,
-            queryShardContext::get
+            mapperRegistry
         );
         IndexMetadata indexMetadata = clusterState.metadata().index(indexName);
         mapperService.merge(

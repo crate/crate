@@ -344,10 +344,7 @@ public final class IndexModule {
             indexSettings,
             analysisRegistry.build(indexSettings),
             xContentRegistry,
-            mapperRegistry,
-            () -> {
-                throw new UnsupportedOperationException("no index query shard context available");
-            }
+            mapperRegistry
         );
     }
 

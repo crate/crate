@@ -170,8 +170,7 @@ public class MetadataIndexUpgradeService {
                         indexSettings,
                         fakeIndexAnalzyers,
                         xContentRegistry,
-                        mapperRegistry,
-                        () -> null)) {
+                        mapperRegistry)) {
                     mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
                 }
             }
