@@ -27,14 +27,10 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLimitAndOffset;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +48,6 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
@@ -77,7 +72,13 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             "order by x desc limit 3");
         Collect collect = (Collect) qtf.subPlan();
         List<Projection> projections = collect.collectPhase().projections();
-        assertThat(projections, Matchers.hasItem(instanceOf(FilterProjection.class)));
+        assertThat(projections).satisfiesExactly(
+            isLimitAndOffset(10, 0),
+            exactlyInstanceOf(FetchProjection.class),
+            exactlyInstanceOf(FilterProjection.class),
+            exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            isLimitAndOffset(3, 0)
+        );
     }
 
     @Test
@@ -86,7 +87,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                         "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
                         ") t order by t1x desc limit 3");
         List<Projection> projections = nl.joinPhase().projections();
-        Asserts.assertThat(projections).satisfiesExactly(
+        assertThat(projections).satisfiesExactly(
             exactlyInstanceOf(EvalProjection.class),
             isLimitAndOffset(10, 0),
             exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
@@ -104,19 +105,16 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                  "group by c + 100 order by c + 100 " +
                                  "limit 100");
         CollectPhase collectPhase = collect.collectPhase();
-        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(
+        assertThat(collectPhase.toCollect()).satisfiesExactly(
                 isReference("i"),
                 isFunction("add", isReference("x"), isLiteral(10)));
-        assertThat(
-            collectPhase.projections(),
-            contains(
-                instanceOf(GroupProjection.class),
-                instanceOf(GroupProjection.class),
-                instanceOf(EvalProjection.class),
-                instanceOf(GroupProjection.class),
-                instanceOf(OrderedLimitAndOffsetProjection.class),
-                instanceOf(LimitAndOffsetProjection.class)
-            )
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            exactlyInstanceOf(GroupProjection.class),
+            exactlyInstanceOf(GroupProjection.class),
+            exactlyInstanceOf(EvalProjection.class),
+            exactlyInstanceOf(GroupProjection.class),
+            exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            exactlyInstanceOf(LimitAndOffsetProjection.class)
         );
     }
 
@@ -128,21 +126,21 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                          "join" +
                          " (select i from t2 order by b limit 5 offset 5) t2 " +
                          "on t1.i = t2.i");
-        assertThat(join.joinPhase().projections().size(), is(1));
-        assertThat(join.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(join.joinPhase().projections()).hasSize(1);
+        assertThat(join.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
 
         QueryThenFetch leftQtf = (QueryThenFetch) join.left();
         Collect left = (Collect) leftQtf.subPlan();
-        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(left.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
         assertSQL(left.orderBy(), "OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[false]}");
-        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
+        assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
             exactlyInstanceOf(FetchProjection.class));
         QueryThenFetch rightQtf = (QueryThenFetch) join.right();
         Collect right = (Collect) rightQtf.subPlan();
-        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
+        assertThat(right.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
         assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.b");
-        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
+        assertThat(right.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(5, 5),
             exactlyInstanceOf(FetchProjection.class),
             exactlyInstanceOf(EvalProjection.class)); // strips `b` used in order by from the outputs
@@ -159,22 +157,22 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         QueryThenFetch qtf = (QueryThenFetch) join.left();
         Collect left = (Collect) qtf.subPlan();
-        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(left.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
         assertSQL(((RoutedCollectPhase) left.collectPhase()).orderBy(), "doc.t1.a");
-        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
+        assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
             exactlyInstanceOf(FetchProjection.class));
         assertSQL(left.collectPhase().toCollect(), "doc.t1._fetchid, doc.t1.a");
 
 
         Collect right = (Collect) join.right();
-        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
+        assertThat(right.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
         assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.i DESC");
-        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
+        assertThat(right.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(5, 5));
 
         List<Projection> nlProjections = join.joinPhase().projections();
-        Asserts.assertThat(nlProjections).satisfiesExactly(
+        assertThat(nlProjections).satisfiesExactly(
             exactlyInstanceOf(EvalProjection.class),
             exactlyInstanceOf(GroupProjection.class));
     }
@@ -189,24 +187,24 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         QueryThenFetch leftQtf = (QueryThenFetch) join.left();
         Collect left = (Collect) leftQtf.subPlan();
-        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(left.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
         assertSQL(left.collectPhase().toCollect(), "doc.t1._fetchid, doc.t1.a");
         assertSQL(((RoutedCollectPhase) left.collectPhase()).orderBy(), "doc.t1.a");
-        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
+        assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
             exactlyInstanceOf(FetchProjection.class));
 
         Collect right = (Collect) join.right();
-        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
-        Asserts.assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy()).isSQL("doc.t2.i DESC");
-        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
+        assertThat(right.nodeIds()).as("1 node, otherwise mergePhases would be required").hasSize(1);
+        assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.i DESC");
+        assertThat(right.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(5, 5));
 
         List<Projection> nlProjections = join.joinPhase().projections();
-        assertThat(nlProjections, contains(
-            instanceOf(EvalProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
+        assertThat(nlProjections).satisfiesExactly(
+            exactlyInstanceOf(EvalProjection.class),
+            exactlyInstanceOf(AggregationProjection.class)
+        );
     }
 
     @Test
@@ -217,25 +215,23 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                          " (select distinct i from t2) t2 " +
                          "on t1.cnt = t2.i::long " +
                          "group by t1.a");
-        assertThat(nl.joinPhase().projections(), contains(
-            instanceOf(EvalProjection.class),
-            instanceOf(GroupProjection.class)
-        ));
-        assertThat(nl.left(), instanceOf(Collect.class));
+        assertThat(nl.joinPhase().projections()).satisfiesExactly(
+            exactlyInstanceOf(EvalProjection.class),
+            exactlyInstanceOf(GroupProjection.class)
+        );
+        assertThat(nl.left()).isExactlyInstanceOf(Collect.class);
         Collect leftPlan = (Collect) nl.left();
         CollectPhase leftCollectPhase = leftPlan.collectPhase();
         assertThat(
-            leftCollectPhase.projections(),
-            contains(
-                instanceOf(GroupProjection.class),
-                instanceOf(GroupProjection.class),
-                instanceOf(EvalProjection.class)
-            )
+            leftCollectPhase.projections()).satisfiesExactly(
+                exactlyInstanceOf(GroupProjection.class),
+                exactlyInstanceOf(GroupProjection.class),
+                exactlyInstanceOf(EvalProjection.class)
         );
         Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.collectPhase().projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(GroupProjection.class)
-        ));
+        assertThat(rightPlan.collectPhase().projections()).satisfiesExactly(
+            exactlyInstanceOf(GroupProjection.class),
+            exactlyInstanceOf(GroupProjection.class)
+        );
     }
 }
