@@ -22,6 +22,7 @@
 package io.crate.execution.engine.join;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -32,6 +33,7 @@ import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
+import io.crate.data.Input;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -113,6 +115,22 @@ public class HashJoinOperation implements CompletionListenable {
         InputFactory.Context<? extends CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx, inputs);
         var topLevelInputs = ctx.topLevelInputs();
         var expressions = ctx.expressions();
+        if (topLevelInputs.size() == 1 && expressions.size() == 1) {
+            CollectExpression<Row, ?> collectExpression = expressions.get(0);
+            Input<?> input = topLevelInputs.get(0);
+            return row -> {
+                collectExpression.setNextRow(row);
+                return Objects.hashCode(input.value());
+            };
+        } else if (topLevelInputs.size() == 1) {
+            Input<?> input = topLevelInputs.get(0);
+            return row -> {
+                for (int i = 0; i < expressions.size(); i++) {
+                    expressions.get(i).setNextRow(row);
+                }
+                return Objects.hashCode(input.value());
+            };
+        }
         return row -> {
             for (int i = 0; i < expressions.size(); i++) {
                 expressions.get(i).setNextRow(row);

@@ -24,17 +24,16 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
 
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
 
 public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
 
     private final String columnName;
-    private SortedBinaryDocValues values;
+    private SortedSetDocValues values;
     private int docId;
 
     public BytesRefColumnReference(String columnName) {
@@ -46,7 +45,8 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
         try {
             if (values.advanceExact(docId)) {
                 if (values.docValueCount() == 1) {
-                    return values.nextValue().utf8ToString();
+                    long ord = values.nextOrd();
+                    return values.lookupOrd(ord).utf8ToString();
                 } else {
                     throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
@@ -66,7 +66,7 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = FieldData.toString(DocValues.getSortedSet(context.reader(), columnName));
+        values = DocValues.getSortedSet(context.reader(), columnName);
     }
 }
 
