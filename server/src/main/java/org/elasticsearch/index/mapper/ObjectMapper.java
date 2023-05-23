@@ -138,6 +138,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         protected static boolean parseObjectOrDocumentTypeProperties(String fieldName, Object fieldNode, ParserContext parserContext, ObjectMapper.Builder builder) {
+            assert !fieldName.equals("default_expr") : "Default values are not allowed for object columns";
+
             if (fieldName.equals("position")) {
                 builder.position(nodeIntegerValue(fieldNode));
                 return true;
