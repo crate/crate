@@ -140,9 +140,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 indexSettings,
                 registry.build(indexSettings),
                 xContentRegistry,
-                mapperRegistry,
-                // we parse all percolator queries as they would be parsed on shard 0
-                this::newQueryShardContext
+                mapperRegistry
             );
             this.queryCache = queryCache;
         }

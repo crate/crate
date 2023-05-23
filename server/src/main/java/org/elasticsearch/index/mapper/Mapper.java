@@ -19,17 +19,14 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.query.QueryShardContext;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
@@ -70,9 +67,9 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
         }
     }
 
-    public abstract static class Builder<T extends Builder> {
+    public abstract static class Builder<T extends Builder<?>> {
 
-        public String name;
+        protected String name;
 
         protected T builder;
 
@@ -102,18 +99,10 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
             private final Function<String, TypeParser> typeParsers;
 
-            private final Version indexVersionCreated;
-
-            private final Supplier<QueryShardContext> queryShardContextSupplier;
-
             public ParserContext(MapperService mapperService,
-                                 Function<String, TypeParser> typeParsers,
-                                 Version indexVersionCreated,
-                                 Supplier<QueryShardContext> queryShardContextSupplier) {
+                                 Function<String, TypeParser> typeParsers) {
                 this.mapperService = mapperService;
                 this.typeParsers = typeParsers;
-                this.indexVersionCreated = indexVersionCreated;
-                this.queryShardContextSupplier = queryShardContextSupplier;
             }
 
             public IndexAnalyzers getIndexAnalyzers() {
@@ -127,28 +116,17 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
             public TypeParser typeParser(String type) {
                 return typeParsers.apply(type);
             }
-
-            public Version indexVersionCreated() {
-                return indexVersionCreated;
-            }
-
-            public Supplier<QueryShardContext> queryShardContextSupplier() {
-                return queryShardContextSupplier;
-            }
-
-            protected Function<String, TypeParser> typeParsers() {
-                return typeParsers;
-            }
         }
 
-        Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
+        Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext)
+            throws MapperParsingException;
     }
 
     private final String simpleName;
 
     protected int position;
 
-    public Mapper(String simpleName) {
+    protected Mapper(String simpleName) {
         Objects.requireNonNull(simpleName);
         this.simpleName = simpleName;
     }
@@ -163,7 +141,7 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
     public abstract String name();
 
     /**
-     * Returns a name representing the the type of this mapper.
+     * Returns a name representing the type of this mapper.
      */
     public abstract String typeName();
 

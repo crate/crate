@@ -23,16 +23,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Supplier;
 
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
@@ -41,34 +37,24 @@ public class DocumentMapperParser {
 
     final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
-    private final Supplier<QueryShardContext> queryShardContextSupplier;
-
     private final RootObjectMapper.TypeParser rootObjectTypeParser = new RootObjectMapper.TypeParser();
-
-    private final Version indexVersionCreated;
 
     private final Map<String, Mapper.TypeParser> typeParsers;
     private final Map<String, MetadataFieldMapper.TypeParser> rootTypeParsers;
 
-    public DocumentMapperParser(IndexSettings indexSettings,
-                                MapperService mapperService,
+    public DocumentMapperParser(MapperService mapperService,
                                 NamedXContentRegistry xContentRegistry,
-                                MapperRegistry mapperRegistry,
-                                Supplier<QueryShardContext> queryShardContextSupplier) {
+                                MapperRegistry mapperRegistry) {
         this.mapperService = mapperService;
         this.xContentRegistry = xContentRegistry;
-        this.queryShardContextSupplier = queryShardContextSupplier;
         this.typeParsers = mapperRegistry.getMapperParsers();
         this.rootTypeParsers = mapperRegistry.getMetadataMapperParsers();
-        indexVersionCreated = indexSettings.getIndexVersionCreated();
     }
 
     public Mapper.TypeParser.ParserContext parserContext() {
         return new Mapper.TypeParser.ParserContext(
             mapperService,
-            typeParsers::get,
-            indexVersionCreated,
-            queryShardContextSupplier
+            typeParsers::get
         );
     }
 
@@ -113,7 +99,7 @@ public class DocumentMapperParser {
                 Map<String, Object> fieldNodeMap = (Map<String, Object>) fieldNode;
                 docBuilder.put(typeParser.parse(fieldName, fieldNodeMap, parserContext));
                 fieldNodeMap.remove("type");
-                checkNoRemainingFields(fieldName, fieldNodeMap, parserContext.indexVersionCreated());
+                checkNoRemainingFields(fieldName, fieldNodeMap);
             }
         }
 
@@ -136,17 +122,17 @@ public class DocumentMapperParser {
             docBuilder.meta(Collections.unmodifiableMap(new HashMap<>(meta)));
         }
 
-        checkNoRemainingFields(mapping, parserContext.indexVersionCreated(), "Root mapping definition has unsupported parameters: ");
+        checkNoRemainingFields(mapping, "Root mapping definition has unsupported parameters: ");
 
         return docBuilder.build(mapperService);
     }
 
-    public static void checkNoRemainingFields(String fieldName, Map<?, ?> fieldNodeMap, Version indexVersionCreated) {
-        checkNoRemainingFields(fieldNodeMap, indexVersionCreated,
+    public static void checkNoRemainingFields(String fieldName, Map<?, ?> fieldNodeMap) {
+        checkNoRemainingFields(fieldNodeMap,
                 "Mapping definition for [" + fieldName + "] has unsupported parameters: ");
     }
 
-    public static void checkNoRemainingFields(Map<?, ?> fieldNodeMap, Version indexVersionCreated, String message) {
+    public static void checkNoRemainingFields(Map<?, ?> fieldNodeMap, String message) {
         if (!fieldNodeMap.isEmpty()) {
             throw new MapperParsingException(message + getRemainingFields(fieldNodeMap));
         }
@@ -154,8 +140,8 @@ public class DocumentMapperParser {
 
     private static String getRemainingFields(Map<?, ?> map) {
         StringBuilder remainingFields = new StringBuilder();
-        for (Object key : map.keySet()) {
-            remainingFields.append(" [").append(key).append(" : ").append(map.get(key)).append("]");
+        for (var entry : map.entrySet()) {
+            remainingFields.append(" [").append(entry.getKey()).append(" : ").append(entry.getValue()).append("]");
         }
         return remainingFields.toString();
     }
