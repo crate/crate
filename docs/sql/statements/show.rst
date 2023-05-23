@@ -9,7 +9,7 @@ The ``SHOW`` statement can display the value of either one or all session
 setting variables. Some of these can also be configured via
 :ref:`SET SESSION <ref-set>`.
 
-..NOTE::
+.. NOTE::
 
    The ``SHOW`` statement for session settings is unrelated to the other ``SHOW``
    statements like e.g. ``SHOW TABLES``.
