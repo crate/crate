@@ -598,7 +598,7 @@ public class Session implements AutoCloseable {
                 List.of(),
                 List.of(jobId),
                 sessionSettings.userName(),
-                "statement_timeout (" + TimeValue.timeValueMillis(timeoutMillis).toString() + " ms)"
+                "statement_timeout (" + TimeValue.timeValueMillis(timeoutMillis).toString() + ")"
             );
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
