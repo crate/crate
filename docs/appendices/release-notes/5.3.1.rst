@@ -14,8 +14,16 @@ Released on 2023-04-28.
     We recommend that you upgrade to the latest 5.2 release before moving to
     5.3.1.
 
-    A rolling upgrade from 5.2.x to 5.3.1 is supported.
+    A rolling upgrade from 5.3.x to 5.3.1 is supported.
+    For upgrades from 5.2.x, see the warning below.
     Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Due to a bug in the replication layer, rolling upgrades from 5.2.x to 5.3.1
+    with ongoing write traffic can lead to corrupted shards and in worse case,
+    data loss. We recommend that you stop all write traffic before upgrading
+    and/or perform a full cluster restart.
 
 .. WARNING::
 
