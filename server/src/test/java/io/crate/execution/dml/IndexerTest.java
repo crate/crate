@@ -22,7 +22,6 @@
 package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -48,6 +47,7 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.TextFieldMapper;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -180,8 +180,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"o": {"x": 10}}
             """
         );
-        assertThat(doc.doc().getFields("o.x")).hasSize(0);
-        assertThat(doc.doc().getFields("o.y")).hasSize(0);
+        assertThat(doc.doc().getFields("o.x")).isEmpty();
+        assertThat(doc.doc().getFields("o.y")).isEmpty();
         assertThat(doc.doc().getFields())
             .as("source, seqNo, id...")
             .hasSize(6);
@@ -335,6 +335,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @Ignore("https://github.com/crate/crate/issues/14189")
+    /*
+     * This isolated test would pass without the validation in {@link AnalyzedColumnDefintion} since it covers only
+     * part of code path but actually running a {@code CREATE TABLE tbl (x int, o object as (x int) default {x=10})}
+     * throws:
+     *    MapperParsingException[Failed to parse mapping: Mapping definition for [o] has unsupported
+     *    parameters:  [default_expr : {"x"=10}]]}
+     */
     public void test_default_for_full_object() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int, o object as (x int) default {x=10})")

@@ -422,6 +422,9 @@ public class AnalyzedColumnDefinition<T> {
         for (AnalyzedColumnDefinition<T> child : children) {
             child.validate();
         }
+        if (dataType.id() == ObjectType.ID && defaultExpression != null) {
+            throw new IllegalArgumentException("Default values are not allowed for object columns: " + name);
+        }
     }
 
     private void ensureTypeCanBeUsedAsKey() {
