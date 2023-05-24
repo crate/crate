@@ -177,6 +177,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+
+- Fixed a regression introduced in 5.3.0 that prevented the evaluation of
+  ``DEFAULT`` clauses on children of ``OBJECT`` columns if the object was
+  missing entirely from an ``INSERT INTO`` statement.
+
 - Improved error message when providing
   :ref:`DEFAULT clause <sql-create-table-default-clause>` for columns of type
   ``OBJECT``.
