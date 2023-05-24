@@ -46,7 +46,6 @@ import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.types.DataTypes;
 
 public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnitTest {
 
@@ -71,7 +70,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         t1Relation = new DocTableRelation(t1);
         t1RenamedRelationName = new RelationName("doc", "t1_renamed");
         var t1Alias = new AliasedAnalyzedRelation(t1Relation, t1RenamedRelationName);
-        var t1Collect = new Collect(t1Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var t1Collect = new Collect(t1Relation, List.of(x), WhereClause.MATCH_ALL);
         Symbol t1Output = t1Alias.getField(x.column(), Operation.READ, true);
         t1Rename = new Rename(List.of(t1Output), t1Alias.relationName(), t1Alias, t1Collect);
 
@@ -80,7 +79,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         t2Relation = new DocTableRelation(t2);
         t2RenamedRelationName = new RelationName("doc", "t2_renamed");
         var t2Alias = new AliasedAnalyzedRelation(t2Relation, t2RenamedRelationName);
-        var t2Collect = new Collect(t2Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var t2Collect = new Collect(t2Relation, List.of(x), WhereClause.MATCH_ALL);
         Symbol t2Output = t2Alias.getField(y.column(), Operation.READ, true);
         t2Rename = new Rename(List.of(t2Output), t2Alias.relationName(), t2Alias, t2Collect);
     }
@@ -123,7 +122,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_relationnames_are_based_on_sources_in_collect() {
-        var collect = new Collect(t1Relation, List.of(), new WhereClause(null), 1,1);
+        var collect = new Collect(t1Relation, List.of(), new WhereClause(null));
         assertThat(collect.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(collect.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
