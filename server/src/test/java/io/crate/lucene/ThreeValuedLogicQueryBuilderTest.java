@@ -21,8 +21,7 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -31,34 +30,24 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testNotAnyEqWith3vl() {
-        assertThat(
-            convert("NOT 10 = ANY(y_array)").toString(),
-            is("+(+*:* -y_array:[10 TO 10]) +(+*:* -((10::bigint = ANY(y_array)) IS NULL))")
-        );
-        assertThat(
-            convert("NOT d = ANY([1,2,3])").toString(),
-            is("+(+*:* -d:{1.0 2.0 3.0}) +(+*:* -((d = ANY([1.0, 2.0, 3.0])) IS NULL))")
-        );
+        assertThat(convert("NOT 10 = ANY(y_array)")).hasToString(
+            "+(+*:* -y_array:[10 TO 10]) +(+*:* -((10::bigint = ANY(y_array)) IS NULL))");
+        assertThat(convert("NOT d = ANY([1,2,3])")).hasToString(
+            "+(+*:* -d:{1.0 2.0 3.0}) +(+*:* -((d = ANY([1.0, 2.0, 3.0])) IS NULL))");
     }
 
     @Test
     public void testNotAnyEqWithout3vl() {
-        assertThat(
-            convert("NOT ignore3vl(20 = ANY(y_array))").toString(),
-            is("+(+*:* -y_array:[20 TO 20])")
-        );
-        assertThat(
-            convert("NOT ignore3vl(d = ANY([1,2,3]))").toString(),
-            is("+(+*:* -d:{1.0 2.0 3.0})")
-        );
+        assertThat(convert("NOT ignore3vl(20 = ANY(y_array))")).hasToString(
+            "+(+*:* -y_array:[20 TO 20])");
+        assertThat(convert("NOT ignore3vl(d = ANY([1,2,3]))")).hasToString(
+            "+(+*:* -d:{1.0 2.0 3.0})");
     }
 
     @Test
     public void testComplexOperatorTreeWith3vlAndIgnore3vl() {
-        assertThat(
-            convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')").toString(),
-            is("+(+(+*:* -name:foo) +FieldExistsQuery [field=name]) +(+(+*:* -name:bar))")
-        );
+        assertThat(convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')")).hasToString(
+            "+(+(+*:* -name:foo) +FieldExistsQuery [field=name]) +(+(+*:* -name:bar))");
     }
 
     @Test
@@ -66,7 +55,8 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         Query q1 = convert("null or name = 'foo'");
         Query q2 = convert("name = 'foo'");
 
-        assertThat(q1, is(q2));
-        assertThat(q1.toString(), is("name:foo"));
+        assertThat(q1)
+            .isEqualTo(q2)
+            .hasToString("name:foo");
     }
 }

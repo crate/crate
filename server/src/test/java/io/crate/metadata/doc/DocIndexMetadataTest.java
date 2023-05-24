@@ -21,23 +21,12 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -49,8 +38,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import io.crate.expression.symbol.format.Style;
-import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -61,7 +48,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,6 +61,7 @@ import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
+import io.crate.expression.symbol.format.Style;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -98,6 +85,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -166,7 +154,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
 
         Reference reference = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
-        assertNotNull(reference);
+        assertThat(reference).isNotNull();
     }
 
     @Test
@@ -225,12 +213,12 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
-        assertThat(md.columns().size(), is(4));
-        assertThat(md.references().size(), is(20));
-        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
-        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
-        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy(), is(ColumnPolicy.IGNORED));
-        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy(), is(ColumnPolicy.STRICT));
+        assertThat(md.columns()).hasSize(4);
+        assertThat(md.references()).hasSize(20);
+        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
+        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -310,61 +298,60 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertThat(md.columns().size(), is(11));
-        assertThat(md.references().size(), is(23));
+        assertThat(md.columns()).hasSize(11);
+        assertThat(md.references()).hasSize(23);
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
-        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(birthday.indexType(), is(IndexType.PLAIN));
-        assertThat(birthday.defaultExpression(), is(nullValue()));
+        assertThat(birthday.valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
+        assertThat(birthday.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(birthday.defaultExpression()).isNull();
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
-        assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
-        assertThat(integerIndexed.defaultExpression(), is(nullValue()));
+        assertThat(integerIndexed.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(integerIndexed.defaultExpression()).isNull();
 
         Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
-        assertThat(integerIndexedBWC.indexType(), is(IndexType.PLAIN));
-        assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()));
+        assertThat(integerIndexedBWC.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(integerIndexedBWC.defaultExpression()).isNull();
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
-        assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(integerNotIndexed.defaultExpression(), is(nullValue()));
+        assertThat(integerNotIndexed.indexType()).isEqualTo(IndexType.NONE);
+        assertThat(integerNotIndexed.defaultExpression()).isNull();
 
         Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
-        assertThat(integerNotIndexedBWC.indexType(), is(IndexType.NONE));
-        assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()));
+        assertThat(integerNotIndexedBWC.indexType()).isEqualTo(IndexType.NONE);
+        assertThat(integerNotIndexedBWC.defaultExpression()).isNull();
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
-        assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(stringNotIndexed.defaultExpression(), is(nullValue()));
+        assertThat(stringNotIndexed.indexType()).isEqualTo(IndexType.NONE);
+        assertThat(stringNotIndexed.defaultExpression()).isNull();
 
         Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
-        assertThat(stringNotIndexedBWC.indexType(), is(IndexType.NONE));
-        assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()));
+        assertThat(stringNotIndexedBWC.indexType()).isEqualTo(IndexType.NONE);
+        assertThat(stringNotIndexedBWC.defaultExpression()).isNull();
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
-        assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
-        assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()));
+        assertThat(stringNotAnalyzed.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(stringNotAnalyzed.defaultExpression()).isNull();
 
         Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
-        assertThat(stringNotAnalyzedBWC.indexType(), is(IndexType.PLAIN));
-        assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()));
+        assertThat(stringNotAnalyzedBWC.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(stringNotAnalyzedBWC.defaultExpression()).isNull();
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
-        assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
-        assertThat(stringAnalyzed.defaultExpression(), is(nullValue()));
+        assertThat(stringAnalyzed.indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(stringAnalyzed.defaultExpression()).isNull();
 
         Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
-        assertThat(stringAnalyzedBWC.indexType(), is(IndexType.FULLTEXT));
-        assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()));
+        assertThat(stringAnalyzedBWC.indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(stringAnalyzedBWC.defaultExpression()).isNull();
 
-        assertThat(
-            Lists2.map(md.references().values(), r -> r.column().fqn()),
-            containsInAnyOrder("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
-                "_primary_term", "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
-                "person", "person.birthday", "person.first_name",
-                "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
-                "stringNotIndexed", "stringNotIndexedBWC"));
+        assertThat(Lists2.map(md.references().values(), r -> r.column().fqn())).containsExactlyInAnyOrder(
+            "_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+            "_primary_term", "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
+            "person", "person.birthday", "person.first_name",
+            "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
+            "stringNotIndexed", "stringNotIndexedBWC");
     }
 
     @Test
@@ -417,42 +404,40 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertThat(md.columns().size(), is(6));
-        assertThat(md.references().size(), is(16));
+        assertThat(md.columns()).hasSize(6);
+        assertThat(md.references()).hasSize(16);
 
         Reference birthday = md.references().get(new ColumnIdent("birthday"));
-        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(birthday.valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
         Asserts.assertThat(birthday.defaultExpression())
             .isFunction("current_timestamp", List.of(DataTypes.INTEGER));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
-        assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
+        assertThat(integerIndexed.indexType()).isEqualTo(IndexType.PLAIN);
         Asserts.assertThat(integerIndexed.defaultExpression()).isLiteral(1);
 
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
-        assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
+        assertThat(integerNotIndexed.indexType()).isEqualTo(IndexType.NONE);
         Asserts.assertThat(integerNotIndexed.defaultExpression()).isLiteral(1);
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
-        assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
+        assertThat(stringNotIndexed.indexType()).isEqualTo(IndexType.NONE);
         Asserts.assertThat(stringNotIndexed.defaultExpression()).isLiteral("default");
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
-        assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
+        assertThat(stringNotAnalyzed.indexType()).isEqualTo(IndexType.PLAIN);
         Asserts.assertThat(stringNotAnalyzed.defaultExpression()).isLiteral("default");
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
-        assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
+        assertThat(stringAnalyzed.indexType()).isEqualTo(IndexType.FULLTEXT);
         Asserts.assertThat(stringAnalyzed.defaultExpression()).isLiteral("default");
 
-        assertThat(
-            Lists2.map(md.references().values(), r -> r.column().fqn()),
-            containsInAnyOrder(
-                "_raw", "_doc", "_seq_no", "_version", "_id", "_uid",
-                "_score", "_fetchid", "_primary_term", "_docid",
-                "birthday", "integerIndexed", "integerNotIndexed",
-                "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed"));
+        assertThat(Lists2.map(md.references().values(), r -> r.column().fqn())).containsExactlyInAnyOrder(
+            "_raw", "_doc", "_seq_no", "_version", "_id", "_uid",
+            "_score", "_fetchid", "_primary_term", "_docid",
+            "birthday", "integerIndexed", "integerNotIndexed",
+            "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed");
     }
 
     @Test
@@ -517,14 +502,14 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertEquals(6, md.columns().size());
-        assertEquals(19, md.references().size());
-        assertEquals(1, md.partitionedByColumns().size());
-        assertEquals(DataTypes.TIMESTAMPZ, md.partitionedByColumns().get(0).valueType());
-        assertThat(md.partitionedByColumns().get(0).column().fqn(), is("datum"));
+        assertThat(md.columns()).hasSize(6);
+        assertThat(md.references()).hasSize(19);
+        assertThat(md.partitionedByColumns()).hasSize(1);
+        assertThat(md.partitionedByColumns().get(0).valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
+        assertThat(md.partitionedByColumns().get(0).column().fqn()).isEqualTo("datum");
 
-        assertThat(md.partitionedBy().size(), is(1));
-        assertThat(md.partitionedBy().get(0), is(ColumnIdent.fromPath("datum")));
+        assertThat(md.partitionedBy()).hasSize(1);
+        assertThat(md.partitionedBy().get(0)).isEqualTo(ColumnIdent.fromPath("datum"));
     }
 
     @Test
@@ -553,9 +538,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
 
         // partitioned by column is not added twice
-        assertEquals(2, md.columns().size());
-        assertEquals(12, md.references().size());
-        assertEquals(1, md.partitionedByColumns().size());
+        assertThat(md.columns()).hasSize(2);
+        assertThat(md.references()).hasSize(12);
+        assertThat(md.partitionedByColumns()).hasSize(1);
     }
 
     @Test
@@ -590,9 +575,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
 
         // partitioned by column is not added twice
-        assertEquals(2, md.columns().size());
-        assertEquals(13, md.references().size());
-        assertEquals(1, md.partitionedByColumns().size());
+        assertThat(md.columns()).hasSize(2);
+        assertThat(md.references()).hasSize(13);
+        assertThat(md.partitionedByColumns()).hasSize(1);
     }
 
     private Map<String, Object> sortProperties(Map<String, Object> mappingSource) {
@@ -623,7 +608,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             sortNext = entry.getKey().equals("properties");
 
             if (value instanceof Map) {
-                map.put(entry.getKey(), sortProperties((Map) entry.getValue(), sortNext));
+                map.put(entry.getKey(), sortProperties((Map<String, Object>) entry.getValue(), sortNext));
             } else {
                 map.put(entry.getKey(), entry.getValue());
             }
@@ -641,7 +626,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata metadata = getIndexMetadata("test2", builder);
         DocIndexMetadata md = newMeta(metadata, "test2");
-        assertThat(md.columns(), hasSize(0));
+        assertThat(md.columns()).isEmpty();
     }
 
     @Test
@@ -661,16 +646,16 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata metadata = newMeta(getIndexMetadata("test", builder), "test");
         Map<ColumnIdent, Reference> references = metadata.references();
         Reference id = references.get(new ColumnIdent("_id"));
-        assertNotNull(id);
+        assertThat(id).isNotNull();
 
         Reference version = references.get(new ColumnIdent("_version"));
-        assertNotNull(version);
+        assertThat(version).isNotNull();
 
         Reference score = references.get(new ColumnIdent("_score"));
-        assertNotNull(score);
+        assertThat(score).isNotNull();
 
         Reference docId = references.get(new ColumnIdent("_docid"));
-        assertNotNull(docId);
+        assertThat(docId).isNotNull();
     }
 
     @Test
@@ -709,8 +694,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test3");
 
 
-        assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey(), contains(new ColumnIdent("id")));
+        assertThat(md.primaryKey()).containsExactly(new ColumnIdent("id"));
 
         builder = JsonXContent.builder()
             .startObject()
@@ -725,7 +709,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         md = newMeta(getIndexMetadata("test4", builder), "test4");
-        assertThat(md.primaryKey().size(), is(1)); // _id is always the fallback primary key
+        assertThat(md.primaryKey()).hasSize(1); // _id is always the fallback primary key
 
         builder = JsonXContent.builder()
             .startObject()
@@ -733,7 +717,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         md = newMeta(getIndexMetadata("test5", builder), "test5");
-        assertThat(md.primaryKey().size(), is(1));
+        assertThat(md.primaryKey()).hasSize(1);
     }
 
     @Test
@@ -759,8 +743,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata metadata = getIndexMetadata("test_multi_pk", builder);
         DocIndexMetadata md = newMeta(metadata, "test_multi_pk");
-        assertThat(md.primaryKey().size(), is(2));
-        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("id"), ColumnIdent.fromPath("title")));
+        assertThat(md.primaryKey()).containsExactly(ColumnIdent.fromPath("id"), ColumnIdent.fromPath("title"));
     }
 
     @Test
@@ -784,15 +767,12 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata metadata = getIndexMetadata("test3", builder);
         DocIndexMetadata md = newMeta(metadata, "test3");
-        assertThat(md.checkConstraints().size(), is(2));
+        assertThat(md.checkConstraints()).hasSize(2);
         assertThat(md.checkConstraints()
                        .stream()
                        .map(CheckConstraint::expressionStr)
-                       .collect(Collectors.toList()),
-                   containsInAnyOrder(
-                       equalTo("id >= 0"),
-                       equalTo("title != 'Programming Clojure'")
-        ));
+                       .collect(Collectors.toList()))
+                .containsExactlyInAnyOrder("id >= 0", "title != 'Programming Clojure'");
     }
 
     @Test
@@ -817,8 +797,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata metadata = getIndexMetadata("test_no_pk", builder);
         DocIndexMetadata md = newMeta(metadata, "test_no_pk");
-        assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
+        assertThat(md.primaryKey()).containsExactly(ColumnIdent.fromPath("_id"));
 
         builder = JsonXContent.builder()
             .startObject()
@@ -841,8 +820,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         metadata = getIndexMetadata("test_no_pk2", builder);
         md = newMeta(metadata, "test_no_pk2");
-        assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
+        assertThat(md.primaryKey()).containsExactly(ColumnIdent.fromPath("_id"));
     }
 
     @Test
@@ -871,9 +849,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test_notnull_columns", builder);
         DocIndexMetadata md = newMeta(metadata, "test_notnull_columns");
 
-        assertThat(
-            md.columns().stream().map(Reference::isNullable).collect(Collectors.toList()),
-            contains(false, false)
+        assertThat(md.columns().stream().map(Reference::isNullable).collect(Collectors.toList())).containsExactly(
+            false, false
         );
     }
 
@@ -912,9 +889,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         ColumnIdent level1 = new ColumnIdent("nested", "level1");
         ColumnIdent level2 = new ColumnIdent("nested", Arrays.asList("level1", "level2"));
-        assertThat(md.notNullColumns(), containsInAnyOrder(level1, level2));
-        assertThat(md.references().get(level1).isNullable(), is(false));
-        assertThat(md.references().get(level2).isNullable(), is(false));
+        assertThat(md.notNullColumns()).containsExactlyInAnyOrder(level1, level2);
+        assertThat(md.references().get(level1).isNullable()).isFalse();
+        assertThat(md.references().get(level2).isNullable()).isFalse();
     }
 
     @Test
@@ -942,12 +919,13 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertThat(md.columns().size(), is(2));
+        assertThat(md.columns()).hasSize(2);
         Reference week = md.references().get(new ColumnIdent("week"));
-        assertThat(week, Matchers.notNullValue());
-        assertThat(week.isNullable(), is(false));
-        assertThat(week, instanceOf(GeneratedReference.class));
-        assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
+        assertThat(week)
+            .isNotNull()
+            .isExactlyInstanceOf(GeneratedReference.class);
+        assertThat(week.isNullable()).isFalse();
+        assertThat(((GeneratedReference) week).formattedGeneratedExpression()).isEqualTo("date_trunc('week', ts)");
         Asserts.assertThat(((GeneratedReference) week).generatedExpression()).isFunction("date_trunc", isLiteral("week"), isReference("ts"));
         Asserts.assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
@@ -974,7 +952,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         DocIndexMetadata md = newMeta(getIndexMetadata("test8", builder), "test8");
-        assertThat(md.routingCol(), is(new ColumnIdent("id")));
+        assertThat(md.routingCol()).isEqualTo(new ColumnIdent("id"));
 
         builder = JsonXContent.builder()
             .startObject()
@@ -989,7 +967,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         md = newMeta(getIndexMetadata("test9", builder), "test8");
-        assertThat(md.routingCol(), is(new ColumnIdent("_id")));
+        assertThat(md.routingCol()).isEqualTo(new ColumnIdent("_id"));
 
         builder = JsonXContent.builder()
             .startObject()
@@ -1017,7 +995,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         md = newMeta(getIndexMetadata("test10", builder), "test10");
-        assertThat(md.routingCol(), is(new ColumnIdent("num")));
+        assertThat(md.routingCol()).isEqualTo(new ColumnIdent("num"));
     }
 
     @Test
@@ -1028,7 +1006,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test11", builder), "test11");
-        assertThat(md.routingCol(), is(new ColumnIdent("_id")));
+        assertThat(md.routingCol()).isEqualTo(new ColumnIdent("_id"));
     }
 
     @Test
@@ -1039,9 +1017,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test11", builder), "test11");
-        assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey().get(0), is(new ColumnIdent("_id")));
-        assertThat(md.hasAutoGeneratedPrimaryKey(), is(true));
+        assertThat(md.primaryKey()).hasSize(1);
+        assertThat(md.primaryKey().get(0)).isEqualTo(new ColumnIdent("_id"));
+        assertThat(md.hasAutoGeneratedPrimaryKey()).isTrue();
     }
 
     @Test
@@ -1061,9 +1039,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                 .endObject()
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test11", builder), "test11");
-        assertThat(md.primaryKey().size(), is(1));
-        assertThat(md.primaryKey().get(0), is(new ColumnIdent("id")));
-        assertThat(md.hasAutoGeneratedPrimaryKey(), is(false));
+        assertThat(md.primaryKey()).hasSize(1);
+        assertThat(md.primaryKey().get(0)).isEqualTo(new ColumnIdent("id"));
+        assertThat(md.hasAutoGeneratedPrimaryKey()).isFalse();
     }
 
     @Test
@@ -1088,19 +1066,19 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test_analyzer", builder), "test_analyzer");
         List<Reference> columns = new ArrayList<>(md.columns());
-        assertThat(columns.size(), is(2));
-        assertThat(columns.get(0).indexType(), is(IndexType.FULLTEXT));
-        assertThat(columns.get(0).column().fqn(), is("content_de"));
-        assertThat(columns.get(1).indexType(), is(IndexType.FULLTEXT));
-        assertThat(columns.get(1).column().fqn(), is("content_en"));
+        assertThat(columns).hasSize(2);
+        assertThat(columns.get(0).indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(columns.get(0).column().fqn()).isEqualTo("content_de");
+        assertThat(columns.get(1).indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(columns.get(1).column().fqn()).isEqualTo("content_en");
     }
 
     @Test
     public void testGeoPointType() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table foo (p geo_point)");
-        assertThat(md.columns().size(), is(1));
+        assertThat(md.columns()).hasSize(1);
         Reference reference = md.columns().iterator().next();
-        assertThat(reference.valueType(), equalTo(DataTypes.GEO_POINT));
+        assertThat(reference.valueType()).isEqualTo(DataTypes.GEO_POINT);
     }
 
     @Test
@@ -1115,9 +1093,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                "date timestamp with time zone primary key" +
                                                                ") partitioned by (date)");
 
-        assertThat(md.columns().size(), is(4));
-        assertThat(md.primaryKey(), Matchers.contains(new ColumnIdent("id"), new ColumnIdent("date")));
-        assertThat(md.references().get(new ColumnIdent("tags")).valueType(), is(new ArrayType(DataTypes.STRING)));
+        assertThat(md.columns()).hasSize(4);
+        assertThat(md.primaryKey()).containsExactly(new ColumnIdent("id"), new ColumnIdent("date"));
+        assertThat(md.references().get(new ColumnIdent("tags")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -1127,15 +1106,15 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             "id int primary key," +
             "details object as (names array(string))" +
             ") with (number_of_replicas=0)");
-        DataType type = md.references().get(new ColumnIdent("details", "names")).valueType();
-        assertThat(type, Matchers.equalTo(new ArrayType(DataTypes.STRING)));
+        DataType<?> type = md.references().get(new ColumnIdent("details", "names")).valueType();
+        assertThat(type).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
     public void testCreateTableMappingGenerationAndParsingCompatNoMeta() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table foo (id int, name string)");
-        assertThat(md.columns().size(), is(2));
-        assertThat(md.hasAutoGeneratedPrimaryKey(), is(true));
+        assertThat(md.columns()).hasSize(2);
+        assertThat(md.hasAutoGeneratedPrimaryKey()).isTrue();
     }
 
     private DocIndexMetadata getDocIndexMetadataFromStatement(String stmt) throws IOException {
@@ -1176,6 +1155,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             Cursors.EMPTY
         );
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+        @SuppressWarnings("unchecked")
         AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
             (CreateTable<Expression>) statement,
             analysis.paramTypeHints(),
@@ -1213,12 +1193,12 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                "  fun string index off," +
                                                                "  INDEX fun_name_ft using fulltext(name, fun)" +
                                                                ")");
-        assertThat(md.indices().size(), is(1));
-        assertThat(md.columns().size(), is(3));
-        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
+        assertThat(md.indices()).hasSize(1);
+        assertThat(md.columns()).hasSize(3);
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft"))).isExactlyInstanceOf(IndexReference.class);
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(IndexType.FULLTEXT));
-        assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
+        assertThat(indexInfo.indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(indexInfo.column().fqn()).isEqualTo("fun_name_ft");
     }
 
     @Test
@@ -1231,12 +1211,12 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                "  )," +
                                                                "  INDEX fun_name_ft using fulltext(name, o['fun'])" +
                                                                ")");
-        assertThat(md.indices().size(), is(1));
-        assertThat(md.columns().size(), is(3));
-        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
+        assertThat(md.indices()).hasSize(1);
+        assertThat(md.columns()).hasSize(3);
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft"))).isExactlyInstanceOf(IndexReference.class);
         IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(IndexType.FULLTEXT));
-        assertThat(indexInfo.column().fqn(), is("fun_name_ft"));
+        assertThat(indexInfo.indexType()).isEqualTo(IndexType.FULLTEXT);
+        assertThat(indexInfo.column().fqn()).isEqualTo("fun_name_ft");
     }
 
     @Test
@@ -1259,7 +1239,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata mdIgnored = newMeta(getIndexMetadata("test_ignored", ignoredBuilder), "test_ignored");
-        assertThat(mdIgnored.columnPolicy(), is(ColumnPolicy.IGNORED));
+        assertThat(mdIgnored.columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
 
         XContentBuilder strictBuilder = JsonXContent.builder()
             .startObject()
@@ -1279,7 +1259,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata mdStrict = newMeta(getIndexMetadata("test_strict", strictBuilder), "test_strict");
-        assertThat(mdStrict.columnPolicy(), is(ColumnPolicy.STRICT));
+        assertThat(mdStrict.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
 
         XContentBuilder dynamicBuilder = JsonXContent.builder()
             .startObject()
@@ -1299,7 +1279,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata mdDynamic = newMeta(getIndexMetadata("test_dynamic", dynamicBuilder), "test_dynamic");
-        assertThat(mdDynamic.columnPolicy(), is(ColumnPolicy.DYNAMIC));
+        assertThat(mdDynamic.columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
 
         XContentBuilder missingBuilder = JsonXContent.builder()
             .startObject()
@@ -1318,7 +1298,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject();
         DocIndexMetadata mdMissing = newMeta(getIndexMetadata("test_missing", missingBuilder), "test_missing");
-        assertThat(mdMissing.columnPolicy(), is(ColumnPolicy.DYNAMIC));
+        assertThat(mdMissing.columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
 
         XContentBuilder wrongBuilder = JsonXContent.builder()
             .startObject()
@@ -1335,8 +1315,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject()
             .endObject();
-        expectedException.expectMessage("Invalid column policy: wrong");
-        newMeta(getIndexMetadata("test_wrong", wrongBuilder), "test_wrong");
+
+        assertThatThrownBy(() -> newMeta(getIndexMetadata("test_wrong", wrongBuilder), "test_wrong"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid column policy: wrong");
     }
 
     @Test
@@ -1346,10 +1328,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                "  tags array(string)," +
                                                                "  scores array(short)" +
                                                                ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is(new ArrayType(DataTypes.STRING)));
-        assertThat(md.references().get(ColumnIdent.fromPath("scores")).valueType(),
-            is(new ArrayType(DataTypes.SHORT)));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.STRING));
+        assertThat(md.references().get(ColumnIdent.fromPath("scores")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.SHORT));
     }
 
     @Test
@@ -1363,26 +1345,25 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                "  ))" +
                                                                ")");
         assertThat(
-            md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is(new ArrayType<>(
-                ObjectType.builder()
-                    .setInnerType("size", DataTypes.DOUBLE)
-                    .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
-                    .setInnerType("quote", DataTypes.STRING)
-                    .build()))
-        );
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
-            is(ColumnPolicy.STRICT));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
-            is(DataTypes.DOUBLE));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
-            is(IndexType.NONE));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
-            is(new ArrayType<>(DataTypes.INTEGER)));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
-            is(DataTypes.STRING));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
-            is(IndexType.FULLTEXT));
+            md.references().get(ColumnIdent.fromPath("tags")).valueType()).isEqualTo(
+                new ArrayType<>(
+                    ObjectType.builder()
+                        .setInnerType("size", DataTypes.DOUBLE)
+                        .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
+                        .setInnerType("quote", DataTypes.STRING)
+                        .build()));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy()).isEqualTo(
+            ColumnPolicy.STRICT);
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType()).isEqualTo(
+            DataTypes.DOUBLE);
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType()).isEqualTo(
+            IndexType.NONE);
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.INTEGER));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType()).isEqualTo(
+            DataTypes.STRING);
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType()).isEqualTo(
+            IndexType.FULLTEXT);
     }
 
     @Test
@@ -1434,10 +1415,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata docIndexMetadata = newMeta(indexMetadata, "test1");
 
         // ARRAY TYPES NOT DETECTED
-        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("array_col")).valueType(),
-            is(DataTypes.IP));
-        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is(DataTypes.TIMESTAMPZ));
+        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("array_col")).valueType()).isEqualTo(
+            DataTypes.IP);
+        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType()).isEqualTo(
+            DataTypes.TIMESTAMPZ);
     }
 
     @Test
@@ -1482,10 +1463,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetadata indexMetadata = getIndexMetadata("test1", builder);
         DocIndexMetadata docIndexMetadata = newMeta(indexMetadata, "test1");
-        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("array_col")).valueType(),
-            is(new ArrayType(DataTypes.IP)));
-        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is(new ArrayType(DataTypes.TIMESTAMPZ)));
+        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("array_col")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.IP));
+        assertThat(docIndexMetadata.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType()).isEqualTo(
+            new ArrayType<>(DataTypes.TIMESTAMPZ));
     }
 
     @Test
@@ -1494,16 +1475,16 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             "create table t (tags array(string) index using fulltext)");
 
         Reference reference = metadata.columns().iterator().next();
-        assertThat(reference.valueType(), equalTo(new ArrayType(DataTypes.STRING)));
+        assertThat(reference.valueType()).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
     public void testCreateTableWithNestedPrimaryKey() throws Exception {
         DocIndexMetadata metadata = getDocIndexMetadataFromStatement("create table t (o object as (x int primary key))");
-        assertThat(metadata.primaryKey(), contains(new ColumnIdent("o", "x")));
+        assertThat(metadata.primaryKey()).containsExactly(new ColumnIdent("o", "x"));
 
         metadata = getDocIndexMetadataFromStatement("create table t (x object as (y object as (z int primary key)))");
-        assertThat(metadata.primaryKey(), contains(new ColumnIdent("x", Arrays.asList("y", "z"))));
+        assertThat(metadata.primaryKey()).containsExactly(new ColumnIdent("x", Arrays.asList("y", "z")));
     }
 
     @Test
@@ -1530,21 +1511,22 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertThat(md.columns().size(), is(2));
+        assertThat(md.columns()).hasSize(2);
         Reference week = md.references().get(new ColumnIdent("week"));
-        assertThat(week, Matchers.notNullValue());
-        assertThat(week, instanceOf(GeneratedReference.class));
-        assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
-        Asserts.assertThat(((GeneratedReference) week).generatedExpression())
+        assertThat(week)
+            .isNotNull()
+            .isExactlyInstanceOf(GeneratedReference.class);
+        assertThat(((GeneratedReference) week).formattedGeneratedExpression()).isEqualTo("date_trunc('week', ts)");
+        assertThat(((GeneratedReference) week).generatedExpression())
             .isFunction("date_trunc", isLiteral("week"), isReference("ts"));
-        Asserts.assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
+        assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
 
     @Test
     public void testArrayAsGeneratedColumn() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t1 (x as ([10, 20]))");
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
-        assertThat(generatedReference.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(generatedReference.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
     }
 
     @Test
@@ -1552,7 +1534,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t1 (" +
                                                                " ts timestamp with time zone default current_timestamp)");
         Reference reference = md.references().get(new ColumnIdent("ts"));
-        assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(reference.valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
         Asserts.assertThat(reference.defaultExpression()).isFunction("current_timestamp");
     }
 
@@ -1576,16 +1558,16 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         DocIndexMetadata md = newMeta(getIndexMetadata("test", builder), "test");
 
-        assertThat(md.columns().size(), is(2));
-        assertThat(md.references().get(new ColumnIdent("tz")).valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(md.references().get(new ColumnIdent("t")).valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(md.columns()).hasSize(2);
+        assertThat(md.references().get(new ColumnIdent("tz")).valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
+        assertThat(md.references().get(new ColumnIdent("t")).valueType()).isEqualTo(DataTypes.TIMESTAMP);
     }
 
     @Test
     public void testColumnStoreBooleanIsParsedCorrectly() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement(
             "create table t1 (x string STORAGE WITH (columnstore = false))");
-        assertThat(md.columns().iterator().next().hasDocValues(), is(false));
+        assertThat(md.columns().iterator().next().hasDocValues()).isFalse();
     }
 
     @Test
@@ -1621,9 +1603,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test");
 
         ObjectType objectType = (ObjectType) md.references().get(new ColumnIdent("object")).valueType();
-        assertThat(objectType.resolveInnerType(List.of("nestedString")), is(DataTypes.STRING));
-        assertThat(objectType.resolveInnerType(List.of("nestedObject")).id(), is(ObjectType.ID));
-        assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString")), is(DataTypes.STRING));
+        assertThat(objectType.resolveInnerType(List.of("nestedString"))).isEqualTo(DataTypes.STRING);
+        assertThat(objectType.resolveInnerType(List.of("nestedObject")).id()).isEqualTo(ObjectType.ID);
+        assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString"))).isEqualTo(DataTypes.STRING);
     }
 
     @Test
@@ -1652,15 +1634,15 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         var docIndexMetadata = newMeta(getIndexMetadata("test", builder), "test");
 
         var column = docIndexMetadata.references().get(new ColumnIdent("col"));
-        assertThat(column, is(not(nullValue())));
-        assertThat(column.valueType(), is(StringType.of(10)));
+        assertThat(column).isNotNull();
+        assertThat(column.valueType()).isEqualTo(StringType.of(10));
     }
 
     @Test
     public void test_geo_shape_column_has_generated_expression() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         Reference reference = md.references().get(new ColumnIdent("g"));
-        assertThat(reference.valueType(), is(DataTypes.GEO_SHAPE));
+        assertThat(reference.valueType()).isEqualTo(DataTypes.GEO_SHAPE);
         GeneratedReference genRef = (GeneratedReference) reference;
         assertThat(genRef.formattedGeneratedExpression()).isEqualTo("_cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')");
     }

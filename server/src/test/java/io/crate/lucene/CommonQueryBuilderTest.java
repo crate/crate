@@ -116,30 +116,32 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqLiteral() throws Exception {
         Query query = convert("10 = x");
-        assertThat(query.toString()).isEqualTo("x:[10 TO 10]");
+        assertThat(query).hasToString("x:[10 TO 10]");
     }
 
     @Test
     public void testWhereLiteralEqReference() throws Exception {
         Query query = convert("x = 10");
-        assertThat(query.toString()).isEqualTo("x:[10 TO 10]");
+        assertThat(query).hasToString("x:[10 TO 10]");
     }
 
     @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
-        assertThat(query.toString()).isEqualTo("x:[-2147483648 TO 10]");
+        assertThat(query).hasToString("x:[-2147483648 TO 10]");
     }
 
     @Test
     public void testNotEqOnNotNullableColumnQuery() throws Exception {
         Query query = convert("x != 10");
-        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        assertThat(query.toString()).isEqualTo("+(+*:* -x:[10 TO 10])");
+        assertThat(query)
+            .isExactlyInstanceOf(BooleanQuery.class)
+            .hasToString("+(+*:* -x:[10 TO 10])");
 
         query = convert("not x = 10");
-        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        assertThat(query.toString()).isEqualTo("+(+*:* -x:[10 TO 10])");
+        assertThat(query)
+            .isExactlyInstanceOf(BooleanQuery.class)
+            .hasToString("+(+*:* -x:[10 TO 10])");
     }
 
     @Test
@@ -171,13 +173,13 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
-        assertThat(query.toString()).isEqualTo("x:[10 TO 2147483647]");
+        assertThat(query).hasToString("x:[10 TO 2147483647]");
     }
 
     @Test
     public void testGtQuery() throws Exception {
         Query query = convert("x > 10");
-        assertThat(query.toString()).isEqualTo("x:[11 TO 2147483647]");
+        assertThat(query).hasToString("x:[11 TO 2147483647]");
     }
 
     @Test
@@ -217,12 +219,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIdQuery() throws Exception {
         Query query = convert("_id = 'i1'");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
-        assertThat(query.toString()).isEqualTo("_id:[ff 69 31]");
+        assertThat(query)
+            .isExactlyInstanceOf(TermQuery.class)
+            .hasToString("_id:[ff 69 31]");
 
         query = convert("_id = 1");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
-        assertThat(query.toString()).isEqualTo("_id:[fe 1f]");
+        assertThat(query)
+            .isExactlyInstanceOf(TermQuery.class)
+            .hasToString("_id:[fe 1f]");
     }
 
     @Test
@@ -253,42 +257,42 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testAnyGreaterAndSmaller() throws Exception {
         Query ltQuery = convert("1.5 < any(d_array)");
-        assertThat(ltQuery.toString()).isEqualTo("d_array:[1.5000000000000002 TO Infinity]");
+        assertThat(ltQuery).hasToString("d_array:[1.5000000000000002 TO Infinity]");
 
         // d < ANY ([1.2, 3.5])
         Query ltQuery2 = convert("d < any ([1.2, 3.5])");
-        assertThat(ltQuery2.toString()).isEqualTo("(d:[-Infinity TO 1.1999999999999997] d:[-Infinity TO 3.4999999999999996])~1");
+        assertThat(ltQuery2).hasToString("(d:[-Infinity TO 1.1999999999999997] d:[-Infinity TO 3.4999999999999996])~1");
 
         // 1.5d <= ANY (d_array)
         Query lteQuery = convert("1.5 <= any(d_array)");
-        assertThat(lteQuery.toString()).isEqualTo("d_array:[1.5 TO Infinity]");
+        assertThat(lteQuery).hasToString("d_array:[1.5 TO Infinity]");
 
         // d <= ANY ([1.2, 3.5])
         Query lteQuery2 = convert("d <= any([1.2, 3.5])");
-        assertThat(lteQuery2.toString()).isEqualTo("(d:[-Infinity TO 1.2] d:[-Infinity TO 3.5])~1");
+        assertThat(lteQuery2).hasToString("(d:[-Infinity TO 1.2] d:[-Infinity TO 3.5])~1");
 
         // 1.5d > ANY (d_array)
         Query gtQuery = convert("1.5 > any(d_array)");
-        assertThat(gtQuery.toString()).isEqualTo("d_array:[-Infinity TO 1.4999999999999998]");
+        assertThat(gtQuery).hasToString("d_array:[-Infinity TO 1.4999999999999998]");
 
         // d > ANY ([1.2, 3.5])
         Query gtQuery2 = convert("d > any ([1.2, 3.5])");
-        assertThat(gtQuery2.toString()).isEqualTo(
+        assertThat(gtQuery2).hasToString(
             "(d:[1.2000000000000002 TO Infinity] d:[3.5000000000000004 TO Infinity])~1");
 
         // 1.5d >= ANY (d_array)
         Query gteQuery = convert("1.5 >= any(d_array)");
-        assertThat(gteQuery.toString()).isEqualTo("d_array:[-Infinity TO 1.5]");
+        assertThat(gteQuery).hasToString("d_array:[-Infinity TO 1.5]");
 
         // d >= ANY ([1.2, 3.5])
         Query gteQuery2 = convert("d >= any ([1.2, 3.5])");
-        assertThat(gteQuery2.toString()).isEqualTo("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1");
+        assertThat(gteQuery2).hasToString("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1");
     }
 
     @Test
     public void testNeqAnyOnArrayLiteral() throws Exception {
         Query query = convert("name != any (['a', 'b', 'c'])");
-        assertThat(query.toString()).isEqualTo(
+        assertThat(query).hasToString(
             "+(+*:* -(+name:a +name:b +name:c)) #FieldExistsQuery [field=name]"
         );
     }
@@ -298,7 +302,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query ltQuery2 = convert("name < any (['a', 'b', 'c'])");
         assertThat(ltQuery2).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery ltBQuery = (BooleanQuery) ltQuery2;
-        assertThat(ltBQuery.toString()).isEqualTo("(name:{* TO a} name:{* TO b} name:{* TO c})~1");
+        assertThat(ltBQuery).hasToString("(name:{* TO a} name:{* TO b} name:{* TO c})~1");
     }
 
 
@@ -330,25 +334,27 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereInIsOptimized() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
-        assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
-        assertThat(query.toString()).isEqualTo("name:(bar foo)");
+        assertThat(query)
+            .isExactlyInstanceOf(TermInSetQuery.class)
+            .hasToString("name:(bar foo)");
     }
 
     @Test
     public void testIsNullOnObjectArray() throws Exception {
         Query isNull = convert("o_array IS NULL");
-        assertThat(isNull.toString()).isEqualTo(
+        assertThat(isNull).hasToString(
             "(o_array IS NULL)");
         Query isNotNull = convert("o_array IS NOT NULL");
-        assertThat(isNotNull.toString()).isEqualTo(
+        assertThat(isNotNull).hasToString(
             "(NOT (o_array IS NULL))");
     }
 
     @Test
     public void testRewriteDocReferenceInWhereClause() throws Exception {
         Query query = convert("_doc['name'] = 'foo'");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
-        assertThat(query.toString()).isEqualTo("name:foo");
+        assertThat(query)
+            .isExactlyInstanceOf(TermQuery.class)
+            .hasToString("name:foo");
         query = convert("_doc = {\"name\"='foo'}");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
@@ -401,17 +407,17 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnGeoPoint() throws Exception {
         Query query = convert("point is null");
-        assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=point]");
+        assertThat(query).hasToString("+*:* -FieldExistsQuery [field=point]");
     }
 
     @Test
     public void testIpRange() throws Exception {
         Query query = convert("addr between '192.168.0.1' and '192.168.0.255'");
-        assertThat(query.toString()).isEqualTo(
+        assertThat(query).hasToString(
             "+addr:[192.168.0.1 TO ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff] +addr:[0:0:0:0:0:0:0:0 TO 192.168.0.255]");
 
         query = convert("addr < 'fe80::1'");
-        assertThat(query.toString()).isEqualTo(
+        assertThat(query).hasToString(
             "addr:[0:0:0:0:0:0:0:0 TO fe80:0:0:0:0:0:0:0]");
     }
 
@@ -424,60 +430,50 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_ip_eq_any_uses_point_term_set_query() throws Exception {
         Query query = convert("addr = ANY(['192.168.0.1', '192.168.0.2'])");
-        assertThat(query.toString()).isEqualTo("addr:{192.168.0.1 192.168.0.2}");
+        assertThat(query).hasToString("addr:{192.168.0.1 192.168.0.2}");
     }
 
     @Test
     public void testAnyEqOnTimestampArrayColumn() {
-        assertThat(convert("1129224512000 = ANY(ts_array)").toString())
-            .isEqualTo("ts_array:[1129224512000 TO 1129224512000]");
+        assertThat(convert("1129224512000 = ANY(ts_array)")).hasToString(
+             "ts_array:[1129224512000 TO 1129224512000]");
     }
 
     @Test
     public void testAnyNotEqOnTimestampColumn() {
-        assertThat(convert("ts != ANY([1129224512000])").toString())
-            .isEqualTo("+(+*:* -(+ts:[1129224512000 TO 1129224512000])) #FieldExistsQuery [field=ts]");
+        assertThat(convert("ts != ANY([1129224512000])")).hasToString(
+            "+(+*:* -(+ts:[1129224512000 TO 1129224512000])) #FieldExistsQuery [field=ts]");
     }
 
     @Test
     public void testArrayAccessResultsInTermAndFunctionQuery() {
-        assertThat(convert("ts_array[1] = 1129224512000").toString())
-            .isEqualTo(
-                "+ts_array:[1129224512000 TO 1129224512000] " +
-                "#(ts_array[1] = 1129224512000::bigint)"
-            );
-        assertThat(convert("ts_array[1] >= 1129224512000").toString())
-            .isEqualTo(
-                "+ts_array:[1129224512000 TO 9223372036854775807] " +
-                "#(ts_array[1] >= 1129224512000::bigint)"
-            );
-        assertThat(convert("ts_array[1] > 1129224512000").toString())
-            .isEqualTo(
-                "+ts_array:[1129224512001 TO 9223372036854775807] " +
-                "#(ts_array[1] > 1129224512000::bigint)"
-            );
-        assertThat(convert("ts_array[1] <= 1129224512000").toString())
-            .isEqualTo(
-                "+ts_array:[-9223372036854775808 TO 1129224512000] " +
-                "#(ts_array[1] <= 1129224512000::bigint)"
-            );
-        assertThat(convert("ts_array[1] < 1129224512000").toString())
-            .isEqualTo(
-                "+ts_array:[-9223372036854775808 TO 1129224511999] " +
-                "#(ts_array[1] < 1129224512000::bigint)"
-            );
+        assertThat(convert("ts_array[1] = 1129224512000")).hasToString(
+            "+ts_array:[1129224512000 TO 1129224512000] " +
+            "#(ts_array[1] = 1129224512000::bigint)");
+        assertThat(convert("ts_array[1] >= 1129224512000")).hasToString(
+            "+ts_array:[1129224512000 TO 9223372036854775807] " +
+            "#(ts_array[1] >= 1129224512000::bigint)");
+        assertThat(convert("ts_array[1] > 1129224512000")).hasToString(
+            "+ts_array:[1129224512001 TO 9223372036854775807] " +
+            "#(ts_array[1] > 1129224512000::bigint)");
+        assertThat(convert("ts_array[1] <= 1129224512000")).hasToString(
+            "+ts_array:[-9223372036854775808 TO 1129224512000] " +
+            "#(ts_array[1] <= 1129224512000::bigint)");
+        assertThat(convert("ts_array[1] < 1129224512000")).hasToString(
+            "+ts_array:[-9223372036854775808 TO 1129224511999] " +
+            "#(ts_array[1] < 1129224512000::bigint)");
     }
 
     @Test
     public void testObjectArrayAccessResultsInFunctionQuery() {
-        assertThat(convert("o_array[1] = {x=1}").toString())
-            .isEqualTo("(o_array[1] = {\"x\"=1})");
+        assertThat(convert("o_array[1] = {x=1}")).hasToString(
+            "(o_array[1] = {\"x\"=1})");
     }
 
     @Test
     public void testMatchWithOperator() {
-        assertThat(convert("match(tags, 'foo bar') using best_fields with (operator='and')").toString())
-            .isEqualTo("+tags:foo +tags:bar");
+        assertThat(convert("match(tags, 'foo bar') using best_fields with (operator='and')")).hasToString(
+            "+tags:foo +tags:bar");
     }
 
     @Test
@@ -492,20 +488,20 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testEqOnObjectPreFiltersOnKnownObjectLiteralContents() {
         // termQuery for obj.x; nothing for obj.z because it's missing in the mapping
-        assertThat(convert("obj = {x=10, z=20}").toString())
-            .isEqualTo("+obj.x:[10 TO 10] #(obj = {\"x\"=10, \"z\"=20})");
+        assertThat(convert("obj = {x=10, z=20}")).hasToString(
+            "+obj.x:[10 TO 10] #(obj = {\"x\"=10, \"z\"=20})");
     }
 
     @Test
     public void testEqOnObjectDoesBoolTermQueryForContents() {
-        assertThat(convert("obj = {x=10, y=20}").toString())
-            .isEqualTo("+obj.x:[10 TO 10] +obj.y:[20 TO 20]");
+        assertThat(convert("obj = {x=10, y=20}")).hasToString(
+            "+obj.x:[10 TO 10] +obj.y:[20 TO 20]");
     }
 
     @Test
     public void testEqAnyOnNestedArray() {
-        assertThat(convert("[1, 2] = any(o_array['xs'])").toString())
-            .isEqualTo("+o_array.xs:{1 2} #([1, 2] = ANY(o_array['xs']))");
+        assertThat(convert("[1, 2] = any(o_array['xs'])")).hasToString(
+            "+o_array.xs:{1 2} #([1, 2] = ANY(o_array['xs']))");
     }
 
     @Test
@@ -541,38 +537,39 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_is_null_on_ignored_results_in_function_query() throws Exception {
         Query query = convert("obj_ignored is null");
-        assertThat(query.toString()).isEqualTo("(_doc['obj_ignored'] IS NULL)");
+        assertThat(query).hasToString("(_doc['obj_ignored'] IS NULL)");
     }
 
     @Test
     public void test_is_not_null_on_ignored_results_in_function_query() throws Exception {
         Query query = convert("obj_ignored is not null");
-        assertThat(query.toString()).isEqualTo("(NOT (_doc['obj_ignored'] IS NULL))");
+        assertThat(query).hasToString("(NOT (_doc['obj_ignored'] IS NULL))");
     }
 
     @Test
     public void test_equal_on_varchar_column_uses_term_query() throws Exception {
         Query query = convert("vchar_name = 'Trillian'");
-        assertThat(query.toString()).isEqualTo("vchar_name:Trillian");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
+        assertThat(query)
+            .hasToString("vchar_name:Trillian")
+            .isExactlyInstanceOf(TermQuery.class);
     }
 
     @Test
     public void test_eq_on_byte_column() throws Exception {
         Query query = convert("byte_col = 127");
-        assertThat(query.toString()).isEqualTo("byte_col:[127 TO 127]");
+        assertThat(query).hasToString("byte_col:[127 TO 127]");
     }
 
     @Test
     public void test_eq_on_float_column_uses_float_point_query() throws Exception {
         Query query = convert("f = 42.0::float");
-        assertThat(query.toString()).isEqualTo("f:[42.0 TO 42.0]");
+        assertThat(query).hasToString("f:[42.0 TO 42.0]");
     }
 
     @Test
     public void test_eq_any_on_float_column_uses_set_query() throws Exception {
         Query query = convert("f = ANY([42.0, 41.0])");
-        assertThat(query.toString()).isEqualTo("f:{41.0 42.0}");
+        assertThat(query).hasToString("f:{41.0 42.0}");
     }
 
     @Test
@@ -614,20 +611,20 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_is_null_on_analyzed_text_column_uses_norms_query() throws Exception {
         Query query = convert("content is null");
-        assertThat(query.toString())
-            .isEqualTo("+*:* -FieldExistsQuery [field=content]");
+        assertThat(query).hasToString("+*:* -FieldExistsQuery [field=content]");
     }
 
     @Test
     public void test_is_null_without_index_and_docvalues() {
         Query query = convert("text_no_index is null");
-        assertThat(query.toString()).isEqualTo("(text_no_index IS NULL)");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query)
+            .hasToString("(text_no_index IS NULL)")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
     public void test_arr_eq_empty_array_literal_is_optimized() {
         Query query = convert("y_array = []");
-        assertThat(query.toString()).isEqualTo("+NumTermsPerDoc: y_array +(y_array = [])");
+        assertThat(query).hasToString("+NumTermsPerDoc: y_array +(y_array = [])");
     }
 }

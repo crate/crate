@@ -22,10 +22,7 @@
 package io.crate.lucene;
 
 import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -40,84 +37,84 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testLikeAnyOnArrayLiteral() throws Exception {
         Query likeQuery = convert("name like any (['a', 'b', 'c'])");
-        assertThat(likeQuery, instanceOf(BooleanQuery.class));
+        assertThat(likeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
-        assertThat(likeBQuery.clauses().size(), is(3));
+        assertThat(likeBQuery.clauses()).hasSize(3);
         for (int i = 0; i < 2; i++) {
             // like --> ConstantScoreQuery with regexp-filter
             Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
-            assertThat(filteredQuery, instanceOf(WildcardQuery.class));
+            assertThat(filteredQuery).isExactlyInstanceOf(WildcardQuery.class);
         }
     }
 
     @Test
     public void testILikeAnyOnArrayLiteral() throws Exception {
         Query likeQuery = convert("name ilike any (['A', 'B', 'B'])");
-        assertThat(likeQuery, instanceOf(BooleanQuery.class));
+        assertThat(likeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
-        assertThat(likeBQuery.clauses().size(), is(3));
+        assertThat(likeBQuery.clauses()).hasSize(3);
         for (int i = 0; i < 2; i++) {
             Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
-            assertThat(filteredQuery, instanceOf(CrateRegexQuery.class));
+            assertThat(filteredQuery).isExactlyInstanceOf(CrateRegexQuery.class);
         }
     }
 
     @Test
     public void testNotLikeAnyOnArrayLiteral() throws Exception {
         Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
-        assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
+        assertThat(notLikeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(2));
+        assertThat(notLikeBQuery.clauses()).hasSize(2);
         BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
+        assertThat(clause.getOccur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
+        assertThat(((BooleanQuery) clause.getQuery()).clauses()).hasSize(3);
         for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
-            assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
+            assertThat(innerClause.getOccur()).isEqualTo(BooleanClause.Occur.MUST);
+            assertThat(innerClause.getQuery()).isExactlyInstanceOf(WildcardQuery.class);
         }
     }
 
     @Test
     public void testNotILikeAnyOnArrayLiteral() throws Exception {
         Query notLikeQuery = convert("name not ilike any (['A', 'B', 'C'])");
-        assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
+        assertThat(notLikeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(2));
+        assertThat(notLikeBQuery.clauses()).hasSize(2);
         BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
+        assertThat(clause.getOccur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
+        assertThat(((BooleanQuery) clause.getQuery()).clauses()).hasSize(3);
         for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
-            assertThat(innerClause.getQuery(), instanceOf(CrateRegexQuery.class));
+            assertThat(innerClause.getOccur()).isEqualTo(BooleanClause.Occur.MUST);
+            assertThat(innerClause.getQuery()).isExactlyInstanceOf(CrateRegexQuery.class);
         }
     }
 
     @Test
     public void testLikeWithBothSidesReferences() throws Exception {
         Query query = convert("name ilike name");
-        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
 
     @Test
     public void testSqlLikeToLuceneWildcard() throws Exception {
-        assertThat(convertSqlLikeToLuceneWildcard("%\\\\%"), is("*\\\\*"));
-        assertThat(convertSqlLikeToLuceneWildcard("%\\\\_"), is("*\\\\?"));
-        assertThat(convertSqlLikeToLuceneWildcard("%\\%"), is("*%"));
+        assertThat(convertSqlLikeToLuceneWildcard("%\\\\%")).isEqualTo("*\\\\*");
+        assertThat(convertSqlLikeToLuceneWildcard("%\\\\_")).isEqualTo("*\\\\?");
+        assertThat(convertSqlLikeToLuceneWildcard("%\\%")).isEqualTo("*%");
 
-        assertThat(convertSqlLikeToLuceneWildcard("%me"), is("*me"));
-        assertThat(convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
-        assertThat(convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));
+        assertThat(convertSqlLikeToLuceneWildcard("%me")).isEqualTo("*me");
+        assertThat(convertSqlLikeToLuceneWildcard("\\%me")).isEqualTo("%me");
+        assertThat(convertSqlLikeToLuceneWildcard("*me")).isEqualTo("\\*me");
 
-        assertThat(convertSqlLikeToLuceneWildcard("_me"), is("?me"));
-        assertThat(convertSqlLikeToLuceneWildcard("\\_me"), is("_me"));
-        assertThat(convertSqlLikeToLuceneWildcard("?me"), is("\\?me"));
+        assertThat(convertSqlLikeToLuceneWildcard("_me")).isEqualTo("?me");
+        assertThat(convertSqlLikeToLuceneWildcard("\\_me")).isEqualTo("_me");
+        assertThat(convertSqlLikeToLuceneWildcard("?me")).isEqualTo("\\?me");
     }
 
     @Test
     public void test_like_on_varchar_column_uses_wildcard_query() throws Exception {
         Query query = convert("vchar_name LIKE 'Trillian%'");
-        assertThat(query.toString(), is("vchar_name:Trillian*"));
-        assertThat(query, instanceOf(WildcardQuery.class));
+        assertThat(query).hasToString("vchar_name:Trillian*");
+        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
     }
 }

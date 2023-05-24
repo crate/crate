@@ -21,9 +21,8 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.apache.lucene.search.Query;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
@@ -34,33 +33,36 @@ public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testGeoShapeMatchWithin() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
-        assertThat(query, instanceOf(WithinPrefixTreeQuery.class));
+        assertThat(query).isExactlyInstanceOf(WithinPrefixTreeQuery.class);
     }
 
     @Test
     public void testWithinFunctionTooFewPoints() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("at least 4 polygon points required");
-        convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
+        assertThatThrownBy(
+                () -> convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})"))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("at least 4 polygon points required");
     }
 
     @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
         Query eqWithinQuery = convert("within(point, shape)");
-        assertThat(eqWithinQuery, instanceOf(GenericFunctionQuery.class));
+        assertThat(eqWithinQuery).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
     public void testWithinRectangleWithDatelineCrossing() throws Exception {
         // dateline crossing happens in a geo context when a polygon rectangle is wider than 180 degrees
         Query eqWithinQuery = convert("within(point, 'POLYGON((-95.0 10.0, -95.0 20.0, 95.0 20.0, 95.0 10.0, -95.0 10.0))')");
-        assertThat(eqWithinQuery.toString(), is("LatLonPointQuery: field=point:[[10.0, 180.0] [20.0, 180.0] [20.0, 95.0] [10.0, 95.0] [10.0, 180.0] [10.0, -180.0] [10.0, -95.0] [20.0, -95.0] [20.0, -180.0] [10.0, -180.0] [10.0, 180.0] ,]"));
+        assertThat(eqWithinQuery).hasToString(
+            "LatLonPointQuery: field=point:[[10.0, 180.0] [20.0, 180.0] [20.0, 95.0] [10.0, 95.0] [10.0, 180.0] [10.0, -180.0] [10.0, -95.0] [20.0, -95.0] [20.0, -180.0] [10.0, -180.0] [10.0, 180.0] ,]");
     }
 
     @Test
     public void test_point_within_rectangle_with_explicit_bool_equality_check_optimizes_to_lat_lon_point_query() throws Exception {
         Query query = convert("within(point, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') = true");
-        assertThat(query.toString(), is("LatLonPointQuery: field=point:[[40.0, 40.0] [40.0, 20.0] [20.0, 10.0] [10.0, 30.0] [40.0, 40.0] ,]"));
+        assertThat(query).hasToString(
+            "LatLonPointQuery: field=point:[[40.0, 40.0] [40.0, 20.0] [20.0, 10.0] [10.0, 30.0] [40.0, 40.0] ,]");
     }
 }

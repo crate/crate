@@ -22,8 +22,6 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
@@ -64,7 +62,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                                                          dataType2,
                                                          1,
                                                          defaultExpression2);
-        assertThat(reference1, is(reference2));
+        assertThat(reference1).isEqualTo(reference2);
     }
 
     @Test
@@ -90,7 +88,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         StreamInput in = out.bytes().streamInput();
         Reference reference2 = Reference.fromStream(in);
 
-        assertThat(reference2, is(reference));
+        assertThat(reference2).isEqualTo(reference);
     }
 
     @Test
@@ -118,9 +116,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         in.setVersion(Version.V_4_5_0);
         Reference reference2 = Reference.fromStream(in);
 
-        assertThat(reference2, is(reference));
+        assertThat(reference2).isEqualTo(reference);
     }
-
 
     @Test
     public void test_mapping_generation_for_varchar_with_length() throws Exception {
@@ -175,5 +172,4 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
         assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
-
 }
