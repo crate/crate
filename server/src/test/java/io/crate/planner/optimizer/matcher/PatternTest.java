@@ -63,7 +63,7 @@ public class PatternTest {
 
     @Test
     public void test_with_source_matching() {
-        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 1, 1);
+        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
         Filter filter = new Filter(source, mock(Symbol.class));
         var pattern = typeOf(Filter.class).with(source(), typeOf(Collect.class));
         assertMatch(pattern, filter);
@@ -82,7 +82,7 @@ public class PatternTest {
 
     @Test
     public void test_with_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
+        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
         var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
@@ -108,7 +108,7 @@ public class PatternTest {
 
     @Test
     public void test_with_property_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL, 100, 10);
+        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
         var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
         var filter = new Filter(groupReferenceSource, mock(Symbol.class));
 
@@ -125,7 +125,7 @@ public class PatternTest {
         Capture<Collect> capture = new Capture<>();
         Pattern<Filter> pattern = typeOf(Filter.class)
                                     .with(source(), typeOf(Collect.class)
-                                    .with(s -> s.estimatedRowSize() == 10).capturedAs(capture));
+                                    .with(s -> s.where() != null).capturedAs(capture));
 
         Match<Filter> match = pattern.accept(filter, Captures.empty(), groupReferenceResolver);
 
