@@ -21,6 +21,14 @@
 
 package io.crate.execution.engine.join;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.function.LongToIntFunction;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -29,14 +37,6 @@ import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterator;
 import io.netty.util.collection.IntObjectHashMap;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
-import java.util.function.IntSupplier;
-import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
 
 /**
  * <pre>
@@ -87,11 +87,12 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final ToIntFunction<Row> hashBuilderForLeft;
     private final ToIntFunction<Row> hashBuilderForRight;
-    private final IntSupplier calculateBlockSize;
+    private final LongToIntFunction calculateBlockSize;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
     private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
 
+    private int leftAverageRowSize = -1;
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
@@ -106,7 +107,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
                                       Predicate<Row> joinCondition,
                                       ToIntFunction<Row> hashBuilderForLeft,
                                       ToIntFunction<Row> hashBuilderForRight,
-                                      IntSupplier calculateBlockSize) {
+                                      LongToIntFunction calculateBlockSize) {
         super(left, right, combiner);
         this.leftRowAccounting = leftRowAccounting;
         this.joinCondition = joinCondition;
@@ -165,7 +166,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     }
 
     private void resetBuffer() {
-        blockSize = calculateBlockSize.getAsInt();
+        blockSize = calculateBlockSize.applyAsInt(leftAverageRowSize);
         buffer.clear();
         numberOfRowsInBuffer = 0;
         leftRowAccounting.release();
@@ -179,15 +180,20 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
 
     private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
+            long numItems = 0;
+            long sum = 0;
             while (leftBatchHasItems = left.moveNext()) {
                 Object[] leftRow = left.currentElement().materialize();
-                leftRowAccounting.accountForAndMaybeBreak(leftRow);
+                long leftRowSize = leftRowAccounting.accountForAndMaybeBreak(leftRow);
+                sum += leftRowSize;
+                numItems++;
                 int hash = hashBuilderForLeft.applyAsInt(unsafeArrayRow.cells(leftRow));
                 addToBuffer(leftRow, hash);
                 if (numberOfRowsInBuffer == blockSize) {
                     break;
                 }
             }
+            leftAverageRowSize = numItems > 0 ? (int) (sum / numItems) : -1;
 
             if (mustLoadLeftNextBatch()) {
                 // we should load the left side

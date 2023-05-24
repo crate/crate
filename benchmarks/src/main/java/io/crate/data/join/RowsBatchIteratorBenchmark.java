@@ -130,7 +130,7 @@ public class RowsBatchIteratorBenchmark {
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
-            () -> 1000,
+            ignored -> 1000,
             new NoRowAccounting<>()
         );
         while (crossJoin.moveNext()) {
@@ -161,7 +161,7 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            () -> 1000
+            ignored -> 1000
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -183,7 +183,7 @@ public class RowsBatchIteratorBenchmark {
                 return value < 500 ? value : (value % 100) + 500;
             },
             row -> (Integer) row.get(0) % 500,
-            () -> 1000
+            ignored -> 1000
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -217,7 +217,8 @@ public class RowsBatchIteratorBenchmark {
     private static class NoRowAccounting<T> implements RowAccounting<T> {
 
         @Override
-        public void accountForAndMaybeBreak(T row) {
+        public long accountForAndMaybeBreak(T row) {
+            return 42L;
         }
 
         @Override

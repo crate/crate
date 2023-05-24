@@ -72,7 +72,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
                 row -> Objects.equals(row.get(0), row.get(1)),
                 row -> Objects.hash(row.get(0)),
                 row -> Objects.hash(row.get(0)),
-                () -> 2
+                ignored -> 2
             );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -102,7 +102,7 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            () -> 500000
+            ignored -> 500000
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();

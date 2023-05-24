@@ -72,7 +72,8 @@ public class SortingLimitAndOffsetCollectorBenchmark {
             new RowAccounting<Object[]>() {
 
                 @Override
-                public void accountForAndMaybeBreak(Object[] row) {
+                public long accountForAndMaybeBreak(Object[] row) {
+                    return 42;
                 }
 
                 @Override
@@ -90,7 +91,8 @@ public class SortingLimitAndOffsetCollectorBenchmark {
             new RowAccounting<Object[]>() {
 
                 @Override
-                public void accountForAndMaybeBreak(Object[] row) {
+                public long accountForAndMaybeBreak(Object[] row) {
+                    return 42;
                 }
 
                 @Override

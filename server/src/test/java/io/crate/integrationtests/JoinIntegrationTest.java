@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1023,12 +1024,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(
             500_000,
             circuitBreaker,
-            rowSizeBytes,
-            rowsCount
+            rowSizeBytes
         );
         logger.info("\n\tThe block size for relation {}, total size {} bytes, with row count {} and row size {} bytes, " +
                     "if it would be used in a block join algorithm, would be {}",
-            relationName, tableSizeInBytes, rowsCount, rowSizeBytes, ramBlockSizeCalculator.getAsInt());
+            relationName, tableSizeInBytes, rowsCount, rowSizeBytes, ramBlockSizeCalculator.applyAsInt(-1));
     }
 
     @Test

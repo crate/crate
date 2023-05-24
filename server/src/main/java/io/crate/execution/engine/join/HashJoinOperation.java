@@ -57,8 +57,7 @@ public class HashJoinOperation implements CompletionListenable {
                              TransactionContext txnCtx,
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
-                             long estimatedRowSizeForLeft,
-                             long numberOfRowsForLeft) {
+                             long estimatedRowSizeForLeft) {
 
         this.resultConsumer = nlResultConsumer;
         this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
@@ -80,8 +79,7 @@ public class HashJoinOperation implements CompletionListenable {
                             new RamBlockSizeCalculator(
                                 Paging.PAGE_SIZE,
                                 circuitBreaker,
-                                estimatedRowSizeForLeft,
-                                numberOfRowsForLeft
+                                estimatedRowSizeForLeft
                             )
                         );
                         nlResultConsumer.accept(joinIterator, null);
