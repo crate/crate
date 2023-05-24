@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
@@ -447,5 +448,26 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         return SHALLOW_SIZE
             + RamUsageEstimator.sizeOf(name)
             + path.stream().mapToLong(RamUsageEstimator::sizeOf).sum();
+    }
+
+    public Iterable<ColumnIdent> parents() {
+        return () -> new Iterator<>() {
+
+            int level = path.size();
+
+            @Override
+            public boolean hasNext() {
+                return level > 0;
+            }
+
+            @Override
+            public ColumnIdent next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException("ColumnIdent has no more parents");
+                }
+                level--;
+                return new ColumnIdent(name, path.subList(0, level));
+            }
+        };
     }
 }

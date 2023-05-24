@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
@@ -44,14 +44,9 @@ public class ObjectColumnTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 
-    @Before
-    public void initTestData() {
-        this.setup.setUpObjectTable();
-        ensureYellow();
-    }
-
     @Test
     public void testInsertIntoDynamicObject() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> authorMap = Map.of(
             "name", Map.of(
                     "first_name", "Douglas",
@@ -71,6 +66,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void testAddColumnToDynamicObject() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> authorMap = new HashMap<>() {{
                 put("name", new HashMap<String, Object>() {{
                         put("first_name", "Douglas");
@@ -97,6 +93,7 @@ public class ObjectColumnTest extends IntegTestCase {
     @Test
     @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
     public void testAddColumnToIgnoredObject() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("num_pages", 240);
         detailMap.put("publishing_date", "1982-01-01");
@@ -119,6 +116,7 @@ public class ObjectColumnTest extends IntegTestCase {
     @Test
     @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
     public void test_predicate_on_ignored_object_returns_zero_rows_after_delete() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("num_pages", 240);
         detailMap.put("isbn", "978-0345391827");
@@ -144,6 +142,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void testAddColumnToStrictObject() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> authorMap = Map.of(
             "name", Map.of(
                 "first_name", "Douglas",
@@ -160,6 +159,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void updateToDynamicObject() throws Exception {
+        this.setup.setUpObjectTable();
         execute("update ot set author['job']='Writer' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         refresh();
@@ -181,6 +181,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void updateToIgnoredObject() throws Exception {
+        this.setup.setUpObjectTable();
         execute("update ot set details['published']='1978-01-01' " +
                 "where title=?", new Object[]{"The Hitchhiker's Guide to the Galaxy"});
         refresh();
@@ -196,6 +197,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void updateToStrictObject() throws Exception {
+        this.setup.setUpObjectTable();
         Asserts.assertSQLError(() -> execute(
             "update ot set author['name']['middle_name']='Noel' where author['name']['first_name']='Douglas' " +
             "and author['name']['last_name']='Adams'"))
@@ -206,6 +208,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void selectDynamicAddedColumnWhere() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> authorMap = Map.of(
             "name", Map.of(
                 "first_name", "Douglas",
@@ -226,6 +229,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void selectIgnoredAddedColumnWhere() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> detailMap = Map.of(
             "num_pages", 240,
             "publishing_date", "1982-01-01",
@@ -247,6 +251,7 @@ public class ObjectColumnTest extends IntegTestCase {
 
     @Test
     public void selectDynamicAddedColumnOrderBy() throws Exception {
+        this.setup.setUpObjectTable();
         Map<String, Object> authorMap = Map.of(
             "name", Map.of(
                 "first_name", "Douglas",
@@ -340,5 +345,43 @@ public class ObjectColumnTest extends IntegTestCase {
         }
         // make sure that a['u'] is kept as requested.
         assertThat(printedTable(response.rows())).contains("[(123 = _cast(a['u'], 'integer'))]");
+    }
+
+    @Test
+    public void test_default_columns_in_object_result_in_object_creation_if_missing_from_insert() throws Exception {
+        execute("""
+            create table tbl (
+                id int,
+                o object as (
+                    key text default 'd'
+                ),
+                os array(object as (
+                    x text default 'd',
+                    y text
+                )),
+                complex object as (
+                    os array(object as (
+                        key text default 'd'
+                    )),
+                    x text default 'd'
+                )
+            )
+            """
+        );
+        execute("insert into tbl (id) values (1)");
+        assertThat(response).hasRowCount(1);
+
+        execute("insert into tbl (id, os) values (2, [{}, null, {y=10}, {x=1, y=2}])");
+        assertThat(response).hasRowCount(1);
+
+        execute("insert into tbl (id, complex) values (3, {os=[{}, null]})");
+        assertThat(response).hasRowCount(1);
+
+        execute("refresh table tbl");
+        assertThat(execute("select id, o, os, complex from tbl order by 1 asc")).hasRows(
+            "1| {key=d}| NULL| {x=d}",
+            "2| {key=d}| [{x=d}, null, {x=d, y=10}, {x=1, y=2}]| {x=d}",
+            "3| {key=d}| NULL| {os=[{key=d}, null], x=d}"
+        );
     }
 }
