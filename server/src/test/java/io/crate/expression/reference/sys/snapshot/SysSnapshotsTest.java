@@ -22,7 +22,6 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,8 +37,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
@@ -60,8 +61,10 @@ public class SysSnapshotsTest extends ESTestCase {
         HashMap<String, SnapshotId> snapshots = new HashMap<>();
         SnapshotId s1 = new SnapshotId("s1", UUIDs.randomBase64UUID());
         SnapshotId s2 = new SnapshotId("s2", UUIDs.randomBase64UUID());
+        SnapshotId s3 = new SnapshotId("s3", UUIDs.randomBase64UUID());
         snapshots.put(s1.getUUID(), s1);
         snapshots.put(s2.getUUID(), s2);
+        snapshots.put(s3.getUUID(), s3);
         RepositoryData repositoryData = new RepositoryData(
             1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY, IndexMetaDataGenerations.EMPTY);
 
@@ -72,13 +75,32 @@ public class SysSnapshotsTest extends ESTestCase {
 
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
+        Metadata metadata = mock(Metadata.class);
+        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+
+        // s1 fails for SnapshotInfo
+        doReturn(CompletableFuture.completedFuture(metadata))
+            .when(r1)
+            .getSnapshotGlobalMetadata(s1);
         doReturn(CompletableFuture.failedFuture(new SnapshotException("repo1", "s1", "Everything is wrong")))
             .when(r1)
-            .getSnapshotInfo(eq(s1));
+            .getSnapshotInfo(s1);
 
+        // s1 fails for GlobalMetadata
+        doReturn(CompletableFuture.failedFuture(new SnapshotException("repo1", "s2", "Everything is wrong")))
+            .when(r1)
+            .getSnapshotGlobalMetadata(s2);
         doReturn(CompletableFuture.completedFuture(new SnapshotInfo(s2, Collections.emptyList(), SnapshotState.SUCCESS)))
             .when(r1)
-            .getSnapshotInfo(eq(s2));
+            .getSnapshotInfo(s2);
+
+        // s3 succeeds in both
+        doReturn(CompletableFuture.completedFuture(metadata))
+            .when(r1)
+            .getSnapshotGlobalMetadata(s3);
+        doReturn(CompletableFuture.completedFuture(new SnapshotInfo(s3, Collections.emptyList(), SnapshotState.SUCCESS)))
+            .when(r1)
+            .getSnapshotInfo(s3);
 
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1));
         Stream<SysSnapshot> currentSnapshots = StreamSupport.stream(
@@ -86,7 +108,7 @@ public class SysSnapshotsTest extends ESTestCase {
             false
         );
         assertThat(currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()))
-            .containsExactlyInAnyOrder("s1", "s2");
+            .containsExactlyInAnyOrder("s1", "s2", "s3");
     }
 
     @Test

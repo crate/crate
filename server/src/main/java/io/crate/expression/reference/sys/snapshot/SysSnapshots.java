@@ -26,6 +26,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.RelationName;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,12 +87,16 @@ public class SysSnapshots {
         });
     }
 
-    private static SysSnapshot toSysSnapshot(Repository repository, SnapshotId snapshotId, SnapshotInfo snapshotInfo) {
+    private static SysSnapshot toSysSnapshot(Repository repository,
+                                             SnapshotId snapshotId,
+                                             SnapshotInfo snapshotInfo,
+                                             List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
             snapshotId.getName(),
             repository.getMetadata().name(),
             snapshotInfo.indices(),
+            partedTables,
             snapshotInfo.startTime(),
             snapshotInfo.endTime(),
             version == null ? null : version.toString(),
@@ -101,9 +106,15 @@ public class SysSnapshots {
     }
 
     private static CompletableFuture<SysSnapshot> createSysSnapshot(Repository repository, SnapshotId snapshotId) {
-        return repository.getSnapshotInfo(snapshotId)
-            .thenApply(snapshotInfo -> toSysSnapshot(repository, snapshotId, snapshotInfo))
-            .exceptionally(t -> {
+        return repository.getSnapshotGlobalMetadata(snapshotId).thenCombine(
+            repository.getSnapshotInfo(snapshotId),
+            (metadata, snapshotInfo) -> {
+                List<String> partedTables = new ArrayList<>();
+                for (var template : metadata.templates().values()) {
+                    partedTables.add(RelationName.fqnFromIndexName(template.value.getName()));
+                }
+                return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);
+            }).exceptionally(t -> {
                 var err = SQLExceptions.unwrap(t);
                 if (err instanceof SnapshotException) {
                     if (LOGGER.isDebugEnabled()) {
@@ -112,6 +123,7 @@ public class SysSnapshots {
                     return new SysSnapshot(
                         snapshotId.getName(),
                         repository.getMetadata().name(),
+                        Collections.emptyList(),
                         Collections.emptyList(),
                         null,
                         null,
