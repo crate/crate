@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -64,13 +65,13 @@ public class AnalyzedColumnDefinition<T> {
         DataTypes.GEO_SHAPE.id()
     );
 
-    private static final String COLUMN_STORE_PROPERTY = "columnstore";
+    public static final String COLUMN_STORE_PROPERTY = "columnstore";
 
     private final AnalyzedColumnDefinition<T> parent;
-    public int position;
+    private int position;
     private ColumnIdent ident;
     private String name;
-    private DataType dataType;
+    private DataType<?> dataType;
     private String collectionType;
 
     private String geoTree;
@@ -120,7 +121,7 @@ public class AnalyzedColumnDefinition<T> {
                                      int position,
                                      ColumnIdent ident,
                                      String name,
-                                     DataType dataType,
+                                     DataType<?> dataType,
                                      String collectionType,
                                      IndexType indexType,
                                      String geoTree,
@@ -168,6 +169,7 @@ public class AnalyzedColumnDefinition<T> {
         this.generated = generated;
     }
 
+    @SuppressWarnings("unchecked")
     public <U> AnalyzedColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
         return new AnalyzedColumnDefinition<>(
             parent == null ? null : (AnalyzedColumnDefinition<U>) parent,   // parent is expected to be mapped already
@@ -228,6 +230,14 @@ public class AnalyzedColumnDefinition<T> {
         }
     }
 
+    public int position() {
+        return position;
+    }
+
+    public void position(int position) {
+        this.position = position;
+    }
+
     public void analyzer(T analyzer) {
         this.analyzer = analyzer;
     }
@@ -275,14 +285,14 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void dataType(String dataType) {
-        dataType(dataType, List.of(), true);
+        dataType(dataType, List.of());
     }
 
-    public void dataType(String typeName, List<Integer> parameters, boolean logWarnings) {
+    public void dataType(String typeName, List<Integer> parameters) {
         this.dataType = DataTypes.of(typeName, parameters);
     }
 
-    public DataType dataType() {
+    public DataType<?> dataType() {
         return this.dataType;
     }
 
@@ -404,8 +414,9 @@ public class AnalyzedColumnDefinition<T> {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Can't use an Analyzer on column %s because analyzers are only allowed on " +
-                "columns of type \"" + DataTypes.STRING.getName() + "\" of the unbound length limit.",
-                ident.sqlFqn()
+                "columns of type \"%s\" of the unbound length limit.",
+                ident.sqlFqn(),
+                DataTypes.STRING.getName()
             ));
         }
         if (indexType != null && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
@@ -490,7 +501,7 @@ public class AnalyzedColumnDefinition<T> {
         return mapping;
     }
 
-    public static String typeNameForESMapping(DataType dataType, @Nullable String analyzer, boolean isIndex) {
+    public static String typeNameForESMapping(DataType<?> dataType, @Nullable String analyzer, boolean isIndex) {
         if (StringType.ID == dataType.id()) {
             return analyzer == null && !isIndex ? "keyword" : "text";
         }
@@ -499,7 +510,7 @@ public class AnalyzedColumnDefinition<T> {
 
     public static void addTypeOptions(Map<String, Object> mapping,
                                       DataType<?> dataType,
-                                      @Nullable GenericProperties geoProperties,
+                                      @Nullable GenericProperties<?> geoProperties,
                                       @Nullable String geoTree,
                                       @Nullable String analyzer) {
         dataType.addMappingOptions(mapping);
@@ -546,12 +557,14 @@ public class AnalyzedColumnDefinition<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AnalyzedColumnDefinition)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AnalyzedColumnDefinition<?> that)) {
+            return false;
+        }
 
-        AnalyzedColumnDefinition that = (AnalyzedColumnDefinition) o;
-
-        return ident != null ? ident.equals(that.ident) : that.ident == null;
+        return Objects.equals(ident, that.ident);
     }
 
     @Override

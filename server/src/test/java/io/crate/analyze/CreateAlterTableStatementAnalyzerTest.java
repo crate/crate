@@ -772,7 +772,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                     blobTable.createBlobTable(),
                     plannerContext.transactionContext(),
                     plannerContext.nodeContext(),
-                    new RowN(new Object[0]),
+                    new RowN(),
                     SubQueryResults.EMPTY,
                     new NumberOfShards(clusterService)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -788,7 +788,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             blobTable.createBlobTable(),
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
-            new RowN(new Object[0]),
+            new RowN(),
             SubQueryResults.EMPTY,
             new NumberOfShards(clusterService));
 
@@ -1450,7 +1450,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
         AnalyzedColumnDefinition<Object> obj = stmt.analyzedTableElements().columns().get(0);

@@ -43,10 +43,10 @@ public class GenericPropertiesConverter {
     public static void genericPropertyToSetting(Settings.Builder builder,
                                                 String name,
                                                 Object value) {
-        if (value instanceof String[]) {
-            builder.putList(name, (String[]) value);
-        } else if (value instanceof List) {
-            builder.putList(name, (List) value);
+        if (value instanceof String[] strArray) {
+            builder.putList(name, strArray);
+        } else if (value instanceof List<?> list) {
+            builder.putList(name, list);
         } else {
             builder.put(name, value.toString());
         }
@@ -58,7 +58,7 @@ public class GenericPropertiesConverter {
         genericPropertiesToSettings(
             builder,
             genericProperties,
-            (settingKey) -> {
+            settingKey -> {
                 if (!supportedSettings.containsKey(settingKey)) {
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, INVALID_SETTING_MESSAGE, settingKey));
@@ -67,17 +67,16 @@ public class GenericPropertiesConverter {
         return builder.build();
     }
 
-    public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties) {
+    public static <T> Settings genericPropertiesToSettings(GenericProperties<T> genericProperties) {
         Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties, (settingKey) -> {
-        });
+        genericPropertiesToSettings(builder, genericProperties, settingKey -> {});
         return builder.build();
     }
 
-    private static void genericPropertiesToSettings(Settings.Builder builder,
-                                                    GenericProperties<Object> genericProperties,
-                                                    Consumer<String> settingKeyValidator) {
-        for (Map.Entry<String, Object> entry : genericProperties.properties().entrySet()) {
+    private static <T> void genericPropertiesToSettings(Settings.Builder builder,
+                                                        GenericProperties<T> genericProperties,
+                                                        Consumer<String> settingKeyValidator) {
+        for (Map.Entry<String, T> entry : genericProperties.properties().entrySet()) {
             settingKeyValidator.accept(entry.getKey());
             builder.put(entry.getKey(), entry.getValue().toString());
         }
@@ -160,8 +159,8 @@ public class GenericPropertiesConverter {
             String groupKey = getPossibleGroup(settingName);
             if (groupKey != null) {
                 setting = supportedSettings.get(groupKey);
-                if (setting instanceof Setting.AffixSetting) {
-                    setting = ((Setting.AffixSetting) setting).getConcreteSetting(INDEX_SETTING_PREFIX + settingName);
+                if (setting instanceof Setting.AffixSetting<?> affixSetting) {
+                    setting = affixSetting.getConcreteSetting(INDEX_SETTING_PREFIX + settingName);
                     return new SettingHolder(setting, true);
                 }
             }
@@ -204,8 +203,8 @@ public class GenericPropertiesConverter {
                 return;
             }
             Object value = setting.getDefault(Settings.EMPTY);
-            if (value instanceof Settings) {
-                builder.put((Settings) value);
+            if (value instanceof Settings settings) {
+                builder.put(settings);
             } else {
                 builder.put(setting.getKey(), value.toString());
             }
@@ -220,8 +219,8 @@ public class GenericPropertiesConverter {
             Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
             genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueSymbol);
             Object value = setting.get(singleSettingBuilder.build());
-            if (value instanceof Settings) {
-                builder.put((Settings) value);
+            if (value instanceof Settings settings) {
+                builder.put(settings);
             } else {
                 builder.put(setting.getKey(), value.toString());
             }
@@ -238,8 +237,8 @@ public class GenericPropertiesConverter {
             if (isChildOfAffixSetting) {
                 // affix settings should be removed on reset, they don't have a default value
                 builder.putNull(setting.getKey());
-            } else if (value instanceof Settings) {
-                builder.put((Settings) value);
+            } else if (value instanceof Settings settings) {
+                builder.put(settings);
             } else {
                 builder.put(setting.getKey(), value.toString());
             }

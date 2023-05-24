@@ -19,33 +19,23 @@
 
 package org.elasticsearch.node;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Supplier;
+public final class InternalSettingsPreparer {
 
-public class InternalSettingsPreparer {
-
-    /**
-     * Prepares settings for the transport client by gathering all
-     * elasticsearch system properties and setting defaults.
-     */
-    public static Settings prepareSettings(Settings input) {
-        Settings.Builder output = Settings.builder();
-        initializeSettings(output, input, Collections.emptyMap());
-        finalizeSettings(output, () -> null);
-        return output.build();
-    }
+    private InternalSettingsPreparer() {}
 
     /**
      * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings.
@@ -96,7 +86,7 @@ public class InternalSettingsPreparer {
      */
     static void initializeSettings(final Settings.Builder output, final Settings input, final Map<String, String> esSettings) {
         output.put(input);
-        output.putProperties(esSettings, Function.identity());
+        output.putProperties(esSettings, UnaryOperator.identity());
         output.replacePropertyPlaceholders();
     }
 

@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static io.crate.analyze.AnalyzedColumnDefinition.COLUMN_STORE_PROPERTY;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -43,7 +45,6 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.ColumnConstraint;
@@ -174,14 +175,14 @@ public class MetadataToASTNodeResolver {
                     if (geoReference.distanceErrorPct() != null) {
                         properties.put(
                             "distance_error_pct",
-                            StringLiteral.fromObject(geoReference.distanceErrorPct())
+                            Literal.fromObject(geoReference.distanceErrorPct())
                         );
                     }
                     if (geoReference.precision() != null) {
-                        properties.put("precision", StringLiteral.fromObject(geoReference.precision()));
+                        properties.put("precision", Literal.fromObject(geoReference.precision()));
                     }
                     if (geoReference.treeLevels() != null) {
-                        properties.put("tree_levels", StringLiteral.fromObject(geoReference.treeLevels()));
+                        properties.put("tree_levels", Literal.fromObject(geoReference.treeLevels()));
                     }
                     constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), new GenericProperties<>(properties)));
                 }
@@ -203,7 +204,7 @@ public class MetadataToASTNodeResolver {
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
                     GenericProperties<Expression> properties = new GenericProperties<>(Map.of(
-                        "columnstore", BooleanLiteral.fromObject(ref.hasDocValues())
+                        COLUMN_STORE_PROPERTY, Literal.fromObject(ref.hasDocValues())
                     ));
                     constraints.add(new ColumnStorageDefinition<>(properties));
                 }

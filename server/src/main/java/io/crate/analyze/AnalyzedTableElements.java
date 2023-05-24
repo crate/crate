@@ -33,13 +33,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.crate.common.collections.Lists2;
-import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
@@ -48,6 +45,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
@@ -68,6 +66,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -531,7 +530,7 @@ public class AnalyzedTableElements<T> {
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 IndexType.PLAIN,
                 isNullable,
-                columnDefinition.position,
+                columnDefinition.position(),
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
@@ -550,7 +549,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position,
+                columnDefinition.position(),
                 (Symbol) columnDefinition.defaultExpression(),
                 List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
@@ -564,7 +563,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position,
+                columnDefinition.position(),
                 (Symbol) columnDefinition.defaultExpression()
             );
         }
@@ -604,7 +603,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.sources()
                 .stream()
                 .map(src -> references.get(ColumnIdent.fromPath(src)))
-                .collect(Collectors.toList());
+                .toList();
 
             Reference ref = new IndexReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
@@ -614,7 +613,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN,
                 !columnDefinition.hasNotNullConstraint(),
                 columnDefinition.docValues(),
-                columnDefinition.position,
+                columnDefinition.position(),
                 null, // default expression is irrelevant for INDEX definition
                 sources,
                 columnDefinition.analyzer()
