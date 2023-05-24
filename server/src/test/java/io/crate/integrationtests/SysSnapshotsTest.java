@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -118,7 +119,7 @@ public class SysSnapshotsTest extends IntegTestCase {
         execute("insert into tbl (x, p) values (1, 1), (2, 2)");
         execute("refresh table tbl");
         execute("CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
-                new Object[] { TEMP_FOLDER.newFolder("backup_s2").getAbsolutePath() });
+                new Object[] { TEMP_FOLDER.newFolder().getAbsolutePath() });
         execute("CREATE SNAPSHOT r1.s2 TABLE tbl WITH (wait_for_completion = true)");
 
         execute("select x['table_name'], unnest(x['values']::string[]) "
@@ -127,5 +128,22 @@ public class SysSnapshotsTest extends IntegTestCase {
             "tbl| 1",
             "tbl| 2"
         );
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_sys_snapshots_lists_empty_partitioned_table() throws Exception {
+        execute("create table tbl_empty (x int, p int) clustered into 1 shards partitioned by (p)");
+        execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p)");
+        execute("insert into tbl (x, p) values (1, 1), (2, 2)");
+        execute("refresh table tbl");
+        execute("CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
+                new Object[] { TEMP_FOLDER.newFolder().getAbsolutePath() });
+        execute("CREATE SNAPSHOT r1.s2 ALL WITH (wait_for_completion = true)");
+
+        execute("select x from (select unnest(tables) from sys.snapshots) t (x) order by 1");
+        assertThat(response).hasRows(
+            "doc.tbl",
+            "doc.tbl_empty");
     }
 }
