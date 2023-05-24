@@ -21,11 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
@@ -34,12 +30,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -64,6 +58,7 @@ public class SysSnapshotsTest extends IntegTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testQueryAllColumns() throws Exception {
         execute("create table tbl (id int primary key) ");
         Object[][] bulkArgs = new Object[10][];
@@ -82,10 +77,12 @@ public class SysSnapshotsTest extends IntegTestCase {
         long finishedTime = threadPool.absoluteTimeInMillis();
 
         execute("select * from sys.snapshots");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "table_partitions", "tables", "version"));
+        assertThat(response).hasRowCount(1);
+        assertThat(response.cols()).containsExactly(
+            "concrete_indices", "failures", "finished", "name", "repository",
+            "started", "state", "table_partitions", "tables", "version");
         ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
-        assertThat(response.columnTypes(), arrayContaining(
+        assertThat(response.columnTypes()).containsExactly(
             stringArray,
             stringArray,
             TimestampType.INSTANCE_WITH_TZ,
@@ -101,18 +98,18 @@ public class SysSnapshotsTest extends IntegTestCase {
             ),
             stringArray,
             StringType.INSTANCE
-        ));
+        );
         Object[] firstRow = response.rows()[0];
-        assertThat((List<Object>) firstRow[0], Matchers.contains(getFqn("tbl")));
-        assertThat((List<Object>) firstRow[1], Matchers.empty());
-        assertThat((Long) firstRow[2], lessThanOrEqualTo(finishedTime));
-        assertThat(firstRow[3], is("s1"));
-        assertThat(firstRow[4], is("r1"));
-        assertThat((Long) firstRow[5], greaterThanOrEqualTo(createdTime));
-        assertThat(firstRow[6], is(SnapshotState.SUCCESS.name()));
-        assertThat((List<Object>) firstRow[7], Matchers.empty());
-        assertThat((List<Object>) firstRow[8], Matchers.contains(getFqn("tbl")));
-        assertThat(firstRow[9], is(Version.CURRENT.toString()));
+        assertThat((List<Object>) firstRow[0]).containsExactly(getFqn("tbl"));
+        assertThat((List<Object>) firstRow[1]).isEmpty();
+        assertThat((Long) firstRow[2]).isLessThanOrEqualTo(finishedTime);
+        assertThat(firstRow[3]).isEqualTo("s1");
+        assertThat(firstRow[4]).isEqualTo("r1");
+        assertThat((Long) firstRow[5]).isGreaterThanOrEqualTo(createdTime);
+        assertThat(firstRow[6]).isEqualTo(SnapshotState.SUCCESS.name());
+        assertThat((List<Object>) firstRow[7]).isEmpty();
+        assertThat((List<Object>) firstRow[8]).containsExactly(getFqn("tbl"));
+        assertThat(firstRow[9]).isEqualTo(Version.CURRENT.toString());
     }
 
     @Test
@@ -120,16 +117,15 @@ public class SysSnapshotsTest extends IntegTestCase {
         execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p)");
         execute("insert into tbl (x, p) values (1, 1), (2, 2)");
         execute("refresh table tbl");
-        execute(
-            "CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
-            new Object[] { TEMP_FOLDER.newFolder("backup_s2").getAbsolutePath() });
+        execute("CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
+                new Object[] { TEMP_FOLDER.newFolder("backup_s2").getAbsolutePath() });
         execute("CREATE SNAPSHOT r1.s2 TABLE tbl WITH (wait_for_completion = true)");
 
         execute("select x['table_name'], unnest(x['values']::string[]) "
             + "from (select unnest(table_partitions) from sys.snapshots) t (x) order by 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "tbl| 1\n" +
-            "tbl| 2\n"
-        ));
+        assertThat(response).hasRows(
+            "tbl| 1",
+            "tbl| 2"
+        );
     }
 }
