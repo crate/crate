@@ -180,7 +180,7 @@ public class HashJoin extends JoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            lhStats.averageSizePerRowInBytes(),
+            lhStats.estimateSizeForColumns(leftOutputs),
             lhStats.numDocs());
         return new Join(
             joinPhase,
