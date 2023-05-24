@@ -80,7 +80,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 2
+            ignored -> 2
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);

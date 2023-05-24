@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntSupplier;
+import java.util.function.LongToIntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -49,7 +49,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         private final int id;
         private final Supplier<BatchIterator<Row>> left;
         private final Supplier<BatchIterator<Row>> right;
-        private final IntSupplier blockSizeCalculator;
+        private final LongToIntFunction blockSizeCalculator;
         private final TestingRowAccounting testingRowAccounting;
         private final List<Object[]> expectedResults;
         private final int expectedRowsLeft;
@@ -59,7 +59,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         private Params(int id,
                        Supplier<BatchIterator<Row>> left,
                        Supplier<BatchIterator<Row>> right,
-                       IntSupplier blockSizeCalculator) throws Exception {
+                       LongToIntFunction blockSizeCalculator) throws Exception {
             this.id = id;
             this.left = left;
             this.right = right;
@@ -103,30 +103,30 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     static Stream<Params> parameters() throws Exception {
         return Stream.of(
-            new Params(0, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 1),
-            new Params(1, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 2),
-            new Params(2, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 3),
-            new Params(3, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), () -> 10),
-            new Params(4, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), () -> 100),
+            new Params(0, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), ignored -> 1),
+            new Params(1, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), ignored -> 2),
+            new Params(2, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), ignored -> 3),
+            new Params(3, () -> TestingBatchIterators.range(0, 3), () -> TestingBatchIterators.range(0, 3), ignored -> 10),
+            new Params(4, () -> TestingBatchIterators.range(0, 1), () -> TestingBatchIterators.range(0, 5), ignored -> 100),
             new Params(5,
                 () -> TestingBatchIterators.range(0, 3),
                 () -> TestingBatchIterators.range(0, 3),
-                () -> 10000),
-            new Params(6, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 30), () -> 1),
-            new Params(7, () -> TestingBatchIterators.range(0, 10), () -> TestingBatchIterators.range(0, 250), () -> 2),
-            new Params(8, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 100), () -> 3),
+                ignored -> 10000),
+            new Params(6, () -> TestingBatchIterators.range(0, 100), () -> TestingBatchIterators.range(0, 30), ignored -> 1),
+            new Params(7, () -> TestingBatchIterators.range(0, 10), () -> TestingBatchIterators.range(0, 250), ignored -> 2),
+            new Params(8, () -> TestingBatchIterators.range(0, 30), () -> TestingBatchIterators.range(0, 100), ignored -> 3),
             new Params(9,
                 () -> TestingBatchIterators.range(0, 250),
                 () -> TestingBatchIterators.range(0, 30),
-                () -> 10),
+                ignored -> 10),
             new Params(10,
                 () -> TestingBatchIterators.range(0, 100),
                 () -> TestingBatchIterators.range(0, 50),
-                () -> 100),
+                ignored -> 100),
             new Params(11,
                 () -> TestingBatchIterators.range(0, 30),
                 () -> TestingBatchIterators.range(0, 200),
-                () -> 10000));
+                ignored -> 10000));
     }
 
     @ParameterizedTest(name = "{arguments}")
@@ -148,7 +148,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
                 assertThat(params.testingRowAccounting.numReleaseCalled)
                     .isGreaterThan(
                         params.expectedRowsLeft /
-                            params.blockSizeCalculator.getAsInt());
+                            params.blockSizeCalculator.applyAsInt(-1));
             });
     }
 
@@ -177,7 +177,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
                     .isEqualTo(params.expectedRowsLeft);
                 assertThat(params.testingRowAccounting.numReleaseCalled)
                     .isGreaterThan(params.expectedRowsLeft /
-                        params.blockSizeCalculator.getAsInt());
+                        params.blockSizeCalculator.applyAsInt(-1));
             });
     }
 
@@ -252,8 +252,9 @@ public class CrossJoinBlockNLBatchIteratorTest {
         int numReleaseCalled;
 
         @Override
-        public void accountForAndMaybeBreak(Object[] row) {
+        public long accountForAndMaybeBreak(Object[] row) {
             numRows++;
+            return 42;
         }
 
         @Override

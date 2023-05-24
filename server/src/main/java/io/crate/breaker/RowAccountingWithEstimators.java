@@ -63,10 +63,12 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
      * This should only be used if the values are stored/buffered in another in-memory data structure.
      */
     @Override
-    public void accountForAndMaybeBreak(Row row) {
+    public long accountForAndMaybeBreak(Row row) {
         // Container size of the row is excluded because here it's unknown where the values will be saved to.
         // As size estimation is generally "best-effort" this should be good enough.
-        ramAccounting.addBytes(estimateRowSize.applyAsLong(row) + extraSizePerRow);
+        long bytes = estimateRowSize.applyAsLong(row) + extraSizePerRow;
+        ramAccounting.addBytes(bytes);
+        return bytes;
     }
 
     @Override
