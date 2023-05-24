@@ -135,6 +135,7 @@ public class TableElementsAnalyzer {
     private static class InnerTableElementsAnalyzer<T> extends DefaultTraversalVisitor<Void, ColumnDefinitionContext<T>> {
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitColumnDefinition(ColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
             ColumnDefinition<T> columnDefinition = (ColumnDefinition<T>) node;
             context.analyzedColumnDefinition.name(node.ident());
@@ -156,10 +157,11 @@ public class TableElementsAnalyzer {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
             AddColumnDefinition<T> addColumnDefinition = (AddColumnDefinition<T>) node;
             assert addColumnDefinition.name() instanceof Literal : "column name is expected to be a literal already";
-            ColumnIdent column = ColumnIdent.fromPath(((Literal) addColumnDefinition.name()).value().toString());
+            ColumnIdent column = ColumnIdent.fromPath(((Literal<?>) addColumnDefinition.name()).value().toString());
             context.analyzedColumnDefinition.name(column.name());
 
             assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
@@ -175,7 +177,7 @@ public class TableElementsAnalyzer {
                     // policy.
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
                     if (parentRef != null) {
-                        parent.position = parentRef.position();
+                        parent.position(parentRef.position());
                         if (parentRef.valueType().id() == ArrayType.ID) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
@@ -195,7 +197,7 @@ public class TableElementsAnalyzer {
             for (ColumnConstraint<T> columnConstraint : addColumnDefinition.constraints()) {
                 columnConstraint.accept(this, context);
             }
-            ColumnType type = node.type();
+            ColumnType<?> type = node.type();
             if (type != null) {
                 type.accept(this, context);
             }
@@ -210,11 +212,12 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnType(ColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.dataType(node.name(), node.parameters(), context.logWarnings);
+            context.analyzedColumnDefinition.dataType(node.name(), node.parameters());
             return null;
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitObjectColumnType(ObjectColumnType<?> node, ColumnDefinitionContext<T> context) {
             ObjectColumnType<T> objectColumnType = (ObjectColumnType<T>) node;
             context.analyzedColumnDefinition.dataType(objectColumnType.name());
@@ -257,8 +260,8 @@ public class TableElementsAnalyzer {
             return null;
         }
 
-
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint<?> node, ColumnDefinitionContext<T> context) {
             PrimaryKeyConstraint<T> primaryKeyConstraint = (PrimaryKeyConstraint<T>) node;
             for (T name : primaryKeyConstraint.columns()) {
@@ -285,6 +288,7 @@ public class TableElementsAnalyzer {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitIndexColumnConstraint(IndexColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
             if (node.indexMethod().equals("fulltext")) {
                 setAnalyzer((GenericProperties<T>) node.properties(), context, node.indexMethod());
@@ -308,6 +312,7 @@ public class TableElementsAnalyzer {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitIndexDefinition(IndexDefinition<?> node, ColumnDefinitionContext<T> context) {
             IndexDefinition<T> indexDefinition = (IndexDefinition<T>) node;
             context.analyzedColumnDefinition.setAsIndexColumn();
@@ -331,6 +336,7 @@ public class TableElementsAnalyzer {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public Void visitColumnStorageDefinition(ColumnStorageDefinition<?> node, ColumnDefinitionContext<T> context) {
             context.analyzedColumnDefinition.setStorageProperties((GenericProperties<T>) node.properties());
             return null;

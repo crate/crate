@@ -21,23 +21,25 @@
 
 package io.crate.analyze.ddl;
 
-import io.crate.analyze.GenericPropertiesConverter;
-import io.crate.sql.tree.GenericProperties;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.DistanceUnit;
 
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import io.crate.analyze.GenericPropertiesConverter;
+import io.crate.sql.tree.GenericProperties;
 
 public class GeoSettingsApplier {
 
     private static final Set<String> SUPPORTED_OPTIONS = Set.of(
         "precision", "distance_error_pct", "tree_levels");
 
-    public static void applySettings(Map<String, Object> mapping, GenericProperties<Object> properties, @Nullable String geoTree) {
+    public static void applySettings(Map<String, Object> mapping, GenericProperties<?> properties, @Nullable String geoTree) {
         Settings geoSettings = GenericPropertiesConverter.genericPropertiesToSettings(properties);
         validate(geoSettings);
         if (geoTree != null) {

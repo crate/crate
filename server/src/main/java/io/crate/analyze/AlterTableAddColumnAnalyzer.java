@@ -24,7 +24,6 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -93,10 +92,10 @@ class AlterTableAddColumnAnalyzer {
                 .stream()
                 .filter(c -> false == c instanceof CheckColumnConstraint)
                 .map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)))
-                .collect(Collectors.toList()),
+                .toList(),
             false,
             tableElement.generatedExpression() != null
-        )).collect(Collectors.toList());
+        )).toList();
 
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
             List.copyOf(addColumnDefinitions), tableInfo.ident(), tableInfo, true);
@@ -122,7 +121,7 @@ class AlterTableAddColumnAnalyzer {
                 tableInfo.ident(), referenceResolver, analyzedTableElements.columns()),
             null);
 
-        tableElements.forEach(tableElement -> {
+        tableElements.forEach(tableElement ->
             tableElement.constraints()
                 .stream()
                 .filter(CheckColumnConstraint.class::isInstance)
@@ -131,8 +130,8 @@ class AlterTableAddColumnAnalyzer {
                     CheckColumnConstraint<Symbol> check = (CheckColumnConstraint<Symbol>) c;
                     analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
                     analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
-                });
-        });
+                })
+        );
 
         addColumnDefinitionsWithExpression.forEach(addColumnDefinitionWithExpression -> {
             if (addColumnDefinitionWithExpression.generatedExpression() != null) {
@@ -183,7 +182,7 @@ class AlterTableAddColumnAnalyzer {
                             new ReferenceIdent(relationName, colIdent),
                             RowGranularity.DOC,
                             matchingNode.dataType(),
-                            matchingNode.position,
+                            matchingNode.position(),
                             matchingNode.defaultExpression()
                         );
                     }

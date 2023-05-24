@@ -29,6 +29,7 @@ public class IndexColumnConstraint<T> extends ColumnConstraint<T> {
 
     private static final IndexColumnConstraint<?> OFF = new IndexColumnConstraint<>("OFF", GenericProperties.empty());
 
+    @SuppressWarnings("unchecked")
     public static <T> IndexColumnConstraint<T> off() {
         return (IndexColumnConstraint<T>) OFF;
     }

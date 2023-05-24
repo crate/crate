@@ -90,16 +90,16 @@ public class TableElementsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         var analyzed = TableElementsAnalyzer.analyze(tableElements, new RelationName(null, "dummy"), null, true);
 
         var nested = analyzed.columns().get(0);
-        assertThat(nested.position).isEqualTo(-1);
+        assertThat(nested.position()).isEqualTo(-1);
 
         var nested2 = nested.children().get(0);
-        assertThat(nested2.position).isEqualTo(-2);
+        assertThat(nested2.position()).isEqualTo(-2);
 
         var sub1 = nested2.children().get(0);
-        assertThat(sub1.position).isEqualTo(-3);
+        assertThat(sub1.position()).isEqualTo(-3);
 
         var notNested = analyzed.columns().get(1);
-        assertThat(notNested.position).isEqualTo(-4);
+        assertThat(notNested.position()).isEqualTo(-4);
 
         // -1 ~ -4 represents column ordering, which will be used to re-calculated actual column positions.
         // see ColumnPositionResolver for more details
@@ -122,6 +122,6 @@ public class TableElementsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
          * author_ft    - position 2
          * dummy        - position -1
          */
-        assertThat(analyzedRelation.analyzedTableElements().columns().get(0).position).isEqualTo(-1);
+        assertThat(analyzedRelation.analyzedTableElements().columns().get(0).position()).isEqualTo(-1);
     }
 }
