@@ -21,9 +21,7 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -87,10 +85,8 @@ public class SysSnapshotsTest extends ESTestCase {
             Spliterators.spliteratorUnknownSize(sysSnapshots.currentSnapshots().get().iterator(), Spliterator.ORDERED),
             false
         );
-        assertThat(
-            currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()),
-            containsInAnyOrder("s1", "s2")
-        );
+        assertThat(currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()))
+            .containsExactlyInAnyOrder("s1", "s2");
     }
 
     @Test
@@ -103,6 +99,6 @@ public class SysSnapshotsTest extends ESTestCase {
         SysSnapshots sysSnapshots = new SysSnapshots(() -> List.of(r1));
         CompletableFuture<Iterable<SysSnapshot>> currentSnapshots = sysSnapshots.currentSnapshots();
         Iterable<SysSnapshot> iterable = currentSnapshots.get(5, TimeUnit.SECONDS);
-        assertThat(iterable.iterator().hasNext(), is(false));
+        assertThat(iterable.iterator().hasNext()).isFalse();
     }
 }
