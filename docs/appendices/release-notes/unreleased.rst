@@ -64,6 +64,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that would exclude empty partitioned tables from being listed
+  in :ref:`sys.snapshots <sys-snapshots>`.
 
 - Fixed a regression introduced in 5.3.0 that prevented the evaluation of
   ``DEFAULT`` clauses on children of ``OBJECT`` columns if the object was

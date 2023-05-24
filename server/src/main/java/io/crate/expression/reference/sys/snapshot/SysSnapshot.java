@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -33,6 +33,7 @@ public class SysSnapshot {
     private final String name;
     private final String repository;
     private final List<String> concreteIndices;
+    private final List<String> partitionedTables;
     private final Long started;
     private final Long finished;
     private final String version;
@@ -43,6 +44,7 @@ public class SysSnapshot {
     public SysSnapshot(String name,
                        String repository,
                        List<String> concreteIndices,
+                       List<String> partitionedTables,
                        Long started,
                        Long finished,
                        String version,
@@ -51,6 +53,7 @@ public class SysSnapshot {
         this.name = name;
         this.repository = repository;
         this.concreteIndices = concreteIndices;
+        this.partitionedTables = partitionedTables;
         this.started = started;
         this.finished = finished;
         this.version = version;
@@ -91,10 +94,9 @@ public class SysSnapshot {
     }
 
     public List<String> tables() {
-        return concreteIndices.stream()
-            .map(RelationName::fqnFromIndexName)
+        return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
             .distinct()
-            .collect(Collectors.toList());
+            .toList();
     }
 
     public List<PartitionName> tablePartitions() {
