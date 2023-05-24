@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -110,10 +111,13 @@ public class Stats implements Writeable {
         for (int i = 0; i < toCollect.size(); i++) {
             Symbol symbol = toCollect.get(i);
             ColumnStats<?> columnStats = null;
+            while (symbol instanceof AliasSymbol alias) {
+                symbol = alias.symbol();
+            }
             if (symbol instanceof Reference ref) {
                 columnStats = statsByColumn.get(ref.column());
-            } else if (symbol instanceof ScopedSymbol) {
-                columnStats = statsByColumn.get(((ScopedSymbol) symbol).column());
+            } else if (symbol instanceof ScopedSymbol scopedSymbol) {
+                columnStats = statsByColumn.get(scopedSymbol.column());
             }
             if (columnStats == null) {
                 if (symbol.valueType() instanceof FixedWidthType) {
