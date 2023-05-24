@@ -132,37 +132,33 @@ means that subqueries and cross-references to other columns are not allowed.
 
 .. NOTE::
 
-    Default values are not allowed for columns of type ``OBJECT``, e.g.::
+    Default values are not allowed for columns of type ``OBJECT``::
 
-      CREATE TABLE tbl(obj OBJECT DEFAULT {key='foo'}
+      cr> CREATE TABLE tbl (obj OBJECT DEFAULT {key='foo'})
+      SQLParseException[Default values are not allowed for object columns: obj]
 
-    but they are allowed for sub columns of an object column, e.g.::
+    They are allowed for sub columns of an object column. If an object column
+    has at least one child with a default expression it will implicitly create
+    the full object unless it's within an array.
 
-      CREATE TABLE tbl(obj OBJECT AS(key TEXT DEFAULT 'foo'))
+    An example::
 
-    The effect of the later, is different though, as if no value is provided for
-    the column ``obj`` then the value inserted is ``NULL``, but if a value for
-    the ``obj`` column is provided, but there is no value for ``key``
-    sub-column, then the ``key`` acquires the default value defined. e.g.::
+      cr> CREATE TABLE object_defaults (id int, obj OBJECT AS (key TEXT DEFAULT ''))
+      CREATE OK, 1 row affected  (... sec)
 
-      CREATE TABLE tbl(i INT, obj OBJECT AS(key TEXT DEFAULT 'foo'))
-      INSERT INTO tbl(i) VALUES(1)
-      SELECT * FROM tbl
-      +---+------+
-      | i | obj  |
-      +---+------+
-      | 1 | NULL |
-      +---+------+
+      cr> INSERT INTO object_defaults (id) VALUES (1)
+      INSERT OK, 1 row affected  (... sec)
 
-    vs::
+      cr> REFRESH TABLE object_defaults
+      REFRESH OK, 1 row affected  (... sec)
 
-      INSERT INTO tbl(i, obj) VALUES(1, {value=10})
-      SELECT * FROM tbl
-      +---+-----------------------------+
-      | i | obj                         |
-      +---+-----------------------------+
-      | 1 | {"key": "foo", "value": 10} |
-      +---+-----------------------------+
+      cr> SELECT obj FROM object_defaults
+      +-------------+
+      | obj         |
+      +-------------+
+      | {"key": ""} |
+      +-------------+
+      SELECT 1 row in set (... sec)
 
 
 .. _sql-create-table-generated-columns:

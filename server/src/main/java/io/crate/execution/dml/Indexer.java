@@ -79,6 +79,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
@@ -407,6 +408,34 @@ public class Indexer {
                 continue;
             }
             ColumnIdent column = ref.column();
+
+            // To ensure default expressions of object children are evaluated it's necessary
+            // to ensure the parent has values (or is present in the insert)
+            // This is because of how the index routine works:
+            // Processing objects is recursive, it skips null values -> it needs root synthetics as entry points
+            for (ColumnIdent parent : column.parents()) {
+                if (synthetics.containsKey(parent) || Symbols.containsColumn(targetColumns, parent)) {
+                    continue;
+                }
+                Reference parentRef = table.getReference(parent);
+                assert parentRef != null
+                    : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
+
+                int dimensions = ArrayType.dimensions(parentRef.valueType());
+                if (dimensions > 0) {
+                    break;
+                }
+                Input<?> input = HashMap::new;
+                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
+                    table.ident(),
+                    parentRef,
+                    getFieldType,
+                    getRef
+                );
+                Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
+                this.synthetics.put(parent, synthetic);
+            }
+
             Input<?> input = table.primaryKey().contains(column)
                 ? ctxForRefs.add(ref)
                 : ctxForRefs.add(ref.defaultExpression());

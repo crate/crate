@@ -22,11 +22,13 @@
 package io.crate.metadata;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -84,6 +86,25 @@ public class ColumnIdentTest {
 
         ColumnIdent fooBar = new ColumnIdent("foo", "bar");
         assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));
+    }
+
+    @Test
+    public void test_get_parents() throws Exception {
+        assertThat(new ColumnIdent("foo").parents()).hasSize(0);
+        assertThat(new ColumnIdent("foo", "x").parents()).containsExactly(
+            new ColumnIdent("foo")
+        );
+
+        assertThat(new ColumnIdent("foo", List.of("x", "y")).parents()).containsExactly(
+            new ColumnIdent("foo", "x"),
+            new ColumnIdent("foo")
+        );
+
+        assertThat(new ColumnIdent("foo", List.of("x", "y", "z")).parents()).containsExactly(
+            new ColumnIdent("foo", List.of("x", "y")),
+            new ColumnIdent("foo", "x"),
+            new ColumnIdent("foo")
+        );
     }
 
     @Test
