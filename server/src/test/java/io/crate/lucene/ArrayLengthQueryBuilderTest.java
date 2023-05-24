@@ -21,8 +21,7 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -32,55 +31,44 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testArrayLengthGtColumnIsNotOptimized() {
         Query query = convert("array_length(y_array, 1) > x");
-        assertThat(query.toString(), is("(x < array_length(y_array, 1))"));
+        assertThat(query).hasToString("(x < array_length(y_array, 1))");
     }
 
     @Test
     public void testArrayLengthGt0UsesExistsQuery() {
         Query query = convert("array_length(y_array, 1) > 0");
-        assertThat(
-            query.toString(),
-            is("FieldExistsQuery [field=y_array]"));
+        assertThat(query).hasToString("FieldExistsQuery [field=y_array]");
     }
 
     @Test
     public void testArrayLengthGtNULLDoesNotMatch() {
         Query query = convert("array_length(y_array, 1) > NULL");
-        assertThat(query.toString(), is("MatchNoDocsQuery(\"WHERE null -> no match\")"));
+        assertThat(query).hasToString("MatchNoDocsQuery(\"WHERE null -> no match\")");
     }
 
     @Test
     public void testArrayLengthGte1UsesNumTermsPerDocQuery() {
         Query query = convert("array_length(y_array, 1) >= 1");
-        assertThat(
-            query.toString(),
-            is("NumTermsPerDoc: y_array")
-        );
+        assertThat(query).hasToString("NumTermsPerDoc: y_array");
     }
 
     @Test
     public void testArrayLengthGt1UsesNumTermsPerOrAndGenericFunction() {
         Query query = convert("array_length(y_array, 1) > 1");
-        assertThat(
-            query.toString(),
-            is("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 1))~1")
-        );
+        assertThat(query).hasToString("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 1))~1");
     }
 
     @Test
     public void testArrayLengthLt1IsNoMatch() {
         Query query = convert("array_length(y_array, 1) < 1");
-        assertThat(
-            query.toString(),
-            is("MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match\")"));
+        assertThat(query).hasToString(
+            "MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match\")");
     }
 
     @Test
     public void testArrayLengthLte0IsNoMatch() {
         Query query = convert("array_length(y_array, 1) <= 0");
-        assertThat(
-            query.toString(),
-            is("MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match\")")
-        );
+        assertThat(query).hasToString(
+            "MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match\")");
     }
 }
