@@ -365,9 +365,7 @@ public class ExplainPlan implements Plan {
             var optimizedCollect = new Collect(
                 collect.relation(),
                 collect.outputs(),
-                collect.where().map(s -> Optimizer.optimizeCasts(s, context)),
-                collect.numExpectedRows(),
-                collect.estimatedRowSize()
+                collect.where().map(s -> Optimizer.optimizeCasts(s, context))
             );
             return visitPlan(optimizedCollect, context);
         }

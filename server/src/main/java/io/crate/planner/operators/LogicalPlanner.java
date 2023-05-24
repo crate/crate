@@ -337,12 +337,12 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, planStats, params);
+            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
         }
 
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
-            return Collect.create(relation, outputs, WhereClause.MATCH_ALL, planStats, params);
+            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
         }
 
         @Override

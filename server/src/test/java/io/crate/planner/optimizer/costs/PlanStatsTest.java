@@ -62,9 +62,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var source = new Collect(new DocTableRelation(a),
                                  List.of(x),
-                                 WhereClause.MATCH_ALL,
-                                 1L,
-                                 DataTypes.INTEGER.fixedSize());
+                                 WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
@@ -85,11 +83,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo a = e.resolveTableInfo("a");
 
         var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a),
-                                 List.of(x),
-                                 WhereClause.MATCH_ALL,
-                                 1L,
-                                 DataTypes.INTEGER.fixedSize());
+        var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL);
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
 
         TableStats tableStats = new TableStats();
@@ -111,11 +105,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo a = e.resolveTableInfo("a");
 
         var x = e.asSymbol("x");
-        var source = new Collect(new DocTableRelation(a),
-                                 List.of(x),
-                                 WhereClause.MATCH_ALL,
-                                 10L,
-                                 DataTypes.INTEGER.fixedSize());
+        var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
@@ -141,17 +131,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var y = e.asSymbol("x");
 
-        var lhs = new Collect(new DocTableRelation(aDoc),
-                                 List.of(x),
-                                 WhereClause.MATCH_ALL,
-                                 9L,
-                                 DataTypes.INTEGER.fixedSize());
+        var lhs = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
 
-        var rhs = new Collect(new DocTableRelation(bDoc),
-                                 List.of(y),
-                                 WhereClause.MATCH_ALL,
-                                 1L,
-                                 DataTypes.INTEGER.fixedSize());
+        var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
@@ -183,17 +165,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var y = e.asSymbol("x");
 
-        var lhs = new Collect(new DocTableRelation(aDoc),
-                              List.of(x),
-                              WhereClause.MATCH_ALL,
-                              9L,
-                              DataTypes.INTEGER.fixedSize());
+        var lhs = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
 
-        var rhs = new Collect(new DocTableRelation(bDoc),
-                              List.of(y),
-                              WhereClause.MATCH_ALL,
-                              1L,
-                              DataTypes.INTEGER.fixedSize());
+        var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
@@ -227,17 +201,9 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var y = e.asSymbol("x");
 
         DocTableRelation relation = new DocTableRelation(aDoc);
-        var lhs = new Collect(relation,
-                              List.of(x),
-                              WhereClause.MATCH_ALL,
-                              9L,
-                              DataTypes.INTEGER.fixedSize());
+        var lhs = new Collect(relation, List.of(x), WhereClause.MATCH_ALL);
 
-        var rhs = new Collect(new DocTableRelation(bDoc),
-                              List.of(y),
-                              WhereClause.MATCH_ALL,
-                              2L,
-                              DataTypes.INTEGER.fixedSize());
+        var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
