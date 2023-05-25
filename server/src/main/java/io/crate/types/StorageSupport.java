@@ -37,15 +37,18 @@ import io.crate.metadata.RelationName;
 public abstract class StorageSupport<T> {
 
     private final boolean docValuesDefault;
+    private final boolean supportsDocValuesOff;
     private final boolean hasFieldNamesIndex;
 
     @Nullable
     private final EqQuery<T> eqQuery;
 
     public StorageSupport(boolean docValuesDefault,
+                          boolean supportsDocValuesOff,
                           boolean hasFieldNamesIndex,
                           EqQuery<T> eqQuery) {
         this.docValuesDefault = docValuesDefault;
+        this.supportsDocValuesOff = supportsDocValuesOff;
         this.hasFieldNamesIndex = hasFieldNamesIndex;
         this.eqQuery = eqQuery;
     }
@@ -64,6 +67,10 @@ public abstract class StorageSupport<T> {
 
     public boolean docValuesDefault() {
         return docValuesDefault;
+    }
+
+    public boolean supportsDocValuesOff() {
+        return supportsDocValuesOff;
     }
 
     public boolean hasFieldNamesIndex() {

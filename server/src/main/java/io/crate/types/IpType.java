@@ -46,6 +46,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     public static final IpType INSTANCE = new IpType();
     private static final StorageSupport<String> STORAGE = new StorageSupport<>(
         true,
+        false,
         true,
         new EqQuery<String>() {
 
@@ -59,7 +60,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                     String lowerTerm,
                                     String upperTerm,
                                     boolean includeLower,
-                                    boolean includeUpper) {
+                                    boolean includeUpper,
+                                    boolean hasDocValues) {
                 InetAddress lower;
                 if (lowerTerm == null) {
                     lower = InetAddressPoint.MIN_VALUE;

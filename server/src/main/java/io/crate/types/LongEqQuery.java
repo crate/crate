@@ -38,7 +38,8 @@ public class LongEqQuery implements EqQuery<Long> {
                             Long lowerTerm,
                             Long upperTerm,
                             boolean includeLower,
-                            boolean includeUpper) {
+                            boolean includeUpper,
+                            boolean hasDocValues) {
         long lower = lowerTerm == null
             ? Long.MIN_VALUE
             : (includeLower ? lowerTerm : lowerTerm + 1);
@@ -46,6 +47,10 @@ public class LongEqQuery implements EqQuery<Long> {
             ? Long.MAX_VALUE
             : (includeUpper ? upperTerm : upperTerm - 1);
         Query indexQuery = LongPoint.newRangeQuery(field, lower, upper);
-        return new IndexOrDocValuesQuery(indexQuery, SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        if (hasDocValues) {
+            return new IndexOrDocValuesQuery(indexQuery,
+                                             SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        }
+        return indexQuery;
     }
 }

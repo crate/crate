@@ -34,6 +34,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
@@ -620,6 +621,41 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query)
             .hasToString("(text_no_index IS NULL)")
             .isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
+    public void test_comparison_with_and_without_docvalues() {
+        Query query = convert("x > 10");
+        assertThat(query)
+                .hasToString("x:[11 TO 2147483647]")
+                .isExactlyInstanceOf(IndexOrDocValuesQuery.class);
+        query = convert("x_no_docvalues > 10");
+        assertThat(query)
+                .hasToString("x_no_docvalues:[11 TO 2147483647]")
+                .isNotInstanceOf(IndexOrDocValuesQuery.class);
+    }
+
+    @Test
+    public void test_array_not_any_with_and_without_docvalues() {
+        Query query = convert("10 != ANY(y_array)");
+        assertThat(query)
+                .hasToString("(y_array:[11 TO 9223372036854775807] y_array:[-9223372036854775808 TO 9])~1")
+                .isExactlyInstanceOf(BooleanQuery.class);
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).satisfiesExactly(
+                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class),
+                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class)
+        );
+
+        query = convert("10 != ANY(x_array_no_docvalues)");
+        assertThat(query)
+                .hasToString("(x_array_no_docvalues:[11 TO 2147483647] x_array_no_docvalues:[-2147483648 TO 9])~1")
+                .isExactlyInstanceOf(BooleanQuery.class);
+        booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).satisfiesExactly(
+                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class),
+                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class)
+        );
     }
 
     @Test

@@ -156,6 +156,24 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_mapping_generation_for_float_without_doc_values() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table tbl (xs float storage with (columnstore = false))")
+                .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Map<String, Object> mapping = reference.toMapping();
+        assertThat(mapping)
+                .containsEntry("position", 1)
+                .containsEntry("type", "float")
+                .containsEntry("doc_values", "false")
+                .hasSize(3);
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+    }
+
+    @Test
     public void test_mapping_generation_default_expression() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (xs string default 'foo')")

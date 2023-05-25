@@ -86,6 +86,11 @@ None
 Changes
 =======
 
+- Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
+  :ref:`numeric data types <data-types-numeric>`,
+  :ref:`timestamp <type-timestamp>` and
+  :ref:`timestamp with timezone`<type-timestamp-with-tz>`.
+
 - Updated Lucene to 9.6.0
 
 - Added support for :ref:`AVG() aggregation <aggregation-avg>` on

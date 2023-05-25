@@ -38,7 +38,8 @@ public class IntEqQuery implements EqQuery<Number> {
                             Number lowerTerm,
                             Number upperTerm,
                             boolean includeLower,
-                            boolean includeUpper) {
+                            boolean includeUpper,
+                            boolean hasDocValues) {
         int lower = Integer.MIN_VALUE;
         if (lowerTerm != null) {
             lower = includeLower ? lowerTerm.intValue() : lowerTerm.intValue() + 1;
@@ -48,6 +49,10 @@ public class IntEqQuery implements EqQuery<Number> {
             upper = includeUpper ? upperTerm.intValue() : upperTerm.intValue() - 1;
         }
         Query indexquery = IntPoint.newRangeQuery(field, lower, upper);
-        return new IndexOrDocValuesQuery(indexquery, SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        if (hasDocValues) {
+            return new IndexOrDocValuesQuery(
+                    indexquery, SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        }
+        return indexquery;
     }
 }

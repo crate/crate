@@ -224,15 +224,19 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value);
+        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (field, eqQuery, value) -> eqQuery.termQuery(field, value),
-        GteOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, value, null, true, false),
-        GtOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, value, null, false, false),
-        LteOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, null, value, false, true),
-        LtOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, null, value, false, false)
+        EqOperator.NAME, (field, eqQuery, value, haDocValues) -> eqQuery.termQuery(field, value),
+        GteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
+                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues),
+        GtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
+                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues),
+        LteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
+                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues),
+        LtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
+                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues)
     );
 
     @Override
@@ -266,7 +270,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(
-                preFilterQueryBuilder.buildQuery(ref.column().fqn(), eqQuery, cmpLiteral.value()),
+                preFilterQueryBuilder.buildQuery(ref.column().fqn(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
                 BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();

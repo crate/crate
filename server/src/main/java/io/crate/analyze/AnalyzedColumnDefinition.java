@@ -363,12 +363,14 @@ public class AnalyzedColumnDefinition<T> {
                     DataType<?> dataType = definition.dataType();
                     boolean val = storageSettings.getAsBoolean(property, true);
                     if (val == false) {
-                        if (dataType.id() != DataTypes.STRING.id()) {
+                        if (dataType.storageSupport().supportsDocValuesOff()) {
+                            definition.docValues = false;
+                        } else {
                             throw new IllegalArgumentException(
-                                String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
-                                    dataType.getName()));
+                                String.format(Locale.ENGLISH,
+                                              "Invalid storage option \"columnstore\" for data type \"%s\"",
+                                              dataType.getName()));
                         }
-                        definition.docValues = false;
                     }
                 } else {
                     throw new IllegalArgumentException(

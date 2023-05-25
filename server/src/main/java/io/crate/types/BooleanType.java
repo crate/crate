@@ -66,13 +66,18 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean lowerTerm,
                                 Boolean upperTerm,
                                 boolean includeLower,
-                                boolean includeUpper) {
+                                boolean includeUpper,
+                                boolean hasDocValues) {
             return new TermRangeQuery(
                 field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
         }
     };
 
-    private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(true, true, EQ_QUERY) {
+    private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(
+            true,
+            false,
+            true,
+            EQ_QUERY) {
 
         @Override
         public ValueIndexer<Boolean> valueIndexer(RelationName table,
