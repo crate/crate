@@ -75,6 +75,7 @@ public final class AnyNeqOperator extends AnyOperator {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.column().fqn();

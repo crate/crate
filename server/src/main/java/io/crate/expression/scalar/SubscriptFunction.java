@@ -182,6 +182,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 : "invalid number of arguments";
         Object element = args[0].value();
@@ -213,10 +214,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     static Object lookupByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
-        if (!(base instanceof Map)) {
+        if (!(base instanceof Map<?, ?> map)) {
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
         }
-        Map<?, ?> map = (Map<?, ?>) base;
         if (errorOnUnknownObjectKey && !map.containsKey(name)) {
             throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         }
@@ -224,7 +224,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(String field, EqQuery eqQuery, Object value);
+        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
@@ -235,20 +235,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         LtOperator.NAME, (field, eqQuery, value) -> eqQuery.rangeQuery(field, null, value, false, false)
     );
 
-
     @Override
     public Query toQuery(Function parent, Function inner, Context context) {
         // `subscript(ref, <keyLiteral>) [ = | > | >= | < | <= ] <cmpLiteral>`
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         //       inner
         if (!(inner.arguments().get(0) instanceof Reference ref
-                && inner.arguments().get(1) instanceof Literal<?> keyLiteral
+                && inner.arguments().get(1) instanceof Literal<?>
                 && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
             return null;
         }
         if (DataTypes.isArray(ref.valueType())) {
-            PreFilterQueryBuilder preFilterQueryBuilder =
-                PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.name());
+            PreFilterQueryBuilder preFilterQueryBuilder = PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.name());
             if (preFilterQueryBuilder == null) {
                 return null;
             }
@@ -261,7 +259,8 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 return new MatchNoDocsQuery("column doesn't exist in this index");
             }
             StorageSupport<?> storageSupport = innerType.storageSupport();
-            EqQuery eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+            //noinspection unchecked
+            EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
             if (eqQuery == null) {
                 return null;
             }

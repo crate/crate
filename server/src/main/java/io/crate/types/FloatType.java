@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
@@ -93,6 +94,9 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         }
     };
 
+    private static final BigInteger MAX = BigDecimal.valueOf(Float.MAX_VALUE).toBigInteger();
+    private static final BigInteger MIN = BigDecimal.valueOf(-Float.MAX_VALUE).toBigInteger();
+
     private FloatType() {
     }
 
@@ -120,22 +124,17 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     public Float implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Float) {
-            return (Float) value;
-        } else if (value instanceof String) {
-            return Float.parseFloat((String) value);
-        } else if (value instanceof BigDecimal) {
-            var bigDecimalValue = (BigDecimal) value;
-
-            var MAX = BigDecimal.valueOf(Float.MAX_VALUE).toBigInteger();
-            var MIN = BigDecimal.valueOf(-Float.MAX_VALUE).toBigInteger();
+        } else if (value instanceof Float f) {
+            return f;
+        } else if (value instanceof String s) {
+            return Float.parseFloat(s);
+        } else if (value instanceof BigDecimal bigDecimalValue) {
             if (MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
                 || MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
                 throw new IllegalArgumentException("float value out of range: " + value);
             }
             return bigDecimalValue.floatValue();
-        } else if (value instanceof Number) {
-            Number number = (Number) value;
+        } else if (value instanceof Number number) {
             float val = number.floatValue();
             if (Float.isInfinite(val) && !Double.isInfinite(number.doubleValue())) {
                 throw new IllegalArgumentException("float value out of range: " + value);
@@ -150,8 +149,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     public Float sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Float) {
-            return (Float) value;
+        } else if (value instanceof Float f) {
+            return f;
         } else {
             return ((Number) value).floatValue();
         }

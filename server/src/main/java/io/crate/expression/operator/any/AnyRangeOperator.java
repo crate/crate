@@ -107,7 +107,7 @@ public final class AnyRangeOperator extends AnyOperator {
         booleanQuery.setMinimumNumberShouldMatch(1);
         for (Object value : (Iterable<?>) candidates.value()) {
             booleanQuery.add(
-                CmpOperator.toQuery(comparison.innerOpName, probe, value, context),
+                CmpOperator.toQuery(comparison.innerOpName, probe, value),
                 BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
@@ -117,7 +117,7 @@ public final class AnyRangeOperator extends AnyOperator {
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 < ANY (array_col) --> array_col > 1
         try {
-            return CmpOperator.toQuery(comparison.inverseInnerOpName, candidates, probe.value(), context);
+            return CmpOperator.toQuery(comparison.inverseInnerOpName, candidates, probe.value());
         } catch (IllegalArgumentException | ClassCastException ex) {
             throw new UnsupportedFeatureException("Cannot use `" + comparison.symbol + " ANY` if left side is an array");
         }

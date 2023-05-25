@@ -64,6 +64,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     return null;
                 }
                 StorageSupport<?> storageSupport = ref.valueType().storageSupport();
+                //noinspection unchecked
                 EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
                 if (eqQuery == null) {
                     return null;
@@ -97,10 +98,10 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
             }
         }
         BooleanQuery query = queryBuilder.build();
-        if (query.clauses().size() > 0) {
-            return query;
-        } else {
+        if (query.clauses().isEmpty()) {
             return null;
+        } else {
+            return query;
         }
     }
 }

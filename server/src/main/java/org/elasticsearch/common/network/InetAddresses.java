@@ -16,8 +16,6 @@
 
 package org.elasticsearch.common.network;
 
-import io.crate.common.collections.Tuple;
-
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -26,9 +24,11 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class InetAddresses {
-    private static int IPV4_PART_COUNT = 4;
-    private static int IPV6_PART_COUNT = 8;
+public final class InetAddresses {
+    private static final int IPV4_PART_COUNT = 4;
+    private static final int IPV6_PART_COUNT = 8;
+
+    private InetAddresses() {}
 
     public static boolean isInetAddress(String ipString) {
         return ipStringToBytes(ipString) != null;
@@ -364,7 +364,7 @@ public class InetAddresses {
      * @throws IllegalArgumentException if the prefix length is not in 0-32 for IPv4 addresses and 0-128 for IPv6 addresses
      * @throws NumberFormatException if the prefix length is not an integer
      */
-    public static Tuple<InetAddress, Integer> parseCidr(String maskedAddress) {
+    public static InetAddressPrefixLength parseCidr(String maskedAddress) {
         String[] fields = maskedAddress.split("/");
         if (fields.length == 2) {
             final String addressString = fields[0];
@@ -379,9 +379,11 @@ public class InetAddresses {
                 throw new IllegalArgumentException("Illegal prefix length [" + prefixLength + "] in [" + maskedAddress +
                         "]. Must be 0-32 for IPv4 ranges, 0-128 for IPv6 ranges");
             }
-            return new Tuple<>(address, prefixLength);
+            return new InetAddressPrefixLength(address, prefixLength);
         } else {
             throw new IllegalArgumentException("Expected [ip/prefix] but was [" + maskedAddress + "]");
         }
     }
+
+    public record InetAddressPrefixLength(InetAddress inetAddress, Integer prefixLen) {}
 }

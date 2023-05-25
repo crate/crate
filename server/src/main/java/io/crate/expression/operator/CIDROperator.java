@@ -32,10 +32,8 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.network.InetAddresses;
 
-import io.crate.common.collections.Tuple;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -50,6 +48,8 @@ public final class CIDROperator {
     public static final String CONTAINED_WITHIN = Operator.PREFIX + "<<";
 
     private static final int IPV4_ADDRESS_LEN = 4;
+
+    private CIDROperator() {}
 
     public static void register(OperatorModule module) {
         module.register(
@@ -73,25 +73,27 @@ public final class CIDROperator {
         }
         try {
             BigInteger ip = new BigInteger(1, InetAddress.getByName(ipStr).getAddress());
-            Tuple<BigInteger, BigInteger> cidr = extractRange(cidrStr);
-            return cidr.v1().compareTo(ip) <= 0 && ip.compareTo(cidr.v2()) <= 0;
+            AddressLimits cidr = extractRange(cidrStr);
+            return cidr.start().compareTo(ip) <= 0 && ip.compareTo(cidr.end()) <= 0;
         } catch (UnknownHostException uhe) {
             throw new IllegalArgumentException(uhe);
         }
     }
 
-    private static Tuple<BigInteger, BigInteger> extractRange(String cidr) {
+    private record AddressLimits(BigInteger start, BigInteger end) {}
+
+    private static AddressLimits extractRange(String cidr) {
         if (null == cidr || false == cidr.contains("/")) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH, "operand [%s] must conform with CIDR notation", cidr));
         }
-        Tuple<InetAddress, Integer> tup = InetAddresses.parseCidr(cidr);
-        InetAddress inetAddress = tup.v1();
+        InetAddresses.InetAddressPrefixLength tup = InetAddresses.parseCidr(cidr);
+        InetAddress inetAddress = tup.inetAddress();
         BigInteger base = new BigInteger(1, inetAddress.getAddress());
-        BigInteger mask = createMask(inetAddress.getAddress().length, tup.v2());
+        BigInteger mask = createMask(inetAddress.getAddress().length, tup.prefixLen());
         BigInteger start = base.and(mask);
         BigInteger end = start.add(mask.not());
-        return new Tuple<>(start, end);
+        return new AddressLimits(start, end);
     }
 
     private static BigInteger createMask(int addressSizeInBytes, int prefixLength) {
@@ -139,13 +141,13 @@ public final class CIDROperator {
         }
 
         @Override
-        public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+        public Query toQuery(Reference ref, Literal<?> literal) {
             String cidrStr = (String) literal.value();
             if (ref.indexType() == IndexType.NONE) {
                 return new MatchNoDocsQuery("column does not exist in this index");
             }
-            Tuple<InetAddress, Integer> cidr = InetAddresses.parseCidr(cidrStr);
-            return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.v1(), cidr.v2());
+            InetAddresses.InetAddressPrefixLength cidr = InetAddresses.parseCidr(cidrStr);
+            return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.inetAddress(), cidr.prefixLen());
         }
     }
 }

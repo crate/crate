@@ -49,7 +49,7 @@ public interface FunctionToQuery {
      * </p>
      *
      * <p>
-     * Default implementation calls {@link #toQuery(Reference, Literal, Context)},
+     * Default implementation calls {@link #toQuery(Reference, Literal)},
      * which is there to make it more convenient to implement the functionality.
      * It unwraps the arguments for the common `col <op> literal` case.
      * </p>
@@ -60,7 +60,7 @@ public interface FunctionToQuery {
         if (arguments.size() == 2
                 && arguments.get(0) instanceof Reference ref
                 && arguments.get(1) instanceof Literal<?> literal) {
-            return toQuery(ref, literal, context);
+            return toQuery(ref, literal);
         }
         return null;
     }
@@ -69,7 +69,7 @@ public interface FunctionToQuery {
      * See {@link #toQuery(Function, Context)}
      **/
     @Nullable
-    default Query toQuery(Reference ref, Literal<?> literal, Context context) {
+    default Query toQuery(Reference ref, Literal<?> literal) {
         return null;
     }
 
@@ -93,5 +93,4 @@ public interface FunctionToQuery {
     default Query toQuery(Function parent, Function inner, Context context) {
         return null;
     }
-
 }
