@@ -37,7 +37,8 @@ def plugins = [
     project(':plugins:es-analysis-common'),
     project(':plugins:es-analysis-phonetic'),
     project(':plugins:es-repository-azure'),
-    project(':plugins:cr8-copy-s3')
+    project(':plugins:repository-gcs'),
+    project(':plugins:cr8-copy-s3'),
 ]
 
 

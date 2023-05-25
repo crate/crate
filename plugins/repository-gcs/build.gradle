@@ -1,0 +1,6 @@
+apply from: "$rootDir/extensions/extensionModule.gradle"
+
+dependencies {
+    implementation project(':server')
+    pluginDependency("com.google.cloud:google-cloud-storage:${versions.google_cloud_storage}")
+}
