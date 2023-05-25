@@ -35,7 +35,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class SwapHashJoin implements Rule<HashJoin> {
+public class ReorderHashJoin implements Rule<HashJoin> {
 
     private final Pattern<HashJoin> pattern = typeOf(HashJoin.class);
 

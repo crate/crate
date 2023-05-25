@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -425,12 +424,12 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.",
             "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.",
             "optimizer_remove_redundant_fetch_or_eval| true| Indicates if the optimizer rule RemoveRedundantFetchOrEval is activated.",
+            "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.",
+            "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.",
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.",
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.",
             "optimizer_rewrite_nested_loop_join_to_hash_join| true| Indicates if the optimizer rule RewriteNestedLoopJoinToHashJoin is activated.",
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.",
-            "optimizer_swap_hash_join| true| Indicates if the optimizer rule SwapHashJoin is activated.",
-            "optimizer_swap_nested_loop_join| true| Indicates if the optimizer rule SwapNestedLoopJoin is activated.",
             "search_path| doc| Sets the schema search order.",
             "server_version| 14.0| Reports the emulated PostgreSQL version number",
             "server_version_num| 140000| Reports the emulated PostgreSQL version number",

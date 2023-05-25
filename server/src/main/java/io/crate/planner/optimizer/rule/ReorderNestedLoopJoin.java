@@ -35,7 +35,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class SwapNestedLoopJoin implements Rule<NestedLoopJoin> {
+public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
 
     private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
         .with(j -> j.orderByWasPushedDown() == false &&
