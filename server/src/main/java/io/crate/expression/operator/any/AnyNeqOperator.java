@@ -96,11 +96,11 @@ public final class AnyNeqOperator extends AnyOperator {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            eqQuery.rangeQuery(columnName, value, null, false, false),
+            eqQuery.rangeQuery(columnName, value, null, false, false, candidates.hasDocValues()),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            eqQuery.rangeQuery(columnName, null, value, false, false),
+            eqQuery.rangeQuery(columnName, null, value, false, false, candidates.hasDocValues()),
             BooleanClause.Occur.SHOULD
         );
         return query.build();

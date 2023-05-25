@@ -50,6 +50,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
         true,
         true,
+        true,
         new EqQuery<Double>() {
 
             @Override
@@ -62,7 +63,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                                     Double lowerTerm,
                                     Double upperTerm,
                                     boolean includeLower,
-                                    boolean includeUpper) {
+                                    boolean includeUpper,
+                                    boolean hasDocValues) {
                 double lower;
                 if (lowerTerm == null) {
                     lower = Double.NEGATIVE_INFINITY;
@@ -77,12 +79,15 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                     upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
                 }
                 Query indexQuery = DoublePoint.newRangeQuery(field, lower, upper);
-                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(
-                    field,
-                    NumericUtils.doubleToSortableLong(lower),
-                    NumericUtils.doubleToSortableLong(upper)
-                );
-                return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (hasDocValues) {
+                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(
+                            field,
+                            NumericUtils.doubleToSortableLong(lower),
+                            NumericUtils.doubleToSortableLong(upper)
+                    );
+                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                }
+                return indexQuery;
             }
         }
     ) {

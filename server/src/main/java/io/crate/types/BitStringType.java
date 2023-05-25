@@ -64,6 +64,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
     private static final StorageSupport<BitString> STORAGE = new StorageSupport<>(
         true,
+        false,
         true,
         new EqQuery<BitString>() {
 
@@ -77,7 +78,8 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                                     BitString lowerTerm,
                                     BitString upperTerm,
                                     boolean includeLower,
-                                    boolean includeUpper) {
+                                    boolean includeUpper,
+                                    boolean hasDocValues) {
                 return null;
             }
         }

@@ -93,10 +93,14 @@ public final class CmpOperator extends Operator<Object> {
         }
         String field = ref.column().fqn();
         return switch (functionName) {
-            case GtOperator.NAME -> eqQuery.rangeQuery(field, value, null, false, false);
-            case GteOperator.NAME -> eqQuery.rangeQuery(field, value, null, true, false);
-            case LtOperator.NAME -> eqQuery.rangeQuery(field, null, value, false, false);
-            case LteOperator.NAME -> eqQuery.rangeQuery(field, null, value, false, true);
+            case GtOperator.NAME -> eqQuery.rangeQuery(
+                    field, value, null, false, false, ref.hasDocValues());
+            case GteOperator.NAME -> eqQuery.rangeQuery(
+                    field, value, null, true, false, ref.hasDocValues());
+            case LtOperator.NAME ->
+                    eqQuery.rangeQuery(field, null, value, false, false, ref.hasDocValues());
+            case LteOperator.NAME ->
+                    eqQuery.rangeQuery(field, null, value, false, true, ref.hasDocValues());
             default -> throw new IllegalArgumentException(functionName + " is not a supported comparison operator");
         };
     }

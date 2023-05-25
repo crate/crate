@@ -55,6 +55,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " content string index using fulltext," +
             " text_no_index text index off storage with (columnstore = false)," +
             " x integer not null," +
+            " x_no_docvalues int storage with (columnstore = false)," +
             " f float," +
             " d double," +
             " obj object as (" +
@@ -64,6 +65,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
             " obj_ignored object (ignored), " +
             " d_array array(double)," +
             " y_array array(long)," +
+            " x_array_no_docvalues array(int) storage with (columnstore = false)," +
             " o_array array(object as (xs array(integer)))," +
             " ts_array array(timestamp with time zone)," +
             " shape geo_shape," +

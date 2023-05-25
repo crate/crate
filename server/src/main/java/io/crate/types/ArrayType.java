@@ -91,6 +91,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         } else {
             this.storageSupport = new StorageSupport<T>(
                     innerStorage.docValuesDefault(),
+                    innerStorage.supportsDocValuesOff(),
                     innerStorage.hasFieldNamesIndex(),
                     innerStorage.eqQuery()) {
 

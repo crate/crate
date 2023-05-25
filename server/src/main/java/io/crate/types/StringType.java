@@ -74,6 +74,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,
+        true,
         new EqQuery<Object>() {
 
             @Override
@@ -86,7 +87,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                     Object lowerTerm,
                                     Object upperTerm,
                                     boolean includeLower,
-                                    boolean includeUpper) {
+                                    boolean includeUpper,
+                                    boolean hasDocValues) {
                 return new TermRangeQuery(
                     field,
                     BytesRefs.toBytesRef(lowerTerm),

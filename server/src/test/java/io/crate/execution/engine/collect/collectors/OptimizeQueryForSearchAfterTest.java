@@ -26,22 +26,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
 public class OptimizeQueryForSearchAfterTest {
 
     @Test
-    public void test_string_range_query_can_handle_byte_ref_values() throws Exception {
+    public void test_string_range_query_can_handle_byte_ref_values() {
         ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
             new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.STRING, 1, null)
@@ -50,5 +54,37 @@ public class OptimizeQueryForSearchAfterTest {
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
         Query query = optimize.apply(lastCollected);
         assertThat(query).hasToString("+x:{* TO foobar}");
+    }
+
+    @Test
+    public void test_short_range_query_with_and_without_docvalues() {
+        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
+        OrderBy orderBy = new OrderBy(List.of(
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                                    IndexType.PLAIN, true, true, 1, null)
+        ));
+        var optimize = new OptimizeQueryForSearchAfter(orderBy);
+        FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
+        Query query = optimize.apply(lastCollected);
+        assertThat(query)
+                .hasToString("+x:[-2147483648 TO 9]")
+                .isExactlyInstanceOf(BooleanQuery.class);
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).satisfiesExactly(
+                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class));
+
+        orderBy = new OrderBy(List.of(
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                                    IndexType.PLAIN, true, false, 1, null)
+        ));
+        optimize = new OptimizeQueryForSearchAfter(orderBy);
+        lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
+        query = optimize.apply(lastCollected);
+        assertThat(query)
+                .hasToString("+x:[-2147483648 TO 9]")
+                .isExactlyInstanceOf(BooleanQuery.class);
+        booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses()).satisfiesExactly(
+                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class));
     }
 }

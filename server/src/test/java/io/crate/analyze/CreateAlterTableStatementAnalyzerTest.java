@@ -1420,22 +1420,24 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testCreateTableWithColumnStoreDisabled() {
-        BoundCreateTable analysis = analyze(
-            "create table columnstore_disabled (s string STORAGE WITH (columnstore = false))");
+    public void test_create_table_with_column_store_disabled() {
+        for (var dataType : DataTypes.PRIMITIVE_TYPES) {
+            var stmt = "create table columnstore_disabled (s " + dataType + " STORAGE WITH (columnstore = false))";
 
-        Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo("s={doc_values=false, position=1, type=keyword}");
-    }
-
-    @Test
-    public void testCreateTableWithColumnStoreDisabledOnInvalidDataType() {
-        assertThatThrownBy(
-            () -> analyze("create table columnstore_disabled (s int STORAGE WITH (columnstore = false))"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid storage option \"columnstore\" for data type \"integer\"");
+            if (dataType.storageSupport() != null && dataType.storageSupport().supportsDocValuesOff()) {
+                BoundCreateTable analysis = analyze(stmt);
+                var mapping = TestingHelpers.toMapping(analysis);
+                var mappingProperties = (Map<String, Object>) mapping.get("properties");
+                assertThat(mapToSortedString(mappingProperties))
+                    .contains("doc_values=false")
+                    .contains("position=1")
+                    .contains("type=" + DataTypes.esMappingNameFrom(dataType.id()));
+            } else if (dataType.storageSupport() != null) {
+                assertThatThrownBy(() -> analyze(stmt))
+                    .isExactlyInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid storage option \"columnstore\" for data type \"" + dataType.getName() + "\"");
+            }
+        }
     }
 
     @Test

@@ -127,10 +127,13 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        // Turning off columnstore is currently supported only for TEXT.
-        // We can enable this case for all types once https://github.com/crate/crate/issues/11652 is implemented.
-        String createStatement = "create table t_text (xs array(text) index off storage with (columnstore = false))";
-        assertMatches(createStatement, true, ARRAY_VALUES);
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            if (dataType.storageSupport() != null && dataType.storageSupport().supportsDocValuesOff()) {
+                var createStmt =
+                        "create table t_text (xs array(" + dataType + ") index off storage with (columnstore = false))";
+                assertMatches(createStmt, true, ARRAY_VALUES);
+            }
+        }
     }
 
     @Test
@@ -174,10 +177,13 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        // Turning off columnstore is currently supported only for TEXT.
-        // We can enable this case for all types once https://github.com/crate/crate/issues/11652 is implemented.
-        String createStatement = "create table t_text (xs array(text) index off storage with (columnstore = false))";
-        assertMatches(createStatement, false, ARRAY_VALUES);
+        for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            if (dataType.storageSupport() != null && dataType.storageSupport().supportsDocValuesOff()) {
+                var createStmt =
+                        "create table t (xs array(" + dataType + ") index off storage with (columnstore = false))";
+                assertMatches(createStmt, false, ARRAY_VALUES);
+            }
+        }
     }
 
     @Test

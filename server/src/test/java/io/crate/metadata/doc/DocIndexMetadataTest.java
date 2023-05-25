@@ -1566,7 +1566,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnStoreBooleanIsParsedCorrectly() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement(
-            "create table t1 (x string STORAGE WITH (columnstore = false))");
+                "create table t1 (x string STORAGE WITH (columnstore = false))");
         assertThat(md.columns().iterator().next().hasDocValues()).isFalse();
     }
 

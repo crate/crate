@@ -30,5 +30,10 @@ public interface EqQuery<T> {
 
     Query termQuery(String field, T value);
 
-    Query rangeQuery(String field, T lowerTerm, T upperTerm, boolean includeLower, boolean includeUpper);
+    Query rangeQuery(String field,
+                     T lowerTerm,
+                     T upperTerm,
+                     boolean includeLower,
+                     boolean includeUpper,
+                     boolean hasDocValues);
 }

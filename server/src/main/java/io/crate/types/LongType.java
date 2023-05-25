@@ -45,6 +45,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     private static final StorageSupport<Long> STORAGE = new StorageSupport<>(
         true,
         true,
+        true,
         new LongEqQuery()
     ) {
 

@@ -51,6 +51,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     private static final StorageSupport<Float> STORAGE = new StorageSupport<>(
         true,
         true,
+        true,
         new EqQuery<Float>() {
 
             @Override
@@ -63,7 +64,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                                     Float lowerTerm,
                                     Float upperTerm,
                                     boolean includeLower,
-                                    boolean includeUpper) {
+                                    boolean includeUpper,
+                                    boolean hasDocValues) {
                 float lower;
                 if (lowerTerm == null) {
                     lower = Float.NEGATIVE_INFINITY;
@@ -79,8 +81,14 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                 }
 
                 Query indexQuery = FloatPoint.newRangeQuery(field, lower, upper);
-                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field, NumericUtils.floatToSortableInt(lower), NumericUtils.floatToSortableInt(upper));
-                return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (hasDocValues) {
+                    Query dvQuery = SortedNumericDocValuesField
+                            .newSlowRangeQuery(field,
+                                               NumericUtils.floatToSortableInt(lower),
+                                               NumericUtils.floatToSortableInt(upper));
+                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                }
+                return indexQuery;
             }
         }
     ) {

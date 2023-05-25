@@ -21,16 +21,13 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.apache.lucene.index.IndexWriter.MAX_TERM_LENGTH;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-
-import io.crate.testing.TestingHelpers;
 
 public class StorageOptionsITest extends IntegTestCase {
 
@@ -43,40 +40,65 @@ public class StorageOptionsITest extends IntegTestCase {
         refresh();
 
         execute("select s from t1 limit 1");
-        assertThat(response.rows()[0][0], is(bigString));
+        assertThat(response).hasRows(bigString);
     }
 
     @Test
     public void testAggregationWithDisabledDocValues() throws Exception {
-        execute("create table t1 (s string storage with (columnstore=false))");
+        execute(
+            """
+                create table t1 (
+                    i int storage with (columnstore=false),
+                    s string storage with (columnstore=false)
+                )""");
 
-        execute("insert into t1 (s) values (?), (?)", new Object[]{"hello", "foo"});
+        execute("insert into t1 (i, s) values (?, ?), (?, ?)",
+                new Object[][]{{1, "hello", 2, "foo"}});
         refresh();
 
-        execute("select max(s) from t1");
-        assertThat(response.rows()[0][0], is("hello"));
+        execute("select max(i), max(s) from t1");
+        assertThat(response).hasRows("2| hello");
     }
 
     @Test
     public void testGroupByWithDisabledDocValues() throws Exception {
-        execute("create table t1 (s string index off storage with (columnstore=false))");
+        execute(
+            """
+                create table t1 (
+                    i int storage with (columnstore=false),
+                    s string storage with (columnstore=false)
+                )""");
 
-        execute("insert into t1 (s) values (?), (?)", new Object[]{"hello", "foo"});
+        execute("insert into t1 (i, s) values (?, ?), (?, ?)",
+                new Object[][]{{1, "hello", 2, "foo"}});
         refresh();
 
-        execute("select count(s), s from t1 group by s order by s");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| foo\n" +
-                                                                    "1| hello\n"));
+        execute("select count(s), count(i), i, s from t1 group by s, i order by i, s");
+        assertThat(response).hasRows(
+            "1| 1| 1| hello",
+            "1| 1| 2| foo");
     }
 
     @Test
     public void testOrderByWithDisabledDocValues() throws Exception {
-        execute("create table t1 (s string storage with (columnstore=false))");
-        execute("insert into t1 (s) values (?), (?)", new Object[]{"foo", "bar"});
+        execute(
+            """
+                create table t1 (
+                    i int storage with (columnstore=false),
+                    s string storage with (columnstore=false)
+                )""");
+
+        execute("insert into t1 (i, s) values (?, ?), (?, ?)",
+                new Object[][]{{1, "foo", 2, "bar"}});
         refresh();
 
         execute("select s from t1 order by s");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("bar\n" +
-                                                                    "foo\n"));
+        assertThat(response).hasRows(
+            "bar",
+            "foo");
+        execute("select i from t1 order by i desc");
+        assertThat(response).hasRows(
+                "2",
+                "1");
     }
 }
