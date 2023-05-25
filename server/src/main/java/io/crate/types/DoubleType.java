@@ -123,13 +123,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     public Double implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Double) {
-            return (Double) value;
-        } else if (value instanceof String) {
-            return Double.valueOf((String) value);
-        } else if (value instanceof BigDecimal) {
-            var bigDecimalValue = (BigDecimal) value;
-
+        } else if (value instanceof Double d) {
+            return d;
+        } else if (value instanceof String s) {
+            return Double.valueOf(s);
+        } else if (value instanceof BigDecimal bigDecimalValue) {
             var DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE).toBigInteger();
             var DOUBLE_MIN = BigDecimal.valueOf(-Double.MAX_VALUE).toBigInteger();
             if (DOUBLE_MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
@@ -137,8 +135,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
             return bigDecimalValue.doubleValue();
-        } else if (value instanceof Number) {
-            return ((Number) value).doubleValue();
+        } else if (value instanceof Number n) {
+            return n.doubleValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -148,8 +146,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     public Double sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Double) {
-            return (Double) value;
+        } else if (value instanceof Double d) {
+            return d;
         } else {
             return ((Number) value).doubleValue();
         }

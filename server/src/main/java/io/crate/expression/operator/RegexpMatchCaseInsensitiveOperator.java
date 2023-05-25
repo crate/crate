@@ -28,7 +28,6 @@ import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -89,7 +88,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+    public Query toQuery(Reference ref, Literal<?> literal) {
         String pattern = (String) literal.value();
         return new CrateRegexQuery(
             new Term(ref.column().fqn(), pattern),

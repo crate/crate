@@ -24,20 +24,19 @@ package io.crate.expression.operator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import io.crate.user.UserLookup;
 import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.user.UserLookup;
 
 public class LikeOperator extends Operator<String> {
 
@@ -93,7 +92,7 @@ public class LikeOperator extends Operator<String> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+    public Query toQuery(Reference ref, Literal<?> literal) {
         Object value = literal.value();
         assert value instanceof String
             : "LikeOperator is registered for string types. Value must be a string";

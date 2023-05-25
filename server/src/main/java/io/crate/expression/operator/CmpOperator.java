@@ -28,7 +28,6 @@ import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -82,7 +81,7 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static Query toQuery(String functionName, Reference ref, Object value, Context context) {
+    public static Query toQuery(String functionName, Reference ref, Object value) {
         StorageSupport<?> storageSupport = ref.valueType().storageSupport();
         if (storageSupport == null) {
             return null;
@@ -103,7 +102,7 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
-        return CmpOperator.toQuery(signature.getName().name(), ref, literal.value(), context);
+    public Query toQuery(Reference ref, Literal<?> literal) {
+        return CmpOperator.toQuery(signature.getName().name(), ref, literal.value());
     }
 }

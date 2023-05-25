@@ -97,12 +97,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
 
-    public Boolean evaluate(Input leftInput, Input rightInput) {
+    public Boolean evaluate(Input<?> leftInput, Input<?> rightInput) {
         Object left = leftInput.value();
         if (left == null) {
             return null;
@@ -117,14 +118,12 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     @SuppressWarnings("unchecked")
     private static Shape parseLeftShape(Object left) {
         Shape shape;
-        if (left instanceof Point) {
-            Point point = (Point) left;
+        if (left instanceof Point point) {
             shape = SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY());
-        } else if (left instanceof Double[]) {
-            Double[] values = (Double[]) left;
+        } else if (left instanceof Double[] values) {
             shape = SpatialContext.GEO.getShapeFactory().pointXY(values[0], values[1]);
-        } else if (left instanceof String) {
-            shape = GeoJSONUtils.wkt2Shape((String) left);
+        } else if (left instanceof String str) {
+            shape = GeoJSONUtils.wkt2Shape(str);
         } else {
             shape = GeoJSONUtils.map2Shape((Map<String, Object>) left);
         }
@@ -133,8 +132,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     @SuppressWarnings("unchecked")
     private Shape parseRightShape(Object right) {
-        return (right instanceof String) ?
-            GeoJSONUtils.wkt2Shape((String) right) :
+        return (right instanceof String str) ?
+            GeoJSONUtils.wkt2Shape(str) :
             GeoJSONUtils.map2Shape((Map<String, Object>) right);
     }
 
@@ -164,7 +163,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         if (numLiterals == 2) {
-            return Literal.of(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate((Input<?>) left, (Input<?>) right));
         }
 
         return symbol;
@@ -178,7 +177,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                 && inner.arguments().get(0) instanceof Reference ref
                 && inner.arguments().get(1) instanceof Literal<?> pointOrShape) {
 
-            Query query = toQuery(ref, pointOrShape, context);
+            Query query = toQuery(ref, pointOrShape);
             if (query == null) {
                 return null;
             }
@@ -194,7 +193,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal, Context context) {
+    public Query toQuery(Reference ref, Literal<?> literal) {
         if (ref.valueType().equals(DataTypes.GEO_SHAPE)) {
             // Can only optimize on point columns, not on shapes
             return null;
