@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
@@ -48,29 +47,29 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testSystemExecutorUsesSuperuserSession() {
         systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(true));
-        assertThat(response.rows()[0][0], is("crate"));
+        assertThat(response).hasRows("crate");
     }
 
     @Test
     public void testSystemExecutorNullUser() {
         systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(false));
-        assertThat(response.rows()[0][0], is("crate"));
+        assertThat(response).hasRows("crate");
     }
 
     @Test
     public void test_set_session_user_from_auth_superuser_to_unprivileged_user_round_trip() {
         try (var session = createSuperUserSession()) {
             execute("SELECT SESSION_USER", session);
-            assertThat(response.rows()[0][0], is("crate"));
+            assertThat(response).hasRows("crate");
 
             execute("CREATE USER test", session);
             execute("SET SESSION AUTHORIZATION test", session);
             execute("SELECT SESSION_USER", session);
-            assertThat(response.rows()[0][0], is("test"));
+            assertThat(response).hasRows("test");
 
             execute("RESET SESSION AUTHORIZATION", session);
             execute("SELECT SESSION_USER", session);
-            assertThat(response.rows()[0][0], is("crate"));
+            assertThat(response).hasRows("crate");
         }
     }
 

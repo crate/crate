@@ -22,12 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
@@ -40,7 +36,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class VersionHandlingIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void selectMultiGetRequestWithColumnAlias() throws IOException {
@@ -50,9 +46,10 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
         execute("SELECT pk_col as id, message from test where pk_col IN (?,?)", new Object[]{"1", "2"});
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), arrayContainingInAnyOrder("id", "message"));
-        assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
+        assertThat(response).hasRowCount(2L);
+        assertThat(response.cols()).containsExactlyInAnyOrder("id", "message");
+        assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]})
+                .containsExactlyInAnyOrder("1", "2");
     }
 
     @Test
@@ -64,18 +61,17 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response).hasRows("1");
         Long version = (Long) response.rows()[0][0];
 
         execute("delete from test where col1 = 1 and \"_version\" = ?",
             new Object[]{version});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1L);
 
         // Validate that the row is really deleted
         refresh();
         execute("select * from test where col1 = 1");
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -87,15 +83,14 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response).hasRows("1");
 
         execute("update test set col2 = ? where col1 = ?", new Object[]{"ok now panic", 1});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1L);
         refresh();
 
         execute("delete from test where col1 = 1 and \"_version\" = 1");
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -107,18 +102,16 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response).hasRows("1");
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
             new Object[]{"ok now panic", 1, 1});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1L);
 
         // Validate that the row is really updated
         refresh();
         execute("select col2 from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("ok now panic", response.rows()[0][0]);
+        assertThat(response).hasRows("ok now panic");
     }
 
     @Test
@@ -140,24 +133,22 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response).hasRows("1");
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
             new Object[]{"ok now panic", 1, 1});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1L);
         refresh();
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
             new Object[]{"hopefully not updated", 1, 1});
-        assertEquals(0L, response.rowCount());
+        assertThat(response).hasRowCount(0L);
         refresh();
 
         // Validate that the row is really NOT updated
         refresh();
         execute("select col2 from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("ok now panic", response.rows()[0][0]);
+        assertThat(response).hasRows("ok now panic");
     }
 
     @Test
@@ -176,7 +167,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test (col1, col2) values (1, 'foo')");
         execute("select _version from test where col1 = 1 and _version = 1");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -186,6 +177,6 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         execute("insert into test (col1, col2) values (1, 'bar'), (2, 'bar')");
         execute("refresh table test");
         execute("select col2, count(*) from test where col1 = 1 and _version = 1 group by col2");
-        assertThat(printedTable(response.rows()), is("bar| 1\n"));
+        assertThat(response).hasRows("bar| 1");
     }
 }

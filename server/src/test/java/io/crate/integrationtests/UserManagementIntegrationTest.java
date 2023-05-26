@@ -22,12 +22,11 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -35,7 +34,6 @@ import org.junit.Test;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
@@ -43,13 +41,13 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     private void assertUserIsCreated(String userName) throws Exception {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
             new Object[]{userName});
-        assertThat(response.rows()[0][0], is(1L));
+        assertThat(response).hasRows("1");
     }
 
     private void assertUserDoesntExist(String userName) throws Exception {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
             new Object[]{userName});
-        assertThat(response.rows()[0][0], is(0L));
+        assertThat(response).hasRows("0");
     }
 
     @After
@@ -65,7 +63,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testCreateUser() throws Exception {
         executeAsSuperuser("create user trillian");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         assertUserIsCreated("trillian");
     }
 
@@ -73,16 +71,17 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     public void testSysUsersTableColumns() throws Exception {
         // The sys users table contains two columns, name and superuser
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("name| text\n" +
-                                                                    "password| text\n" +
-                                                                    "superuser| boolean\n"));
+        assertThat(response).hasRows(
+                "name| text",
+                "password| text",
+                "superuser| boolean");
     }
 
     @Test
     public void testSysUsersTableDefaultUser() throws Exception {
         // The sys.users table always contains the superuser crate
         executeAsSuperuser("select name, password, superuser from sys.users where name = 'crate'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("crate| NULL| true\n"));
+        assertThat(response).hasRows("crate| NULL| true");
     }
 
     @Test
@@ -93,8 +92,9 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertUserIsCreated("ford");
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
-        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| NULL| false\n" +
-                                                                    "ford| ********| false\n"));
+        assertThat(response).hasRows(
+                "arthur| NULL| false",
+                "ford| ********| false");
     }
 
     @Test
@@ -112,8 +112,9 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("ALTER USER arthur SET (password = ?)", new Object[]{"pass"});
         executeAsSuperuser("ALTER USER ford SET (password = ?)", new Object[]{"pass"});
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| ********| false\n" +
-                                                                    "ford| ********| false\n"));
+        assertThat(response).hasRows(
+                "arthur| ********| false",
+                "ford| ********| false");
     }
 
     @Test
@@ -122,7 +123,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertUserIsCreated("arthur");
         executeAsSuperuser("ALTER USER arthur SET (password = null)");
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| NULL| false\n"));
+        assertThat(response).hasRows("arthur| NULL| false");
     }
 
     @Test
@@ -144,7 +145,7 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropUserIfExists() throws Exception {
         executeAsSuperuser("drop user if exists not_exist_if_exists");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
