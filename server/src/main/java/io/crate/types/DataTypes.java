@@ -306,13 +306,14 @@ public final class DataTypes {
         entry(BitString.class, BitStringType.INSTANCE_ONE)
     );
 
+    @SuppressWarnings("unchecked")
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;
         } else if (value instanceof Map) {
             return UNTYPED_OBJECT;
-        } else if (value instanceof List) {
-            return valueFromList((List) value);
+        } else if (value instanceof List list) {
+            return valueFromList(list);
         } else if (value.getClass().isArray()) {
             return valueFromList(Arrays.asList((Object[]) value));
         }

@@ -111,11 +111,11 @@ public class IpType extends DataType<String> implements Streamer<String> {
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof String) {
-            validate((String) value);
+        } else if (value instanceof String str) {
+            validate(str);
             return (String) value;
-        } else if (value instanceof Number) {
-            long longIp = ((Number) value).longValue();
+        } else if (value instanceof Number number) {
+            long longIp = number.longValue();
             if (longIp < 0) {
                 throw new IllegalArgumentException(
                     "Failed to convert long value: " + longIp + " to ipv4 address");

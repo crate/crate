@@ -209,10 +209,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
     protected String cast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof String) {
-            return (String) value;
-        } else if (value instanceof BytesRef) {
-            return ((BytesRef) value).utf8ToString();
+        } else if (value instanceof String str) {
+            return str;
+        } else if (value instanceof BytesRef bytesRef) {
+            return bytesRef.utf8ToString();
         } else if (value instanceof Boolean) {
             return (boolean) value ? T : F;
         } else if (value instanceof Map) {

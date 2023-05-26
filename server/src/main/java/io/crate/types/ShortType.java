@@ -80,18 +80,18 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     public Short implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Short) {
-            return (Short) value;
-        } else if (value instanceof String) {
-            return Short.valueOf((String) value);
-        } else if (value instanceof BigDecimal) {
+        } else if (value instanceof Short s) {
+            return s;
+        } else if (value instanceof String str) {
+            return Short.valueOf(str);
+        } else if (value instanceof BigDecimal bigDecimal) {
             try {
-                return ((BigDecimal) value).shortValueExact();
+                return bigDecimal.shortValueExact();
             } catch (ArithmeticException e) {
                 throw new IllegalArgumentException("short value out of range: " + value);
             }
-        } else if (value instanceof Number) {
-            int intVal = ((Number) value).intValue();
+        } else if (value instanceof Number number) {
+            int intVal = number.intValue();
             if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {
                 throw new IllegalArgumentException("short value out of range: " + intVal);
             }
@@ -105,8 +105,8 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     public Short sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Short) {
-            return (Short) value;
+        } else if (value instanceof Short s) {
+            return s;
         } else {
             return ((Number) value).shortValue();
         }
