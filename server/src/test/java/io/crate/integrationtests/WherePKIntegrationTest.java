@@ -21,16 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
@@ -55,9 +52,9 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("refresh table users");
 
         execute("select name from users where id in (1, 3, 4) order by name desc limit 2");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("Slartibartfast"));
-        assertThat((String) response.rows()[1][0], is("Marvin"));
+        assertThat(response).hasRows(
+                "Slartibartfast",
+                "Marvin");
     }
 
     @Test
@@ -75,10 +72,10 @@ public class WherePKIntegrationTest extends IntegTestCase {
         });
         execute("refresh table users");
         execute("select substr(name, 1, 1) from users where id in (1, 2, 3) order by substr(name, 1, 1) desc");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((String) response.rows()[0][0], is("T"));
-        assertThat((String) response.rows()[1][0], is("M"));
-        assertThat((String) response.rows()[2][0], is("A"));
+        assertThat(response).hasRows(
+                "T",
+                "M",
+                "A");
     }
 
     @Test
@@ -96,10 +93,10 @@ public class WherePKIntegrationTest extends IntegTestCase {
         });
         execute("refresh table users");
         execute("select name from users where id in (1, 2, 3) order by id desc");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((String) response.rows()[0][0], is("Marvin"));
-        assertThat((String) response.rows()[1][0], is("Trillian"));
-        assertThat((String) response.rows()[2][0], is("Arthur"));
+        assertThat(response).hasRows(
+                "Marvin",
+                "Trillian",
+                "Arthur");
     }
 
     @Test
@@ -115,7 +112,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
             });
         execute("refresh table users");
         execute("select name from users where id = 1 order by name desc");
-        assertThat(printedTable(response.rows()), is("Arthur\n"));
+        assertThat(response).hasRows("Arthur");
     }
 
     @Test
@@ -126,7 +123,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("insert into users (id, name) values (1, 'Arthur')");
         execute("refresh table users");
         execute("select name from users where id = 1 limit 0");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -135,13 +132,13 @@ public class WherePKIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select * from t where s in (null)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where s in ('foo', null, 'bar')");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where s is null");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -150,19 +147,19 @@ public class WherePKIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select * from t where s in (null)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
         execute("select * from t where i in (null)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where s in ('foo', null, 'bar')");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
         execute("select * from t where i in (1, null, 2)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from t where s is null");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
         execute("select * from t where i is null");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -176,11 +173,11 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("refresh table items");
 
         execute("select id, details['tags'] from items where id = '123'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("123"));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("123");
         //noinspection unchecked
         List<Object> tags = (List<Object>) response.rows()[0][1];
-        assertThat(tags, Matchers.contains("small", "blue"));
+        assertThat(tags).containsExactly("small", "blue");
     }
 
     @Test
@@ -194,7 +191,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("select _id from users");
         for (Object[] row : response.rows()) {
             execute("select name from users where _id=?", row);
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         }
     }
 
@@ -209,7 +206,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
 
         for (Object[] row : response.rows()) {
             execute("select name from users where _id=?", row);
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         }
     }
 
@@ -224,7 +221,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
 
         for (Object[] row : response.rows()) {
             execute("select name from users where _id=?", row);
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response).hasRowCount(1L);
         }
     }
 
@@ -242,8 +239,8 @@ public class WherePKIntegrationTest extends IntegTestCase {
 
 
         execute("select * from auto_id where _id=''");
-        assertThat(response.cols(), is(arrayContaining("location", "name")));
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.cols()).containsExactly("location", "name");
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -257,15 +254,15 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("insert into explicit_routing (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
         execute("refresh table explicit_routing");
         execute("select * from explicit_routing where name=''");
-        assertThat(response.cols(), is(arrayContaining("location", "name")));
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.cols()).containsExactly("location", "name");
+        assertThat(response).hasRowCount(0L);
 
         execute("select * from explicit_routing where name=','");
-        assertThat(response.cols(), is(arrayContaining("location", "name")));
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()).containsExactly("location", "name");
+        assertThat(response).hasRowCount(1L);
         Point point = (Point) response.rows()[0][0];
-        assertThat(point.getX(), Matchers.closeTo(36.567d, 0.01));
-        assertThat(point.getY(), Matchers.closeTo(52.998d, 0.01));
+        assertThat(point.getX()).isEqualTo(36.567d, Offset.offset(0.01));
+        assertThat(point.getY()).isEqualTo(52.998d, Offset.offset(0.01));
     }
 
     @Test
@@ -288,18 +285,18 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("refresh table expl_routing");
 
         execute("select count(*) from expl_routing where name = ''");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response).hasRows("2");
 
         execute("select * from expl_routing where name = '' order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response).hasRowCount(2);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(2);
 
         execute("delete from expl_routing where name = ''");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         refresh();
         execute("select count(*) from expl_routing");
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
@@ -318,11 +315,11 @@ public class WherePKIntegrationTest extends IntegTestCase {
 
         // does not delete anything - goes to shard 1
         execute("delete from explicit_routing where name='A,W'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
         execute("refresh table explicit_routing");
 
         execute("select * from explicit_routing");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -332,10 +329,10 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id, x) values (1, 1)");
 
         execute("select id from t1 where id = 1 and x = 2");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select id from t1 where id = 1 and x = 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 }
 

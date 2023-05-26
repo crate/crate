@@ -24,20 +24,17 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -66,18 +63,18 @@ public class ViewsITest extends IntegTestCase {
         execute("create view v1 as select * from t1 where x > ?", $(0));
         for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-            assertThat(views, Matchers.notNullValue());
-            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(true));
+            assertThat(views).isNotNull();
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1"))).isTrue();
         }
-        assertThat(printedTable(execute("select * from v1").rows()), is("1\n"));
-        assertThat(
-            printedTable(execute("select view_definition from information_schema.views").rows()),
-            is("SELECT *\nFROM \"t1\"\nWHERE \"x\" > 0\n\n")
-        );
+        assertThat(execute("select * from v1")).hasRows("1");
+        assertThat(execute("select view_definition from information_schema.views")).hasRows(
+                "SELECT *",
+                "FROM \"t1\"",
+                "WHERE \"x\" > 0");
         execute("drop view v1");
         for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(false));
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1"))).isFalse();
         }
     }
 
@@ -88,19 +85,19 @@ public class ViewsITest extends IntegTestCase {
         execute("REFRESH TABLE t1");
         execute("CREATE VIEW v1 AS select * FROM t1");
         execute("CREATE VIEW v2 AS select * FROM t1");
-        assertThat(printedTable(execute("SELECT * FROM v1 INNER JOIN v2 ON v1.x = v2.x").rows()), is("foo| 1| foo| 1\n"));
+        assertThat(execute("SELECT * FROM v1 INNER JOIN v2 ON v1.x = v2.x")).hasRows("foo| 1| foo| 1");
     }
 
     @Test
     public void testViewCanBeCreatedAndThenReplaced() {
         execute("create view v2 as select 1 from sys.cluster");
-        assertThat(printedTable(execute("select * from v2").rows()), is("1\n"));
+        assertThat(execute("select * from v2")).hasRows("1");
         execute("create or replace view v2 as select 2 from sys.cluster");
-        assertThat(printedTable(execute("select * from v2").rows()), is("2\n"));
+        assertThat(execute("select * from v2")).hasRows("2");
         for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-            assertThat(views, Matchers.notNullValue());
-            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v2")), is(true));
+            assertThat(views).isNotNull();
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v2"))).isTrue();
         }
     }
 
@@ -142,10 +139,9 @@ public class ViewsITest extends IntegTestCase {
         // then create the actual view. This way we circumvent the analyzer check for existing views.
         execute("create view v4 as select 1");
 
-        Assertions.assertThrows(RelationAlreadyExists.class,
-                                () -> execute(viewConflictingTableCreation).getResult(),
-                                "Relation '" + sqlExecutor.getCurrentSchema() + ".v4' already exists"
-        );
+        assertThatThrownBy(() -> execute(viewConflictingTableCreation).getResult())
+            .isExactlyInstanceOf(RelationAlreadyExists.class)
+            .hasMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".v4' already exists.");
     }
 
     @Test
@@ -156,10 +152,9 @@ public class ViewsITest extends IntegTestCase {
         // then create the actual view. This way we circumvent the analyzer check for existing views.
         execute("create view v5 as select 1");
 
-        Assertions.assertThrows(RelationAlreadyExists.class,
-                                () -> execute(viewConflictingTableCreation).getResult(),
-                                "Relation '" + sqlExecutor.getCurrentSchema() + ".v5' already exists"
-        );
+        assertThatThrownBy(() -> execute(viewConflictingTableCreation).getResult())
+            .isExactlyInstanceOf(RelationAlreadyExists.class)
+            .hasMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".v5' already exists.");
     }
 
     @Test
@@ -183,7 +178,7 @@ public class ViewsITest extends IntegTestCase {
         execute("create view v1 as select * from t1");
         // must not throw an exception, subscript must be resolved
         execute("select a['b'], c['d']['e'] from v1");
-        assertThat(printedTable(response.rows()), is("1| 2\n"));
+        assertThat(response).hasRows("1| 2");
     }
 
     @Test

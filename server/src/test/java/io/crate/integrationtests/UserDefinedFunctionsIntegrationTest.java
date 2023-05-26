@@ -22,10 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -35,8 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import javax.script.ScriptException;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -101,9 +97,9 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     public static class DummyLang implements UDFLanguage {
 
         @Override
-        public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
-                                                   Signature signature,
-                                                   BoundSignature boundSignature) throws ScriptException {
+        public Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata metadata,
+                                                         Signature signature,
+                                                         BoundSignature boundSignature) {
             return new DummyFunction<>(metadata, signature, boundSignature);
         }
 
@@ -152,10 +148,10 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", List.of(DataTypes.STRING));
 
             execute("select foo(str) from test order by id asc");
-            assertThat(response.rows()[0][0], is("DUMMY EATS text"));
+            assertThat(response.rows()[0][0]).isEqualTo("DUMMY EATS text");
 
             execute("select foo(id) from test order by id asc");
-            assertThat(response.rows()[0][0], is("DUMMY EATS bigint"));
+            assertThat(response.rows()[0][0]).isEqualTo("DUMMY EATS bigint");
         } finally {
             dropFunction("foo", List.of(Literal.of(1L)));
             dropFunction("foo", List.of(Literal.of("dummy")));
@@ -169,7 +165,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         assertFunctionIsCreatedOnAll("secondschema", "udf", List.of(DataTypes.INTEGER));
 
         execute("select udf(1::integer)");
-        assertThat(response.rows()[0][0], is("DUMMY EATS integer"));
+        assertThat(response).hasRows("DUMMY EATS integer");
     }
 
     @Test
@@ -178,7 +174,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         assertFunctionIsCreatedOnAll("pg_catalog", "udf", List.of(DataTypes.INTEGER));
 
         execute("select udf(1::integer)");
-        assertThat(response.rows()[0][0], is("DUMMY EATS integer"));
+        assertThat(response).hasRows("DUMMY EATS integer");
     }
 
     @Test
@@ -195,12 +191,12 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         execute("create function new_schema.custom() returns integer language dummy_lang as 'function custom() {return 1;}'");
         assertFunctionIsCreatedOnAll("new_schema", "custom", List.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
-        assertThat(response.rows()[0][0], is(1L));
+        assertThat(response).hasRows("1");
 
         execute("drop function new_schema.custom()");
         assertFunctionIsDeletedOnAll("new_schema", "custom", List.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
-        assertThat(response.rows()[0][0], is(0L));
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -217,13 +213,13 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             execute("select routine_name, routine_body, data_type, routine_definition, routine_schema, specific_name" +
                     " from information_schema.routines " +
                     " where routine_type = 'FUNCTION' and routine_name = 'subtract_test'");
-            assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is("subtract_test"));
-            assertThat(response.rows()[0][1], is("dummy_lang"));
-            assertThat(response.rows()[0][2], is("bigint"));
-            assertThat(response.rows()[0][3], is("function subtract_test(a, b, c) { return a - b - c; }"));
-            assertThat(response.rows()[0][4], is(sqlExecutor.getCurrentSchema()));
-            assertThat(response.rows()[0][5], is("subtract_test(bigint, bigint, bigint)"));
+            assertThat(response).hasRowCount(1);
+            assertThat(response.rows()[0][0]).isEqualTo("subtract_test");
+            assertThat(response.rows()[0][1]).isEqualTo("dummy_lang");
+            assertThat(response.rows()[0][2]).isEqualTo("bigint");
+            assertThat(response.rows()[0][3]).isEqualTo("function subtract_test(a, b, c) { return a - b - c; }");
+            assertThat(response.rows()[0][4]).isEqualTo(sqlExecutor.getCurrentSchema());
+            assertThat(response.rows()[0][5]).isEqualTo("subtract_test(bigint, bigint, bigint)");
         } finally {
             execute("drop function if exists subtract_test(long, long, long)");
         }
@@ -275,7 +271,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         var types = Symbols.typeView(arguments);
         execute(String.format(Locale.ENGLISH, "drop function %s(\"%s\")",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, arguments);
     }
 
@@ -294,16 +290,16 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_function_is_visible(" + functionOid + ")");
-        assertThat(response.rows()[0][0], is(false));
+        assertThat(response).hasRows("false");
 
         execute("create function doc.my_func(array(array(integer)), integer, text) returns text language dummy_lang as '42'");
 
         execute("select pg_function_is_visible(" + functionOid + ")");
-        assertThat(response.rows()[0][0], is(true));
+        assertThat(response).hasRows("true");
 
         execute("drop function doc.my_func(array(array(integer)), integer, text)");
         execute("select pg_function_is_visible(" + functionOid + ")");
-        assertThat(response.rows()[0][0], is(false));
+        assertThat(response).hasRows("false");
     }
 
     @Test
@@ -320,16 +316,16 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_get_function_result(?)", new Object[]{functionOid});
-        assertThat(response.rows()[0][0], nullValue());
+        assertThat(response.rows()[0][0]).isNull();
 
         execute("create function doc.make_2d_array(integer) returns array(array(integer)) language dummy_lang as ?", new Object[]{returnType});
 
         execute("select pg_get_function_result(" + functionOid + ")");
-        assertThat(response.rows()[0][0], is(returnType));
+        assertThat(response).hasRows(returnType);
 
         execute("drop function doc.make_2d_array(integer)");
         execute("select pg_get_function_result(" + functionOid + ")");
-        assertThat(response.rows()[0][0], nullValue());
+        assertThat(response.rows()[0][0]).isNull();
     }
 
     @Test
@@ -347,7 +343,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         execute("insert into oid_test values(" + functionOid + ")");
         execute("refresh table oid_test");
         execute("select pg_function_is_visible(t.oid) from oid_test t");
-        assertThat(response.rows()[0][0], is(true));
+        assertThat(response).hasRows("true");
         execute("drop table oid_test");
     }
 

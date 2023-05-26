@@ -26,9 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
 import java.sql.Array;
 import java.sql.BatchUpdateException;
@@ -48,6 +45,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -79,7 +77,7 @@ public class PostgresITest extends IntegTestCase {
     private static final String RO = "node_s0";
     private static final String RW = "node_s1";
 
-    private Properties properties = new Properties();
+    private final Properties properties = new Properties();
     private static boolean useIPv6;
 
     @BeforeClass
@@ -264,13 +262,12 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             assertThat(conn.createStatement().execute("")).isFalse();
 
-            try {
-                conn.createStatement().executeQuery("");
-                fail("executeQuery with empty query should throw a 'No results were returned by the query' error");
-            } catch (PSQLException e) {
-                // can't use expectedException.expectMessage because error messages are localized and locale is randomized
-                assertThat(e.getSQLState()).isEqualTo(PSQLState.NO_DATA.getState());
-            }
+            assertThatThrownBy(() -> conn.createStatement().executeQuery(""))
+                .as("executeQuery with empty query should throw a 'No results were returned by the query' error")
+                 // can't use expectedException.expectMessage because error messages are localized and locale is randomized
+                .isExactlyInstanceOf(PSQLException.class)
+                .extracting((Function<Throwable, String>) t -> ((PSQLException) t).getSQLState())
+                .isEqualTo(PSQLState.NO_DATA.getState());
         }
     }
 
@@ -579,7 +576,7 @@ public class PostgresITest extends IntegTestCase {
             statement.setFetchSize(0);
             try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
                 while (resultSet.next()) {
-                    assertFalse(resultSet.getString(1).isEmpty());
+                    assertThat(resultSet.getString(1)).isNotEmpty();
                 }
             }
         }
@@ -1033,7 +1030,8 @@ public class PostgresITest extends IntegTestCase {
         properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement statement = conn.createStatement();
-            assertThrows(PSQLException.class, () -> statement.execute("create index invalid_statement"));
+            assertThatThrownBy(() -> statement.execute("create index invalid_statement"))
+                .isExactlyInstanceOf(PSQLException.class);
             ResultSet result = statement.executeQuery("select 1");
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(1);
