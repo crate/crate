@@ -41,4 +41,9 @@ public class SourceAsMapLineExpression extends LineCollectorExpression<Map<Strin
     public void startCollect(LineContext context) {
         this.context = context;
     }
+
+    @Override
+    public boolean nothingToCollect() {
+        return context.sourceAsMap() == null;
+    }
 }

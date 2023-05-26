@@ -33,6 +33,8 @@ import java.util.function.Supplier;
 import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.expression.InputRow;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -116,6 +118,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
     @Override
     public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row, Boolean propagateError) {
+        // In case when row doesn't exist (source is NULL due to an IOException during reading)
+        // we should short-circuit in order to skip non-existing row.
+        if (row instanceof InputRow inputRow) {
+            for (Input input: inputRow.inputs()) {
+                if (input instanceof LineCollectorExpression lineCollectorExpression && lineCollectorExpression.nothingToCollect() == true) {
+                    return null;
+                }
+            }
+        }
+
         // `Row` can be a `InputRow` which may be backed by expressions which have expensive `.value()` implementations
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
