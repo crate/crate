@@ -23,9 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.integrationtests.CopyIntegrationTest.tmpFileWithLines;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -109,6 +107,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("set global overload_protection.dml.queue_size = 2");
 
         execute("CREATE TABLE doc.t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
+        ensureGreen();
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
@@ -139,11 +138,13 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         var indexMetadata = clusterService().state().metadata().index("t");
         List<String> rows = new ArrayList<>();
+        int failedNumDocs = 0;
         for (int i = 0; i < numDocs; i++) {
             String line;
             // Ensure the failing doc will fail on shard id 1
             if (i >= 20 && OperationRouting.generateShardId(indexMetadata, Integer.toString(i), null) == 1) {
                 line = "{\"a\":" + i + ", \"b\":\"fail here\"}";
+                failedNumDocs++;
             } else {
                 line = "{\"a\":" + i + ", \"b\":" + i + "}";
             }
@@ -166,8 +167,9 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "Failed to execute upsert on nodeName=" + nodeNameOfShard1 + ".*")
         );
 
+        execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
-        assertThat((long) response.rows()[0][0], lessThan(50L));
+        assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(numDocs - failedNumDocs);
     }
 
     @TestLogging("io.crate.execution.dml.upsert:DEBUG")
@@ -182,6 +184,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("set global overload_protection.dml.queue_size = 2");
 
         execute("CREATE TABLE doc.t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
+        ensureGreen();
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
@@ -211,10 +214,12 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         var indexMetadata = clusterService().state().metadata().index("t");
         List<String> rows = new ArrayList<>();
+        int failedNumDocs = 0;
         for (int i = 0; i < numDocs; i++) {
             String line;
             // Ensure the failing doc will fail on shard id 0
             if (i >= 20 && OperationRouting.generateShardId(indexMetadata, Integer.toString(i), null) == 0) {
+                failedNumDocs++;
                 line = "{\"a\":" + i + ", \"b\":\"fail here\"}";
             } else {
                 line = "{\"a\":" + i + ", \"b\":" + i + "}";
@@ -238,8 +243,9 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "Failed to execute upsert on nodeName=" + nodeNameOfShard0 + ".*")
         );
 
+        execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
-        assertThat((long) response.rows()[0][0], lessThan(50L));
+        assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(numDocs - failedNumDocs);
     }
 
     @Test
@@ -258,7 +264,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("COPY t FROM ? WITH (fail_fast = true, shared = false)", new Object[]{target.toUri().toString() + "*"});
         refresh();
         execute("select * from t");
-        assertThat(response.rowCount(), is((long) cluster().numDataNodes()));
+        assertThat(response.rowCount()).isEqualTo(cluster().numDataNodes());
     }
 
     private void assertExpectedLogMessages(Runnable command,
