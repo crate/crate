@@ -87,15 +87,13 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public Point implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Point) {
-            return ((Point) value);
-        } else if (value instanceof Double[]) {
-            Double[] doubles = (Double[]) value;
+        } else if (value instanceof Point point) {
+            return point;
+        } else if (value instanceof Double[] doubles) {
             checkLengthIs2(doubles.length);
             ensurePointsInRange(doubles[0], doubles[1]);
             return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
-        } else if (value instanceof Object[]) {
-            Object[] values = (Object[]) value;
+        } else if (value instanceof Object[] values) {
             checkLengthIs2(values.length);
             PointImpl point = new PointImpl(
                 ((Number) values[0]).doubleValue(),
@@ -103,10 +101,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
                 JtsSpatialContext.GEO);
             ensurePointsInRange(point.getX(), point.getY());
             return point;
-        } else if (value instanceof String) {
-            return pointFromString((String) value);
-        } else if (value instanceof List) {
-            List<?> values = (List<?>) value;
+        } else if (value instanceof String str) {
+            return pointFromString(str);
+        } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),
@@ -123,8 +120,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public Point sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof List) {
-            List<?> values = (List<?>) value;
+        } else if (value instanceof List values) {
             checkLengthIs2(values.size());
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),

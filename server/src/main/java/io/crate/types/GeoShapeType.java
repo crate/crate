@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -83,18 +82,18 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof String) {
             return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
-        } else if (value instanceof Point) {
-            Point point = (Point) value;
+        } else if (value instanceof Point point) {
             return GeoJSONUtils.shape2Map(SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY()));
-        } else if (value instanceof Shape) {
-            return GeoJSONUtils.shape2Map((Shape) value);
-        } else if (value instanceof Map) {
-            GeoJSONUtils.validateGeoJson((Map) value);
+        } else if (value instanceof Shape shape) {
+            return GeoJSONUtils.shape2Map(shape);
+        } else if (value instanceof Map<?, ?> map) {
+            GeoJSONUtils.validateGeoJson(map);
             return (Map<String, Object>) value;
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
@@ -102,35 +101,28 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Object> sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Map) {
-            GeoJSONUtils.validateGeoJson((Map) value);
+        } else if (value instanceof Map<?, ?> map) {
+            GeoJSONUtils.validateGeoJson(map);
             return (Map<String, Object>) value;
         } else {
             return GeoJSONUtils.shape2Map((Shape) value);
         }
     }
 
-    private String invalidMsg(Object value) {
-        return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to geo_shape", value);
-    }
-
-
     @Override
     public int compare(Map<String, Object> val1, Map<String, Object> val2) {
         // TODO: compare without converting to shape
         Shape shape1 = GeoJSONUtils.map2Shape(val1);
         Shape shape2 = GeoJSONUtils.map2Shape(val2);
-        switch (shape1.relate(shape2)) {
-            case WITHIN:
-                return -1;
-            case CONTAINS:
-                return 1;
-            default:
-                return Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
-        }
+        return switch (shape1.relate(shape2)) {
+            case WITHIN -> -1;
+            case CONTAINS -> 1;
+            default -> Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
+        };
     }
 
     @Override

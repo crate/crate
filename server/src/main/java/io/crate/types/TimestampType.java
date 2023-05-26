@@ -115,18 +115,18 @@ public final class TimestampType extends DataType<Long>
     public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Long) {
-            return (Long) value;
-        } else if (value instanceof String) {
-            return parse.apply((String) value);
+        } else if (value instanceof Long l) {
+            return l;
+        } else if (value instanceof String str) {
+            return parse.apply(str);
         } else if (value instanceof Double) {
             // we treat float and double values as seconds with milliseconds as fractions
             // see timestamp documentation
             return ((Number) (((Double) value) * 1000)).longValue();
         } else if (value instanceof Float) {
             return ((Number) (((Float) value) * 1000)).longValue();
-        } else if (value instanceof Number) {
-            return ((Number) value).longValue();
+        } else if (value instanceof Number number) {
+            return number.longValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -136,8 +136,8 @@ public final class TimestampType extends DataType<Long>
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Long) {
-            return (Long) value;
+        } else if (value instanceof Long l) {
+            return l;
         } else {
             return ((Number) value).longValue();
         }

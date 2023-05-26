@@ -82,12 +82,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Long) {
-            return (Long) value;
-        } else if (value instanceof String) {
-            return Long.valueOf((String) value);
-        } else if (value instanceof BigDecimal) {
-            var bigDecimalValue = (BigDecimal) value;
+        } else if (value instanceof Long l) {
+            return l;
+        } else if (value instanceof String str) {
+            return Long.valueOf(str);
+        } else if (value instanceof BigDecimal bigDecimalValue) {
             var max = BigDecimal.valueOf(Long.MAX_VALUE).toBigInteger();
             var min = BigDecimal.valueOf(Long.MIN_VALUE).toBigInteger();
             if (max.compareTo(bigDecimalValue.toBigInteger()) <= 0
