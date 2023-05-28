@@ -27,11 +27,4 @@ import io.crate.expression.reference.file.LineContext;
 public abstract class LineCollectorExpression<ReturnType> implements Input<ReturnType> {
 
     public abstract void startCollect(LineContext context);
-
-    /**
-     * @return false For RETURN SUMMARY specific fields by default.
-     */
-    public boolean nothingToCollect() {
-        return false;
-    }
 }

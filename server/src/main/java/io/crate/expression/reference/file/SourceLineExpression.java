@@ -38,9 +38,4 @@ public class SourceLineExpression extends LineCollectorExpression<String> {
     public void startCollect(LineContext context) {
         this.context = context;
     }
-
-    @Override
-    public boolean nothingToCollect() {
-        return context.sourceAsString() == null;
-    }
 }
