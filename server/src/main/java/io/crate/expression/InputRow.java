@@ -35,10 +35,6 @@ public class InputRow extends Row {
         this.inputs = inputs;
     }
 
-    public List<? extends Input<?>> inputs() {
-        return inputs;
-    }
-
     @Override
     public int numColumns() {
         return inputs.size();

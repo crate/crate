@@ -45,9 +45,4 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
     public void startCollect(LineContext context) {
         this.context = context;
     }
-
-    @Override
-    public boolean nothingToCollect() {
-        return context.sourceAsMap() == null;
-    }
 }
