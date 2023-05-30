@@ -143,8 +143,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, 1, Map.of()),
-                bDoc.ident(), new Stats(1L, 1, Map.of())
+                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
+                bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), Map.of())
             )
         );
 
@@ -154,7 +154,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         PlanStats planStats = new PlanStats(tableStats, memo);
         var result = planStats.get(union);
         assertThat(result.numDocs()).isEqualTo(10L);
-        assertThat(result.sizeInBytes()).isEqualTo(1L);
+        assertThat(result.sizeInBytes()).isEqualTo(160L);
     }
 
     @Test
@@ -177,8 +177,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, 1, Map.of()),
-                bDoc.ident(), new Stats(1L, 1, Map.of())
+                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
+                bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), Map.of())
             )
         );
 
@@ -189,7 +189,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var result = planStats.get(hashjoin);
         // lhs is the larger table which 9 entries, so the join will at max emit 9 entries
         assertThat(result.numDocs()).isEqualTo(9L);
-        assertThat(result.sizeInBytes()).isEqualTo(2L);
+        assertThat(result.sizeInBytes()).isEqualTo(288L);
     }
 
     @Test
@@ -213,8 +213,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, DataTypes.INTEGER.fixedSize(), Map.of()),
-                bDoc.ident(), new Stats(2L, DataTypes.INTEGER.fixedSize(), Map.of())
+                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
+                bDoc.ident(), new Stats(2L, 2 * DataTypes.INTEGER.fixedSize(), Map.of())
             )
         );
 
@@ -225,7 +225,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var result = planStats.get(nestedLoopJoin);
         // lhs is the larger table which 9 entries, so the join will at max emit 9 entries
         assertThat(result.numDocs()).isEqualTo(9L);
-        assertThat(result.sizeInBytes()).isEqualTo(32L);
+        assertThat(result.sizeInBytes()).isEqualTo(288L);
 
         nestedLoopJoin = new NestedLoopJoin(lhs, rhs, JoinType.CROSS, x, false, relation, false, false, false, false);
 
@@ -233,7 +233,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         planStats = new PlanStats(tableStats, memo);
         result = planStats.get(nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(18L);
-        assertThat(result.sizeInBytes()).isEqualTo(32L);
+        assertThat(result.sizeInBytes()).isEqualTo(576L);
     }
 
     @Test

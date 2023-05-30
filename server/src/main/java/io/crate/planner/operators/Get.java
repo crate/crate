@@ -72,24 +72,25 @@ public class Get implements LogicalPlan {
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
     final Symbol query;
-    final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
     public Get(DocTableRelation table,
                DocKeys docKeys,
                Symbol query,
-               List<Symbol> outputs,
-               long estimatedSizePerRow) {
+               List<Symbol> outputs) {
         this.tableRelation = table;
         this.docKeys = docKeys;
         this.query = query;
-        this.estimatedSizePerRow = estimatedSizePerRow;
         this.outputs = outputs;
     }
 
     @Override
     public boolean preferShardProjections() {
         return true;
+    }
+
+    public DocTableRelation table() {
+        return tableRelation;
     }
 
     @Override
@@ -249,7 +250,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs, estimatedSizePerRow);
+            return new Get(tableRelation, docKeys, query, newOutputs);
         }
         return this;
     }
@@ -257,10 +258,6 @@ public class Get implements LogicalPlan {
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return Map.of();
-    }
-
-    public long estimatedRowSize() {
-        return estimatedSizePerRow;
     }
 
     public long numExpectedRows() {

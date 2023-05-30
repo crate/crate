@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -82,6 +83,27 @@ public class Stats implements Writeable {
             entry.getKey().writeTo(out);
             entry.getValue().writeTo(out);
         }
+    }
+
+    public Stats withNumDocs(long numDocs) {
+        long sizePerRow = averageSizePerRowInBytes();
+        if (sizePerRow < 1) {
+            return new Stats(numDocs, -1, statsByColumn);
+        } else {
+            return new Stats(numDocs, sizePerRow * numDocs, statsByColumn);
+        }
+    }
+
+    public Stats add(Stats other) {
+        return new Stats(
+            numDocs == -1 || other.numDocs == -1
+                ? -1
+                : numDocs + other.numDocs,
+            sizeInBytes == -1 || other.sizeInBytes == -1
+                ? -1
+                : sizeInBytes + other.sizeInBytes,
+            Maps.concat(statsByColumn, other.statsByColumn)
+        );
     }
 
     public long numDocs() {

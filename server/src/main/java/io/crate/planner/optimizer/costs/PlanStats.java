@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -48,6 +49,7 @@ import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.sql.tree.JoinType;
+import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
@@ -106,62 +108,58 @@ public class PlanStats {
         @Override
         public Stats visitLimit(Limit limit, Void context) {
             var stats = limit.source().accept(this, context);
-            if (limit.limit() instanceof Literal) {
-                var numberOfRows = DataTypes.LONG.sanitizeValue(((Literal<?>) limit.limit()).value());
-                return new Stats(numberOfRows, stats.sizeInBytes(), stats.statsByColumn());
+            if (limit.limit() instanceof Literal<?> literal) {
+                var numberOfRows = DataTypes.LONG.sanitizeValue(literal.value());
+                return stats.withNumDocs(numberOfRows);
             }
             return stats;
         }
 
         @Override
         public Stats visitUnion(Union union, Void context) {
-            var numberOfRows = -1L;
-            var sizeInBytes = -1L;
             var lhsStats = union.lhs().accept(this, context);
             var rhsStats = union.rhs().accept(this, context);
-            if (lhsStats.numDocs() != -1 && rhsStats.numDocs() != -1) {
-                numberOfRows = lhsStats.numDocs() + rhsStats.numDocs();
-            }
-            if (lhsStats.sizeInBytes() != -1 && rhsStats.sizeInBytes() != -1) {
-                sizeInBytes = Math.max(lhsStats.sizeInBytes(), rhsStats.sizeInBytes());
-            }
-            return new Stats(numberOfRows, sizeInBytes, Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn()));
+            return lhsStats.add(rhsStats);
         }
 
         @Override
         public Stats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
-            var numberOfRows = -1L;
-            var sizeInBytes = -1L;
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
-            if (lhsStats.numDocs() != -1 && rhsStats.numDocs() != -1) {
-                if (join.joinType() == JoinType.CROSS) {
-                    numberOfRows = lhsStats.numDocs() * rhsStats.numDocs();
-                } else {
-                    // We don't have any cardinality estimates, so just take the bigger table
-                    numberOfRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
-                }
+            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
+            if (lhsStats.numDocs() == -1
+                || lhsStats.sizeInBytes() == -1
+                || rhsStats.numDocs() == -1
+                || rhsStats.sizeInBytes() == -1) {
+                return new Stats(-1, -1, statsByColumn);
             }
-            if (lhsStats.sizeInBytes() != -1 && rhsStats.sizeInBytes() != -1) {
-                sizeInBytes = lhsStats.sizeInBytes() + rhsStats.sizeInBytes();
-            }
-            return new Stats(numberOfRows, sizeInBytes, Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn()));
+            long numRows = join.joinType() == JoinType.CROSS
+                ? lhsStats.numDocs() * rhsStats.numDocs()
+                // We don't have any cardinality estimates, so just take the bigger table
+                : Math.max(lhsStats.numDocs(), rhsStats.numDocs());
+            return new Stats(
+                numRows,
+                (lhsStats.averageSizePerRowInBytes() * numRows) + (rhsStats.averageSizePerRowInBytes() * numRows),
+                statsByColumn
+            );
         }
 
         @Override
         public Stats visitHashJoin(HashJoin join, Void context) {
-            var numberOfRows = -1L;
-            var sizeInBytes = -1L;
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
-            if (lhsStats.numDocs() != -1 && rhsStats.numDocs() != -1) {
-                // We don't have any cardinality estimates, so just take the bigger table
-                numberOfRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
+            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
+            if (lhsStats.numDocs() == -1
+                || lhsStats.sizeInBytes() == -1
+                || rhsStats.numDocs() == -1
+                || rhsStats.sizeInBytes() == -1) {
+                return new Stats(-1, -1, statsByColumn);
             }
-            if (lhsStats.sizeInBytes() != -1 && rhsStats.sizeInBytes() != -1) {
-                sizeInBytes = lhsStats.sizeInBytes() + rhsStats.sizeInBytes();
-            }
-            return new Stats(numberOfRows, sizeInBytes, Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn()));
+            long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
+            long sizeInBytes =
+                (numRows * lhsStats.averageSizePerRowInBytes())
+                + (numRows * rhsStats.averageSizePerRowInBytes());
+            return new Stats(numRows, sizeInBytes, statsByColumn);
         }
 
         @Override
@@ -172,7 +170,7 @@ public class PlanStats {
             } else {
                 var query = collect.where().queryOrFallback();
                 var numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, null);
-                return new Stats(numberOfRows, stats.sizeInBytes(), stats.statsByColumn());
+                return stats.withNumDocs(numberOfRows);
             }
         }
 
@@ -181,7 +179,7 @@ public class PlanStats {
             Stats sourceStats = filter.source().accept(this, context);
             Symbol query = filter.query();
             long numRows = SelectivityFunctions.estimateNumRows(sourceStats, query, null);
-            return new Stats(numRows, sourceStats.sizeInBytes(), sourceStats.statsByColumn());
+            return sourceStats.withNumDocs(numRows);
         }
 
         @Override
@@ -191,25 +189,26 @@ public class PlanStats {
 
         @Override
         public Stats visitGet(Get get, Void context) {
-            return new Stats(get.numExpectedRows(), get.estimatedRowSize(), Map.of());
+            Stats stats = tableStats.getStats(get.table().relationName());
+            return stats.withNumDocs(get.numExpectedRows());
         }
 
         @Override
         public Stats visitGroupHashAggregate(GroupHashAggregate groupHashAggregate, Void context) {
             var stats = groupHashAggregate.source().accept(this, context);
-            return new Stats(groupHashAggregate.numExpectedRows(), stats.sizeInBytes(), stats.statsByColumn());
+            return stats.withNumDocs(groupHashAggregate.numExpectedRows());
         }
 
         @Override
         public Stats visitHashAggregate(HashAggregate hashAggregate, Void context) {
             var stats = hashAggregate.source().accept(this, context);
-            return new Stats(1L, stats.sizeInBytes(), stats.statsByColumn());
+            return stats.withNumDocs(1);
         }
 
         @Override
         public Stats visitInsert(Insert insert, Void context) {
             var stats = insert.sources().get(0).accept(this, context);
-            return new Stats(1L, stats.sizeInBytes(), stats.statsByColumn());
+            return stats.withNumDocs(1);
         }
 
         @Override
