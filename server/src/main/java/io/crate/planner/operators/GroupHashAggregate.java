@@ -71,22 +71,19 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final long numExpectedRows;
 
 
-    static long approximateDistinctValues(long numSourceRows, TableStats tableStats, List<Symbol> groupKeys) {
+    static long approximateDistinctValues(Stats stats, List<Symbol> groupKeys) {
+        long numSourceRows = stats.numDocs();
         long distinctValues = 1;
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
             if (Symbols.containsCorrelatedSubQuery(groupKey)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in GROUP BY clause");
             }
-            Stats stats = null;
             ColumnStats<?> columnStats = null;
             if (groupKey instanceof Reference ref) {
-                stats = tableStats.getStats(ref.ident().tableIdent());
                 columnStats = stats.statsByColumn().get(ref.column());
                 numKeysWithStats++;
-            } else if (groupKey instanceof ScopedSymbol) {
-                ScopedSymbol scopedSymbol = (ScopedSymbol) groupKey;
-                stats = tableStats.getStats(scopedSymbol.relation());
+            } else if (groupKey instanceof ScopedSymbol scopedSymbol) {
                 columnStats = stats.statsByColumn().get(scopedSymbol.column());
                 numKeysWithStats++;
             }

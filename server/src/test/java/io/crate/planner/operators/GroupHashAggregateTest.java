@@ -21,8 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -47,6 +46,7 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
 
     private TableStats tableStats;
     private SqlExpressions expressions;
+    private Stats stats;
 
     @Before
     public void setUpStatsAndExpressions() throws Exception {
@@ -56,7 +56,7 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
         ).boxed().collect(Collectors.toList());
         long numDocs = 2_000L;
         ColumnStats<Integer> columnStats = ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs);
-        Stats stats = new Stats(
+        stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),
             Map.of(
@@ -72,15 +72,17 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_distinct_value_approximation_on_functions_returns_source_row_count() {
         Symbol substringFunction = expressions.asSymbol("substr(a, 0, 1)");
-        long distinctValues = GroupHashAggregate.approximateDistinctValues(50_000L, tableStats, List.of(substringFunction));
-        assertThat(distinctValues, is(50_000L));
+        Stats stats = new Stats(50_000L, this.stats.sizeInBytes(), this.stats.statsByColumn());
+        long distinctValues = GroupHashAggregate.approximateDistinctValues(stats, List.of(substringFunction));
+        assertThat(distinctValues).isEqualTo(50_000L);
     }
 
     @Test
     public void test_distinct_value_for_multiple_columns_is_the_product_of_the_distinct_values_of_each() {
         Symbol x = expressions.asSymbol("t1.x");
         Symbol i = expressions.asSymbol("t1.i");
-        long distinctValues = GroupHashAggregate.approximateDistinctValues(2_000L, tableStats, List.of(x, i));
-        assertThat(distinctValues, is(4L));
+        Stats stats = new Stats(2_000L, this.stats.sizeInBytes(), this.stats.statsByColumn());
+        long distinctValues = GroupHashAggregate.approximateDistinctValues(stats, List.of(x, i));
+        assertThat(distinctValues).isEqualTo(4L);
     }
 }

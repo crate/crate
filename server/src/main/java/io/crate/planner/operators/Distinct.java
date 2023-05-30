@@ -21,13 +21,14 @@
 
 package io.crate.planner.operators;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.planner.optimizer.costs.PlanStats;
+import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctValues;
 
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctValues;
+import io.crate.expression.symbol.Symbol;
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.statistics.Stats;
 
 public final class Distinct {
 
@@ -35,7 +36,8 @@ public final class Distinct {
         if (!distinct) {
             return source;
         }
-        long numExpectedRows = approximateDistinctValues(planStats.get(source).numDocs(), planStats.tableStats(), outputs);
+        Stats stats = planStats.get(source);
+        long numExpectedRows = approximateDistinctValues(stats, outputs);
         return new GroupHashAggregate(source, outputs, Collections.emptyList(), numExpectedRows);
     }
 }
