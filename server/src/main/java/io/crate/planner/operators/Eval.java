@@ -44,7 +44,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.statistics.TableStats;
 
 
 /**
@@ -110,8 +109,8 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
-        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, usedColumns);
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteToFetch(usedColumns);
         if (fetchRewrite == null) {
             return null;
         }

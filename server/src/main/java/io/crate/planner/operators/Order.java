@@ -49,7 +49,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.statistics.TableStats;
 
 public class Order extends ForwardingLogicalPlan {
 
@@ -92,10 +91,10 @@ public class Order extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
         HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
         allUsedColumns.addAll(orderBy.orderBySymbols());
-        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, allUsedColumns);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
         if (fetchRewrite == null) {
             return null;
         }

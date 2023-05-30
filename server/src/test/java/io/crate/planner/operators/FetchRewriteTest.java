@@ -29,6 +29,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -47,7 +48,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -80,7 +80,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             )
         );
 
-        FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(List.of());
         assertThat(fetchRewrite).isNotNull();
         assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
         assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
@@ -103,7 +103,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         assertThat(t1X).isNotNull();
         var rename = new Rename(List.of(t1X), alias.relationName(), alias, collect);
 
-        FetchRewrite fetchRewrite = rename.rewriteToFetch(new TableStats(), List.of());
+        FetchRewrite fetchRewrite = rename.rewriteToFetch(List.of());
         assertThat(fetchRewrite).isNotNull();
         LogicalPlan newRename = fetchRewrite.newPlan();
         assertThat(newRename).isEqualTo(
@@ -141,7 +141,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             List.of(x)
         );
 
-        FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(List.of());
         assertThat(fetchRewrite).isNotNull();
         assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
         assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(

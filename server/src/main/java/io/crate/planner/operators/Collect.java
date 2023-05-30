@@ -72,8 +72,6 @@ import io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.optimizer.symbol.Optimizer;
-import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 /**
  * An Operator for data-collection.
@@ -343,7 +341,7 @@ public class Collect implements LogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
         if (!(tableInfo instanceof DocTableInfo)) {
             return null;
         }
@@ -375,7 +373,6 @@ public class Collect implements LogicalPlan {
             return null;
         }
         newOutputs.add(0, fetchMarker);
-        Stats stats = tableStats.getStats(relation.relationName());
         return new FetchRewrite(
             replacedOutputs,
             new Collect(
