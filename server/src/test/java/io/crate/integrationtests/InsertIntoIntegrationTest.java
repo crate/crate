@@ -1787,4 +1787,31 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "df1a821d8c9| false| [{name=username, value=a7dd8f8bbd7}, {name=password, value=fa390881aea}]| xyz"
         );
     }
+
+    @Test
+    public void test_on_conflict_with_generated_pk_column_and_excluded() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                col1 TEXT,
+                ts TIMESTAMP,
+                "month" TIMESTAMP GENERATED ALWAYS AS date_trunc('month', ts),
+                v DOUBLE,
+                PRIMARY KEY (col1, "month", ts)
+            );
+            """
+        );
+        execute("INSERT INTO tbl (col1, ts, v) VALUES ('A', '2023-05-29 19:00'::TIMESTAMP, 1)");
+        assertThat(response).hasRowCount(1);
+        execute("refresh table tbl");
+        execute("""
+            INSERT INTO tbl (col1, ts, v) VALUES ('A', '2023-05-29 19:00'::TIMESTAMP, 2)
+            ON CONFLICT (col1, \"month\", ts) DO UPDATE SET v = excluded.v
+            """
+        );
+        execute("refresh table tbl");
+        execute("select col1, v from tbl");
+        assertThat(response).hasRows(
+            "A| 2.0"
+        );
+    }
 }
