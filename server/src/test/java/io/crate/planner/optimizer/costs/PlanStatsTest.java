@@ -32,8 +32,11 @@ import org.junit.Test;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.NestedLoopJoin;
@@ -41,6 +44,8 @@ import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.sql.tree.JoinType;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -231,4 +236,35 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.sizeInBytes()).isEqualTo(32L);
     }
 
+    @Test
+    public void test_filter() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        Symbol x = e.asSymbol("x");
+        Collect source = new Collect(new DocTableRelation(tbl), List.of(x), WhereClause.MATCH_ALL);
+        Filter filter = new Filter(source, e.asSymbol("x = 10"));
+
+        TableStats tableStats = new TableStats();
+        Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
+            new ColumnIdent("x"),
+            new ColumnStats<>(
+                0.0,
+                DataTypes.INTEGER.fixedSize(),
+                2500.0,
+                DataTypes.INTEGER,
+                new MostCommonValues(new Object[0], new double[0]),
+                List.of()
+            )
+        );
+        tableStats.updateTableStats(Map.of(
+            tbl.ident(),
+            new Stats(5_000, 5_000 * DataTypes.INTEGER.fixedSize(), columnStats)
+        ));
+
+        PlanStats planStats = new PlanStats(tableStats, null);
+        Stats stats = planStats.get(filter);
+        assertThat(stats.numDocs()).isEqualTo(2);
+    }
 }

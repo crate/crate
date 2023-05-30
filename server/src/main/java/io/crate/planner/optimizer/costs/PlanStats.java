@@ -28,10 +28,12 @@ import javax.annotation.Nullable;
 
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
@@ -180,6 +182,14 @@ public class PlanStats {
                 var numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, null);
                 return new Stats(numberOfRows, stats.sizeInBytes(), stats.statsByColumn());
             }
+        }
+
+        @Override
+        public Stats visitFilter(Filter filter, Void context) {
+            Stats sourceStats = filter.source().accept(this, context);
+            Symbol query = filter.query();
+            long numRows = SelectivityFunctions.estimateNumRows(sourceStats, query, null);
+            return new Stats(numRows, sourceStats.sizeInBytes(), sourceStats.statsByColumn());
         }
 
         @Override
