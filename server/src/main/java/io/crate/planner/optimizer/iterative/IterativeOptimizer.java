@@ -58,7 +58,7 @@ public class IterativeOptimizer {
 
     public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
         var memo = new Memo(plan);
-        var planStatsWithMemo = new PlanStats(planStats.tableStats(), memo);
+        var planStatsWithMemo = planStats.withMemo(memo);
 
         // Memo is used to have a mutable view over the tree so it can change nodes without
         // having to re-build the full tree all the time.`GroupReference` is used as place-holder
