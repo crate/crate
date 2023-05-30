@@ -68,8 +68,8 @@ public class PlanStats {
         this.visitor = new StatsVisitor(tableStats, memo);
     }
 
-    public TableStats tableStats() {
-        return tableStats;
+    public PlanStats withMemo(Memo memo) {
+        return new PlanStats(tableStats, memo);
     }
 
     public Stats get(LogicalPlan logicalPlan) {

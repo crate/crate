@@ -206,6 +206,7 @@ public class SQLExecutor {
     public final JobsLogs jobsLogs;
     public final DependencyCarrier dependencyMock;
     private final PlanStats planStats;
+    private final TableStats tableStats;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -798,6 +799,7 @@ public class SQLExecutor {
         this.random = random;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
+        this.tableStats = tableStats;
         this.planStats = new PlanStats(tableStats);
     }
 
@@ -913,7 +915,7 @@ public class SQLExecutor {
     }
 
     public void updateTableStats(Map<RelationName, Stats> stats) {
-        planStats.tableStats().updateTableStats(stats);
+        tableStats.updateTableStats(stats);
     }
 
     public PlanStats planStats() {
