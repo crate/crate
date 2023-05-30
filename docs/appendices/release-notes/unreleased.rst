@@ -182,4 +182,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
+  with a ``ON CONFLICT`` clause on tables with generated primary key columns to
+  fail with an ``ArrayIndexOutOfBoundsException``.
