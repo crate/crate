@@ -26,7 +26,14 @@ import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -338,8 +345,9 @@ public final class CopyFromPlan implements Plan {
                 new ArrayList<>(targetColumns),
                 targetColsExclPartitionCols,
                 InputColumns.create(targetColsExclPartitionCols, sourceSymbols),
-                !boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
-                Collections.emptyMap(), // ON UPDATE SET assignments is irrelevant for COPY FROM
+                false, // Irrelevant for COPY FROM
+                boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
+                null, // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
                 table.clusteredBy(),
