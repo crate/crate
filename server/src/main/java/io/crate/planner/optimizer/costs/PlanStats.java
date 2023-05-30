@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -56,9 +55,7 @@ import io.crate.types.DataTypes;
 public class PlanStats {
 
     private final TableStats tableStats;
-    // Memo can be null when there are no Group References in the Logical Plans involved
-    @Nullable
-    private final Memo memo;
+    private final StatsVisitor visitor;
 
     public PlanStats(TableStats tableStats) {
         this(tableStats, null);
@@ -66,19 +63,14 @@ public class PlanStats {
 
     public PlanStats(TableStats tableStats, @Nullable Memo memo) {
         this.tableStats = tableStats;
-        this.memo = memo;
+        this.visitor = new StatsVisitor(tableStats, memo);
     }
 
     public TableStats tableStats() {
         return tableStats;
     }
 
-    public Stats get(RelationName relationName) {
-        return tableStats.getStats(relationName);
-    }
-
     public Stats get(LogicalPlan logicalPlan) {
-        var visitor = new StatsVisitor(tableStats, memo);
         return logicalPlan.accept(visitor, null);
     }
 
