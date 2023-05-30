@@ -920,10 +920,6 @@ public class SQLExecutor {
         return planStats;
     }
 
-    public Stats getStats(RelationName relationName) {
-        return planStats.get(relationName);
-    }
-
     public Stats getStats(LogicalPlan logicalPlan) {
         return planStats.get(logicalPlan);
     }
