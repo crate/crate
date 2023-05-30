@@ -1696,9 +1696,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        assertThatThrownBy(() -> executor.analyze("select tags[0] from users"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Array index must be in range 1 to 2147483648");
+        assertThatThrownBy(() -> executor.analyze("select tags[-2147483649] from users"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `-2147483649::bigint` of type `bigint` to type `integer`");
     }
 
     @Test
@@ -1706,9 +1706,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        assertThatThrownBy(() -> executor.analyze("select tags[2147483649] from users"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Array index must be in range 1 to 2147483648");
+        assertThatThrownBy(() -> executor.analyze("select tags[2147483648] from users"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
     }
 
     @Test

@@ -736,8 +736,8 @@ with ``landmarks[n]``, where ``n`` is the integer array index, like so::
 
 .. NOTE::
 
-    The first index value is ``1``. The maximum array index is ``2147483648``.
-    Using an index greater than the array size results in a NULL value.
+    The minimum index value is ``-2147483648``. The maximum array index is
+    ``2147483647``. Using an index out of the range results in an exception.
 
 Individual array elements can also be addressed in the :ref:`where clause
 <sql_dql_where_clause>`, like so::
