@@ -104,12 +104,12 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.ReorderHashJoin;
+import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
-import io.crate.planner.optimizer.rule.ReorderHashJoin;
-import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.types.DataTypes;
 
 /**
@@ -476,9 +476,10 @@ public class LogicalPlanner {
                                            List<Function> aggregates,
                                            PlanStats planStats) {
         if (!groupKeys.isEmpty()) {
-            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(planStats.get(source).numDocs(),
-                                                                                planStats.tableStats(),
-                                                                                groupKeys);
+            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(
+                planStats.get(source),
+                groupKeys
+            );
             return new GroupHashAggregate(source, groupKeys, aggregates, numExpectedRows);
         }
         if (!aggregates.isEmpty()) {
