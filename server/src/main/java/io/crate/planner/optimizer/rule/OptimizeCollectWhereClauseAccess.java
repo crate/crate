@@ -21,6 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
+import java.util.Optional;
+import java.util.function.Function;
+
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
@@ -38,11 +43,6 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.Optional;
-import java.util.function.Function;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
 
@@ -86,8 +86,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                 relation,
                 docKeys.get(),
                 detailedQuery.query(),
-                collect.outputs(),
-                planStats.tableStats().estimatedSizePerRow(relation.relationName())
+                collect.outputs()
             );
         } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
             return new Collect(collect, detailedQuery);

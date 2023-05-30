@@ -129,7 +129,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_relationnames_are_based_on_sources_in_get() {
-        var get = new Get(t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of(), 1);
+        var get = new Get(t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of());
         assertThat(get.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(get.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
