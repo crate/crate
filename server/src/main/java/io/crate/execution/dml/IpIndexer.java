@@ -56,6 +56,7 @@ public class IpIndexer implements ValueIndexer<String> {
 
     @Override
     public void indexValue(String value,
+                           boolean isPrimary,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

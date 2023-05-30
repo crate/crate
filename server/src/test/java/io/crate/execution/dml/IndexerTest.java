@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -116,7 +117,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "y", 20);
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        ParsedDocument parsedDoc = indexer.index(item(value), true);
         assertThat(parsedDoc.doc().getFields())
             .hasSize(8);
 
@@ -129,7 +130,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         value = Map.of("x", 10, "y", 20);
-        parsedDoc = indexer.index(item(value));
+        parsedDoc = indexer.index(item(value), true);
         assertThat(parsedDoc.newColumns()).isEmpty();
     }
 
@@ -151,7 +152,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20, "z", 30));
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        ParsedDocument parsedDoc = indexer.index(item(value), true);
         assertThat(parsedDoc.doc().getFields())
             .hasSize(9);
 
@@ -174,7 +175,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         var indexer = getIndexer(e, "tbl", null, "o");
-        ParsedDocument doc = indexer.index(item(Map.of("x", 10)));
+        ParsedDocument doc = indexer.index(item(Map.of("x", 10)), true);
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
             {"o": {"x": 10}}
@@ -205,7 +206,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "xs", List.of(2, 3, 4));
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        ParsedDocument parsedDoc = indexer.index(item(value), true);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
@@ -239,7 +240,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(y),
             null
         );
-        var parsedDoc = indexer.index(item(new Object[] { null }));
+        var parsedDoc = indexer.index(item(new Object[] { null }), true);
         assertThat(parsedDoc.source().utf8ToString())
             .as("If explicit null value is provided, the default expression is not applied")
             .isEqualTo("{}");
@@ -255,7 +256,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x),
             null
         );
-        parsedDoc = indexer.index(item(10));
+        parsedDoc = indexer.index(item(10), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"x\":10,\"y\":0}"
         );
@@ -279,7 +280,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x),
             null
         );
-        var parsedDoc = indexer.index(item(1));
+        var parsedDoc = indexer.index(item(1), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"x\":1,\"y\":3}"
         );
@@ -305,7 +306,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x),
             null
         );
-        var parsedDoc = indexer.index(item(1));
+        var parsedDoc = indexer.index(item(1), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"x\":1}"
         );
@@ -328,7 +329,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        var parsedDoc = indexer.index(item(Map.of("z", 20)));
+        var parsedDoc = indexer.index(item(Map.of("z", 20)), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"o\":{\"x\":0,\"y\":2,\"z\":20}}"
         );
@@ -358,7 +359,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x),
             null
         );
-        var parsedDoc = indexer.index(item(42));
+        var parsedDoc = indexer.index(item(42), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
             {
                 "x":42,
@@ -387,7 +388,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x, y),
             null
         );
-        assertThatThrownBy(() -> indexer1.index(item(1, 2)))
+        assertThatThrownBy(() -> indexer1.index(item(1, 2), true))
             .hasMessage("Given value 2 for generated column y does not match calculation (x + 2) = 3");
 
         Indexer indexer2 = new Indexer(
@@ -399,7 +400,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x, o),
             null
         );
-        assertThatThrownBy(() -> indexer2.index(item(1, Map.of("z", 10))))
+        assertThatThrownBy(() -> indexer2.index(item(1, Map.of("z", 10)), true))
             .hasMessage("Given value 10 for generated column o['z'] does not match calculation (x + 3) = 4");
     }
 
@@ -420,10 +421,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        assertThatThrownBy(() -> indexer.index(item(new Object[] { null })))
+        assertThatThrownBy(() -> indexer.index(item(new Object[] { null }), true))
             .hasMessage("\"x\" must not be null");
 
-        ParsedDocument parsedDoc = indexer.index(item(10));
+        ParsedDocument parsedDoc = indexer.index(item(10), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
             {"x":10, "y":0}
             """);
@@ -453,10 +454,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        assertThatThrownBy(() -> indexer.index(item(8, 10)))
+        assertThatThrownBy(() -> indexer.index(item(8, 10), true))
             .hasMessage("Failed CONSTRAINT c1 CHECK (\"x\" > 10) for values: [8, 10]");
 
-        ParsedDocument parsedDoc = indexer.index(item(20, null));
+        ParsedDocument parsedDoc = indexer.index(item(20, null), true);
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
             {"x":20}
             """);
@@ -485,7 +486,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 10, "y", 20))))
+        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 10, "y", 20)), true))
             .hasMessage("Cannot add column `y` to strict object `o`");
     }
 
@@ -512,7 +513,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        ParsedDocument index = indexer.index(item(Map.of("x", 10, "y", 20)));
+        ParsedDocument index = indexer.index(item(Map.of("x", 10, "y", 20)), true);
         assertThat(index.newColumns()).satisfiesExactly(
             r -> assertThat(r).isReference("o['y']", DataTypes.LONG)
         );
@@ -567,7 +568,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         HashMap<String, Object> o = new HashMap<>();
         o.put("y", null);
-        ParsedDocument doc = indexer.index(item(null, o));
+        ParsedDocument doc = indexer.index(item(null, o), true);
         assertThat(doc.source().utf8ToString()).isEqualTo(
             "{\"o\":{}}"
         );
@@ -580,7 +581,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
-        ParsedDocument doc = indexer.index(item(42.2f));
+        ParsedDocument doc = indexer.index(item(42.2f), true);
         IndexableField[] fields = doc.doc().getFields("x");
         assertThat(fields).satisfiesExactly(
             x -> assertThat(x)
@@ -597,7 +598,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         var indexer = getIndexer(e, "tbl", TextFieldMapper.Defaults.FIELD_TYPE, "x");
-        ParsedDocument doc = indexer.index(item("Hello World"));
+        ParsedDocument doc = indexer.index(item("Hello World"), true);
         IndexableField[] fields = doc.doc().getFields("x");
         assertThat(fields).satisfiesExactly(
             x -> assertThat(x)
@@ -667,7 +668,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 Lists2.map(columns, c -> table.getReference(c)),
                 null
             );
-            ParsedDocument doc = indexer.index(item(values.toArray()));
+            ParsedDocument doc = indexer.index(item(values.toArray()), true);
             Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
             it = types.iterator();
             for (int i = 0; it.hasNext(); i++) {
@@ -701,7 +702,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        ParsedDocument doc = indexer.index(item(42, "Hello", 21));
+        ParsedDocument doc = indexer.index(item(42, "Hello", 21), true);
         assertThat(doc.newColumns()).satisfiesExactly(
             x -> assertThat(x)
                 .isReference("y", DataTypes.STRING)
@@ -718,7 +719,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
 
-        doc = indexer.index(item(42, "Hello", 22));
+        doc = indexer.index(item(42, "Hello", 22), true);
         assertThat(doc.newColumns())
             .as("Doesn't repeatedly add new column")
             .hasSize(0);
@@ -757,7 +758,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         var indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "xs");
-        ParsedDocument doc = indexer.index(item(Arrays.asList(1, 42, null, 21)));
+        ParsedDocument doc = indexer.index(item(Arrays.asList(1, 42, null, 21)), true);
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
             {"xs": [1, 42, null, 21]}
@@ -771,7 +772,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (xs text[], index ft using fulltext (xs))")
             .build();
         var indexer = getIndexer(e, "tbl", KeywordFieldMapper.Defaults.FIELD_TYPE, "xs");
-        ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
+        ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")), true);
         assertThat(doc.doc().getFields("ft")).hasSize(3);
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
@@ -801,7 +802,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         List<Object> n1 = List.of();
         List<Object> n2 = Arrays.asList(null, null);
-        ParsedDocument doc = indexer.index(item(Map.of("inner", n1), n1, n2));
+        ParsedDocument doc = indexer.index(item(Map.of("inner", n1), n1, n2), true);
         assertThat(doc.newColumns()).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
@@ -816,7 +817,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int generated always as x + 1)")
             .build();
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
-        ParsedDocument doc = indexer.index(item(new Object[] { null }));
+        ParsedDocument doc = indexer.index(item(new Object[] { null }), true);
         assertThat(doc.newColumns()).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualTo("{}");
     }
@@ -838,7 +839,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "o");
         IndexItem item = item(MapBuilder.newMapBuilder().put("y", 2).map());
-        ParsedDocument doc = indexer.index(item);
+        ParsedDocument doc = indexer.index(item, true);
         Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
         assertThat(source).containsKeys("o", "z");
         assertThat((Map<String, ?>) source.get("o")).containsKeys("x", "y");
@@ -848,6 +849,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
+    }
+
+    @Test
+    public void test_validates_provided_undeterministic_generated_values_on_primary() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    x int,
+                    y int generated always as random()
+                )
+                """)
+            .build();
+        Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x", "y");
+        IndexItem item = item(1, 2);
+        assertThatThrownBy(() -> indexer.index(item, true))
+            .hasMessageContaining("Given value 2 for generated column y does not match calculation");
+
+        // On replica it must succeed without validation.
+        ParsedDocument doc = indexer.index(item, false);
+        assertThat(doc.source().utf8ToString()).isEqualTo("{\"x\":1,\"y\":2}");
     }
 
     @Test
@@ -869,7 +890,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 o.put(key, c);
             }
             IndexItem item = item(10, o, 50);
-            ParsedDocument doc = indexer.index(item);
+            ParsedDocument doc = indexer.index(item, true);
             if (source == null) {
                 source = doc.source();
                 newColumns = doc.newColumns();
@@ -919,7 +940,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 o.put(key, c);
             }
             IndexItem item = item(10, o, 50);
-            ParsedDocument doc = indexer.index(item);
+            ParsedDocument doc = indexer.index(item, true);
             assertThat(doc.newColumns()).isEmpty();
             assertThat(doc.source())
                 .as(

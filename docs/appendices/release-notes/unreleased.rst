@@ -188,6 +188,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a regression introduced in 5.3.0 that allowed to insert values for
+  non-deterministic generated columns that don't match the calculation.
+
 - Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
   with a ``ON CONFLICT`` clause on tables with generated primary key columns to
   fail with an ``ArrayIndexOutOfBoundsException``.

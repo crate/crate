@@ -52,6 +52,7 @@ public interface ValueIndexer<T> {
 
     void indexValue(
         @Nullable T value,
+        boolean isPrimary,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
         Consumer<? super Reference> onDynamicColumn,

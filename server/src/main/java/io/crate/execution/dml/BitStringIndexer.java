@@ -58,6 +58,7 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
 
     @Override
     public void indexValue(BitString value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

@@ -56,6 +56,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
 
     @Override
     public void indexValue(Number value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

@@ -247,7 +247,7 @@ public class Indexer {
 
     interface ColumnConstraint {
 
-        void verify(Object providedValue);
+        void verify(Object providedValue, boolean isPrimary);
     }
 
     interface TableConstraint {
@@ -291,9 +291,9 @@ public class Indexer {
     record MultiCheck(List<ColumnConstraint> checks) implements ColumnConstraint {
 
         @Override
-        public void verify(Object providedValue) {
+        public void verify(Object providedValue, boolean isPrimary) {
             for (var check : checks) {
-                check.verify(providedValue);
+                check.verify(providedValue, isPrimary);
             }
         }
 
@@ -311,7 +311,7 @@ public class Indexer {
 
     record NotNull(ColumnIdent column) implements ColumnConstraint {
 
-        public void verify(Object providedValue) {
+        public void verify(Object providedValue, boolean isPrimary) {
             if (providedValue == null) {
                 throw new IllegalArgumentException("\"" + column + "\" must not be null");
             }
@@ -322,7 +322,10 @@ public class Indexer {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void verify(Object providedValue) {
+        public void verify(Object providedValue, boolean isPrimary) {
+            if (!isPrimary) {
+                return;
+            }
             DataType<Object> valueType = (DataType<Object>) ref.valueType();
             Object generatedValue = input.value();
             int compare = Comparator
@@ -524,9 +527,7 @@ public class Indexer {
                                       DocTableInfo table,
                                       Context<?> ctxForRefs,
                                       Reference ref) {
-        if (ref instanceof GeneratedReference generated
-                && ref.granularity() == RowGranularity.DOC
-                && Symbols.isDeterministic(generated.generatedExpression())) {
+        if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
@@ -544,7 +545,7 @@ public class Indexer {
     }
 
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(IndexItem item) throws IOException {
+    public ParsedDocument index(IndexItem item, boolean isPrimary) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
@@ -564,7 +565,7 @@ public class Indexer {
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
-                    check.verify(value);
+                    check.verify(value, isPrimary);
                 }
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
@@ -576,6 +577,7 @@ public class Indexer {
                 xContentBuilder.field(reference.column().leafName());
                 valueIndexer.indexValue(
                     reference.valueType().sanitizeValue(value),
+                    isPrimary,
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
@@ -597,6 +599,7 @@ public class Indexer {
                 xContentBuilder.field(column.leafName());
                 indexer.indexValue(
                     value,
+                    isPrimary,
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
@@ -710,7 +713,7 @@ public class Indexer {
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
-                    check.verify(value);
+                    check.verify(value, true);
                 }
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;

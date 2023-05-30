@@ -42,6 +42,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @Override
     public void indexValue(List<T> values,
+                           boolean isPrimary,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
@@ -55,6 +56,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                 } else {
                     innerIndexer.indexValue(
                         value,
+                        isPrimary,
                         xContentBuilder,
                         addField,
                         onDynamicColumn,

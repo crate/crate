@@ -126,7 +126,7 @@ public class IndexerBenchmark {
     @Benchmark
     public void measure_index(Blackhole blackhole) throws Exception {
         for (var item : items) {
-            blackhole.consume(indexer.index(item));
+            blackhole.consume(indexer.index(item, true));
         }
     }
 }

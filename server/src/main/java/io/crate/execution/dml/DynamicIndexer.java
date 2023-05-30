@@ -73,6 +73,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @Override
     @SuppressWarnings("unchecked")
     public void indexValue(Object value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
@@ -114,6 +115,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         value = type.sanitizeValue(value);
         indexer.indexValue(
             value,
+            isPrimary,
             xcontentBuilder,
             addField,
             onDynamicColumn,

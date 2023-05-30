@@ -98,6 +98,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void indexValue(@Nullable Map<String, Object> value,
+                           boolean isPrimary,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
@@ -117,7 +118,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
             ColumnConstraint check = checks.get(innerColumn);
             if (check != null) {
-                check.verify(innerValue);
+                check.verify(innerValue, isPrimary);
             }
             if (innerValue == null) {
                 continue;
@@ -128,6 +129,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 xContentBuilder.field(innerName);
                 valueIndexer.indexValue(
                     type.sanitizeValue(innerValue),
+                    isPrimary,
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
@@ -137,13 +139,22 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
         }
         if (value != null) {
-            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
+            addNewColumns(
+                value,
+                isPrimary,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics,
+                checks
+            );
         }
         xContentBuilder.endObject();
     }
 
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
+                               boolean isPrimary,
                                XContentBuilder xContentBuilder,
                                Consumer<? super IndexableField> addField,
                                Consumer<? super Reference> onDynamicColumn,
@@ -211,6 +222,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             xContentBuilder.field(innerName);
             valueIndexer.indexValue(
                 innerValue,
+                isPrimary,
                 xContentBuilder,
                 addField,
                 onDynamicColumn,

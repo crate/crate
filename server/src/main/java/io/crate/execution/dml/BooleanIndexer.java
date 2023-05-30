@@ -52,6 +52,7 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     @Override
     public void indexValue(Boolean value,
+                           boolean isPrimary,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

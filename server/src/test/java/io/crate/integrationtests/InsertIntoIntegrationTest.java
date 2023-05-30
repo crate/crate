@@ -31,6 +31,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
 import java.util.HashMap;
@@ -1813,5 +1814,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "A| 2.0"
         );
+    }
+
+    @Test
+    public void test_non_determistic_generated_values_are_validated() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                id int,
+                created timestamp with time zone as current_timestamp
+            )
+            """
+        );
+        assertThatThrownBy(() -> execute("insert into tbl (id, created) values (1, null)"))
+            .hasMessageContaining("Given value null for generated column created does not match calculation");
     }
 }

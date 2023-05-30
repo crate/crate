@@ -132,7 +132,7 @@ public final class QueryTester implements AutoCloseable {
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
-            ParsedDocument parsedDocument = indexer.index(item);
+            ParsedDocument parsedDocument = indexer.index(item, true);
             indexEnv.writer().addDocument(parsedDocument.doc());
         }
 

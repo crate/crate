@@ -55,6 +55,7 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
 
     @Override
     public void indexValue(Point point,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

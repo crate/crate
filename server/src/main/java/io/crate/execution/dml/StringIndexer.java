@@ -52,6 +52,7 @@ public class StringIndexer implements ValueIndexer<String> {
 
     @Override
     public void indexValue(String value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

@@ -60,6 +60,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void indexValue(Map<String, Object> value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

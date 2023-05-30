@@ -54,6 +54,7 @@ public class LongIndexer implements ValueIndexer<Long> {
 
     @Override
     public void indexValue(Long value,
+                           boolean isPrimary,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,

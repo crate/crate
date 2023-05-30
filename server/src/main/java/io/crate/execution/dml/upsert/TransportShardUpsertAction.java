@@ -377,7 +377,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer.index(item);
+            ParsedDocument parsedDoc = indexer.index(item, false);
             if (!parsedDoc.newColumns().isEmpty()) {
                 // this forces clearing the cache
                 schemas.tableExists(relationName);
@@ -517,7 +517,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         final long startTime = System.nanoTime();
-        ParsedDocument parsedDoc = indexer.index(item);
+        ParsedDocument parsedDoc = indexer.index(item, true);
 
         // Replica must use the same values for undeterministic defaults/generated columns
         if (indexer.hasUndeterministicSynthetics()) {
