@@ -50,7 +50,6 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.statistics.TableStats;
 
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
 
@@ -85,7 +84,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(planStats.tableStats(), Set.of());
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(Set.of());
         if (fetchRewrite == null) {
             return null;
         }
@@ -100,20 +99,20 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     }
 
 
-    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan) {
         Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan, tableStats);
+            return doRewrite(relation, plan);
         }
         match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan, tableStats);
+            return doRewrite(relation, plan);
         }
         return plan;
     }
 
-    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
-        FetchRewrite fetchRewrite = plan.rewriteToFetch(tableStats, List.of());
+    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan) {
+        FetchRewrite fetchRewrite = plan.rewriteToFetch(List.of());
         if (fetchRewrite == null) {
             return plan;
         }

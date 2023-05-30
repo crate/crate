@@ -46,7 +46,6 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 
 /**
  * https://en.wikipedia.org/wiki/Relational_algebra#Rename_(%CF%81)
@@ -133,7 +132,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
         IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
         IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
         for (int i = 0; i < outputs.size(); i++) {
@@ -148,7 +147,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 mappedUsedColumns.add(childSymbol);
             });
         }
-        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, mappedUsedColumns);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(mappedUsedColumns);
         if (fetchRewrite == null) {
             return null;
         }

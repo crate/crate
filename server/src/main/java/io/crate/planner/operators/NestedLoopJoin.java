@@ -63,7 +63,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
-import io.crate.statistics.TableStats;
 
 public class NestedLoopJoin extends JoinPlan {
 
@@ -302,7 +301,7 @@ public class NestedLoopJoin extends JoinPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
         LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
         LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         for (Symbol usedColumn : usedColumns) {
@@ -313,8 +312,8 @@ public class NestedLoopJoin extends JoinPlan {
             SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
             SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         }
-        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(tableStats, usedFromLeft);
-        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(tableStats, usedFromRight);
+        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
+        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
         if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
             return null;
         }

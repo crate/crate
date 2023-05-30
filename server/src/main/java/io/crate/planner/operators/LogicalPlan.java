@@ -42,7 +42,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -184,7 +183,7 @@ public interface LogicalPlan extends Plan {
      *                    An operator that uses *all* of its sources outputs to produce a result should return `null`
      */
     @Nullable
-    default FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+    default FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
         return null;
     }
 
