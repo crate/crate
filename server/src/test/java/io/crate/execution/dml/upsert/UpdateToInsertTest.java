@@ -283,4 +283,131 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(item.insertValues()).containsExactly(3, 1, 20);
     }
+
+    @Test
+    public void test_generates_missing_generated_pk_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    x int,
+                    y int generated always as (x + 1),
+                    z int,
+                    primary key (x, y)
+                )
+                """)
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
+        Reference[] insertColumns = new Reference[] {
+            table.getReference(new ColumnIdent("x")),
+            table.getReference(new ColumnIdent("z"))
+        };
+        String[] updateColumns = new String[] { "z" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            updateColumns,
+            insertColumns
+        );
+        Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+            doc,
+            new Symbol[] { new InputColumn(1) },
+            new Object[] { 1, 20 }
+        );
+        assertThat(updateToInsert.columns()).satisfiesExactly(
+            x -> assertThat(x).isReference("x"),
+            x -> assertThat(x).isReference("z"),
+            x -> assertThat(x).isReference("y")
+        );
+        assertThat(item.pkValues()).containsExactly("1", "2");
+        assertThat(item.insertValues()).containsExactly(1, 20, 2);
+    }
+
+    @Test
+    public void test_generates_nested_missing_generated_pk_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    x int,
+                    o object as (
+                        y int generated always as (x + 1)
+                    ),
+                    z int,
+                    primary key (x, o['y'])
+                )
+                """)
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
+        Reference[] insertColumns = new Reference[] {
+            table.getReference(new ColumnIdent("x")),
+            table.getReference(new ColumnIdent("z"))
+        };
+        String[] updateColumns = new String[] { "z" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            updateColumns,
+            insertColumns
+        );
+        Map<String, Object> source = Map.of(
+            "x", 1,
+            "o", Map.of("y", 2),
+            "z", 3
+        );
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+            doc,
+            new Symbol[] { new InputColumn(1) },
+            new Object[] { 1, 20 }
+        );
+        assertThat(item.pkValues()).containsExactly("1", "2");
+        assertThat(item.insertValues()).containsExactly(1, 20, Map.of("y", 2));
+    }
+
+    @Test
+    public void test_generates_missing_pk_columns_with_default() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    x int,
+                    y int default 10,
+                    z int,
+                    primary key (x, y)
+                )
+                """)
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
+        Reference[] insertColumns = new Reference[] {
+            table.getReference(new ColumnIdent("x")),
+            table.getReference(new ColumnIdent("z"))
+        };
+        String[] updateColumns = new String[] { "z" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            updateColumns,
+            insertColumns
+        );
+        Map<String, Object> source = Map.of(
+            "x", 1,
+            "y", 10,
+            "z", 3
+        );
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+            doc,
+            new Symbol[] { new InputColumn(1) },
+            new Object[] { 1, 20 }
+        );
+        assertThat(item.pkValues()).containsExactly("1", "10");
+        assertThat(item.insertValues()).containsExactly(1, 20, 10);
+    }
 }
