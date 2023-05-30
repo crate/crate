@@ -161,15 +161,17 @@ public final class UpdateToInsert {
                 this.columns.add(insertColumn);
             }
         }
-        for (var column : table.columns()) {
+        for (var ref : table.columns()) {
             // The Indexer later on injects the generated column values
             // We only include them here if they are provided in the `updateColumns` to validate
             // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
-            if (column instanceof GeneratedReference && !Arrays.asList(updateColumns).contains(column.column().fqn())) {
+            if (ref instanceof GeneratedReference
+                    && !Arrays.asList(updateColumns).contains(ref.column().fqn())
+                    && !table.primaryKey().contains(ref.column())) {
                 continue;
             }
-            if (!this.columns.contains(column)) {
-                this.columns.add(column);
+            if (!this.columns.contains(ref)) {
+                this.columns.add(ref);
             }
         }
         for (String columnName : updateColumns) {
