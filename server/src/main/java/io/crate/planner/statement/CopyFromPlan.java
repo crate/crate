@@ -333,7 +333,8 @@ public final class CopyFromPlan implements Plan {
                 partitionIdent,
                 table.primaryKey(),
                 targetColsInCorrectOrder,
-                !boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
+                false, // Irrelevant for COPY FROM
+                boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
                 Collections.emptyMap(), // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),

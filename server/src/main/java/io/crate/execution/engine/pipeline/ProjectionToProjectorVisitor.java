@@ -550,6 +550,7 @@ public class ProjectionToProjectorVisitor
             insertInputs,
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),
+            projection.overwriteDuplicateKeys(),
             projection.onDuplicateKeyAssignments(),
             projection.bulkActions(),
             projection.autoCreateIndices(),
