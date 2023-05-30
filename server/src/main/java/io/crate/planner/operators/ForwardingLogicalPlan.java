@@ -21,16 +21,15 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 
 public abstract class ForwardingLogicalPlan implements LogicalPlan {
 
@@ -47,8 +46,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, outputsToKeep);
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
         if (newSource == source) {
             return this;
         }

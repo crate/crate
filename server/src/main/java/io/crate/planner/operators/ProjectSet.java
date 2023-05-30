@@ -44,7 +44,6 @@ import io.crate.metadata.FunctionType;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 
 public class ProjectSet extends ForwardingLogicalPlan {
 
@@ -150,7 +149,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
@@ -160,7 +159,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
             SymbolVisitors.intersection(tableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }

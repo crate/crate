@@ -21,6 +21,14 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
@@ -35,13 +43,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -147,7 +148,7 @@ public interface LogicalPlan extends Plan {
      *  That allows implementations to do a cheap identity check to avoid LogicalPlan re-creations themselves.
      * </p>
      */
-    LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep);
+    LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
 
     /**
      * Rewrite an operator and its children to utilize a "query-then-fetch" approach.

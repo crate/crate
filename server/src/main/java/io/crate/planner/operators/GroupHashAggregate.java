@@ -60,7 +60,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 public class GroupHashAggregate extends ForwardingLogicalPlan {
 
@@ -247,7 +246,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         // Keep the same order and avoid introducing an Eval
         HashSet<Symbol> toKeep = new LinkedHashSet<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
@@ -261,7 +260,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         for (Function newAggregate : newAggregates) {
             SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }

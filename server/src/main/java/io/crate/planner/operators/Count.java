@@ -52,7 +52,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.optimizer.symbol.Optimizer;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 /**
@@ -152,7 +151,7 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         return this;
     }
 

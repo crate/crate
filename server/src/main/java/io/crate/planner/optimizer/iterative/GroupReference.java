@@ -42,7 +42,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.PlanHint;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.statistics.TableStats;
 
 /**
  * A GroupReference represents a reference from a LogicalPlan to
@@ -77,7 +76,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 

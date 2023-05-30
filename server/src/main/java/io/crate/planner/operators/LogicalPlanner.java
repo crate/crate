@@ -236,7 +236,7 @@ public class LogicalPlanner {
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx);
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(plannerContext.planStats().tableStats(), relation.outputs());
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(prunedPlan);
     }
@@ -282,7 +282,7 @@ public class LogicalPlanner {
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(planStats.tableStats(), relation.outputs());
+        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,

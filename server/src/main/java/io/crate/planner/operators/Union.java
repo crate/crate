@@ -57,7 +57,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 /**
@@ -204,7 +203,7 @@ public class Union implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         IntArrayList outputIndicesToKeep = new IntArrayList();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, outputs, s -> {
@@ -221,8 +220,8 @@ public class Union implements LogicalPlan {
             toKeepFromRhs.add(rhs.outputs().get(cursor.value));
             newOutputs.add(outputs.get(cursor.value));
         }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(tableStats, toKeepFromLhs);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(tableStats, toKeepFromRhs);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(toKeepFromLhs);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(toKeepFromRhs);
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }

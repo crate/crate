@@ -75,7 +75,7 @@ public class Order extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
@@ -83,7 +83,7 @@ public class Order extends ForwardingLogicalPlan {
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
             SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }

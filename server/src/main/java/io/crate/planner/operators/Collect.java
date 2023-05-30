@@ -328,7 +328,7 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol output : outputs) {
             if (outputsToKeep.contains(output)) {
@@ -338,12 +338,7 @@ public class Collect implements LogicalPlan {
         if (newOutputs.equals(outputs)) {
             return this;
         }
-        Stats stats = tableStats.getStats(relation.relationName());
-        return new Collect(
-            relation,
-            newOutputs,
-            immutableWhere
-        );
+        return new Collect(relation, newOutputs, immutableWhere);
     }
 
     @Nullable

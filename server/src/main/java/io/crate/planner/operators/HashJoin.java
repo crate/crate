@@ -224,7 +224,7 @@ public class HashJoin extends JoinPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
@@ -233,8 +233,8 @@ public class HashJoin extends JoinPlan {
         }
         SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
         SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(tableStats, lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(tableStats, rhsToKeep);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }

@@ -66,7 +66,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
-import io.crate.statistics.TableStats;
 
 public class Get implements LogicalPlan {
 
@@ -239,7 +238,7 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         boolean excludedAny = false;
         for (Symbol output : outputs) {

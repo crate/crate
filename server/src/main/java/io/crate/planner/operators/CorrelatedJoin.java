@@ -43,7 +43,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 
 /**
  * Operator that takes two relations.
@@ -155,7 +154,7 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         var toCollect = new LinkedHashSet<>(outputsToKeep);
         var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
             public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
@@ -164,7 +163,7 @@ public class CorrelatedJoin implements LogicalPlan {
             }
         };
         selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
-        LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(tableStats, toCollect);
+        LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
 
         if (inputPlan == newInputPlan) {
             return this;
