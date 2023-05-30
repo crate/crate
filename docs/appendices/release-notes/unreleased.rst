@@ -181,6 +181,8 @@ Changes
   has been lowered from `HIGH` to `MEDIUM` as leaving these to default
   or suboptimal values does not translate into data corruption or loss.
 
+- Added :ref:`array_set <scalar-array_set>` scalar function.
+
 Fixes
 =====
 

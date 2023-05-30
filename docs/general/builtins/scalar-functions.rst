@@ -2820,6 +2820,31 @@ return value is ``NULL``. Example:
     +------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-array_set:
+
+``array_set(source_array, indexes_array, values_array)``
+--------------------------------------------------------
+
+The ``array_set`` function returns the source array updated according to the
+given indexes and values. Depending on the indexes provided, ``array_set``
+updates or appends the values and also fills any gaps with ``nulls``.
+
+Returns: ``array``
+
+::
+
+    cr> select array_set(['_', 'b'], [1, 4], ['a', 'd']) AS arr;
+    +-----------------------+
+    | arr                   |
+    +-----------------------+
+    | ["a", "b", null, "d"] |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    Updating indexes less than or equal to 0 is currently not supported.
+
 .. _scalar-array_slice:
 
 ``array_slice(anyarray, from, to)``
