@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
