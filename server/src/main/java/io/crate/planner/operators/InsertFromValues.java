@@ -111,7 +111,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 
 
@@ -847,7 +846,7 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         return this;
     }
 

@@ -51,7 +51,6 @@ import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.PlanHint;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 
 public class MemoTest {
@@ -328,7 +327,7 @@ public class MemoTest {
         }
 
         @Override
-        public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+        public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
             return null;
         }
 

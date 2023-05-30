@@ -100,8 +100,8 @@ public final class Eval extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, outputsToKeep);
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
         if (source == newSource) {
             return this;
         }

@@ -48,7 +48,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 
 /**
@@ -104,7 +103,7 @@ public final class Fetch extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         return this;
     }
 

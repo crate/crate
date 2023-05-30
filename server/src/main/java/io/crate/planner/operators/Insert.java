@@ -46,7 +46,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 
 public class Insert implements LogicalPlan {
 
@@ -136,8 +135,8 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, source.outputs());
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(source.outputs());
         if (newSource == source) {
             return this;
         }

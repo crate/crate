@@ -54,7 +54,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.statistics.TableStats;
 
 public class HashAggregate extends ForwardingLogicalPlan {
 
@@ -177,7 +176,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, aggregates, newAggregates::add);
@@ -186,7 +185,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         for (Function newAggregate : newAggregates) {
             SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (source == newSource && newAggregates == aggregates) {
             return this;
         }

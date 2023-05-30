@@ -21,6 +21,13 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -33,14 +40,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public final class Filter extends ForwardingLogicalPlan {
 
@@ -94,10 +94,10 @@ public final class Filter extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>(outputsToKeep);
         SymbolVisitors.intersection(query, source.outputs(), toKeep::add);
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }

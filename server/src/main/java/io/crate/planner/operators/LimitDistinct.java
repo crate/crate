@@ -36,8 +36,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
@@ -50,7 +50,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public final class LimitDistinct extends ForwardingLogicalPlan {
@@ -157,14 +156,14 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         Consumer<Symbol> keep = toKeep::add;
         // Pruning unused outputs would change semantics. Need to keep all in any case
         for (var output : outputs) {
             SymbolVisitors.intersection(output, source.outputs(), keep);
         }
-        LogicalPlan prunedSource = source.pruneOutputsExcept(tableStats, toKeep);
+        LogicalPlan prunedSource = source.pruneOutputsExcept(toKeep);
         if (prunedSource == source) {
             return this;
         }

@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.common.collections.Lists2;
@@ -35,17 +47,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * https://en.wikipedia.org/wiki/Relational_algebra#Rename_(%CF%81)
@@ -96,7 +97,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
          * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
          */
@@ -114,7 +115,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 mappedToKeep.add(childSymbol);
             });
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, mappedToKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(mappedToKeep);
         if (newSource == source) {
             return this;
         }
