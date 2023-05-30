@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.SoftAssertions;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
@@ -772,8 +773,9 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         createRepo(repoName, "fs");
 
         final String testTable = "tbl1";
+        final int noShards = between(2, 10);
         // Create index on two nodes and make sure each node has a primary by setting no replicas
-        execute("CREATE TABLE \"" + testTable + "\"(a int, s string) CLUSTERED INTO " + between(2, 10) +
+        execute("CREATE TABLE \"" + testTable + "\"(a int, s string) CLUSTERED BY (a) INTO " + noShards +
                 " SHARDS WITH (number_of_replicas=0)");
 
         ensureGreen(testTable);
@@ -785,16 +787,25 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             data[i][1] = "foo" + i;
         }
         execute("INSERT INTO \"" + testTable + "\"(a, s) VALUES(?, ?)", data);
-        refresh();
+        execute("REFRESH TABLE \"" + testTable + "\"");
+        execute("SELECT COUNT(*) FROM \"" + testTable + "\"");
+        assertThat(response).hasRows("100");
 
         logger.info("--> start relocations");
         allowNodes(testTable, 1);
 
         logger.info("--> wait for relocations to start");
         assertBusy(() -> {
+            var assertion = new SoftAssertions();
             execute("SELECT count(*) FROM sys.shards WHERE table_name=? AND routing_state='RELOCATING'",
                     new Object[]{testTable});
-            assertThat((long) response.rows()[0][0]).isGreaterThan(0L);
+            assertion.assertThat((long) response.rows()[0][0]).isGreaterThan(0L);
+
+            if (assertion.wasSuccess() == false) { // Maybe all shards are already relocated
+                execute("SELECT count(*) FROM sys.shards WHERE table_name=? GROUP BY node",
+                        new Object[]{testTable});
+                assertThat((long) response.rows()[0][0]).isEqualTo(noShards);
+            }
         }, 1L, TimeUnit.MINUTES);
         logger.info("--> start two snapshots");
         final String snapshotOne = "snap-1";
@@ -802,6 +813,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final var snapOneResponse = startFullSnapshot(repoName, snapshotOne, testTable);
         final var snapTwoResponse = startFullSnapshot(repoName, snapshotTwo, testTable);
 
+        awaitNoMoreRunningOperations();
         logger.info("--> wait for snapshot to complete");
         for (SnapshotInfo si : List.of(snapOneResponse.get(), snapTwoResponse.get())) {
             assertThat(si.state()).isEqualTo(SnapshotState.SUCCESS);
