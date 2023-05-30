@@ -40,7 +40,7 @@ public class StorageOptionsITest extends IntegTestCase {
         refresh();
 
         execute("select s from t1 limit 1");
-        assertThat(response).hasRows(bigString);
+        assertThat(response.rows()[0][0]).isEqualTo(bigString);
     }
 
     @Test
