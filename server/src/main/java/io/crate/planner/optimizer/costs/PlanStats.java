@@ -159,7 +159,14 @@ public class PlanStats {
             long sizeInBytes =
                 (numRows * lhsStats.averageSizePerRowInBytes())
                 + (numRows * rhsStats.averageSizePerRowInBytes());
-            return new Stats(numRows, sizeInBytes, statsByColumn);
+
+            Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
+            long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                joinStats,
+                join.joinCondition(),
+                null
+            );
+            return joinStats.withNumDocs(estimatedNumRows);
         }
 
         @Override
