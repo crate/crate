@@ -26,12 +26,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.statistics.Stats;
+
 public final class PrintContext {
 
     private final StringBuilder sb;
     private final ArrayList<String> prefixes = new ArrayList<>();
+    @Nullable
+    private final PlanStats planStats;
 
-    public PrintContext() {
+    public PrintContext(PlanStats planStats) {
+        this.planStats = planStats;
         sb = new StringBuilder();
     }
 
@@ -63,6 +71,14 @@ public final class PrintContext {
             prefixes.remove(prefixes.size() - 1);
         }
         return this;
+    }
+
+    String stats(LogicalPlan logicalPlan) {
+        var stats = planStats.get(logicalPlan);
+        if (stats == Stats.EMPTY) {
+            return "";
+        }
+        return "(" + stats.numDocs() + ", " + stats.sizeInBytes() + ")";
     }
 
     @Override

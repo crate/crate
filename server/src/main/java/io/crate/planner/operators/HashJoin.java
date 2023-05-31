@@ -284,6 +284,7 @@ public class HashJoin extends JoinPlan {
             .text("HashJoin[")
             .text(joinCondition.toString())
             .text("]")
+            .text(printContext.stats(this))
             .nest(
                 lhs::print,
                 rhs::print

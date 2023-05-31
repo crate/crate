@@ -120,6 +120,7 @@ public final class Filter extends ForwardingLogicalPlan {
             .text("Filter[")
             .text(query.toString())
             .text("]")
+            .text(printContext.stats(this))
             .nest(source::print);
     }
 

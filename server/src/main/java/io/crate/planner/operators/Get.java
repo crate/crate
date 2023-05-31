@@ -294,6 +294,7 @@ public class Get implements LogicalPlan {
             .text(docKeys.toString())
             .text(" | ")
             .text(query.toString())
-            .text("]");
+            .text("]")
+            .text(printContext.stats(this));
     }
 }

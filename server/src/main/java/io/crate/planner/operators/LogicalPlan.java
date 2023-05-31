@@ -221,6 +221,7 @@ public interface LogicalPlan extends Plan {
             .text("[")
             .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
             .text("]")
+            .text(printContext.stats(this))
             .nest(Lists2.map(sources(), x -> x::print));
     }
 }

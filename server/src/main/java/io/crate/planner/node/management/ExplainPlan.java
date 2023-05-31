@@ -172,7 +172,7 @@ public class ExplainPlan implements Plan {
 
     @VisibleForTesting
     public static String printLogicalPlan(LogicalPlan logicalPlan, PlannerContext plannerContext) {
-        PrintContext printContext = new PrintContext();
+        PrintContext printContext = new PrintContext(plannerContext.planStats());
         var optimizedLogicalPlan = logicalPlan.accept(CAST_OPTIMIZER, plannerContext);
         optimizedLogicalPlan.print(printContext);
         return printContext.toString();

@@ -27,6 +27,8 @@ import org.assertj.core.api.AbstractAssert;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.PrintContext;
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.statistics.TableStats;
 
 public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, LogicalPlan> {
 
@@ -35,7 +37,7 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
     }
 
     private static String printPlan(LogicalPlan logicalPlan) {
-        var printContext = new PrintContext();
+        var printContext = new PrintContext(new PlanStats(new TableStats()));
         logicalPlan.print(printContext);
         return printContext.toString();
     }

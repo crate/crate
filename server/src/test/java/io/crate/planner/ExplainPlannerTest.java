@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,9 +39,11 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -118,10 +121,12 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
         var e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE ts1 (ts TIMESTAMP)")
+            .addTable("CREATE TABLE doc.ts1 (ts TIMESTAMP)")
             .build();
 
-        ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
+        e.updateTableStats(Map.of(new RelationName("doc", "ts1"), new Stats(20, 20, Map.of())));
+
+        ExplainPlan plan = e.plan("EXPLAIN Select * from ts1 UNION  SELECT * FROM ts1");
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
         assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"

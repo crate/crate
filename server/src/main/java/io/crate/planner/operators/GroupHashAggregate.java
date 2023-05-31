@@ -341,6 +341,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
         printContext
             .text("]")
+            .text(printContext.stats(this))
             .nest(source::print);
     }
 }

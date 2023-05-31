@@ -167,7 +167,8 @@ public final class TableFunction implements LogicalPlan {
             .text(Lists2.joinOn(", ", toCollect, Symbol::toString))
             .text("] | ")
             .text(where.queryOrFallback().toString())
-            .text("]");
+            .text("]")
+            .text(printContext.stats(this));
     }
 
     @Override

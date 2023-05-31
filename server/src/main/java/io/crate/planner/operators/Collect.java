@@ -412,6 +412,7 @@ public class Collect implements LogicalPlan {
 
     @Override
     public void print(PrintContext printContext) {
+        String stats = printContext.stats(this);
         printContext
             .text("Collect[")
             .text(tableInfo.ident().toString())
@@ -419,6 +420,7 @@ public class Collect implements LogicalPlan {
             .text(Lists2.joinOn(", ", outputs, Symbol::toString))
             .text("] | ")
             .text(immutableWhere.queryOrFallback().toString())
-            .text("]");
+            .text("]")
+            .text(stats);
     }
 }

@@ -200,6 +200,7 @@ public class CorrelatedJoin implements LogicalPlan {
             .text("[")
             .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
             .text("]")
+            .text(printContext.stats(this))
             .nest(Lists2.map(sources(), x -> x::print))
             .nest(p -> {
                 p.text("SubPlan");

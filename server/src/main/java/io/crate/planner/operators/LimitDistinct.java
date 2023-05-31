@@ -192,6 +192,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
             .text(" | [")
             .text(Lists2.joinOn(", ", outputs, Symbol::toString))
             .text("]]")
+            .text(printContext.stats(this))
             .nest(source::print);
     }
 }

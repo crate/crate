@@ -429,6 +429,7 @@ public class NestedLoopJoin extends JoinPlan {
         }
         printContext
             .text("]")
+            .text(printContext.stats(this))
             .nest(Lists2.map(sources(), x -> x::print));
     }
 
