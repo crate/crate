@@ -164,7 +164,7 @@ public class HashJoin extends JoinPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
-        var lhStats = plannerContext.planStats().get(lhs);
+        var lhStats = plannerContext.planStats().get(plannerContext.transactionContext(), lhs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),

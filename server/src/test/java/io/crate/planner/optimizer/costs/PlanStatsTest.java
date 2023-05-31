@@ -34,6 +34,9 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -51,10 +54,12 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
-    public static final PlanStats PLAN_STATS_EMPTY = new PlanStats(new TableStats());
+    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private NodeContext nodeContext = new NodeContext(new Functions(Map.of()), () -> List.of(User.CRATE_USER));
 
     @Test
     public void test_collect() throws Exception {
@@ -73,8 +78,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
 
         var memo = new Memo(source);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(source);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, source);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(DataTypes.INTEGER.fixedSize());
     }
@@ -95,8 +100,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
 
         var memo = new Memo(source);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(groupReference);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, groupReference);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(DataTypes.INTEGER.fixedSize());
     }
@@ -118,8 +123,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
 
         var memo = new Memo(limit);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(limit);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, limit);
         assertThat(result.numDocs()).isEqualTo(5L);
     }
 
@@ -151,8 +156,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var union = new Union(lhs, rhs, List.of());
 
         var memo = new Memo(union);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(union);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, union);
         assertThat(result.numDocs()).isEqualTo(10L);
         assertThat(result.sizeInBytes()).isEqualTo(160L);
     }
@@ -205,8 +210,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var hashjoin = new HashJoin(lhs, rhs, joinCondition);
 
         var memo = new Memo(hashjoin);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(hashjoin);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, hashjoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
     }
@@ -242,8 +247,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, relation, false, false, false, false);
 
         var memo = new Memo(nestedLoopJoin);
-        PlanStats planStats = new PlanStats(tableStats, memo);
-        var result = planStats.get(nestedLoopJoin);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, memo);
+        var result = planStats.get(txnCtx, nestedLoopJoin);
         // lhs is the larger table which 9 entries, so the join will at max emit 9 entries
         assertThat(result.numDocs()).isEqualTo(9L);
         assertThat(result.sizeInBytes()).isEqualTo(288L);
@@ -251,7 +256,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var joinCondition = e.asSymbol("x = y");
         nestedLoopJoin = new NestedLoopJoin(
             lhs, rhs, JoinType.INNER, joinCondition, false, relation, false, false, false, false);
-        result = planStats.get(nestedLoopJoin);
+        result = planStats.get(txnCtx, nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
 
@@ -259,8 +264,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             lhs, rhs, JoinType.CROSS, x, false, relation, false, false, false, false);
 
         memo = new Memo(nestedLoopJoin);
-        planStats = new PlanStats(tableStats, memo);
-        result = planStats.get(nestedLoopJoin);
+        planStats = new PlanStats(nodeContext, tableStats, memo);
+        result = planStats.get(txnCtx, nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(18L);
         assertThat(result.sizeInBytes()).isEqualTo(576L);
     }
@@ -292,8 +297,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             new Stats(5_000, 5_000 * DataTypes.INTEGER.fixedSize(), columnStats)
         ));
 
-        PlanStats planStats = new PlanStats(tableStats, null);
-        Stats stats = planStats.get(filter);
+        PlanStats planStats = new PlanStats(nodeContext, tableStats, null);
+        Stats stats = planStats.get(txnCtx, filter);
         assertThat(stats.numDocs()).isEqualTo(2);
     }
 }

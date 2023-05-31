@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.optimizer.costs.PlanStatsTest.PLAN_STATS_EMPTY;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
@@ -38,8 +38,10 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -48,12 +50,14 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
     private AbstractTableRelation<?> tr1;
+    private PlanStats planStats;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         e = new SqlExpressions(sources);
+        planStats = new PlanStats(e.nodeCtx, new TableStats());
         tr1 = (AbstractTableRelation<?>) sources.get(T3.T1);
     }
 
@@ -71,7 +75,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
         Filter mergedFilter = mergeFilters.apply(match.value(),
                                                  match.captures(),
-                                                 PLAN_STATS_EMPTY,
+                                                 planStats,
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
                                                  Function.identity());

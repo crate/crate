@@ -31,20 +31,44 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
+
+    NodeContext nodeContext = new NodeContext(
+        new ModulesBuilder()
+            .add(new OperatorModule())
+            .createInjector().getInstance(Functions.class),
+        () -> List.of(User.CRATE_USER)
+    );
+    TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
+    private long estimate(Stats stats, Symbol symbol) {
+        return SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, symbol, null);
+    }
+
+    private long estimate(Stats stats, Symbol symbol, Row params) {
+        return SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, symbol, params);
+    }
 
     @Test
     public void test_eq_not_in_mcv_is_based_on_approx_distinct() {
@@ -57,7 +81,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 20_000L);
         statsByColumn.put(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(20_000, 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(1L);
+        assertThat(SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, query, null)).isEqualTo(1L);
     }
 
     @Test
@@ -71,7 +95,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var statsByColumn = new HashMap<ColumnIdent, ColumnStats<?>>();
         statsByColumn.put(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(20_000, 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(0L);
+        assertThat(estimate(stats, query)).isEqualTo(0L);
     }
 
     @Test
@@ -85,7 +109,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, numbers.size());
         var statsByColumn = Map.<ColumnIdent, ColumnStats<?>>of(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(numbers.size(), 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(3L);
+        assertThat(estimate(stats, query)).isEqualTo(3L);
     }
 
     @Test
@@ -100,7 +124,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         double frequencyOf10 = columnStats.mostCommonValues().frequencies()[0];
         var statsByColumn = Map.<ColumnIdent, ColumnStats<?>>of(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(numbers.size(), 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, new Row1(10)))
+        assertThat(estimate(stats, query, new Row1(10)))
             .isEqualTo((long)(frequencyOf10 * numbers.size()));
     }
 
@@ -113,7 +137,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 20_000L);
         Stats stats = new Stats(20_000, 16, Map.of(new ColumnIdent("x"), columnStats));
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(19999L);
+        assertThat(estimate(stats, query)).isEqualTo(19999L);
     }
 
     @Test
@@ -123,7 +147,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(List.of(1, 2), DataTypes.INTEGER, 2, 4);
         assertThat(columnStats.nullFraction()).isEqualTo(0.5);
         Stats stats = new Stats(100, 16, Map.of(new ColumnIdent("x"), columnStats));
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(50L);
+        assertThat(estimate(stats, query)).isEqualTo(50L);
     }
 
     @Test
@@ -162,7 +186,30 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
             yStats
         );
         Stats stats = new Stats(numTotalRows, 32, columnStats);
-        long numRows = SelectivityFunctions.estimateNumRows(stats, query, null);
+        long numRows = estimate(stats, query);
         assertThat(numRows).isEqualTo(2L);
+    }
+
+    @Test
+    public void test_comparison_operators_use_mvc_for_sampling() throws Exception {
+        ArrayList<Integer> xValues = new ArrayList<>();
+        int numTotalRows = 40;
+        for (int i = 0; i < numTotalRows; i++) {
+            if (i < 30) {
+                xValues.add(1);
+            } else {
+                xValues.add(10);
+            }
+        }
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
+        ColumnStats<Integer> xStats = ColumnStats.fromSortedValues(xValues, DataTypes.INTEGER, 0, numTotalRows);
+        Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(new ColumnIdent("x"), xStats);
+        Stats stats = new Stats(numTotalRows, DataTypes.INTEGER.fixedSize(), columnStats);
+
+        assertThat(estimate(stats, expressions.asSymbol("x < 5"))).isEqualTo(30);
+        assertThat(estimate(stats, expressions.asSymbol("x <= 5"))).isEqualTo(30);
+        assertThat(estimate(stats, expressions.asSymbol("x > 5"))).isEqualTo(9);
+        assertThat(estimate(stats, expressions.asSymbol("x >= 5"))).isEqualTo(9);
+        assertThat(estimate(stats, expressions.asSymbol("x > null"))).isEqualTo(0);
     }
 }

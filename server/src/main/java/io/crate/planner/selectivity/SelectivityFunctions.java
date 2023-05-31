@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -40,7 +41,10 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -60,8 +64,12 @@ public class SelectivityFunctions {
      */
     private static final double MAGIC_SEL = 0.333;
 
-    public static long estimateNumRows(Stats stats, Symbol query, @Nullable Row params) {
-        var estimator = new SelectivityEstimator(stats, params);
+    public static long estimateNumRows(NodeContext nodeCtx,
+                                       TransactionContext txnCtx,
+                                       Stats stats,
+                                       Symbol query,
+                                       @Nullable Row params) {
+        var estimator = new SelectivityEstimator(nodeCtx, txnCtx, stats, params);
         Double selectivity = query.accept(estimator, null);
         return (long) (stats.numDocs() * selectivity);
     }
@@ -71,11 +79,16 @@ public class SelectivityFunctions {
         private final Stats stats;
         @Nullable
         private final Row params;
+        private final NodeContext nodeCtx;
+        private final TransactionContext txnCtx;
 
-        SelectivityEstimator(Stats stats, @Nullable Row params) {
+        SelectivityEstimator(NodeContext nodeCtx, TransactionContext txnCtx, Stats stats, @Nullable Row params) {
+            this.nodeCtx = nodeCtx;
+            this.txnCtx = txnCtx;
             this.stats = stats;
             this.params = params;
         }
+
 
         @Override
         protected Double visitSymbol(Symbol symbol, Void context) {
@@ -129,10 +142,66 @@ public class SelectivityFunctions {
                 }
 
                 default:
+                    if (Operators.COMPARISON_OPERATORS.contains(function.name())) {
+                        return genericOpSelectivity(nodeCtx, txnCtx, stats, function, params);
+                    }
                     return MAGIC_SEL;
             }
         }
 
+    }
+
+    @SuppressWarnings("unchecked")
+    private static double genericOpSelectivity(NodeContext nodeCtx,
+                                               TransactionContext txnCtx,
+                                               Stats stats,
+                                               Function function,
+                                               Row params) {
+        assert Operators.COMPARISON_OPERATORS.contains(function.name())
+            : "genericOpSelectivity only works for Operators like >, <, <= and >=";
+
+
+        double defaultSel = MAGIC_SEL;
+
+        List<Symbol> arguments = function.arguments();
+        assert arguments.size() == 2 : "Operator must have two arguments";
+
+        Symbol lhs = arguments.get(0);
+        ColumnIdent lhsColumn = getColumn(lhs);
+        if (lhsColumn == null) {
+            return defaultSel;
+        }
+
+        Symbol rhs = arguments.get(1);
+        final Object rhsValue;
+        if (rhs instanceof ParameterSymbol param && params != null) {
+            rhsValue = params.get(param.index());
+        } else if (rhs instanceof Literal<?> literal) {
+            rhsValue = literal.value();
+        } else {
+            return defaultSel;
+        }
+
+        if (rhsValue == null) {
+            return 0.0;
+        }
+
+        ColumnStats<?> lhsStats = stats.getColumnStats(lhsColumn);
+        if (lhsStats == null || lhsStats.mostCommonValues().isEmpty()) {
+            return defaultSel;
+        }
+
+        Scalar<Boolean, Object> operator = (Scalar<Boolean, Object>) nodeCtx.functions().getQualified(function);
+        MostCommonValues mostCommonValues = lhsStats.mostCommonValues();
+        double selectivity = 0.0;
+        for (int i = 0; i < mostCommonValues.length(); i++) {
+            Object value = mostCommonValues.value(i);
+            Boolean result = operator.evaluate(txnCtx, nodeCtx, () -> value, () -> rhsValue);
+            if (result != null && result) {
+                selectivity += mostCommonValues.frequency(i);
+            }
+        }
+        return selectivity;
     }
 
     private static double isNullSelectivity(Symbol arg, Stats stats) {

@@ -184,7 +184,7 @@ public class Session implements AutoCloseable {
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionSettings = sessionSettings;
-        this.planStats = new PlanStats(tableStats);
+        this.planStats = new PlanStats(nodeCtx, tableStats);
         this.parameterTypeExtractor = new ParameterTypeExtractor();
         this.onClose = onClose;
     }

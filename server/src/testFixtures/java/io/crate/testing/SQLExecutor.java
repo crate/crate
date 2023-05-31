@@ -800,7 +800,7 @@ public class SQLExecutor {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
         this.tableStats = tableStats;
-        this.planStats = new PlanStats(tableStats);
+        this.planStats = new PlanStats(nodeCtx, tableStats);
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
@@ -923,7 +923,7 @@ public class SQLExecutor {
     }
 
     public Stats getStats(LogicalPlan logicalPlan) {
-        return planStats.get(logicalPlan);
+        return planStats.get(coordinatorTxnCtx, logicalPlan);
     }
 
     public Schemas schemas() {
