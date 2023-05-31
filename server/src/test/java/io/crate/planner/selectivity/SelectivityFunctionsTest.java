@@ -22,8 +22,9 @@
 package io.crate.planner.selectivity;
 
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,5 +124,45 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(columnStats.nullFraction()).isEqualTo(0.5);
         Stats stats = new Stats(100, 16, Map.of(new ColumnIdent("x"), columnStats));
         assertThat(SelectivityFunctions.estimateNumRows(stats, query, null)).isEqualTo(50L);
+    }
+
+    @Test
+    public void test_eqjoin_uses_mcv_information() throws Exception {
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
+        Symbol query = expressions.asSymbol("x = y");
+        int numTotalRows = 40;
+        ArrayList<Integer> xValues = new ArrayList<>();
+        for (int i = 0; i < numTotalRows; i++) {
+            if (i < 30) {
+                xValues.add(1);
+            } else {
+                xValues.add(2);
+            }
+        }
+        ArrayList<Integer> yValues = new ArrayList<>();
+        for (int i = 0; i < numTotalRows; i++) {
+            if (i < 30) {
+                yValues.add(10);
+            } else {
+                yValues.add(2);
+            }
+        }
+        var xStats = ColumnStats.fromSortedValues(xValues, DataTypes.INTEGER, 0, numTotalRows);
+        assertThat(xStats.mostCommonValues().isEmpty())
+            .as("Test case depends on most common values")
+            .isFalse();
+        var yStats = ColumnStats.fromSortedValues(yValues, DataTypes.INTEGER, 0, numTotalRows);
+        assertThat(yStats.mostCommonValues().isEmpty())
+            .as("Test case depends on most common values")
+            .isFalse();
+        Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
+            new ColumnIdent("x"),
+            xStats,
+            new ColumnIdent("y"),
+            yStats
+        );
+        Stats stats = new Stats(numTotalRows, 32, columnStats);
+        long numRows = SelectivityFunctions.estimateNumRows(stats, query, null);
+        assertThat(numRows).isEqualTo(2L);
     }
 }

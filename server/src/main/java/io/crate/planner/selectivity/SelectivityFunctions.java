@@ -23,6 +23,7 @@ package io.crate.planner.selectivity;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -41,6 +42,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
 
 /**
@@ -149,44 +151,134 @@ public class SelectivityFunctions {
                                         Symbol rightArg,
                                         Stats stats,
                                         @Nullable Row params) {
-        ColumnIdent leftColumn = getColumn(leftArg);
-        if (leftColumn == null) {
+        ColumnIdent lhsColumn = getColumn(leftArg);
+        if (lhsColumn == null) {
             return DEFAULT_EQ_SEL;
         }
-        var leftStats = stats.statsByColumn().get(leftColumn);
-        if (leftStats == null) {
+        var lhsStats = stats.statsByColumn().get(lhsColumn);
+        if (lhsStats == null) {
             return DEFAULT_EQ_SEL;
         }
         if (rightArg instanceof ParameterSymbol param && params != null) {
             var value = params.get(param.index());
-            return eqSelectivityFromValueAndStats(value, leftStats);
+            return eqSelectivityFromValueAndStats(value, lhsStats);
         }
         if (rightArg instanceof Literal<?> literal) {
-            return eqSelectivityFromValueAndStats(literal.value(), leftStats);
+            return eqSelectivityFromValueAndStats(literal.value(), lhsStats);
         }
 
         if (rightArg instanceof Reference || rightArg instanceof ScopedSymbol) {
-            ColumnIdent rightColumn = getColumn(rightArg);
-            if (rightColumn == null) {
-                return 1.0 / leftStats.approxDistinct();
+            ColumnIdent rhsColumn = getColumn(rightArg);
+            if (rhsColumn == null) {
+                return 1.0 / lhsStats.approxDistinct();
             }
-            var rightStats = stats.statsByColumn().get(rightColumn);
-            if (rightStats == null) {
-                return 1.0 / leftStats.approxDistinct();
+            var rhsStats = stats.statsByColumn().get(rhsColumn);
+            if (rhsStats == null) {
+                return 1.0 / lhsStats.approxDistinct();
             }
 
-            double nullfrac1 = leftStats.nullFraction();
-            double nullfrac2 = rightStats.nullFraction();
+            MostCommonValues lhsMcv = lhsStats.mostCommonValues();
+            MostCommonValues rhsMcv = rhsStats.mostCommonValues();
+
+            if (!lhsMcv.isEmpty() && !rhsMcv.isEmpty()) {
+                return selectivityFromMvcMatches(lhsStats, rhsStats);
+            }
+
+            double nullfrac1 = lhsStats.nullFraction();
+            double nullfrac2 = rhsStats.nullFraction();
 
             double selectivity = (1.0 - nullfrac1) * (1.0 - nullfrac2);
-            if (leftStats.approxDistinct() > rightStats.approxDistinct()) {
-                return selectivity / leftStats.approxDistinct();
+            if (lhsStats.approxDistinct() > rhsStats.approxDistinct()) {
+                return selectivity / lhsStats.approxDistinct();
             } else {
-                return selectivity / rightStats.approxDistinct();
+                return selectivity / rhsStats.approxDistinct();
             }
         }
 
-        return 1.0 / leftStats.approxDistinct();
+        return 1.0 / lhsStats.approxDistinct();
+    }
+
+    private static double clamp(double value) {
+        return Math.min(Math.max(value, 0.0), 1.0);
+    }
+
+    /**
+     * See PostgreSQL src/backend/utils/adt/selfuncs.c  `eqjoinsel_inner`
+     */
+    private static double selectivityFromMvcMatches(ColumnStats<?> lhsStats, ColumnStats<?> rhsStats) {
+        MostCommonValues lhsMcv = lhsStats.mostCommonValues();
+        MostCommonValues rhsMcv = rhsStats.mostCommonValues();
+        boolean[] hasmatch1 = new boolean[lhsMcv.length()];
+        boolean[] hasmatch2 = new boolean[rhsMcv.length()];
+
+        double matchfreq = 0.0;
+        int numMatches = 0;
+        for (int i = 0; i < lhsMcv.length(); i++) {
+            Object lhsValue = lhsMcv.value(i);
+
+            for (int j = 0; j < rhsMcv.length(); j++) {
+                if (hasmatch2[j]) {
+                    continue;
+                }
+                Object rhsValue = rhsMcv.value(j);
+
+                if (lhsValue != null && Objects.equals(lhsValue, rhsValue)) {
+                    hasmatch1[i] = true;
+                    hasmatch2[j] = true;
+                    matchfreq += lhsMcv.frequency(i) * rhsMcv.frequency(j);
+                    numMatches++;
+                    break;
+                }
+            }
+        }
+        matchfreq = clamp(matchfreq);
+
+        double matchfreq1 = 0.0;
+        double unmatchfreq1 = 0.0;
+        for (int i = 0; i < lhsMcv.length(); i++) {
+            if (hasmatch1[i]) {
+                matchfreq1 += lhsMcv.frequency(i);
+            } else {
+                unmatchfreq1 += lhsMcv.frequency(i);
+            }
+        }
+        matchfreq1 = clamp(matchfreq1);
+        unmatchfreq1 = clamp(unmatchfreq1);
+
+        double matchfreq2 = 0.0;
+        double unmatchfreq2 = 0.0;
+        for (int i = 0; i < rhsMcv.length(); i++) {
+            if (hasmatch2[i]) {
+                matchfreq2 = rhsMcv.frequency(i);
+            } else {
+                unmatchfreq1 = rhsMcv.frequency(i);
+            }
+        }
+        matchfreq2 = clamp(matchfreq2);
+        unmatchfreq2 = clamp(unmatchfreq2);
+
+        double otherfreq1 = clamp(1.0 - lhsStats.nullFraction() - matchfreq1 - unmatchfreq1);
+        double otherfreq2 = clamp(1.0 - rhsStats.nullFraction() - matchfreq2 - unmatchfreq2);
+
+        double totalsel1 = matchfreq;
+        double nd1 = lhsStats.approxDistinct();
+        double nd2 = rhsStats.approxDistinct();
+        if (nd2 > rhsMcv.length()) {
+            totalsel1 += unmatchfreq1 * otherfreq2 / (nd2 - rhsMcv.length());
+        }
+        if (nd2 > numMatches) {
+            totalsel1 += otherfreq1 * (otherfreq2 + unmatchfreq2) / (nd2 - numMatches);
+        }
+
+        double totalsel2 = matchfreq;
+        if (nd1 > lhsMcv.length()) {
+            totalsel2 += unmatchfreq2 * otherfreq1 / (nd1 - lhsMcv.length());
+        }
+        if (nd1 > numMatches) {
+            totalsel2 += otherfreq2 * (otherfreq1 + unmatchfreq1) / (nd1 - numMatches);
+        }
+
+        return (totalsel1 < totalsel2) ? totalsel1 : totalsel2;
     }
 
     private static double eqSelectivityFromValueAndStats(Object value, ColumnStats<?> columnStats) {
