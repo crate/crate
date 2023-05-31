@@ -67,17 +67,13 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     final List<Function> aggregates;
     final List<Symbol> groupKeys;
     private final List<Symbol> outputs;
-    private final long numExpectedRows;
 
 
-    static long approximateDistinctValues(Stats stats, List<Symbol> groupKeys) {
+    public static long approximateDistinctValues(Stats stats, List<Symbol> groupKeys) {
         long numSourceRows = stats.numDocs();
         long distinctValues = 1;
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
-            if (Symbols.containsCorrelatedSubQuery(groupKey)) {
-                throw new UnsupportedOperationException("Cannot use correlated subquery in GROUP BY clause");
-            }
             ColumnStats<?> columnStats = null;
             if (groupKey instanceof Reference ref) {
                 columnStats = stats.statsByColumn().get(ref.column());
@@ -111,20 +107,25 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
     }
 
-    public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
+    public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
         super(source);
-        this.numExpectedRows = numExpectedRows;
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
         this.outputs = Lists2.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
-    }
-
-    public long numExpectedRows() {
-        return numExpectedRows;
+        for (Symbol key : groupKeys) {
+            if (Symbols.containsCorrelatedSubQuery(key)) {
+                throw new UnsupportedOperationException(
+                    "Cannot use correlated subquery in GROUP BY clause");
+            }
+        }
     }
 
     public List<Function> aggregates() {
         return aggregates;
+    }
+
+    public List<Symbol> groupKeys() {
+        return groupKeys;
     }
 
     @Override
@@ -264,12 +265,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }
-        return new GroupHashAggregate(newSource, groupKeys, newAggregates, numExpectedRows);
+        return new GroupHashAggregate(newSource, groupKeys, newAggregates);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates, numExpectedRows);
+        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,

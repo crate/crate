@@ -21,23 +21,17 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctValues;
-
 import java.util.Collections;
 import java.util.List;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.statistics.Stats;
 
 public final class Distinct {
 
-    public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs, PlanStats planStats) {
+    public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs) {
         if (!distinct) {
             return source;
         }
-        Stats stats = planStats.get(source);
-        long numExpectedRows = approximateDistinctValues(stats, outputs);
-        return new GroupHashAggregate(source, outputs, Collections.emptyList(), numExpectedRows);
+        return new GroupHashAggregate(source, outputs, Collections.emptyList());
     }
 }

@@ -213,7 +213,7 @@ public class PlanStats {
         @Override
         public Stats visitGroupHashAggregate(GroupHashAggregate groupHashAggregate, Void context) {
             var stats = groupHashAggregate.source().accept(this, context);
-            return stats.withNumDocs(groupHashAggregate.numExpectedRows());
+            return stats.withNumDocs(GroupHashAggregate.approximateDistinctValues(stats, groupHashAggregate.groupKeys()));
         }
 
         @Override
