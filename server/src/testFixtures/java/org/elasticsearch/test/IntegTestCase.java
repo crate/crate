@@ -77,9 +77,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
@@ -208,6 +205,9 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.Identifiers;
@@ -1768,7 +1768,7 @@ public abstract class IntegTestCase extends ESTestCase {
         Planner planner = cluster().getInstance(Planner.class, nodeName);
         NodeContext nodeCtx = cluster().getInstance(NodeContext.class, nodeName);
         TableStats tableStats = cluster().getInstance(TableStats.class, nodeName);
-        PlanStats planStats = new PlanStats(tableStats);
+        PlanStats planStats = new PlanStats(nodeCtx, tableStats);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             User.CRATE_USER,

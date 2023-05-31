@@ -78,7 +78,8 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 );
     }
 
-    private static boolean eagerTerminateIsLikely(Limit limit,
+    private static boolean eagerTerminateIsLikely(TransactionContext txnCtx,
+                                                  Limit limit,
                                                   GroupHashAggregate groupAggregate,
                                                   PlanStats planStats) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
@@ -87,7 +88,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             // because a regular GROUP BY would have to do at least the same amount of work in any case.
             return true;
         }
-        Stats groupHashAggregateStats = planStats.get(groupAggregate);
+        Stats groupHashAggregateStats = planStats.get(txnCtx, groupAggregate);
         var limitSymbol = limit.limit();
         if (limitSymbol instanceof Literal) {
             var limitVal = DataTypes.INTEGER.sanitizeValue(((Literal<?>) limitSymbol).value());
@@ -97,7 +98,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = planStats.get(groupAggregate.source()).numDocs();
+        long sourceRows = planStats.get(txnCtx, groupAggregate.source()).numDocs();
         if (sourceRows == 0) {
             return false;
         }
@@ -173,7 +174,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy, planStats)) {
+        if (!eagerTerminateIsLikely(txnCtx, limit, groupBy, planStats)) {
             return null;
         }
         return new LimitDistinct(

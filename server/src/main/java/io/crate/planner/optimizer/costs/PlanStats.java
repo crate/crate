@@ -30,6 +30,8 @@ import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -58,37 +60,42 @@ public class PlanStats {
 
     private final TableStats tableStats;
     private final StatsVisitor visitor;
+    private final NodeContext nodeContext;
 
-    public PlanStats(TableStats tableStats) {
-        this(tableStats, null);
+    public PlanStats(NodeContext nodeContext, TableStats tableStats) {
+        this(nodeContext, tableStats, null);
     }
 
-    public PlanStats(TableStats tableStats, @Nullable Memo memo) {
+    public PlanStats(NodeContext nodeContext, TableStats tableStats, @Nullable Memo memo) {
+        this.nodeContext = nodeContext;
         this.tableStats = tableStats;
-        this.visitor = new StatsVisitor(tableStats, memo);
+        this.visitor = new StatsVisitor(nodeContext, tableStats, memo);
     }
 
     public PlanStats withMemo(Memo memo) {
-        return new PlanStats(tableStats, memo);
+        return new PlanStats(nodeContext, tableStats, memo);
     }
 
-    public Stats get(LogicalPlan logicalPlan) {
-        return logicalPlan.accept(visitor, null);
+    public Stats get(TransactionContext txnCtx, LogicalPlan logicalPlan) {
+        return logicalPlan.accept(visitor, txnCtx);
     }
 
-    private static class StatsVisitor extends LogicalPlanVisitor<Void, Stats> {
+    private static class StatsVisitor extends LogicalPlanVisitor<TransactionContext, Stats> {
 
+        private final NodeContext nodeContext;
         private final TableStats tableStats;
+
         @Nullable
         private final Memo memo;
 
-        public StatsVisitor(TableStats tableStats, @Nullable Memo memo) {
+        public StatsVisitor(NodeContext nodeContext, TableStats tableStats, @Nullable Memo memo) {
+            this.nodeContext = nodeContext;
             this.tableStats = tableStats;
             this.memo = memo;
         }
 
         @Override
-        public Stats visitGroupReference(GroupReference group, Void context) {
+        public Stats visitGroupReference(GroupReference group, TransactionContext txnCtx) {
             if (memo == null) {
                 throw new UnsupportedOperationException("Stats cannot be provided for GroupReference without a Memo");
             }
@@ -99,15 +106,15 @@ public class PlanStats {
                 // Let's get the logical plan, calculate the stats
                 // and update the stats for this group
                 var logicalPlan = memo.resolve(groupId);
-                stats = logicalPlan.accept(this, context);
+                stats = logicalPlan.accept(this, txnCtx);
                 memo.addStats(groupId, stats);
             }
             return stats;
         }
 
         @Override
-        public Stats visitLimit(Limit limit, Void context) {
-            var stats = limit.source().accept(this, context);
+        public Stats visitLimit(Limit limit, TransactionContext txnCtx) {
+            var stats = limit.source().accept(this, txnCtx);
             if (limit.limit() instanceof Literal<?> literal) {
                 var numberOfRows = DataTypes.LONG.sanitizeValue(literal.value());
                 return stats.withNumDocs(numberOfRows);
@@ -116,16 +123,16 @@ public class PlanStats {
         }
 
         @Override
-        public Stats visitUnion(Union union, Void context) {
-            var lhsStats = union.lhs().accept(this, context);
-            var rhsStats = union.rhs().accept(this, context);
+        public Stats visitUnion(Union union, TransactionContext txnCtx) {
+            var lhsStats = union.lhs().accept(this, txnCtx);
+            var rhsStats = union.rhs().accept(this, txnCtx);
             return lhsStats.add(rhsStats);
         }
 
         @Override
-        public Stats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
-            var lhsStats = join.lhs().accept(this, context);
-            var rhsStats = join.rhs().accept(this, context);
+        public Stats visitNestedLoopJoin(NestedLoopJoin join, TransactionContext txnCtx) {
+            var lhsStats = join.lhs().accept(this, txnCtx);
+            var rhsStats = join.rhs().accept(this, txnCtx);
             Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
             if (lhsStats.numDocs() == -1
                 || lhsStats.sizeInBytes() == -1
@@ -147,6 +154,8 @@ public class PlanStats {
                 return joinStats;
             }
             long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                nodeContext,
+                txnCtx,
                 joinStats,
                 joinCondition,
                 null
@@ -155,9 +164,9 @@ public class PlanStats {
         }
 
         @Override
-        public Stats visitHashJoin(HashJoin join, Void context) {
-            var lhsStats = join.lhs().accept(this, context);
-            var rhsStats = join.rhs().accept(this, context);
+        public Stats visitHashJoin(HashJoin join, TransactionContext txnCtx) {
+            var lhsStats = join.lhs().accept(this, txnCtx);
+            var rhsStats = join.rhs().accept(this, txnCtx);
             Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
             if (lhsStats.numDocs() == -1
                 || lhsStats.sizeInBytes() == -1
@@ -172,6 +181,8 @@ public class PlanStats {
 
             Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
             long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                nodeContext,
+                txnCtx,
                 joinStats,
                 join.joinCondition(),
                 null
@@ -180,71 +191,71 @@ public class PlanStats {
         }
 
         @Override
-        public Stats visitCollect(Collect collect, Void context) {
+        public Stats visitCollect(Collect collect, TransactionContext txnCtx) {
             var stats = tableStats.getStats(collect.relation().tableInfo().ident());
             if (stats.equals(Stats.EMPTY)) {
                 return stats;
             } else {
                 var query = collect.where().queryOrFallback();
-                var numberOfRows = SelectivityFunctions.estimateNumRows(stats, query, null);
+                var numberOfRows = SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, query, null);
                 return stats.withNumDocs(numberOfRows);
             }
         }
 
         @Override
-        public Stats visitFilter(Filter filter, Void context) {
-            Stats sourceStats = filter.source().accept(this, context);
+        public Stats visitFilter(Filter filter, TransactionContext txnCtx) {
+            Stats sourceStats = filter.source().accept(this, txnCtx);
             Symbol query = filter.query();
-            long numRows = SelectivityFunctions.estimateNumRows(sourceStats, query, null);
+            long numRows = SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, sourceStats, query, null);
             return sourceStats.withNumDocs(numRows);
         }
 
         @Override
-        public Stats visitCount(Count count, Void context) {
+        public Stats visitCount(Count count, TransactionContext txnCtx) {
             return new Stats(1, Long.BYTES, Map.of());
         }
 
         @Override
-        public Stats visitGet(Get get, Void context) {
+        public Stats visitGet(Get get, TransactionContext txnCtx) {
             Stats stats = tableStats.getStats(get.table().relationName());
             return stats.withNumDocs(get.numExpectedRows());
         }
 
         @Override
-        public Stats visitGroupHashAggregate(GroupHashAggregate groupHashAggregate, Void context) {
-            var stats = groupHashAggregate.source().accept(this, context);
+        public Stats visitGroupHashAggregate(GroupHashAggregate groupHashAggregate, TransactionContext txnCtx) {
+            var stats = groupHashAggregate.source().accept(this, txnCtx);
             return stats.withNumDocs(GroupHashAggregate.approximateDistinctValues(stats, groupHashAggregate.groupKeys()));
         }
 
         @Override
-        public Stats visitHashAggregate(HashAggregate hashAggregate, Void context) {
-            var stats = hashAggregate.source().accept(this, context);
+        public Stats visitHashAggregate(HashAggregate hashAggregate, TransactionContext txnCtx) {
+            var stats = hashAggregate.source().accept(this, txnCtx);
             return stats.withNumDocs(1);
         }
 
         @Override
-        public Stats visitInsert(Insert insert, Void context) {
-            var stats = insert.sources().get(0).accept(this, context);
+        public Stats visitInsert(Insert insert, TransactionContext txnCtx) {
+            var stats = insert.sources().get(0).accept(this, txnCtx);
             return stats.withNumDocs(1);
         }
 
         @Override
-        public Stats visitCorrelatedJoin(CorrelatedJoin join, Void context) {
-            return join.sources().get(0).accept(this, context);
+        public Stats visitCorrelatedJoin(CorrelatedJoin join, TransactionContext txnCtx) {
+            return join.sources().get(0).accept(this, txnCtx);
         }
 
         @Override
-        public Stats visitTableFunction(TableFunction tableFunction, Void context) {
+        public Stats visitTableFunction(TableFunction tableFunction, TransactionContext txnCtx) {
             // We don't have any estimates for table functions, but could go through the types of `outputs` to make a guess
             return Stats.EMPTY;
         }
 
         @Override
-        public Stats visitPlan(LogicalPlan logicalPlan, Void context) {
+        public Stats visitPlan(LogicalPlan logicalPlan, TransactionContext txnCtx) {
             // This covers all sub-classes of LogicalForwardPlan
             List<LogicalPlan> sources = logicalPlan.sources();
             if (sources.size() == 1) {
-                return sources.get(0).accept(this, context);
+                return sources.get(0).accept(this, txnCtx);
             }
             throw new UnsupportedOperationException("Plan stats not available for " + logicalPlan.getClass().getSimpleName());
         }

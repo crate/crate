@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -126,6 +128,11 @@ public class Stats implements Writeable {
 
     public Map<ColumnIdent, ColumnStats<?>> statsByColumn() {
         return statsByColumn;
+    }
+
+    @Nullable
+    public ColumnStats<?> getColumnStats(ColumnIdent column) {
+        return statsByColumn.get(column);
     }
 
     public long estimateSizeForColumns(List<Symbol> toCollect) {

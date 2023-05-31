@@ -139,7 +139,7 @@ public class PreExecutionBenchmark {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            new PlanStats(new TableStats())
+            new PlanStats(nodeCtx, new TableStats())
         );
         return planner.plan(analyzedStatement, plannerContext);
     }

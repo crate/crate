@@ -176,8 +176,8 @@ public class NestedLoopJoin extends JoinPlan {
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
-        var lhStats = plannerContext.planStats().get(lhs);
-        var rhStats = plannerContext.planStats().get(rhs);
+        var lhStats = plannerContext.planStats().get(plannerContext.transactionContext(), lhs);
+        var rhStats = plannerContext.planStats().get(plannerContext.transactionContext(), rhs);
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
