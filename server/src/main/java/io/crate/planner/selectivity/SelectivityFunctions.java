@@ -145,23 +145,48 @@ public class SelectivityFunctions {
         return columnStats.nullFraction();
     }
 
-    private static double eqSelectivity(Symbol leftArg, Symbol rightArg, Stats stats, @Nullable Row params) {
-        ColumnIdent column = getColumn(leftArg);
-        if (column == null) {
+    private static double eqSelectivity(Symbol leftArg,
+                                        Symbol rightArg,
+                                        Stats stats,
+                                        @Nullable Row params) {
+        ColumnIdent leftColumn = getColumn(leftArg);
+        if (leftColumn == null) {
             return DEFAULT_EQ_SEL;
         }
-        var columnStats = stats.statsByColumn().get(column);
-        if (columnStats == null) {
+        var leftStats = stats.statsByColumn().get(leftColumn);
+        if (leftStats == null) {
             return DEFAULT_EQ_SEL;
         }
-        if (rightArg instanceof ParameterSymbol && params != null) {
-            var value = params.get(((ParameterSymbol) rightArg).index());
-            return eqSelectivityFromValueAndStats(value, columnStats);
+        if (rightArg instanceof ParameterSymbol param && params != null) {
+            var value = params.get(param.index());
+            return eqSelectivityFromValueAndStats(value, leftStats);
         }
         if (rightArg instanceof Literal<?> literal) {
-            return eqSelectivityFromValueAndStats(literal.value(), columnStats);
+            return eqSelectivityFromValueAndStats(literal.value(), leftStats);
         }
-        return 1.0 / columnStats.approxDistinct();
+
+        if (rightArg instanceof Reference || rightArg instanceof ScopedSymbol) {
+            ColumnIdent rightColumn = getColumn(rightArg);
+            if (rightColumn == null) {
+                return 1.0 / leftStats.approxDistinct();
+            }
+            var rightStats = stats.statsByColumn().get(rightColumn);
+            if (rightStats == null) {
+                return 1.0 / leftStats.approxDistinct();
+            }
+
+            double nullfrac1 = leftStats.nullFraction();
+            double nullfrac2 = rightStats.nullFraction();
+
+            double selectivity = (1.0 - nullfrac1) * (1.0 - nullfrac2);
+            if (leftStats.approxDistinct() > rightStats.approxDistinct()) {
+                return selectivity / leftStats.approxDistinct();
+            } else {
+                return selectivity / rightStats.approxDistinct();
+            }
+        }
+
+        return 1.0 / leftStats.approxDistinct();
     }
 
     private static double eqSelectivityFromValueAndStats(Object value, ColumnStats<?> columnStats) {

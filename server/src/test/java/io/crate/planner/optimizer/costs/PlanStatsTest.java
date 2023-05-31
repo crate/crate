@@ -168,28 +168,47 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo bDoc = e.resolveTableInfo("b");
 
         var x = e.asSymbol("x");
-        var y = e.asSymbol("x");
+        var y = e.asSymbol("y");
+        var joinCondition = e.asSymbol("a.x = b.y");
 
         var lhs = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
-
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
+        Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
+            new ColumnIdent("x"),
+            new ColumnStats<>(
+                0,
+                DataTypes.INTEGER.fixedSize(),
+                9,
+                DataTypes.INTEGER,
+                MostCommonValues.EMPTY,
+                List.of()
+            ),
+            new ColumnIdent("y"),
+            new ColumnStats<>(
+                0,
+                DataTypes.INTEGER.fixedSize(),
+                1,
+                DataTypes.INTEGER,
+                MostCommonValues.EMPTY,
+                List.of()
+            )
+        );
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
-                bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), Map.of())
+                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), columnStats),
+                bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), columnStats)
             )
         );
 
-        var hashjoin = new HashJoin(lhs, rhs, x);
+        var hashjoin = new HashJoin(lhs, rhs, joinCondition);
 
         var memo = new Memo(hashjoin);
         PlanStats planStats = new PlanStats(tableStats, memo);
         var result = planStats.get(hashjoin);
-        // lhs is the larger table which 9 entries, so the join will at max emit 9 entries
-        assertThat(result.numDocs()).isEqualTo(9L);
-        assertThat(result.sizeInBytes()).isEqualTo(288L);
+        assertThat(result.numDocs()).isEqualTo(1L);
+        assertThat(result.sizeInBytes()).isEqualTo(32L);
     }
 
     @Test

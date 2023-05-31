@@ -1172,11 +1172,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(
             """
                 NestedLoopJoin[LEFT | (id = id)]
-                  ├ HashJoin[(id = id)]
-                  │  ├ HashJoin[(id = id)]
-                  │  │  ├ Collect[doc.t1 | [id, a] | true]
-                  │  │  └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]
-                  │  └ Collect[doc.t3 | [id, c] | true]
+                  ├ Eval[id, a, id, b, id, c]
+                  │  └ HashJoin[(id = id)]
+                  │    ├ Collect[doc.t3 | [id, c] | true]
+                  │    └ HashJoin[(id = id)]
+                  │      ├ Collect[doc.t1 | [id, a] | true]
+                  │      └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]
                   └ Collect[doc.t4 | [id, d] | true]"""
         );
         execute(stmt);

@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -633,7 +634,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         e.updateTableStats(Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
-        Join outerNl = e.plan("select" +
+        Join outerJoin = e.plan("select" +
                                     "  u1.id as u1, " +
                                     "  u2.id as u2, " +
                                     "  u3.id as u3 " +
@@ -645,15 +646,15 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "  u1.name = 'Arthur'" +
                                     "  and u2.id = u1.id" +
                                     "  and u2.name = u1.name");
-        Join innerNl = (Join) outerNl.left();
+        Join innerJoin = (Join) outerJoin.right();
 
-        assertThat(innerNl.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
-        assertThat(innerNl.joinPhase().projections()).hasSize(1);
-        assertThat(innerNl.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
+        assertThat(innerJoin.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
+        assertThat(innerJoin.joinPhase().projections()).hasSize(1);
+        assertThat(innerJoin.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
 
-        assertThat(outerNl.joinPhase().joinCondition()).isNull();
-        assertThat(outerNl.joinPhase().projections()).hasSize(2);
-        assertThat(outerNl.joinPhase().projections()).satisfiesExactly(
+        assertThat(outerJoin.joinPhase().joinCondition()).isNull();
+        assertThat(outerJoin.joinPhase().projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }
