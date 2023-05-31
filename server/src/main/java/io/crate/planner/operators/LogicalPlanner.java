@@ -377,8 +377,7 @@ public class LogicalPlanner {
                     rhsRel.accept(this, rhsRel.outputs()),
                     union.outputs()),
                 union.isDistinct(),
-                union.outputs(),
-                planStats
+                union.outputs()
             );
         }
 
@@ -457,8 +456,7 @@ public class LogicalPlanner {
                                     splitPoints.tableFunctions()
                                 ),
                                 relation.isDistinct(),
-                                relation.outputs(),
-                                planStats
+                                relation.outputs()
                             ),
                             relation.orderBy()
                         ),
@@ -476,11 +474,7 @@ public class LogicalPlanner {
                                            List<Function> aggregates,
                                            PlanStats planStats) {
         if (!groupKeys.isEmpty()) {
-            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(
-                planStats.get(source),
-                groupKeys
-            );
-            return new GroupHashAggregate(source, groupKeys, aggregates, numExpectedRows);
+            return new GroupHashAggregate(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
             return new HashAggregate(source, aggregates);

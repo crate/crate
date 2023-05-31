@@ -26,20 +26,21 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
 
-import io.crate.metadata.NodeContext;
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LimitDistinct;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.Stats;
 import io.crate.types.DataTypes;
 
 
@@ -86,12 +87,13 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             // because a regular GROUP BY would have to do at least the same amount of work in any case.
             return true;
         }
+        Stats groupHashAggregateStats = planStats.get(groupAggregate);
         var limitSymbol = limit.limit();
         if (limitSymbol instanceof Literal) {
             var limitVal = DataTypes.INTEGER.sanitizeValue(((Literal<?>) limitSymbol).value());
             // Would consume all source rows -> prefer default group by implementation which has other optimizations
             // which are more beneficial in this scenario
-            if (limitVal > groupAggregate.numExpectedRows()) {
+            if (limitVal > groupHashAggregateStats.numDocs()) {
                 return false;
             }
         }
@@ -99,7 +101,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
         if (sourceRows == 0) {
             return false;
         }
-        var cardinalityRatio = planStats.get(groupAggregate).numDocs() / sourceRows;
+        var cardinalityRatio = groupHashAggregateStats.numDocs() / sourceRows;
         /*
          * The threshold was chosen after comparing `with limitDistinct` vs. `without limitDistinct`
          *
