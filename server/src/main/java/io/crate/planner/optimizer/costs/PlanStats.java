@@ -137,11 +137,21 @@ public class PlanStats {
                 ? lhsStats.numDocs() * rhsStats.numDocs()
                 // We don't have any cardinality estimates, so just take the bigger table
                 : Math.max(lhsStats.numDocs(), rhsStats.numDocs());
-            return new Stats(
+            Stats joinStats = new Stats(
                 numRows,
                 (lhsStats.averageSizePerRowInBytes() * numRows) + (rhsStats.averageSizePerRowInBytes() * numRows),
                 statsByColumn
             );
+            Symbol joinCondition = join.joinCondition();
+            if (joinCondition == null) {
+                return joinStats;
+            }
+            long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                joinStats,
+                joinCondition,
+                null
+            );
+            return joinStats.withNumDocs(estimatedNumRows);
         }
 
         @Override

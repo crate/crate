@@ -62,7 +62,8 @@ public class SelectivityFunctions {
 
     public static long estimateNumRows(Stats stats, Symbol query, @Nullable Row params) {
         var estimator = new SelectivityEstimator(stats, params);
-        return (long) (stats.numDocs() * query.accept(estimator, null));
+        Double selectivity = query.accept(estimator, null);
+        return (long) (stats.numDocs() * selectivity);
     }
 
     static class SelectivityEstimator extends SymbolVisitor<Void, Double> {
@@ -84,9 +85,8 @@ public class SelectivityFunctions {
         @Override
         public Double visitLiteral(Literal<?> literal, Void context) {
             Object value = literal.value();
-            if (value instanceof Boolean) {
-                Boolean val = (Boolean) value;
-                return !val ? 0.0 : 1.0;
+            if (value instanceof Boolean bool) {
+                return !bool ? 0.0 : 1.0;
             }
             if (value == null) {
                 return 0.0;
