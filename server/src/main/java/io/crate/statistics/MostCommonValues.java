@@ -21,13 +21,14 @@
 
 package io.crate.statistics;
 
-import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
 
 public final class MostCommonValues {
 
@@ -199,6 +200,22 @@ public final class MostCommonValues {
             valueStreamer.writeValueTo(out, values[i]);
             out.writeDouble(frequencies[i]);
         }
+    }
+
+    public boolean isEmpty() {
+        return values.length == 0;
+    }
+
+    public int length() {
+        return values.length;
+    }
+
+    public Object value(int index) {
+        return values[index];
+    }
+
+    public double frequency(int index) {
+        return frequencies[index];
     }
 
     public Object[] values() {
