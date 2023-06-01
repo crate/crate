@@ -82,11 +82,11 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        @SuppressWarnings("rawtypes")
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext)
-                throws MapperParsingException {
+        public Mapper.Builder<?> parse(String name,
+                                       Map<String, Object> node,
+                                       ParserContext parserContext) throws MapperParsingException {
             Builder builder = new GeoPointFieldMapper.Builder(name);
-            parseField(builder, name, node, parserContext);
+            parseField(builder, name, node);
             return builder;
         }
     }
@@ -127,7 +127,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     }
 
-    protected void parse(ParseContext context, GeoPoint point) throws IOException {
+    protected void parse(ParseContext context, GeoPoint point) {
 
         if (point.lat() > 90.0 || point.lat() < -90.0) {
             throw new IllegalArgumentException("illegal latitude value [" + point.lat() + "] for " + name());
@@ -213,7 +213,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
+        super.doXContentBody(builder, includeDefaults);
     }
 }

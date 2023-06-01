@@ -41,7 +41,10 @@ public class IpFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "ip";
 
-    public static class Defaults {
+    public static final class Defaults {
+
+        private Defaults() {}
+
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
         public static final FieldType FIELD_TYPE = new FieldType();
 
@@ -80,7 +83,7 @@ public class IpFieldMapper extends FieldMapper {
         @Override
         public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node, parserContext);
+            TypeParsers.parseField(builder, name, node);
             return builder;
         }
     }

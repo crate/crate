@@ -130,7 +130,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         @Override
         public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             KeywordFieldMapper.Builder builder = new KeywordFieldMapper.Builder(name);
-            parseField(builder, name, node, parserContext);
+            parseField(builder, name, node);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String propName = entry.getKey();
@@ -259,8 +259,8 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
+        super.doXContentBody(builder, includeDefaults);
 
         if (includeDefaults || lengthLimit != null) {
             builder.field("length_limit", lengthLimit);

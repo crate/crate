@@ -49,7 +49,10 @@ public class DateFieldMapper extends FieldMapper {
     public static final String CONTENT_TYPE = "date";
     public static final FormatDateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = Joda.forPattern(DEFAULT_FORMAT_PATTERN);
 
-    public static class Defaults {
+    public static final class Defaults {
+
+        private Defaults() {}
+
         public static final Explicit<Boolean> IGNORE_MALFORMED = new Explicit<>(false, false);
         public static final FieldType FIELD_TYPE = new FieldType();
 
@@ -112,7 +115,7 @@ public class DateFieldMapper extends FieldMapper {
         @Override
         public Mapper.Builder<?> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node, parserContext);
+            TypeParsers.parseField(builder, name, node);
             for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String propName = entry.getKey();
@@ -130,7 +133,7 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     public static final class DateFieldType extends MappedFieldType {
-        protected FormatDateTimeFormatter dateTimeFormatter;
+        private final FormatDateTimeFormatter dateTimeFormatter;
 
         DateFieldType(String name, boolean isSearchable, boolean hasDocValues, FormatDateTimeFormatter formatter) {
             super(name, isSearchable, hasDocValues);
@@ -217,8 +220,8 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
+        super.doXContentBody(builder, includeDefaults);
 
         if (includeDefaults
                 || fieldType().dateTimeFormatter().format().equals(DEFAULT_DATE_TIME_FORMATTER.format()) == false) {

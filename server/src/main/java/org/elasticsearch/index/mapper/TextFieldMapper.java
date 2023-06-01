@@ -41,12 +41,9 @@ public class TextFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "text";
 
-    public static final String FAST_PHRASE_SUFFIX = "._index_phrase";
+    public static final class Defaults {
 
-    public static class Defaults {
-        public static final int FIELDDATA_MIN_SEGMENT_SIZE = 0;
-        public static final int INDEX_PREFIX_MIN_CHARS = 2;
-        public static final int INDEX_PREFIX_MAX_CHARS = 5;
+        private Defaults() {}
 
         public static final FieldType FIELD_TYPE = new FieldType();
 
@@ -264,8 +261,8 @@ public class TextFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
+        super.doXContentBody(builder, includeDefaults);
         doXContentAnalyzers(builder, includeDefaults);
         if (sources.isEmpty() == false) {
             builder.startArray("sources");

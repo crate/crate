@@ -278,7 +278,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(simpleName());
         boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
-        doXContentBody(builder, includeDefaults, params);
+        doXContentBody(builder, includeDefaults);
         return builder.endObject();
     }
 
@@ -294,7 +294,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         return false;
     }
 
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
 
         builder.field("type", contentType());
 
@@ -314,7 +314,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             builder.field("store", fieldType.stored());
         }
 
-        copyTo.toXContent(builder, params);
+        copyTo.toXContent(builder);
     }
 
     protected final void doXContentAnalyzers(XContentBuilder builder, boolean includeDefaults) throws IOException {
@@ -399,7 +399,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             this.copyToFields = copyToFields;
         }
 
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        public XContentBuilder toXContent(XContentBuilder builder) throws IOException {
             if (!copyToFields.isEmpty()) {
                 builder.startArray("copy_to");
                 for (String field : copyToFields) {

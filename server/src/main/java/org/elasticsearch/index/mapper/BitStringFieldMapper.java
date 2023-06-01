@@ -39,7 +39,7 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 
 public class BitStringFieldMapper extends FieldMapper {
 
-    private Integer length;
+    private final Integer length;
 
     protected BitStringFieldMapper(String simpleName,
                                    int position,
@@ -61,7 +61,10 @@ public class BitStringFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "bit";
 
-    public static class Defaults {
+    public static final class Defaults {
+
+        private Defaults() {}
+
         public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
@@ -122,7 +125,7 @@ public class BitStringFieldMapper extends FieldMapper {
                 ParserContext parserContext) throws MapperParsingException {
 
             Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node, parserContext);
+            TypeParsers.parseField(builder, name, node);
             Object length = node.remove("length");
             assert length != null : "length property is required for `bit` type";
             builder.length((Integer) length);
@@ -164,8 +167,8 @@ public class BitStringFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
-        super.doXContentBody(builder, includeDefaults, params);
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
+        super.doXContentBody(builder, includeDefaults);
         builder.field("length", length);
     }
 

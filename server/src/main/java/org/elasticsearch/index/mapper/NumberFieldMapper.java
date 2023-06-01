@@ -92,10 +92,11 @@ public class NumberFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Mapper.Builder<?> parse(String name, Map<String, Object> node,
-                                         ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<?> parse(String name,
+                                       Map<String, Object> node,
+                                       ParserContext parserContext) throws MapperParsingException {
             Builder builder = new Builder(name, type);
-            TypeParsers.parseField(builder, name, node, parserContext);
+            TypeParsers.parseField(builder, name, node);
             return builder;
         }
     }
@@ -104,18 +105,13 @@ public class NumberFieldMapper extends FieldMapper {
         FLOAT("float") {
             @Override
             public Float parse(Object value, boolean coerce) {
-                if (value instanceof Number) {
-                    return ((Number) value).floatValue();
+                if (value instanceof Number number) {
+                    return number.floatValue();
                 }
-                if (value instanceof BytesRef) {
-                    value = ((BytesRef) value).utf8ToString();
+                if (value instanceof BytesRef bytesRef) {
+                    value = bytesRef.utf8ToString();
                 }
                 return Float.parseFloat(value.toString());
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return FloatPoint.decodeDimension(value, 0);
             }
 
             @Override
@@ -146,11 +142,6 @@ public class NumberFieldMapper extends FieldMapper {
             @Override
             public Double parse(Object value, boolean coerce) {
                 return objectToDouble(value);
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return DoublePoint.decodeDimension(value, 0);
             }
 
             @Override
@@ -189,16 +180,11 @@ public class NumberFieldMapper extends FieldMapper {
                     throw new IllegalArgumentException("Value [" + value + "] has a decimal part");
                 }
 
-                if (value instanceof Number) {
-                    return ((Number) value).byteValue();
+                if (value instanceof Number number) {
+                    return number.byteValue();
                 }
 
                 return (byte) doubleValue;
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return INTEGER.parsePoint(value).byteValue();
             }
 
             @Override
@@ -219,11 +205,6 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean stored) {
                 INTEGER.createFields(onField, name, value, indexed, docValued, stored);
             }
-
-            @Override
-            Number valueForSearch(Number value) {
-                return value.byteValue();
-            }
         },
         SHORT("short") {
             @Override
@@ -237,16 +218,11 @@ public class NumberFieldMapper extends FieldMapper {
                     throw new IllegalArgumentException("Value [" + value + "] has a decimal part");
                 }
 
-                if (value instanceof Number) {
-                    return ((Number) value).shortValue();
+                if (value instanceof Number number) {
+                    return number.shortValue();
                 }
 
                 return (short) doubleValue;
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return INTEGER.parsePoint(value).shortValue();
             }
 
             @Override
@@ -263,11 +239,6 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean stored) {
                 INTEGER.createFields(onField, name, value, indexed, docValued, stored);
             }
-
-            @Override
-            Number valueForSearch(Number value) {
-                return value.shortValue();
-            }
         },
         INTEGER("integer") {
             @Override
@@ -281,16 +252,11 @@ public class NumberFieldMapper extends FieldMapper {
                     throw new IllegalArgumentException("Value [" + value + "] has a decimal part");
                 }
 
-                if (value instanceof Number) {
-                    return ((Number) value).intValue();
+                if (value instanceof Number number) {
+                    return number.intValue();
                 }
 
                 return (int) doubleValue;
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return IntPoint.decodeDimension(value, 0);
             }
 
             @Override
@@ -319,8 +285,8 @@ public class NumberFieldMapper extends FieldMapper {
         LONG("long") {
             @Override
             public Long parse(Object value, boolean coerce) {
-                if (value instanceof Long) {
-                    return (Long)value;
+                if (value instanceof Long l) {
+                    return l;
                 }
 
                 double doubleValue = objectToDouble(value);
@@ -334,13 +300,8 @@ public class NumberFieldMapper extends FieldMapper {
                 }
 
                 // longs need special handling so we don't lose precision while parsing
-                String stringValue = (value instanceof BytesRef) ? ((BytesRef) value).utf8ToString() : value.toString();
+                String stringValue = (value instanceof BytesRef bytesRef) ? bytesRef.utf8ToString() : value.toString();
                 return Numbers.toLong(stringValue, coerce);
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return LongPoint.decodeDimension(value, 0);
             }
 
             @Override
@@ -382,8 +343,6 @@ public class NumberFieldMapper extends FieldMapper {
 
         public abstract Number parse(Object value, boolean coerce);
 
-        public abstract Number parsePoint(byte[] value);
-
         public abstract void createFields(Consumer<IndexableField> onField,
                                           String name,
                                           Number value,
@@ -391,51 +350,16 @@ public class NumberFieldMapper extends FieldMapper {
                                           boolean docValued,
                                           boolean stored);
 
-        Number valueForSearch(Number value) {
-            return value;
-        }
-
-        /**
-         * Returns true if the object is a number and has a decimal part
-         */
-        boolean hasDecimalPart(Object number) {
-            if (number instanceof Number) {
-                double doubleValue = ((Number) number).doubleValue();
-                return doubleValue % 1 != 0;
-            }
-            if (number instanceof BytesRef) {
-                number = ((BytesRef) number).utf8ToString();
-            }
-            if (number instanceof String) {
-                return Double.parseDouble((String) number) % 1 != 0;
-            }
-            return false;
-        }
-
-        /**
-         * Returns -1, 0, or 1 if the value is lower than, equal to, or greater than 0
-         */
-        double signum(Object value) {
-            if (value instanceof Number) {
-                double doubleValue = ((Number) value).doubleValue();
-                return Math.signum(doubleValue);
-            }
-            if (value instanceof BytesRef) {
-                value = ((BytesRef) value).utf8ToString();
-            }
-            return Math.signum(Double.parseDouble(value.toString()));
-        }
-
         /**
          * Converts an Object to a double by checking it against known types first
          */
         private static double objectToDouble(Object value) {
             double doubleValue;
 
-            if (value instanceof Number) {
-                doubleValue = ((Number) value).doubleValue();
-            } else if (value instanceof BytesRef) {
-                doubleValue = Double.parseDouble(((BytesRef) value).utf8ToString());
+            if (value instanceof Number number) {
+                doubleValue = number.doubleValue();
+            } else if (value instanceof BytesRef bytesRef) {
+                doubleValue = Double.parseDouble(bytesRef.utf8ToString());
             } else {
                 doubleValue = Double.parseDouble(value.toString());
             }

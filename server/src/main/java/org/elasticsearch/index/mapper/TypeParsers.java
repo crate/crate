@@ -132,7 +132,7 @@ public class TypeParsers {
                                       String name,
                                       Map<String, Object> fieldNode,
                                       Mapper.TypeParser.ParserContext parserContext) {
-        parseField(builder, name, fieldNode, parserContext);
+        parseField(builder, name, fieldNode);
         parseAnalyzersAndTermVectors(builder, name, fieldNode, parserContext);
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, Object> entry = iterator.next();
@@ -159,8 +159,7 @@ public class TypeParsers {
      */
     public static void parseField(FieldMapper.Builder<?> builder,
                                   String name,
-                                  Map<String, Object> fieldNode,
-                                  Mapper.TypeParser.ParserContext parserContext) {
+                                  Map<String, Object> fieldNode) {
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
             Map.Entry<String, Object> entry = iterator.next();
             final String propName = entry.getKey();
