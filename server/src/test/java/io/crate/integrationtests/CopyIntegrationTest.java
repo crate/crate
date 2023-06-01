@@ -60,6 +60,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -953,7 +954,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore(value = "TODO: handle sub-columns")
     public void test_copy_from_unknown_column_to_dynamic_object() throws Exception {
         execute("create table t (o object(dynamic) as (a int))");
 
@@ -1155,7 +1155,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore(value = "TODO: handle sub-columns")
     public void test_copy_preserves_the_implied_sub_column_order() throws IOException {
         execute(
             """
