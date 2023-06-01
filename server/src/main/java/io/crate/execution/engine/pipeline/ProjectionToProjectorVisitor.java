@@ -33,7 +33,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import org.jetbrains.annotations.Nullable;
@@ -71,6 +70,7 @@ import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.ColumnIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -84,8 +84,6 @@ import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionVisitor;
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
-import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -104,7 +102,6 @@ import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
 import io.crate.execution.engine.indexing.IndexNameResolver;
-import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.engine.indexing.UpsertResultContext;
@@ -426,65 +423,6 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
-        List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
-        for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
-            partitionedByInputs.add(ctx.add(partitionedBySymbol));
-        }
-        Input<?> sourceInput = ctx.add(projection.rawSource());
-        Supplier<String> indexNameResolver =
-            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
-        ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
-            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
-
-        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
-
-        UpsertResultContext upsertResultContext;
-        if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
-            upsertResultContext = UpsertResultContext.forReturnSummary(
-                context.txnCtx,
-                (SourceIndexWriterReturnSummaryProjection) projection,
-                clusterService.localNode(),
-                inputFactory);
-        } else {
-            upsertResultContext = UpsertResultContext.forRowCount();
-        }
-        return new IndexWriterProjector(
-            clusterService,
-            nodeJobsCounter,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
-            context.ramAccounting,
-            threadPool.scheduler(),
-            threadPool.executor(ThreadPool.Names.SEARCH),
-            context.txnCtx,
-            nodeCtx,
-            state.metadata().settings(),
-            targetTableNumShards,
-            targetTableNumReplicas,
-            elasticsearchClient,
-            indexNameResolver,
-            projection.rawSourceReference(),
-            projection.primaryKeys(),
-            projection.ids(),
-            projection.clusteredBy(),
-            projection.clusteredByIdent(),
-            sourceInput,
-            ctx.expressions(),
-            projection.bulkActions(),
-            projection.excludes(),
-            projection.autoCreateIndices(),
-            projection.overwriteDuplicates(),
-            context.jobId,
-            upsertResultContext,
-            projection.failFast(),
-            projection.validation()
-        );
-    }
-
-    @Override
     public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Context context) {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
@@ -501,6 +439,17 @@ public class ProjectionToProjectorVisitor
 
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
         int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+
+        UpsertResultContext upsertResultContext;
+        if (projection instanceof ColumnIndexWriterReturnSummaryProjection summaryProjection) {
+            upsertResultContext = UpsertResultContext.forReturnSummary(
+                context.txnCtx,
+                summaryProjection,
+                clusterService.localNode(),
+                inputFactory);
+        } else {
+            upsertResultContext = projection.returnValues().isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
+        }
 
         return new ColumnIndexWriterProjector(
             clusterService,
@@ -525,11 +474,14 @@ public class ProjectionToProjectorVisitor
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),
             projection.overwriteDuplicateKeys(),
+            projection.failFast(),
+            projection.validation(),
             projection.onDuplicateKeyAssignments(),
             projection.bulkActions(),
             projection.autoCreateIndices(),
             projection.returnValues(),
-            context.jobId
+            context.jobId,
+            upsertResultContext
         );
     }
 

@@ -86,7 +86,9 @@ public final class InsertFromSubQueryPlanner {
             targetColsExclPartitionCols,
             columnSymbols,
             statement.isIgnoreDuplicateKeys(),
-            false, // Irrelevant for insert from sub-query
+            false, // Irrelevant for insert from sub-query.
+            false, // Irrelevant for insert from sub-query.
+            true, // Always validate regular inserts.
             statement.onDuplicateKeyAssignments(),
             statement.primaryKeySymbols(),
             statement.partitionedBySymbols(),

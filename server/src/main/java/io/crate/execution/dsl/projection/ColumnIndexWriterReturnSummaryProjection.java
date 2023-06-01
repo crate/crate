@@ -21,57 +21,63 @@
 
 package io.crate.execution.dsl.projection;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
-public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterProjection {
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public class ColumnIndexWriterReturnSummaryProjection extends ColumnIndexWriterProjection {
 
     private final InputColumn sourceUri;
     private final InputColumn sourceUriFailure;
     private final InputColumn sourceParsingFailure;
     private final InputColumn lineNumber;
 
-    public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
+    public ColumnIndexWriterReturnSummaryProjection(RelationName relationName,
                                                     @Nullable String partitionIdent,
-                                                    Reference rawSourceReference,
-                                                    InputColumn rawSourcePtr,
                                                     List<ColumnIdent> primaryKeys,
+                                                    List<Reference> allTargetColumns,
+                                                    List<Reference> targetColsExclPartitionCols,
+                                                    List<Symbol> targetColsSymbolsExclPartition,
+                                                    boolean ignoreDuplicateKeys,
+                                                    boolean overwriteDuplicateKeys,
+                                                    boolean failFast,
+                                                    boolean validation,
+                                                    @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                                    List<Symbol> primaryKeySymbols,
                                                     List<Symbol> partitionedBySymbols,
                                                     @Nullable ColumnIdent clusteredByColumn,
-                                                    Settings settings,
-                                                    @Nullable String[] excludes,
-                                                    List<Symbol> idSymbols,
                                                     @Nullable Symbol clusteredBySymbol,
-                                                    List<? extends Symbol> outputs,
+                                                    Settings settings,
                                                     boolean autoCreateIndices,
+                                                    List<? extends Symbol> outputs,
+                                                    List<Symbol> returnValues,
                                                     InputColumn sourceUri,
                                                     InputColumn sourceUriFailure,
                                                     InputColumn sourceParsingFailure,
                                                     InputColumn lineNumber) {
-        super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
-            clusteredByColumn, settings, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, allTargetColumns, targetColsExclPartitionCols,
+            targetColsSymbolsExclPartition, ignoreDuplicateKeys, overwriteDuplicateKeys, failFast, validation, onDuplicateKeyAssignments,
+            primaryKeySymbols, partitionedBySymbols, clusteredByColumn, clusteredBySymbol, settings, autoCreateIndices, outputs, returnValues);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;
         this.sourceParsingFailure = sourceParsingFailure;
         this.lineNumber = lineNumber;
     }
 
-    SourceIndexWriterReturnSummaryProjection(StreamInput in) throws IOException {
+    ColumnIndexWriterReturnSummaryProjection(StreamInput in) throws IOException {
         super(in);
         sourceUri = (InputColumn) Symbols.fromStream(in);
         sourceUriFailure = (InputColumn) Symbols.fromStream(in);
@@ -104,7 +110,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     @Override
     public ProjectionType projectionType() {
-        return ProjectionType.INDEX_WRITER_RETURN_SUMMARY;
+        return ProjectionType.COLUMN_INDEX_WRITER_RETURN_SUMMARY;
     }
 
     @Override
@@ -123,15 +129,16 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        SourceIndexWriterReturnSummaryProjection that = (SourceIndexWriterReturnSummaryProjection) o;
+        ColumnIndexWriterReturnSummaryProjection that = (ColumnIndexWriterReturnSummaryProjection) o;
         return Objects.equals(sourceUri, that.sourceUri) &&
-               Objects.equals(sourceUriFailure, that.sourceUriFailure) &&
-               Objects.equals(sourceParsingFailure, that.sourceParsingFailure) &&
-               Objects.equals(lineNumber, that.lineNumber);
+            Objects.equals(sourceUriFailure, that.sourceUriFailure) &&
+            Objects.equals(sourceParsingFailure, that.sourceParsingFailure) &&
+            Objects.equals(lineNumber, that.lineNumber);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), sourceUri, sourceUriFailure, sourceParsingFailure, lineNumber);
     }
+
 }

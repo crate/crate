@@ -21,14 +21,26 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.RowGranularity;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
@@ -37,14 +49,9 @@ import org.junit.Test;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
 
 public class ColumnIndexWriterProjectionTest {
 
@@ -92,6 +99,8 @@ public class ColumnIndexWriterProjectionTest {
             columnSymbols,
             false,
             false,
+            false,
+            true,
             null,
             primaryKeySymbols,
             partitionedBySymbols,
@@ -103,13 +112,19 @@ public class ColumnIndexWriterProjectionTest {
             null
         );
 
-        assertThat(projection.columnReferencesExclPartition(), is(Arrays.asList(
-            domainRef, areaRef, hRef)
-        ));
-        assertThat(projection.columnSymbolsExclPartition(), is(Arrays.asList(
-            new InputColumn(1, DataTypes.STRING),
-            new InputColumn(2, DataTypes.STRING),
-            new InputColumn(4, DataTypes.INTEGER))));
+        assertThat(projection.columnReferencesExclPartition())
+            .containsExactlyElementsOf(
+                Arrays.asList(domainRef, areaRef, hRef)
+            );
+
+        assertThat(projection.columnSymbolsExclPartition())
+            .containsExactlyElementsOf(
+                Arrays.asList(
+                    new InputColumn(1, DataTypes.STRING),
+                    new InputColumn(2, DataTypes.STRING),
+                    new InputColumn(4, DataTypes.INTEGER)
+                )
+            );
     }
 
     /**
@@ -138,6 +153,8 @@ public class ColumnIndexWriterProjectionTest {
             columnSymbols,
             false,
             false,
+            false,
+            true,
             Collections.emptyMap(),
             List.of(),
             List.of(),
@@ -155,7 +172,123 @@ public class ColumnIndexWriterProjectionTest {
         StreamInput in = out.bytes().streamInput();
         ColumnIndexWriterProjection p2 = (ColumnIndexWriterProjection) Projection.fromStream(in);
 
-        assertThat(p2, is(projection));
+        assertThat(p2).isEqualTo(projection);
+    }
+
+    @Test
+    public void test_serialization_fail_fast() throws IOException {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        SimpleReference reference = new SimpleReference(
+            referenceIdent,
+            RowGranularity.DOC,
+            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            ColumnPolicy.STRICT,
+            IndexType.FULLTEXT,
+            false,
+            true,
+            0,
+            Literal.of(Map.of("f", 10)
+            )
+        );
+
+        boolean failFast = true;
+        ColumnIndexWriterProjection expected = new ColumnIndexWriterProjection(
+            relationName,
+            "pIdent",
+            List.of(),
+            List.of(reference),
+            List.of(reference),
+            List.of(new InputColumn(0)),
+            false,
+            false,
+            failFast,
+            false,
+            null,
+            List.of(),
+            List.of(),
+            null,
+            null,
+            Settings.builder().put("fail_fast", true).build(),
+            true,
+            List.of(),
+            List.of()
+        );
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_3_0);
+        expected.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_3_0);
+
+        assertThat(new ColumnIndexWriterProjection(in).failFast()).isNotEqualTo(expected.failFast());
+
+        BytesStreamOutput out2 = new BytesStreamOutput();
+        out2.setVersion(Version.V_5_4_0);
+        expected.writeTo(out2);
+
+        StreamInput in2 = out2.bytes().streamInput();
+        in2.setVersion(Version.V_5_4_0);
+
+        assertThat(new ColumnIndexWriterProjection(in2).failFast()).isEqualTo(expected.failFast());
+    }
+
+    @Test
+    public void test_serialization_validation_flag() throws IOException {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        SimpleReference reference = new SimpleReference(
+            referenceIdent,
+            RowGranularity.DOC,
+            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            ColumnPolicy.STRICT,
+            IndexType.FULLTEXT,
+            false,
+            true,
+            0,
+            Literal.of(Map.of("f", 10)
+            )
+        );
+        // validation property set to false
+        boolean validation = false;
+        ColumnIndexWriterProjection validationFlagSetToFalse = new ColumnIndexWriterProjection(
+            relationName,
+            "pIdent",
+            List.of(),
+            List.of(reference),
+            List.of(reference),
+            List.of(new InputColumn(0)),
+            false,
+            false,
+            false,
+            validation,
+            null,
+            List.of(),
+            List.of(),
+            null,
+            null,
+            Settings.builder().put("validation", false).build(),
+            true,
+            List.of(),
+            List.of()
+        );
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_3_0);
+        validationFlagSetToFalse.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_3_0);
+
+        assertThat(new ColumnIndexWriterProjection(in).validation()).isTrue(); // validation flag value lost and set to default (true)
+
+        BytesStreamOutput out2 = new BytesStreamOutput();
+        out2.setVersion(Version.V_5_4_0);
+        validationFlagSetToFalse.writeTo(out2);
+
+        StreamInput in2 = out2.bytes().streamInput();
+        in2.setVersion(Version.V_5_4_0);
+
+        assertThat(new ColumnIndexWriterProjection(in2).validation()).isFalse(); // validation flag value recovered
     }
 
     private Reference ref(ColumnIdent column, DataType<?> type) {

@@ -41,7 +41,11 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.ColumnIndexWriterReturnSummaryProjection;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -61,10 +65,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
-import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
@@ -208,13 +208,8 @@ public final class CopyFromPlan implements Plan {
          */
         DocTableInfo table = boundedCopyFrom.tableInfo();
         String partitionIdent = boundedCopyFrom.partitionIdent();
-        List<String> partitionedByNames = Collections.emptyList();
         List<String> partitionValues = Collections.emptyList();
-        if (partitionIdent == null) {
-            if (table.isPartitioned()) {
-                partitionedByNames = Lists2.map(table.partitionedBy(), ColumnIdent::fqn);
-            }
-        } else {
+        if (partitionIdent != null) {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
             // partitionIdent is present -> possible to index raw source into concrete es index
             partitionValues = PartitionName.decodeIdent(partitionIdent);
@@ -240,27 +235,53 @@ public final class CopyFromPlan implements Plan {
         );
 
         List<Symbol> toCollect = new ArrayList<>(targetColumns);
-
-        // Initialized when all refs are added.
-        // In summary mode we add RAW (for now), in regular mode we add not-yet added top-level target columns.
-        InputColumns.SourceSymbols sourceSymbols;
         Symbol clusteredByInputCol = null;
 
-        AbstractIndexWriterProjection indexWriterProjection;
+        // Add top-level columns (filter if we know already target columns) in addition to required sub-columns added above.
+        // If required columns are top-level columns, they are already added and ignored here.
+        table.columns()
+            .stream()
+            .filter(ref ->
+                // if targetColumns are empty CSV header/json keys are source of the truth and plan has to be adjusted in runtime to
+                // either dynamically add columns or remove table columns, not listed in header.
+                boundedCopyFrom.targetColumns().isEmpty()
+                    ||
+                    // Regular filtering
+                    (boundedCopyFrom.targetColumns().isEmpty() == false && boundedCopyFrom.targetColumns().contains(ref.column().sqlFqn()))
+            )
+            .forEach(ref -> {
+                boolean added = targetColumns.add(ref);
+                if (added) {
+                    toCollect.add(ref);
+                }
+            });
+
+        List<Reference> targetColsInCorrectOrder = new ArrayList<>(targetColumns);
+        Collections.sort(targetColsInCorrectOrder, Comparator.comparingInt(Reference::position));
+
+        List<Reference> targetColsExclPartitionCols = new ArrayList<>();
+        for (Reference column : targetColsInCorrectOrder) {
+            if (table.partitionedBy().contains(column.column())) {
+                continue;
+            }
+            targetColsExclPartitionCols.add(column);
+        }
+
+
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
+
+        if (clusteredBy != null) {
+            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
+        }
+
+        ColumnIndexWriterProjection indexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
+
         boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
+        boolean overwriteDuplicates = boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false);
+        boolean validation = boundedCopyFrom.settings().getAsBoolean("validation", true);
         if (returnSummary || failFast) {
-
-            Reference rawOrDoc = rawOrDoc(table, partitionIdent);
-            final int rawOrDocIdx = toCollect.size();
-            toCollect.add(rawOrDoc);
-
-            sourceSymbols = new InputColumns.SourceSymbols(toCollect);
-
-            if (clusteredBy != null) {
-                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
-            }
 
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
@@ -279,66 +300,32 @@ public final class CopyFromPlan implements Plan {
                 projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
             }
 
-            String[] excludes = partitionedByNames.size() > 0
-                ? partitionedByNames.toArray(new String[0]) : null;
-
-            indexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
+            indexWriterProjection = new ColumnIndexWriterReturnSummaryProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
-                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
-                clusteredBy,
-                boundedCopyFrom.settings(),
-                excludes,
+                targetColsInCorrectOrder,
+                targetColsExclPartitionCols,
+                InputColumns.create(targetColsExclPartitionCols, sourceSymbols),
+                false, // Irrelevant for COPY FROM
+                overwriteDuplicates,
+                failFast,
+                validation,
+                null, // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
+                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                table.clusteredBy(),
                 clusteredByInputCol,
-                projectionOutputs,
+                boundedCopyFrom.settings(),
                 table.isPartitioned(), // autoCreateIndices
+                projectionOutputs,
+                List.of(), // copyFrom.outputs() is null,
                 sourceUriSymbol,
                 sourceUriFailureSymbol,
                 sourceParsingFailureSymbol,
                 lineNumberSymbol
             );
         } else {
-
-            // Add top-level columns (filter if we know already target columns) in addition to required sub-columns added above.
-            // If required columns are top-level columns, they are already added and ignored here.
-            table.columns()
-                .stream()
-                .filter(ref ->
-                    // if targetColumns are empty CSV header/json keys are source of the truth and plan has to be adjusted in runtime to
-                    // either dynamically add columns or remove table columns, not listed in header.
-                    boundedCopyFrom.targetColumns().isEmpty()
-                        ||
-                        // Regular filtering
-                        (boundedCopyFrom.targetColumns().isEmpty() == false && boundedCopyFrom.targetColumns().contains(ref.column().sqlFqn()))
-                )
-                .forEach(ref -> {
-                    boolean added = targetColumns.add(ref);
-                    if (added) {
-                        toCollect.add(ref);
-                    }
-                });
-
-            List<Reference> targetColsInCorrectOrder = new ArrayList<>(targetColumns);
-            Collections.sort(targetColsInCorrectOrder, Comparator.comparingInt(Reference::position));
-
-            List<Reference> targetColsExclPartitionCols = new ArrayList<>();
-            for (Reference column : targetColsInCorrectOrder) {
-                if (table.partitionedBy().contains(column.column())) {
-                    continue;
-                }
-                targetColsExclPartitionCols.add(column);
-            }
-
-
-            sourceSymbols = new InputColumns.SourceSymbols(toCollect);
-
-            if (clusteredBy != null) {
-                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
-            }
 
             indexWriterProjection = new ColumnIndexWriterProjection(
                 table.ident(),
@@ -348,7 +335,9 @@ public final class CopyFromPlan implements Plan {
                 targetColsExclPartitionCols,
                 InputColumns.create(targetColsExclPartitionCols, sourceSymbols),
                 false, // Irrelevant for COPY FROM
-                boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
+                overwriteDuplicates,
+                false, // fail fast is irrelevant for regular COPY FROM
+                validation,
                 null, // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
@@ -445,28 +434,6 @@ public final class CopyFromPlan implements Plan {
             toCollectUnique.add(clusteredBy);
         }
         return toCollectUnique;
-    }
-
-
-
-    /**
-     * Return RAW or DOC Reference:
-     *
-     * Copy from has two "modes" on how the json-object-lines are processed:
-     *
-     * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
-     *    -> collect raw source and import as is
-     *
-     * 2: partitioned table without partition ident
-     *    -> collect document and partition by values
-     *    -> exclude partitioned by columns from document
-     *    -> insert into es index (partition determined by partition by value)
-     */
-    private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
-        if (table.isPartitioned() && selectedPartitionIdent == null) {
-            return table.getReference(DocSysColumns.DOC);
-        }
-        return table.getReference(DocSysColumns.RAW);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,

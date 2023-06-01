@@ -44,6 +44,8 @@ import java.util.function.Function;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
+    private final boolean failFast;
+    private final boolean validation;
     private final List<Symbol> targetColsSymbolsExclPartition;
     private final List<Reference> targetColsExclPartitionCols;
     private final boolean ignoreDuplicateKeys;
@@ -75,6 +77,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> targetColsSymbolsExclPartition,
                                        boolean ignoreDuplicateKeys,
                                        boolean overwriteDuplicateKeys,
+                                       boolean failFast,
+                                       boolean validation,
                                        @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<Symbol> partitionedBySymbols,
@@ -92,6 +96,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.partitionedBySymbols = partitionedBySymbols;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.overwriteDuplicateKeys = overwriteDuplicateKeys;
+        this.failFast = failFast;
+        this.validation = validation;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColsExclPartitionCols = targetColsExclPartitionCols;
         this.clusteredBySymbol = clusteredBySymbol;
@@ -121,8 +127,13 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         ignoreDuplicateKeys = in.readBoolean();
         if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
             overwriteDuplicateKeys = in.readBoolean();
+            failFast = in.readBoolean();
+            validation = in.readBoolean();
         } else {
-            overwriteDuplicateKeys = false; // default value used in COPY FROM.
+            // Set defaults.
+            overwriteDuplicateKeys = false;
+            failFast = false;
+            validation = true;
         }
         if (in.readBoolean()) {
             int mapSize = in.readVInt();
@@ -197,6 +208,14 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return overwriteDuplicateKeys;
     }
 
+    public boolean failFast() {
+        return failFast;
+    }
+
+    public boolean validation() {
+        return validation;
+    }
+
     public Map<Reference, Symbol> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
     }
@@ -223,6 +242,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments) &&
                allTargetColumns.equals(that.allTargetColumns) &&
                overwriteDuplicateKeys == that.overwriteDuplicateKeys &&
+               failFast == that.failFast &&
+               validation == that.validation &&
                Objects.equals(outputs, that.outputs) &&
                Objects.equals(returnValues, that.returnValues);
     }
@@ -236,7 +257,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                             allTargetColumns,
                             outputs,
                             returnValues,
-                            overwriteDuplicateKeys);
+                            overwriteDuplicateKeys,
+                            failFast,
+                            validation);
     }
 
     @Override
@@ -262,6 +285,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         out.writeBoolean(ignoreDuplicateKeys);
         if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
             out.writeBoolean(overwriteDuplicateKeys);
+            out.writeBoolean(failFast);
+            out.writeBoolean(validation);
         }
         if (onDuplicateKeyAssignments == null) {
             out.writeBoolean(false);
@@ -312,6 +337,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             targetColsSymbolsExclPartition,
             ignoreDuplicateKeys,
             overwriteDuplicateKeys,
+            failFast,
+            validation,
             boundOnDuplicateKeyAssignments,
             (List<Symbol>) ids(),
             partitionedBySymbols,

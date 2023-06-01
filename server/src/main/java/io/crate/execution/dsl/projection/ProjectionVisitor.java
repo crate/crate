@@ -54,10 +54,6 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
-    public R visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, C context) {
-        return visitProjection(projection, context);
-    }
-
     public R visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, C context) {
         return visitProjection(projection, context);
     }

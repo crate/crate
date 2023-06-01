@@ -32,14 +32,12 @@ import java.util.stream.Collectors;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -107,7 +105,6 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore(value = "TODO: Introduce smth like ColumnIndexWriteReturnSummaryProjection and use it for summary or failfast")
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
                                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
@@ -115,7 +112,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
-        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
+        ColumnIndexWriterProjection indexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(0);
         assertThat(indexWriterProjection.bulkActions()).isEqualTo(30);
         assertThat(collectPhase.compression()).isEqualTo("gzip");
         assertThat(collectPhase.sharedStorage()).isTrue();
@@ -126,7 +123,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         // verify defaults:
         collect = plan("copy users from '/path/to/file.ext'");
         collectPhase = (FileUriCollectPhase) collect.collectPhase();
-        indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
+        indexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(0);
         assertThat(collectPhase.compression()).isNull();
         assertThat(collectPhase.sharedStorage()).isNull();
         assertThat(indexWriterProjection.failFast()).isFalse();
