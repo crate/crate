@@ -34,20 +34,20 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CoalesceFunction extends Scalar<Object, Object> {
 
+    public static final String NAME = "coalesce";
+
+    public static final Signature SIGNATURE = Signature
+        .scalar(
+            NAME,
+            parseTypeSignature("E"),
+            parseTypeSignature("E"))
+        .withVariableArity()
+        .withTypeVariableConstraints(typeVariable("E"));
+
     public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature
-                .scalar(
-                    NAME,
-                    parseTypeSignature("E"),
-                    parseTypeSignature("E"))
-                .withVariableArity()
-                .withTypeVariableConstraints(typeVariable("E")),
-            CoalesceFunction::new
-        );
+        module.register(SIGNATURE, CoalesceFunction::new);
     }
 
-    public static final String NAME = "coalesce";
 
     private final Signature signature;
     private final BoundSignature boundSignature;
