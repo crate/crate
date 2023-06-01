@@ -162,12 +162,12 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     }
 
     /**
-     * Get the first non-map value from a map by traversing the name/path of the column
+     * Get the first value (could be a map for the object column root) from a map by traversing the name/path of the column
      */
     public static Object get(Map<?, ?> map, ColumnIdent column) {
         Object obj = map.get(column.name);
         if (obj instanceof Map<?, ?> m) {
-            Object element = null;
+            Object element = obj;
             for (int i = 0; i < column.path.size(); i++) {
                 element = m.get(column.path.get(i));
                 if (element instanceof Map<?, ?> innerMap) {
