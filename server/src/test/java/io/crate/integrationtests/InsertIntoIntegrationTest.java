@@ -187,6 +187,21 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 100)
+    public void test_insert_null_from_subquery_into_partitioned_table() {
+        execute("CREATE TABLE times (" +
+            "   time timestamp with time zone" +
+            ") partitioned by (time)");
+
+        execute("insert into times (time) (select null from sys.cluster)");
+        refresh();
+
+        execute("select time from times");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isNull();
+    }
+
+    @Test
     public void testInsertBadIPAddress() throws Exception {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
