@@ -79,14 +79,12 @@ public class JoinGraph {
     }
 
     public static class Edge {
-        final LogicalPlan targetNode;
-        final Symbol source;
-        final Symbol target;
+        public final Set<Integer> from;
+        public final Set<Integer> to;
 
-        public Edge(LogicalPlan targetNode, Symbol source, Symbol target) {
-            this.targetNode = targetNode;
-            this.source = source;
-            this.target = target;
+        public Edge(Set<Integer> left, Set<Integer> right) {
+            this.from = left;
+            this.to = right;
         }
     }
 
@@ -128,7 +126,9 @@ public class JoinGraph {
                     if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
                         var a = f.arguments().get(0);
                         var b = f.arguments().get(1);
-                        edges.put(context.get(a).id(), Set.of(new Edge(context.get(b), a, b)));
+                        var from = context.get(a).id();
+                        var to = context.get(b).id();
+                        edges.put(context.get(a).id(), Set.of(new Edge(Set.of(from), Set.of(to))));
                     }
                 }
             }
