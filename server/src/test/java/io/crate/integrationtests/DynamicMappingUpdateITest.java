@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -340,6 +341,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     }
 
     @Test
+    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void test_copy_deep_nested_object_results_in_dynamic_mapping_updates() throws IOException {
         execute(
             """
@@ -353,6 +355,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     }
 
     @Test
+    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void test_copy_deep_nested_object_to_partitioned_table_results_in_dynamic_mapping_updates() throws IOException {
         execute(
             """

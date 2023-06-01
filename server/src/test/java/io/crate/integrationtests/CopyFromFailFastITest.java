@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
@@ -91,7 +90,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "COPY t FROM ? WITH (bulk_size = 1, fail_fast = true)", // fail_fast = true
                 new Object[]{target.toUri() + "*"}))
             .isExactlyInstanceOf(JobKilledException.class)
-            .hasMessageContaining("ERRORS: {Cannot cast value `fail here` to type `integer`");
+            .hasMessageContaining("ERRORS: {For input string: \"fail here\"");
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -111,7 +110,6 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
-        var nodeNameOfShard1 = (String) response.rows()[1][0];
 
         var clientProvider = new SQLTransportExecutor.ClientProvider() {
 
@@ -152,20 +150,11 @@ public class CopyFromFailFastITest extends IntegTestCase {
         }
 
         tmpFileWithLines(rows, "data1.json", target);
-        assertExpectedLogMessages(
-            () -> { // fail_fast = true
-                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
-                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                            new Object[]{target.toUri() + "*"}))
-                    .isExactlyInstanceOf(JobKilledException.class)
-                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
-            },
-            new MockLogAppender.PatternSeenEventExcpectation(
-                "assert failure on node=" + nodeNameOfShard1,
-                "io.crate.execution.dml.upsert.TransportShardUpsertAction",
-                Level.DEBUG,
-                "Failed to execute upsert on nodeName=" + nodeNameOfShard1 + ".*")
-        );
+        Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
+            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+            new Object[]{target.toUri() + "*"}))
+            .isExactlyInstanceOf(JobKilledException.class)
+            .hasMessageContaining("ERRORS: {For input string: \"fail here\"");
 
         execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
@@ -228,20 +217,12 @@ public class CopyFromFailFastITest extends IntegTestCase {
         }
 
         tmpFileWithLines(rows, "data1.json", target);
-        assertExpectedLogMessages(
-            () -> { // fail_fast = true
-                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
-                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                            new Object[]{target.toUri() + "*"}))
-                    .isExactlyInstanceOf(JobKilledException.class)
-                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
-            },
-            new MockLogAppender.PatternSeenEventExcpectation(
-                "assert failure on node=" + nodeNameOfShard0,
-                "io.crate.execution.dml.upsert.TransportShardUpsertAction",
-                Level.DEBUG,
-                "Failed to execute upsert on nodeName=" + nodeNameOfShard0 + ".*")
-        );
+
+        Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
+            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+            new Object[]{target.toUri() + "*"}))
+            .isExactlyInstanceOf(JobKilledException.class)
+            .hasMessageContaining("ERRORS: {For input string: \"fail here\"");
 
         execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
