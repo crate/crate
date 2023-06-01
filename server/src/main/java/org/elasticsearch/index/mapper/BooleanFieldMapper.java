@@ -43,7 +43,10 @@ public class BooleanFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "boolean";
 
-    public static class Defaults {
+    public static final class Defaults {
+
+        private Defaults() {}
+
         public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
@@ -82,9 +85,11 @@ public class BooleanFieldMapper extends FieldMapper {
 
     public static class TypeParser implements Mapper.TypeParser {
         @Override
-        public Mapper.Builder<Builder> parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+        public Mapper.Builder<Builder> parse(String name,
+                                             Map<String, Object> node,
+                                             ParserContext parserContext) throws MapperParsingException {
             BooleanFieldMapper.Builder builder = new BooleanFieldMapper.Builder(name);
-            parseField(builder, name, node, parserContext);
+            parseField(builder, name, node);
             return builder;
         }
     }

@@ -88,7 +88,10 @@ public class GeoShapeFieldMapper extends FieldMapper {
         public static final String ORIENTATION = "orientation";
     }
 
-    public static class Defaults {
+    public static final class Defaults {
+
+        private Defaults() {}
+
         public static final String TREE = Names.TREE_GEOHASH;
         public static final int GEOHASH_LEVELS = GeoUtils.geoHashLevelsForPrecision("50m");
         public static final int QUADTREE_LEVELS = GeoUtils.quadTreeLevelsForPrecision("50m");
@@ -309,6 +312,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public void parse(ParseContext context) throws IOException {
         try {
             Shape shape;
@@ -357,7 +361,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults, Params params) throws IOException {
+    protected void doXContentBody(XContentBuilder builder, boolean includeDefaults) throws IOException {
         builder.field("type", contentType());
 
         if (includeDefaults || fieldType().tree().equals(Defaults.TREE) == false) {
