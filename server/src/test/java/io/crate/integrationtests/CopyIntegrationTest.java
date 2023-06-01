@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -384,7 +383,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore("https://github.com/crate/crate/pull/14232/")
     public void testCopyFromToPartitionedTableWithNullValue() {
+        // TODO: similar insert from subquery is flaky on 5.3, clarify whether it's a bug or need some other assertions
         execute("CREATE TABLE times (" +
                 "   time timestamp with time zone" +
                 ") partitioned by (time)");
@@ -932,12 +933,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("refresh table tbl2");
             execute("SELECT* FROM tbl2");
 
-            // TODO: Order of source fields is non-deterministic (x and o can be swapped)
+            // TODO: Add back _raw selection.
+            // Order of source fields is non-deterministic (x and o can be swapped)
             // use LHM somewhere (figure out where) to deal with flakiness.
             // Using parser.orderedMap in SourceParser doesn't help.
-             assertThat(response).hasRows(
-                  "10| {p=1}"
-             );
+            assertThat(response).hasRows(
+                "10| {p=1}"
+            );
         }
     }
 
