@@ -177,7 +177,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(info.getDynamic(columnIdent, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
-        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent, true, false)).isNull())
+        Assertions.assertThatThrownBy(() -> info.getDynamic(columnIdent, true, false))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo']['bar'] unknown");
 
@@ -188,7 +188,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(info.getDynamic(columnIdent2, false, true)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: strict
-        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent2, true, true)).isNull())
+        Assertions.assertThatThrownBy(() -> info.getDynamic(columnIdent2, true, true))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo'] unknown");
 
@@ -196,7 +196,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(info.getDynamic(columnIdent2, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
-        Assertions.assertThatThrownBy(() -> assertThat(info.getDynamic(columnIdent2, true, false)).isNull())
+        Assertions.assertThatThrownBy(() -> info.getDynamic(columnIdent2, true, false))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo'] unknown");
 
