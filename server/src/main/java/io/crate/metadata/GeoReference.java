@@ -67,6 +67,7 @@ public class GeoReference extends SimpleReference {
                         boolean nullable,
                         int position,
                         long oid,
+                        boolean isDropped,
                         Symbol defaultExpression,
                         String geoTree,
                         String precision,
@@ -81,6 +82,7 @@ public class GeoReference extends SimpleReference {
             false, //Geo shapes don't have doc values
             position,
             oid,
+            isDropped,
             defaultExpression
         );
         this.geoTree = Objects.requireNonNullElse(geoTree, DEFAULT_TREE);
@@ -170,6 +172,7 @@ public class GeoReference extends SimpleReference {
             nullable,
             position,
             oid,
+            isDropped,
             defaultExpression,
             geoTree,
             precision,
