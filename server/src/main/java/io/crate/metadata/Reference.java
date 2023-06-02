@@ -24,7 +24,6 @@ package io.crate.metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +42,7 @@ public interface Reference extends Symbol {
 
     static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
         int i = 0;
-        Iterator<? extends Reference> it = refs.iterator();
-        while (it.hasNext()) {
-            var ref = it.next();
+        for (Reference ref : refs) {
             if (ref.column().equals(column)) {
                 return i;
             }

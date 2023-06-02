@@ -175,46 +175,57 @@ public class GeneratedReference implements Reference {
         return column().quotedOutputName() + " AS " + formattedGeneratedExpression;
     }
 
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitReference(this, context);
     }
 
+    @Override
     public ReferenceIdent ident() {
         return ref.ident();
     }
 
+    @Override
     public ColumnIdent column() {
         return ref.column();
     }
 
+    @Override
     public IndexType indexType() {
         return ref.indexType();
     }
 
+    @Override
     public ColumnPolicy columnPolicy() {
         return ref.columnPolicy();
     }
 
+    @Override
     public boolean isNullable() {
         return ref.isNullable();
     }
 
+    @Override
     public RowGranularity granularity() {
         return ref.granularity();
     }
 
+    @Override
     public int position() {
         return ref.position();
     }
 
+    @Override
     public boolean hasDocValues() {
         return ref.hasDocValues();
     }
 
+    @Override
     public DataType<?> valueType() {
         return ref.valueType();
     }
 
+    @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         Symbol result = ref.cast(targetType, modes);
         if (ref == result) {

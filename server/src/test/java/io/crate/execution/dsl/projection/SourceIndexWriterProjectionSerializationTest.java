@@ -22,8 +22,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -95,7 +94,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_6_0);
 
-        assertThat(new SourceIndexWriterProjection(in).failFast(), is((!expected.failFast())));
+        assertThat(new SourceIndexWriterProjection(in).failFast()).isNotEqualTo(expected.failFast());
 
         BytesStreamOutput out2 = new BytesStreamOutput();
         out2.setVersion(Version.V_4_7_0);
@@ -104,7 +103,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).failFast(), is((expected.failFast())));
+        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo((expected.failFast()));
     }
 
     @Test
@@ -152,7 +151,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in).validation(), is(true)); // validation flag value lost and set to default (true)
+        assertThat(new SourceIndexWriterProjection(in).validation()).isTrue(); // validation flag value lost and set to default (true)
 
         BytesStreamOutput out2 = new BytesStreamOutput();
         out2.setVersion(Version.V_4_8_0);
@@ -161,6 +160,6 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_8_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).validation(), is(false)); // validation flag value recovered
+        assertThat(new SourceIndexWriterProjection(in2).validation()).isFalse(); // validation flag value recovered
     }
 }

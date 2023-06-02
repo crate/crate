@@ -223,7 +223,7 @@ public class IndexReference extends SimpleReference {
         mapping.put("type", "text");
 
         if (columns.isEmpty() == false) {
-            mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).collect(Collectors.toList()));
+            mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).toList());
         }
 
         return mapping;
