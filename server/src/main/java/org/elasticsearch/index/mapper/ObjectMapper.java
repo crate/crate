@@ -149,6 +149,9 @@ public class ObjectMapper extends Mapper implements Cloneable {
             } else if (fieldName.equals("oid")) {
                 builder.columnOID(nodeLongValue(fieldNode));
                 return true;
+            } else if (fieldName.equals("dropped")) {
+                builder.setDropped(nodeBooleanValue(fieldNode));
+                return true;
             } else if (fieldName.equals("dynamic")) {
                 String value = fieldNode.toString();
                 if (value.equalsIgnoreCase("strict")) {
@@ -389,6 +392,9 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
         if (columnOID != COLUMN_OID_UNASSIGNED) {
             builder.field("oid", columnOID);
+        }
+        if (isDropped) {
+            builder.field("dropped", true);
         }
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(IsoLocale.ROOT));

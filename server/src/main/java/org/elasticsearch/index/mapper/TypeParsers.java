@@ -200,6 +200,7 @@ public class TypeParsers {
                 iterator.remove();
             } else if (propName.equals("dropped")) {
                 builder.setDropped(nodeBooleanValue(propNode));
+                iterator.remove();
             }
         }
     }

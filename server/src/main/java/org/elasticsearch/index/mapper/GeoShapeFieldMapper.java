@@ -20,6 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeLongValue;
 
@@ -196,6 +197,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if ("oid".equals(fieldName)) {
                     builder.columnOID(nodeLongValue(fieldNode));
+                    iterator.remove();
+                } else if ("dropped".equals(fieldName)) {
+                    builder.setDropped(nodeBooleanValue(fieldNode));
                     iterator.remove();
                 }
             }
