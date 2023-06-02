@@ -81,6 +81,8 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         protected long columnOID;
 
+        protected boolean isDropped;
+
         public String name() {
             return this.name;
         }
@@ -94,6 +96,10 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         public void columnOID(long columnOID) {
             this.columnOID = columnOID;
+        }
+
+        public void setDropped(boolean isDropped) {
+            this.isDropped = isDropped;
         }
     }
 
@@ -133,6 +139,8 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
     protected int position;
 
     protected long columnOID;
+
+    protected boolean isDropped;
 
     protected Mapper(String simpleName) {
         Objects.requireNonNull(simpleName);
