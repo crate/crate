@@ -97,6 +97,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 context.path().pathAsText(name),
                 dynamic,
                 mappers,
@@ -113,11 +114,12 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected ObjectMapper createMapper(String name,
                                             int position,
                                             long columnOID,
+                                            boolean isDropped,
                                             String fullPath,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
-            return new ObjectMapper(name, position, columnOID, fullPath, dynamic, mappers, settings);
+            return new ObjectMapper(name, position, columnOID, isDropped, fullPath, dynamic, mappers, settings);
         }
     }
 
@@ -240,6 +242,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
     ObjectMapper(String name,
                  int position,
                  long columnOID,
+                 boolean isDropped,
                  String fullPath,
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
@@ -252,6 +255,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         this.fullPath = fullPath;
         this.position = position;
         this.columnOID = columnOID;
+        this.isDropped = isDropped;
         this.dynamic = dynamic;
         if (mappers == null) {
             this.mappers = new CopyOnWriteHashMap<>();
@@ -363,6 +367,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     protected int position() {
         return position;
+    }
+
+    protected boolean isDropped() {
+        return isDropped;
     }
 
     @Override
