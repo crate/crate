@@ -21,10 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -153,9 +151,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
         var rowConsumer = new TestingRowConsumer();
         rowConsumer.accept(it, null);
-        assertThat(
-            rowConsumer.getResult(),
-            containsInAnyOrder(new Object[]{0L, 6L}, new Object[]{1L, 4L}));
+        assertThat(rowConsumer.getResult()).containsExactlyInAnyOrder(
+            new Object[]{0L, 6L}, new Object[]{1L, 4L});
     }
 
     @Test
@@ -228,22 +225,20 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var rowConsumer = new TestingRowConsumer();
         rowConsumer.accept(it, null);
 
-        assertThat(
-            rowConsumer.getResult(),
-            containsInAnyOrder(new Object[]{"0", 0L, 6L}, new Object[]{"1", 1L, 4L})
-        );
+        assertThat(rowConsumer.getResult()).containsExactlyInAnyOrder(
+            new Object[]{"0", 0L, 6L}, new Object[]{"1", 1L, 4L});
     }
 
     @Test
     public void test_optimized_iterator_stop_processing_on_kill() throws Exception {
         Throwable expectedException = stopOnInterrupting(it -> it.kill(new InterruptedException("killed")));
-        assertThat(expectedException, instanceOf(InterruptedException.class));
+        assertThat(expectedException).isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
     public void test_optimized_iterator_stop_processing_on_close() throws Exception {
         Throwable expectedException = stopOnInterrupting(BatchIterator::close);
-        assertThat(expectedException, instanceOf(IllegalStateException.class));
+        assertThat(expectedException).isExactlyInstanceOf(IllegalStateException.class);
     }
 
     private Throwable stopOnInterrupting(Consumer<BatchIterator<Row>> interrupt) throws Exception {

@@ -183,11 +183,11 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_no_op_if_columns_exist() throws Exception {
-        /**
+        /*
          * The cluster state update logic later asserts that the mapping source must have changed if
          * the version increases. Without no-op check this assertion would trip
          * if there are concurrent alter table (or more likely: Dynamic mapping updates due to concurrent inserts)
-         **/
+         */
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int)")
             .build();

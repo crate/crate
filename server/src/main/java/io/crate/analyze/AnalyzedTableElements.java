@@ -67,7 +67,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -79,7 +78,7 @@ public class AnalyzedTableElements<T> {
     public List<AnalyzedColumnDefinition<T>> partitionedByColumns = new ArrayList<>();
     private List<AnalyzedColumnDefinition<T>> columns = new ArrayList<>();
     private Set<ColumnIdent> columnIdents = new HashSet<>();
-    private Map<ColumnIdent, DataType> columnTypes = new HashMap<>();
+    private Map<ColumnIdent, DataType<?>> columnTypes = new HashMap<>();
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
     private Map<String, String> checkConstraints = new LinkedHashMap<>();
@@ -101,7 +100,7 @@ public class AnalyzedTableElements<T> {
     private AnalyzedTableElements(List<AnalyzedColumnDefinition<T>> partitionedByColumns,
                                   List<AnalyzedColumnDefinition<T>> columns,
                                   Set<ColumnIdent> columnIdents,
-                                  Map<ColumnIdent, DataType> columnTypes,
+                                  Map<ColumnIdent, DataType<?>> columnTypes,
                                   Set<String> primaryKeys,
                                   Set<String> notNullColumns,
                                   Map<String, String> checkConstraints,
@@ -182,7 +181,7 @@ public class AnalyzedTableElements<T> {
 
         Map<String, List<U>> ftSourcesMap = new HashMap<>(this.ftSourcesMap.size());
         for (Map.Entry<String, List<T>> entry: this.ftSourcesMap.entrySet()) {
-            List<U> evaluatedSources = Lists2.map(entry.getValue(), source -> mapper.apply(source));
+            List<U> evaluatedSources = Lists2.map(entry.getValue(), mapper::apply);
             ftSourcesMap.put(entry.getKey(), evaluatedSources);
         }
 
@@ -520,7 +519,7 @@ public class AnalyzedTableElements<T> {
         if (bound && type.id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
-                GeoSettingsApplier.applySettings(geoMap, (GenericProperties<Object>) columnDefinition.geoProperties(), columnDefinition.geoTree());
+                GeoSettingsApplier.applySettings(geoMap, columnDefinition.geoProperties(), columnDefinition.geoTree());
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
             // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
@@ -648,7 +647,7 @@ public class AnalyzedTableElements<T> {
             List<Object> sources = elements.ftSourcesMap.get(column.ident().fqn());
             if (sources != null) {
                 // src.toString is in FQN form here.
-                column.sources(Lists2.map(sources, src -> src.toString()));
+                column.sources(Lists2.map(sources, Object::toString));
             }
         }
         for (AnalyzedColumnDefinition<T> child : column.children()) {
@@ -682,11 +681,7 @@ public class AnalyzedTableElements<T> {
     }
 
     void addFTSource(T sourceColumn, String targetIndex) {
-        List<T> sources = ftSourcesMap.get(targetIndex);
-        if (sources == null) {
-            sources = new ArrayList<>();
-            ftSourcesMap.put(targetIndex, sources);
-        }
+        List<T> sources = ftSourcesMap.computeIfAbsent(targetIndex, k -> new ArrayList<>());
         sources.add(sourceColumn);
     }
 
@@ -794,7 +789,7 @@ public class AnalyzedTableElements<T> {
     }
 
     private static String uniqueCheckConstraintName(String fqTableName, @Nullable String columnName) {
-        StringBuilder sb = new StringBuilder(fqTableName.replaceAll("\\.", "_"));
+        StringBuilder sb = new StringBuilder(fqTableName.replace(".", "_"));
         if (columnName != null) {
             sb.append("_").append(columnName);
         }

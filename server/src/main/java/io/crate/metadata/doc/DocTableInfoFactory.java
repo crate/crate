@@ -144,7 +144,7 @@ public class DocTableInfoFactory {
                 indexMetadata,
                 relation,
                 publicationsMetadata);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new UnhandledServerException("Unable to build DocIndexMetadata", e);
         }
         try {

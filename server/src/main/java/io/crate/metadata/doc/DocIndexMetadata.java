@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,6 +94,7 @@ public class DocIndexMetadata {
     private final Map<String, Object> mappingMap;
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
+    @SuppressWarnings("unchecked")
     private static final Comparator<Map.Entry<String, Object>> SORT_BY_POSITION_THEN_NAME = Comparator
         .comparing((Map.Entry<String, Object> e) -> {
             Map<String, Object> columnProperties = furtherColumnProperties((Map<String, Object>) e.getValue());
@@ -143,7 +143,7 @@ public class DocIndexMetadata {
      */
     private final ExpressionAnalyzer expressionAnalyzer;
 
-    DocIndexMetadata(NodeContext nodeCtx, IndexMetadata metadata, RelationName ident, @Nullable PublicationsMetadata publicationsMetadata) throws IOException {
+    DocIndexMetadata(NodeContext nodeCtx, IndexMetadata metadata, RelationName ident, @Nullable PublicationsMetadata publicationsMetadata) {
         this.nodeCtx = nodeCtx;
         this.ident = ident;
         this.numberOfShards = metadata.getNumberOfShards();
@@ -430,12 +430,12 @@ public class DocIndexMetadata {
             return;
         }
 
-        var columns = propertiesMap.entrySet().stream().sorted(SORT_BY_POSITION_THEN_NAME)
+        var cols = propertiesMap.entrySet().stream().sorted(SORT_BY_POSITION_THEN_NAME)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                                       (e1, e2) -> e1, LinkedHashMap::new));
 
-        for (Map.Entry<String, Object> columnEntry : columns.entrySet()) {
-            Map<String, Object> columnProperties = (Map) columnEntry.getValue();
+        for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
+            Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
@@ -530,6 +530,7 @@ public class DocIndexMetadata {
      * get the real column properties from a possible array mapping,
      * keeping most of this stuff inside "inner"
      */
+    @SuppressWarnings("unchecked")
     public static Map<String, Object> furtherColumnProperties(Map<String, Object> columnProperties) {
         if (columnProperties.get("inner") != null) {
             return (Map<String, Object>) columnProperties.get("inner");
@@ -548,11 +549,10 @@ public class DocIndexMetadata {
             ArrayList<ColumnIdent> builder = new ArrayList<>();
             Object pKeys = metaMap.get("primary_keys");
             if (pKeys != null) {
-                if (pKeys instanceof String) {
-                    builder.add(ColumnIdent.fromPath((String) pKeys));
+                if (pKeys instanceof String str) {
+                    builder.add(ColumnIdent.fromPath(str));
                     return List.copyOf(builder);
-                } else if (pKeys instanceof Collection) {
-                    Collection<?> keys = (Collection<?>) pKeys;
+                } else if (pKeys instanceof Collection<?> keys) {
                     if (!keys.isEmpty()) {
                         for (Object pkey : keys) {
                             builder.add(ColumnIdent.fromPath(pkey.toString()));
@@ -572,14 +572,14 @@ public class DocIndexMetadata {
     private Collection<ColumnIdent> getNotNullColumns() {
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
         if (metaMap != null) {
-            HashSet<ColumnIdent> builder = new HashSet<ColumnIdent>();
+            HashSet<ColumnIdent> builder = new HashSet<>();
             Map<String, Object> constraintsMap = Maps.get(metaMap, "constraints");
             if (constraintsMap != null) {
                 Object notNullColumnsMeta = constraintsMap.get("not_null");
                 if (notNullColumnsMeta != null) {
-                    Collection<?> notNullColumns = (Collection<?>) notNullColumnsMeta;
-                    if (!notNullColumns.isEmpty()) {
-                        for (Object notNullColumn : notNullColumns) {
+                    Collection<?> notNullCols = (Collection<?>) notNullColumnsMeta;
+                    if (!notNullCols.isEmpty()) {
+                        for (Object notNullColumn : notNullCols) {
                             builder.add(ColumnIdent.fromPath(notNullColumn.toString()));
                         }
                         return Collections.unmodifiableSet(builder);
@@ -667,8 +667,8 @@ public class DocIndexMetadata {
 
         routingCol = getRoutingCol();
 
-        Collection<Reference> references = this.references.values();
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
+        Collection<Reference> refs = this.references.values();
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(refs, ident);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
             txnCtx, nodeCtx, ParamTypeHints.EMPTY, tableReferenceResolver, null);
@@ -773,16 +773,17 @@ public class DocIndexMetadata {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Map<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
         MapBuilder<ColumnIdent, String> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
-            Map<String, Object> columnProperties = (Map) columnEntry.getValue();
-            DataType columnDataType = getColumnDataType(columnProperties);
+            Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
+            DataType<?> columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
             columnProperties = furtherColumnProperties(columnProperties);
             if (columnDataType.id() == ObjectType.ID
                 || (columnDataType.id() == ArrayType.ID
-                    && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
+                    && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 if (columnProperties.get("properties") != null) {
                     builder.putAll(getAnalyzers(newIdent, (Map<String, Object>) columnProperties.get("properties")));
                 }

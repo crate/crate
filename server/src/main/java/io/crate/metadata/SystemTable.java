@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -85,7 +84,7 @@ public final class SystemTable<T> implements TableInfo {
             : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())
-            .collect(Collectors.toList());
+            .toList();
         this.expressions = expressions;
         this.primaryKeys = primaryKeys;
         this.dynamicColumns = dynamicColumns;

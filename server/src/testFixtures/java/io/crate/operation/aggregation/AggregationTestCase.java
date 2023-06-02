@@ -571,6 +571,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         IOUtils.close(() -> shard.close("test", false), shard.store());
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected Symbol normalize(String functionName, Object value, DataType type) {
         return normalize(functionName, Literal.of(type, value));
     }

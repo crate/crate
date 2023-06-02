@@ -126,6 +126,7 @@ public class SimpleReference implements Reference {
     /**
      * Returns a cloned Reference with the given ident
      */
+    @Override
     public Reference getRelocated(ReferenceIdent newIdent) {
         return new SimpleReference(
             newIdent,
@@ -168,39 +169,48 @@ public class SimpleReference implements Reference {
         return column().quotedOutputName();
     }
 
+    @Override
     public ReferenceIdent ident() {
         return ident;
     }
 
+    @Override
     public ColumnIdent column() {
         return ident.columnIdent();
     }
 
+    @Override
     public RowGranularity granularity() {
         return granularity;
     }
 
+    @Override
     public ColumnPolicy columnPolicy() {
         return columnPolicy;
     }
 
+    @Override
     public IndexType indexType() {
         return indexType;
     }
 
+    @Override
     public boolean isNullable() {
         return nullable;
     }
 
+    @Override
     public boolean hasDocValues() {
         return hasDocValues;
     }
 
+    @Override
     public int position() {
         return position;
     }
 
     @Nullable
+    @Override
     public Symbol defaultExpression() {
         return defaultExpression;
     }
