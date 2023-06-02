@@ -80,6 +80,7 @@ public interface TableInfo extends RelationInfo {
                 ref.hasDocValues(),
                 ref.position(),
                 ref.oid(),
+                ref.isDropped(),
                 ref.defaultExpression()
             );
         }

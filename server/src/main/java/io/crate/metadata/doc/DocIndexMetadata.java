@@ -207,6 +207,7 @@ public class DocIndexMetadata {
 
     private void add(int position,
                      long oid,
+                     boolean isDropped,
                      ColumnIdent column,
                      DataType<?> type,
                      @Nullable Symbol defaultExpression,
@@ -230,6 +231,7 @@ public class DocIndexMetadata {
             hasDocValues,
             position,
             oid,
+            isDropped,
             defaultExpression
         );
         if (generatedExpression == null) {
@@ -249,6 +251,7 @@ public class DocIndexMetadata {
 
     private void addGeoReference(Integer position,
                                  long oid,
+                                 boolean isDropped,
                                  ColumnIdent column,
                                  Symbol defaultExpression,
                                  @Nullable String tree,
@@ -265,6 +268,7 @@ public class DocIndexMetadata {
             nullable,
             position,
             oid,
+            isDropped,
             defaultExpression,
             tree,
             precision,
@@ -473,6 +477,8 @@ public class DocIndexMetadata {
             // Jackson optimizes writes of small long values as stores them as ints:
             long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
 
+            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
+
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
@@ -482,6 +488,7 @@ public class DocIndexMetadata {
                 addGeoReference(
                     position,
                     oid,
+                    isDropped,
                     newIdent,
                     defaultExpression,
                     geoTree,
@@ -495,7 +502,8 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, oid, newIdent, columnDataType, defaultExpression, columnPolicy, IndexType.NONE, nullable, hasDocValues);
+                add(position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                    columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -520,6 +528,7 @@ public class DocIndexMetadata {
                             hasDocValues,
                             position,
                             oid,
+                            isDropped,
                             defaultExpression
                         ));
                     }
@@ -535,7 +544,8 @@ public class DocIndexMetadata {
                             .sources(sources);
                     }
                 } else {
-                    add(position, oid, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
+                    add(position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                        ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
         }

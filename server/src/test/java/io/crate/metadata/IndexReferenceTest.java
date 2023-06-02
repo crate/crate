@@ -49,6 +49,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
         IndexReference indexReferenceInfo = new IndexReference(
             2,
             123,
+            true,
             indexReferenceIdent,
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 

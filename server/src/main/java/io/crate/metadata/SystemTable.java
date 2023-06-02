@@ -295,6 +295,7 @@ public final class SystemTable<T> implements TableInfo {
                         false,
                         position,
                         COLUMN_OID_UNASSIGNED, // No oid for system tables
+                        false, // Columns cannot be dropped from system tables
                         null
                     )
                 );

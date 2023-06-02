@@ -21,7 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.execution.ddl.tables.MappingUtil.*;
+import static io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static io.crate.execution.ddl.tables.MappingUtil.mergeConstraints;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;

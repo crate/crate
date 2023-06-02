@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -130,7 +131,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             true,
             false,
             1,
-            0,
+            COLUMN_OID_UNASSIGNED,
+            false,
             null
         );
 

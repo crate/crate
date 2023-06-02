@@ -129,7 +129,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            111,
+            false,
             null);
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
@@ -140,7 +141,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            111,
+            false,
             null
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
@@ -179,7 +181,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            111,
+            false,
             null);
         SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
@@ -190,7 +193,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            112,
+            false,
             null
         );
         SimpleReference countedObject = new SimpleReference(
@@ -202,7 +206,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            113,
+            false,
             null
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
@@ -311,7 +316,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            111,
+            false,
             null);
         SimpleReference notNullGrandChild2 = new SimpleReference(
             new ReferenceIdent(
@@ -324,7 +330,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            112,
+            false,
             null);
         SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
@@ -338,7 +345,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            113,
+            false,
             null
         );
         SimpleReference notNullImmediateChild = new SimpleReference(
@@ -350,7 +358,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            114,
+            false,
             null);
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
@@ -364,7 +373,8 @@ public class CountAggregationTest extends AggregationTestCase {
             true,
             true,
             0,
-            0,
+            115,
+            false,
             null
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
