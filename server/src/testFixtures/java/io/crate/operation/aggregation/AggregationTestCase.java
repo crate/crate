@@ -322,6 +322,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     i + 1,
                     COLUMN_OID_UNASSIGNED,
+                    false,
                     null
                 )
             );
@@ -628,6 +629,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     i + 1,
                     COLUMN_OID_UNASSIGNED,
+                    false,
                     null)
             );
         }
