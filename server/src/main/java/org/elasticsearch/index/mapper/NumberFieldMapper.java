@@ -75,6 +75,7 @@ public class NumberFieldMapper extends FieldMapper {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
@@ -398,11 +399,12 @@ public class NumberFieldMapper extends FieldMapper {
             String simpleName,
             int position,
             long columnOID,
+            boolean isDropped,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             CopyTo copyTo) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
