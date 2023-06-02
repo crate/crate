@@ -37,7 +37,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -384,9 +383,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("https://github.com/crate/crate/pull/14232/")
-    public void testCopyFromToPartitionedTableWithNullValue() {
-        // TODO: similar insert from subquery is flaky on 5.3, clarify whether it's a bug or need some other assertions
+    @Repeat(iterations = 100)
+    public void testCopyFromToPartitionedTableWithNullValue() throws Exception {
         execute("CREATE TABLE times (" +
                 "   time timestamp with time zone" +
                 ") partitioned by (time)");
@@ -394,9 +392,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy times from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from_null_value.json"});
         refresh();
 
-        execute("select time from times");
-        assertThat(response.rowCount(), is(1L));
-        assertNull(response.rows()[0][0]);
+        assertBusy(() -> {
+            execute("select time from times");
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isNull();
+        });
     }
 
     @Test
