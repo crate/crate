@@ -533,6 +533,7 @@ public class AnalyzedTableElements<T> {
                 isNullable,
                 columnDefinition.position(),
                 COLUMN_OID_UNASSIGNED,
+                false,
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
@@ -553,6 +554,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.docValues(),
                 columnDefinition.position(),
                 COLUMN_OID_UNASSIGNED,
+                false,
                 (Symbol) columnDefinition.defaultExpression(),
                 List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
@@ -568,6 +570,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.docValues(),
                 columnDefinition.position(),
                 COLUMN_OID_UNASSIGNED,
+                false,
                 (Symbol) columnDefinition.defaultExpression()
             );
         }
@@ -619,6 +622,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.docValues(),
                 columnDefinition.position(),
                 COLUMN_OID_UNASSIGNED,
+                false,
                 null, // default expression is irrelevant for INDEX definition
                 sources,
                 columnDefinition.analyzer()
