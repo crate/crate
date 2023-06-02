@@ -199,6 +199,9 @@ public class TypeParsers {
             } else if (propName.equals("oid")) {
                 builder.columnOID(nodeLongValue(propNode, COLUMN_OID_UNASSIGNED));
                 iterator.remove();
+            } else if (propName.equals("dropped")) {
+                builder.setDropped(nodeBooleanValue(propNode));
+                iterator.remove();
             }
         }
     }

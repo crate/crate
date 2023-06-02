@@ -106,6 +106,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected FieldMapper(String simpleName,
                           int position,
                           long columnOID,
+                          boolean isDropped,
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
@@ -113,6 +114,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         super(simpleName);
         this.position = position;
         this.columnOID = columnOID;
+        this.isDropped = isDropped;
         this.defaultExpression = defaultExpression;
         if (mappedFieldType.name().isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
@@ -129,6 +131,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     public long columnOID() {
         return columnOID;
+    }
+
+    public boolean isDropped() {
+        return isDropped;
     }
 
     @Override
@@ -323,6 +329,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
         if (columnOID != COLUMN_OID_UNASSIGNED) {
             builder.field("oid", columnOID);
+        }
+        if (isDropped) {
+            builder.field("dropped", true);
         }
 
         copyTo.toXContent(builder);
