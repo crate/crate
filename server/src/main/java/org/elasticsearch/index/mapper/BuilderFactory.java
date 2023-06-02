@@ -54,6 +54,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 name,
                 innerFieldMapper.position(),
                 innerFieldMapper.columnOID(),
+                innerFieldMapper.isDropped(),
                 null,
                 innerFieldMapper.fieldType,
                 mappedFieldType,

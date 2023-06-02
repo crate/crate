@@ -159,6 +159,7 @@ public class TextFieldMapper extends FieldMapper {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 tft,
@@ -207,12 +208,13 @@ public class TextFieldMapper extends FieldMapper {
     protected TextFieldMapper(String simpleName,
                               int position,
                               long columnOID,
+                              boolean isDropped,
                               String defaultExpression,
                               FieldType fieldType,
                               TextFieldType mappedFieldType,
                               CopyTo copyTo,
                               List<String> sources) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert mappedFieldType.hasDocValues() == false;
         this.sources = sources;
     }

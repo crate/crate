@@ -20,6 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 
@@ -133,6 +134,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 ft,
@@ -195,6 +197,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if ("oid".equals(fieldName)) {
                     builder.columnOID(nodeLongValue(fieldNode));
+                    iterator.remove();
+                } else if ("dropped".equals(fieldName)) {
+                    builder.setDropped(nodeBooleanValue(fieldNode));
                     iterator.remove();
                 }
             }
@@ -306,11 +311,12 @@ public class GeoShapeFieldMapper extends FieldMapper {
     public GeoShapeFieldMapper(String simpleName,
                                int position,
                                long columnOID,
+                               boolean isDropped,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
                                CopyTo copyTo) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
@@ -379,6 +385,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
         }
         if (columnOID != COLUMN_OID_UNASSIGNED) {
             builder.field("oid", columnOID);
+        }
+        if (isDropped) {
+            builder.field("dropped", true);
         }
         if (fieldType().treeLevels() != 0) {
             builder.field(Names.TREE_LEVELS, fieldType().treeLevels());

@@ -99,6 +99,7 @@ public class DateFieldMapper extends FieldMapper {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 ft,
@@ -163,12 +164,13 @@ public class DateFieldMapper extends FieldMapper {
             String simpleName,
             int position,
             long columnOID,
+            boolean isDropped,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             Boolean ignoreTimezone,
             CopyTo copyTo) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
         this.ignoreTimezone = ignoreTimezone;
     }
 
