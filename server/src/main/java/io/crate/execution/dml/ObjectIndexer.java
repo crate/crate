@@ -201,6 +201,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 storageSupport.docValuesDefault(),
                 position,
                 COLUMN_OID_UNASSIGNED,
+                false,
                 defaultExpression
             );
             position--;
