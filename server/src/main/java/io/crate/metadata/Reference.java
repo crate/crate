@@ -71,6 +71,8 @@ public interface Reference extends Symbol {
      */
     long oid();
 
+    boolean isDropped();
+
     boolean hasDocValues();
 
     @Nullable

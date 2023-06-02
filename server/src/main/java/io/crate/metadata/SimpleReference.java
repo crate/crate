@@ -57,6 +57,7 @@ public class SimpleReference implements Reference {
 
     protected final int position;
     protected final long oid;
+    protected final boolean isDropped;
 
     protected final ReferenceIdent ident;
     protected final ColumnPolicy columnPolicy;
@@ -78,8 +79,10 @@ public class SimpleReference implements Reference {
         }
         if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
             oid = in.readLong();
+            isDropped = in.readBoolean();
         } else {
             oid = COLUMN_OID_UNASSIGNED;
+            isDropped = false;
         }
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
@@ -110,6 +113,7 @@ public class SimpleReference implements Reference {
              false,
              position,
              COLUMN_OID_UNASSIGNED,
+             false,
              defaultExpression);
     }
 
@@ -122,6 +126,7 @@ public class SimpleReference implements Reference {
                            boolean hasDocValues,
                            int position,
                            long oid,
+                           boolean isDropped,
                            @Nullable Symbol defaultExpression) {
         this.position = position;
         this.ident = ident;
@@ -133,6 +138,7 @@ public class SimpleReference implements Reference {
         this.hasDocValues = hasDocValues;
         this.defaultExpression = defaultExpression;
         this.oid = oid;
+        this.isDropped = isDropped;
     }
 
     /**
@@ -150,6 +156,7 @@ public class SimpleReference implements Reference {
             hasDocValues,
             position,
             oid,
+            isDropped,
             defaultExpression
         );
     }
@@ -222,8 +229,14 @@ public class SimpleReference implements Reference {
         return position;
     }
 
+    @Override
     public long oid() {
         return oid;
+    }
+
+    @Override
+    public boolean isDropped() {
+        return isDropped;
     }
 
     @Nullable
@@ -245,6 +258,9 @@ public class SimpleReference implements Reference {
         mapping.put("position", position);
         if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
             mapping.put("oid", columnOidSupplier.nextOid());
+        }
+        if (isDropped) {
+            mapping.put("dropped", true);
         }
         if (indexType == IndexType.NONE && type.id() != ObjectType.ID) {
             mapping.put("index", false);
@@ -327,6 +343,7 @@ public class SimpleReference implements Reference {
         }
         if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
             out.writeLong(oid);
+            out.writeBoolean(isDropped);
         }
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
