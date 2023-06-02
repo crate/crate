@@ -24,6 +24,7 @@ package io.crate.execution.ddl.tables;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.Map;
@@ -76,7 +77,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 true,
                 true,
                 3,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null
             );
             List<Reference> columns = List.of(newColumn);
@@ -102,6 +104,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 newColumn.hasDocValues(),
                 newColumn.position(),
                 2,
+                false,
                 newColumn.defaultExpression()
             );
             assertThat(addedColumn).isEqualTo(newColumnWithOid);
@@ -131,7 +134,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 IndexType.PLAIN,
                 true,
                 2,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null,
                 null,
                 null,
@@ -147,7 +151,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 IndexType.PLAIN,
                 true,
                 3,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null,
                 null,
                 null,

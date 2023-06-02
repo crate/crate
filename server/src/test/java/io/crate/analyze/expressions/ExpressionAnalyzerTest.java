@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -445,15 +446,17 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzeArraySliceFunctionCall() {
         ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
-        SimpleReference arrayRef = new SimpleReference(arrayRefIdent,
-                                           RowGranularity.DOC,
-                                           DataTypes.INTEGER_ARRAY,
-                                           ColumnPolicy.DYNAMIC,
-                                           IndexType.PLAIN,
-                                           true,
-                                           true,
-                                           1,
-            0,
+        SimpleReference arrayRef = new SimpleReference(
+            arrayRefIdent,
+            RowGranularity.DOC,
+            DataTypes.INTEGER_ARRAY,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
+            1,
+            COLUMN_OID_UNASSIGNED,
+            false,
             null
         );
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();

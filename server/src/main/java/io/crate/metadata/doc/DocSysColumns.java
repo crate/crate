@@ -109,6 +109,7 @@ public class DocSysColumns {
                              false,
                              position,
                              COLUMN_OID_UNASSIGNED,
+                             false,
                              null
         );
     }

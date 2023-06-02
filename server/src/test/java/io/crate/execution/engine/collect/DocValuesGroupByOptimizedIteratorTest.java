@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -121,7 +122,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -140,7 +142,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null
             ),
             keyExpressions,
@@ -182,7 +185,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                0,
+                COLUMN_OID_UNASSIGNED,
+                false,
                 null)
             ),
             mock(DocTableInfo.class),
@@ -199,7 +203,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 1,
-                0,
+                111,
+                false,
                 null
             ),
             new SimpleReference(
@@ -211,7 +216,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 2,
-                0,
+                111,
+                false,
                 null
             )
         );
