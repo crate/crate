@@ -79,11 +79,13 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     ArrayMapper(String simpleName,
                 int position,
                 long columnOID,
+                boolean isDropped,
                 @Nullable String defaultExpression,
                 FieldType fieldType,
                 MappedFieldType defaultFieldType,
                 Mapper innerMapper) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, defaultFieldType, CopyTo.empty());
+        super(simpleName, position, columnOID, isDropped,
+              defaultExpression, fieldType, defaultFieldType, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 
@@ -118,6 +120,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 innerFieldType,
                 mappedFieldType,
