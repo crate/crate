@@ -392,6 +392,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             true,
             3,
             0,
+            false,
             null)));
     }
 
