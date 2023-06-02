@@ -22,7 +22,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,7 +63,8 @@ public class SourceIndexWriterProjectionSerializationTest {
             false,
             true,
             0,
-            0,
+            COLUMN_OID_UNASSIGNED,
+            false,
             Literal.of(Map.of("f", 10)
             )
         );
@@ -104,7 +106,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo((expected.failFast()));
+        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo(expected.failFast());
     }
 
     @Test
@@ -120,7 +122,8 @@ public class SourceIndexWriterProjectionSerializationTest {
             false,
             true,
             0,
-            0,
+            COLUMN_OID_UNASSIGNED,
+            false,
             Literal.of(Map.of("f", 10)
             )
         );
