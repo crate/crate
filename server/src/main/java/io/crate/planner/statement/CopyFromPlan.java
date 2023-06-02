@@ -29,6 +29,7 @@ import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSet
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -328,8 +329,11 @@ public final class CopyFromPlan implements Plan {
                     }
                 });
 
+            List<Reference> targetColsInCorrectOrder = new ArrayList<>(targetColumns);
+            Collections.sort(targetColsInCorrectOrder, Comparator.comparingInt(Reference::position));
+
             List<Reference> targetColsExclPartitionCols = new ArrayList<>();
-            for (Reference column : targetColumns) {
+            for (Reference column : targetColsInCorrectOrder) {
                 if (table.partitionedBy().contains(column.column())) {
                     continue;
                 }
@@ -361,7 +365,7 @@ public final class CopyFromPlan implements Plan {
                 table.ident(),
                 partitionIdent,
                 table.primaryKey(),
-                new ArrayList<>(targetColumns),
+                targetColsInCorrectOrder,
                 targetColsExclPartitionCols,
                 inputColumnsForReferences(targetColsExclPartitionCols, coalesceFunctionsByGenRef, sourceSymbols),
                 false, // Irrelevant for COPY FROM

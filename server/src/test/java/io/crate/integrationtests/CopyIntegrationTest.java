@@ -60,6 +60,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -895,6 +896,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void test_copy_excludes_partitioned_values_from_source() throws Exception {
         execute("create table tbl (x int, p int) partitioned by (p)");
 
@@ -931,14 +933,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 new Object[] { file.toPath().toUri().toString() }
             );
             execute("refresh table tbl2");
-            execute("SELECT* FROM tbl2");
-
-            // TODO: Add back _raw selection.
-            // Order of source fields is non-deterministic (x and o can be swapped)
-            // use LHM somewhere (figure out where) to deal with flakiness.
-            // Using parser.orderedMap in SourceParser doesn't help.
+            execute("SELECT _raw, * FROM tbl2");
             assertThat(response).hasRows(
-                "10| {p=1}"
+                "{\"x\":10,\"o\":{}}| 10| {p=1}"
             );
         }
     }
