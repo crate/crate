@@ -209,6 +209,7 @@ public final class UpdateAnalyzer {
                             targetCol.hasDocValues(),
                             targetCol.position(),
                             targetCol.oid(),
+                            targetCol.isDropped(),
                             targetCol.defaultExpression()
                         );
 

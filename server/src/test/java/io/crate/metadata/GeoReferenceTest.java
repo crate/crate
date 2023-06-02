@@ -45,7 +45,8 @@ public class GeoReferenceTest extends ESTestCase {
             IndexType.PLAIN,
             true,
             1,
-            0,
+            10,
+            true,
             null,
             "some_tree",
             "1m",
@@ -67,7 +68,8 @@ public class GeoReferenceTest extends ESTestCase {
             IndexType.PLAIN,
             false,
             2,
-            0,
+            10,
+            true,
             null,
             "some_tree",
             null,
@@ -80,6 +82,5 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo4).isEqualTo(geoReferenceInfo3);
-
     }
 }
