@@ -270,6 +270,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     hasDocValues,
                     position,
                     COLUMN_OID_UNASSIGNED,
+                    false,
                     defaultExpression,
                     sources,
                     analyzer == null ? (indexType == IndexType.PLAIN ? "keyword" : "standard") : analyzer
@@ -286,6 +287,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     nullable,
                     position,
                     COLUMN_OID_UNASSIGNED,
+                    false,
                     defaultExpression,
                     indexMethod,
                     (String) geoMap.get("precision"),
@@ -303,6 +305,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     hasDocValues,
                     position,
                     COLUMN_OID_UNASSIGNED,
+                    false,
                     defaultExpression
                 );
             }
