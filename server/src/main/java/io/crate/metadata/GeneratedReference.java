@@ -99,6 +99,7 @@ public class GeneratedReference implements Reference {
                     ref.hasDocValues(),
                     ref.position(),
                     ref.oid(),
+                    ref.isDropped(),
                     ref.defaultExpression()
                 );
                 simpleReference.writeTo(out);
@@ -225,6 +226,11 @@ public class GeneratedReference implements Reference {
     @Override
     public long oid() {
         return ref.oid();
+    }
+
+    @Override
+    public boolean isDropped() {
+        return false;
     }
 
     @Override
