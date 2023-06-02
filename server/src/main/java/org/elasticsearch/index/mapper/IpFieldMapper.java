@@ -67,6 +67,7 @@ public class IpFieldMapper extends FieldMapper {
                 name,
                 position,
                 columnOID,
+                isDropped,
                 defaultExpression,
                 fieldType,
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
@@ -109,11 +110,12 @@ public class IpFieldMapper extends FieldMapper {
             String simpleName,
             int position,
             long columnOID,
+            boolean isDropped,
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             CopyTo copyTo) {
-        super(simpleName, position, columnOID, defaultExpression, fieldType, mappedFieldType, copyTo);
+        super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override
