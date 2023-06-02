@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.Map;
 
@@ -55,12 +56,24 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference reference1 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType1,
+                                                         ColumnPolicy.IGNORED,
+                                                         IndexType.PLAIN,
+                                                         false,
+                                                         true,
                                                          1,
+                                                         111,
+                                                         true,
                                                          defaultExpression1);
         SimpleReference reference2 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType2,
+                                                         ColumnPolicy.IGNORED,
+                                                         IndexType.PLAIN,
+                                                         false,
+                                                         true,
                                                          1,
+                                                         111,
+                                                         true,
                                                          defaultExpression2);
         assertThat(reference1).isEqualTo(reference2);
     }
@@ -78,7 +91,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            0,
+            111,
+            true,
             Literal.of(Map.of("f", 10)
             )
         );
@@ -105,7 +119,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            0,
+            COLUMN_OID_UNASSIGNED,
+            false,
             Literal.of(Map.of("f", 10)
             )
         );
@@ -134,6 +149,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
+            .doesNotContainKey("dropped")
             .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
         Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
