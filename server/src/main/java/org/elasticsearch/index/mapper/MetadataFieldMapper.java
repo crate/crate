@@ -66,6 +66,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
             mappedFieldType.name(),
             NOT_TO_BE_POSITIONED,
             COLUMN_OID_UNASSIGNED,
+            false,
             null,
             fieldType,
             mappedFieldType,
