@@ -104,6 +104,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 storageSupport.docValuesDefault(),
                 position,
                 COLUMN_OID_UNASSIGNED,
+                false,
                 defaultExpression
             );
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
