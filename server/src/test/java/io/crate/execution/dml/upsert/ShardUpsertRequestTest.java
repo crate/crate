@@ -198,6 +198,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_2_0);
         request.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
