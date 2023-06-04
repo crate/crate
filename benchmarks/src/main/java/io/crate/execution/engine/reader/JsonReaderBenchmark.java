@@ -142,8 +142,7 @@ public class JsonReaderBenchmark {
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
             Collections.singletonList(fileUri),
-            inputs,
-            ctx.expressions(),
+            ctx,
             null,
             Map.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
@@ -154,6 +153,7 @@ public class JsonReaderBenchmark {
             CopyFromParserProperties.DEFAULT,
             JSON,
             Settings.EMPTY,
+            null,
             null);
 
         while (batchIterator.moveNext()) {

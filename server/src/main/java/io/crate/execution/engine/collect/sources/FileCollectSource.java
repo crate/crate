@@ -28,6 +28,8 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
@@ -45,12 +47,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.execution.dsl.projection.ProjectionType.COLUMN_INDEX_WRITER;
+import static io.crate.execution.dsl.projection.ProjectionType.COLUMN_INDEX_WRITER_RETURN_SUMMARY;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -83,12 +84,19 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
+        Projection projection = fileUriCollectPhase.projections()
+            .stream()
+            .filter(p -> p.projectionType() == COLUMN_INDEX_WRITER || p.projectionType() == COLUMN_INDEX_WRITER_RETURN_SUMMARY)
+            .findFirst().orElse(null);
+
+        assert projection != null : "COPY FROM must have exactly one ColumnIndexWriterProjection";
+        ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) projection;
+
         List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
         return CompletableFuture.completedFuture(
             FileReadingIterator.newInstance(
                 fileUris,
-                ctx.topLevelInputs(),
-                ctx.expressions(),
+                ctx,
                 fileUriCollectPhase.compression(),
                 fileInputFactoryMap,
                 fileUriCollectPhase.sharedStorage(),
@@ -98,6 +106,7 @@ public class FileCollectSource implements CollectSource {
                 fileUriCollectPhase.parserProperties(),
                 fileUriCollectPhase.inputFormat(),
                 fileUriCollectPhase.withClauseOptions(),
+                columnIndexWriterProjection,
                 threadPool.scheduler()
             ));
     }

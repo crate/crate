@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import org.jetbrains.annotations.Nullable;
@@ -429,10 +430,31 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbolsExclPartition().size());
-        for (Symbol symbol : projection.columnSymbolsExclPartition()) {
-            insertInputs.add(ctx.add(symbol));
-        }
+        Supplier<List<Input<?>>> insertInputsSupplier = () -> {
+            List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbolsExclPartition().size());
+            for (Symbol symbol : projection.columnSymbolsExclPartition()) {
+                // It's safe to call supplier multiple times,
+                // 'ctx.add' doesn't create new instance of RowCollectExpression as visitInputColumn caches them in map.
+                // Nevertheless, we adjust projection only once (after reading the header),
+                // so in the next commit a flag will be introduced to make supplier "cached"/lightweight to avoid creation of lists per call.
+                insertInputs.add(ctx.add(symbol));
+            }
+            return insertInputs;
+        };
+
+        Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier = () -> {
+            // ctx already contains CollectExpressions for partitionedByInputs.
+            // We create them non-lazily since we cannot dynamically add PARTITIONED BY columns.
+            for (Symbol symbol : projection.columnSymbolsExclPartition()) {
+                // It's safe to call supplier multiple times or after insertInputsSupplier call which also adds same symbols to the context.
+                // 'ctx.add' doesn't create new instance of RowCollectExpression as visitInputColumn caches them in map.
+                // Nevertheless, we adjust projection only once (after reading the header),
+                // so in the next commit a flag will be introduced to make supplier "cached"/lightweight to avoid creation of lists per call.
+                ctx.add(symbol);
+            }
+            return ctx.expressions();
+        };
+
         ClusterState state = clusterService.state();
         Settings tableSettings = TableSettingsResolver.get(state.metadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
@@ -469,9 +491,9 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.columnReferencesExclPartition(),
-            insertInputs,
-            ctx.expressions(),
+            () -> projection.columnReferencesExclPartition().toArray(new Reference[projection.columnReferencesExclPartition().size()]),
+            insertInputsSupplier,
+            expressionsSupplier,
             projection.isIgnoreDuplicateKeys(),
             projection.overwriteDuplicateKeys(),
             projection.failFast(),
@@ -513,7 +535,7 @@ public class ProjectionToProjectorVisitor
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
-            null,
+            ()-> null,
             projection.returnValues(),
             context.jobId,
             true

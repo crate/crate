@@ -113,7 +113,7 @@ public class ShardingUpsertExecutor
                            RowShardResolver rowShardResolver,
                            ItemFactory<ShardUpsertRequest.Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
-                           List<? extends CollectExpression<Row, ?>> expressions,
+                           Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
                            ElasticsearchClient elasticsearchClient,
@@ -138,7 +138,7 @@ public class ShardingUpsertExecutor
             clusterService,
             rowShardResolver,
             indexNameResolver,
-            expressions,
+            expressionsSupplier,
             itemFactory,
             autoCreateIndices,
             upsertResultContext);

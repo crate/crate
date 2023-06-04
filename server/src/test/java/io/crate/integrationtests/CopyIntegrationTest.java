@@ -133,7 +133,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void testCopyFromFileWithCSVOptionWithDynamicColumnCreation() {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0, column_policy = 'dynamic')");
@@ -276,7 +275,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
      */
     @UseJdbc(0)
     @Test
-    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void testCopyFromFileWithInvalidColumns() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards " +
                 "with (number_of_replicas=0, column_policy='dynamic')");
@@ -573,7 +571,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore(value = "TODO: handle dynamic mapping updates")
+    @Ignore("https://github.com/crate/crate/issues/14251")
     public void testCopyFromNestedArrayRow() throws Exception {
         // assert that rows with nested arrays aren't imported
         execute("create table users (id int, " +
@@ -1153,7 +1151,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void test_copy_preserves_implied_top_level_column_order() throws IOException {
         execute(
             """

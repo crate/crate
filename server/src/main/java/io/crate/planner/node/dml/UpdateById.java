@@ -120,7 +120,7 @@ public final class UpdateById implements Plan {
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             assignments.targetNames(),
-            null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
+            () -> null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
             plannerContext.jobId(),
             false

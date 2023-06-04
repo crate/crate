@@ -119,7 +119,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @Ignore(value = "TODO: handle dynamic mapping updates")
     public void testCopyFromFileStrictTable() throws Exception {
         execute("create table quotes (id int primary key) with (column_policy='strict', number_of_replicas = 0)");
         ensureYellow();

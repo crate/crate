@@ -67,7 +67,7 @@ public class CSVLineParser {
             .with(csvSchema);
     }
 
-    public void parseHeader(String header) throws IOException {
+    public String[] parseHeader(String header) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
         iterator.readAll(headerKeyList);
         columnNamesArray = new String[headerKeyList.size()];
@@ -82,6 +82,7 @@ public class CSVLineParser {
         if (keySet.size() != headerKeyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
+        return columnNamesArray;
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {

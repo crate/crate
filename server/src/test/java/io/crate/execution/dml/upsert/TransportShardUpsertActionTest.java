@@ -39,9 +39,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -98,6 +100,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
+
+    private static final Supplier<List<Input<?>>> insertInputsSupplier = () -> List.of((Input<Integer>) () -> 1);
 
     private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, List.of("1395874800000")).asIndexName();
@@ -205,12 +209,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -227,12 +231,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -273,12 +277,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -295,12 +299,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null));
         request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
@@ -329,7 +333,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{dynamicRefConvertedToSimpleRef},
+            () -> new SimpleReference[]{dynamicRefConvertedToSimpleRef},
             null,
             UUID.randomUUID(),
             false
@@ -337,7 +341,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         request.add(1,
                     ShardUpsertRequest.Item.forInsert(
                         "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                        new Object[]{1}, // notice that it is not a 'long'
+                        insertInputsSupplier, // notice that it is not a 'long'
                         null));
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
@@ -358,17 +362,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 DuplicateKeyAction.UPDATE_OR_FAIL,
                 false,
                 null,
-                new SimpleReference[]{ID_REF},
+                () -> new SimpleReference[]{ID_REF},
                 null,
                 UUID.randomUUID(),
                 false
         ).newRequest(shardId);
 
-        var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
+        var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null);
         itemWithSource.source(new BytesArray("{}"));
         request.add(1, itemWithSource);
 
-        var itemWithoutSourceAndMarker = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
+        var itemWithoutSourceAndMarker = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, insertInputsSupplier, null);
         request.add(2, itemWithoutSourceAndMarker);
 
         reset(indexShard);

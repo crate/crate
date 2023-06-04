@@ -21,6 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
@@ -349,5 +350,17 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             outputs,
             returnValues
             );
+    }
+
+    /**
+     * Dynamic columns cannot be partition by columns
+     */
+    public void addNewColumns(List<Reference> newColumns) {
+        for (Reference ref: newColumns) {
+            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size(), ref.valueType()));
+            targetColsExclPartitionCols.add(ref);
+            allTargetColumns.add(ref);
+        }
+
     }
 }

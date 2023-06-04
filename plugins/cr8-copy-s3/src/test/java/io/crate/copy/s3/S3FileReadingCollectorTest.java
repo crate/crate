@@ -81,6 +81,7 @@ import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.TestingHelpers;
@@ -218,8 +219,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
         }
         return FileReadingIterator.newInstance(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             compression,
             Map.of(
                 S3FileInputFactory.NAME,
@@ -247,6 +247,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
+            null,
             THREAD_POOL.scheduler());
     }
 

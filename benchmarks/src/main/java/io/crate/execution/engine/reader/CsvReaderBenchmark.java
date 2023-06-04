@@ -142,8 +142,7 @@ public class CsvReaderBenchmark {
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
             Collections.singletonList(fileUri),
-            inputs,
-            ctx.expressions(),
+            ctx,
             null,
             Map.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
@@ -154,6 +153,7 @@ public class CsvReaderBenchmark {
             CopyFromParserProperties.DEFAULT,
             CSV,
             Settings.EMPTY,
+            null,
             null);
 
         while (batchIterator.moveNext()) {

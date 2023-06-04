@@ -26,7 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
+import io.crate.data.Input;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -79,24 +81,25 @@ public class ShardUpsertRequestTest extends ESTestCase {
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
-            missingAssignmentColumns,
+            () -> missingAssignmentColumns,
             null,
             jobId,
             false
             ).newRequest(shardId);
 
+        Supplier<List<Input<?>>> insertInputsSupplier = () -> List.of((Input<Integer>) () -> 99, (Input<String>) () -> "Marvin");
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            new Object[]{99, "Marvin"},
+            insertInputsSupplier,
             null
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            new Object[]{99, "Marvin"},
+            insertInputsSupplier,
             new Symbol[0]
         ));
         request.add(5, new ShardUpsertRequest.Item(
@@ -131,24 +134,26 @@ public class ShardUpsertRequestTest extends ESTestCase {
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
-            missingAssignmentColumns,
+            () -> missingAssignmentColumns,
             null,
             jobId,
             false
         ).newRequest(shardId);
 
+        Supplier<List<Input<?>>> insertInputsSupplier = () -> List.of((Input<Integer>) () -> 99, (Input<String>) () -> "Marvin");
+
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            new Object[]{99, "Marvin"},
+            insertInputsSupplier,
             null
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            new Object[]{99, "Marvin"},
+            insertInputsSupplier,
             new Symbol[0]
         ));
         request.add(5, new ShardUpsertRequest.Item(
@@ -183,17 +188,19 @@ public class ShardUpsertRequestTest extends ESTestCase {
                 DuplicateKeyAction.UPDATE_OR_FAIL,
                 false,
                 assignmentColumns,
-                missingAssignmentColumns,
+                () -> missingAssignmentColumns,
                 null,
                 jobId,
                 false
         ).newRequest(shardId);
 
+        Supplier<List<Input<?>>> insertInputsSupplier = () -> List.of((Input<Integer>) () -> 42, (Input<String>) () -> "Marvin");
+
         request.add(42, ShardUpsertRequest.Item.forInsert(
                 "42",
                 List.of(),
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                new Object[]{42, "Marvin"},
+                insertInputsSupplier,
                 new Symbol[0]
         ));
 

@@ -25,6 +25,7 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.expression.reference.file.LineContext;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
@@ -50,8 +51,9 @@ public final class LineProcessor {
         lineContext.currentUri(currentUri);
     }
 
-    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
-        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    @Nullable
+    String[] readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+        return lineParser.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
     public void process(String line) throws IOException {

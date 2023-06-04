@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
+import io.crate.metadata.*;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -60,17 +61,12 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class FileReadingCollectorTest extends ESTestCase {
@@ -244,8 +240,7 @@ public class FileReadingCollectorTest extends ESTestCase {
         }
         return FileReadingIterator.newInstance(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             compression,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
@@ -255,6 +250,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
+            null,
             THREAD_POOL.scheduler());
     }
 

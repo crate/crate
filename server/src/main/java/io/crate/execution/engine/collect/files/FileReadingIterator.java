@@ -32,6 +32,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -41,11 +42,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -56,7 +64,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
@@ -68,8 +75,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
     public static BatchIterator<Row> newInstance(Collection<String> fileUris,
-                                                 List<Input<?>> inputs,
-                                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
+                                                 InputFactory.Context<LineCollectorExpression<?>> ctx,
                                                  String compression,
                                                  Map<String, FileInputFactory> fileInputFactories,
                                                  Boolean shared,
@@ -79,11 +85,11 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
                                                  Settings withClauseOptions,
+                                                 ColumnIndexWriterProjection projection,
                                                  ScheduledExecutorService scheduler) {
         return new FileReadingIterator(
             fileUris,
-            inputs,
-            collectorExpressions,
+            ctx,
             compression,
             fileInputFactories,
             shared,
@@ -93,6 +99,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             parserProperties,
             inputFormat,
             withClauseOptions,
+            projection,
             scheduler);
     }
 
@@ -105,7 +112,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
     private final List<FileInput> fileInputs;
 
-    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
+    private Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
     private final List<String> targetColumns;
@@ -119,15 +126,17 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private long currentLineNumber;
     @VisibleForTesting
     long watermark;
-    private final Row row;
+    private InputFactory.Context<LineCollectorExpression<?>> ctx;
+    private final ColumnIndexWriterProjection projection;
+    private Row row;
     private LineProcessor lineProcessor;
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> backOffPolicy;
+    private boolean planAdjusted = false;
 
     @VisibleForTesting
     FileReadingIterator(Collection<String> fileUris,
-                        List<? extends Input<?>> inputs,
-                        Iterable<LineCollectorExpression<?>> collectorExpressions,
+                        InputFactory.Context<LineCollectorExpression<?>> ctx,
                         String compression,
                         Map<String, FileInputFactory> fileInputFactories,
                         Boolean shared,
@@ -137,15 +146,18 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         CopyFromParserProperties parserProperties,
                         FileUriCollectPhase.InputFormat inputFormat,
                         Settings withClauseOptions,
+                        ColumnIndexWriterProjection projection,
                         ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs);
+        this.projection = projection;
+        this.ctx = ctx;
+        this.row = new InputRow(ctx.topLevelInputs());
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
         this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
-        this.collectorExpressions = collectorExpressions;
+        this.collectorExpressions = ctx.expressions();
         this.targetColumns = targetColumns;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
@@ -252,7 +264,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        String[] allColumns = lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        if (targetColumns.isEmpty() && allColumns != null && planAdjusted == false) {
+            maybeAddNewColumns(allColumns);
+        }
     }
 
     private void closeCurrentReader() {
@@ -397,6 +412,28 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private void raiseIfKilled() {
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
+    /**
+     * TODO: Javadoc about DMU.
+     * Called only once even in case of multiple URI-s, as file structure should be homogeneous throughout all URI-s.
+     * // name must be in sqlFqn form if users want to dynamically add a new sub-column to existing object column.
+     */
+    private void maybeAddNewColumns(String[] allColumns) {
+        List<Reference> newColumns = Arrays.asList(allColumns)
+            .stream()
+            .filter(name -> !projection.allTargetColumns().stream().map(reference -> reference.column().sqlFqn()).collect(Collectors.toList()).contains(name))
+            .map(name -> new DynamicReference(new ReferenceIdent(projection.tableIdent(), name), RowGranularity.DOC, 0))
+            .collect(Collectors.toList());
+
+        if (newColumns.isEmpty() == false) {
+            ctx.add(newColumns);
+            this.row = new InputRow(ctx.topLevelInputs());
+            this.collectorExpressions = ctx.expressions();
+            lineProcessor.startCollect(collectorExpressions); // make sure new expressions gets lineContext
+            projection.addNewColumns(newColumns);
+            planAdjusted = true;
         }
     }
 }

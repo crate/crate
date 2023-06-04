@@ -25,10 +25,12 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 public class LineParser {
@@ -49,7 +51,16 @@ public class LineParser {
         JSON
     }
 
-    public void readFirstLine(URI currentUri,
+    /**
+     * if return null no need to update context
+     * @param currentUri
+     * @param inputFormat
+     * @param currentReader
+     * @return
+     * @throws IOException
+     */
+    @Nullable
+    public String[] readFirstLine(URI currentUri,
                               FileUriCollectPhase.InputFormat inputFormat,
                               BufferedReader currentReader) throws IOException {
         for (long i = 0; i < parserProperties.skipNumLines(); i++) {
@@ -57,12 +68,17 @@ public class LineParser {
         }
         if (isInputCsv(inputFormat, currentUri)) {
             csvLineParser = new CSVLineParser(parserProperties, targetColumns);
-            if (parserProperties.fileHeader()) {
-                csvLineParser.parseHeader(currentReader.readLine());
-            }
             inputType = InputType.CSV;
+            if (parserProperties.fileHeader()) {
+                return csvLineParser.parseHeader(currentReader.readLine());
+            } else {
+                // if CSV doesn't have header, we explicitly set target columns to table columns on planning stage,
+                // no need to update context and adjust plan.
+                return null;
+            }
         } else {
             inputType = InputType.JSON;
+            return null; // TODO: parse first JSON line as well to get info about new columns
         }
     }
 
