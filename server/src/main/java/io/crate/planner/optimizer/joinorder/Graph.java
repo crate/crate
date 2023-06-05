@@ -36,19 +36,19 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
-public class JoinGraph {
+public class Graph {
 
     private final LogicalPlan root;
     private final List<LogicalPlan> nodes;
-    private final Map<Integer, Set<Edge>> edges;
+    private final Map<Integer, Set<HyperEdge>> edges;
 
-    public JoinGraph(LogicalPlan root, List<LogicalPlan> nodes, Map<Integer, Set<Edge>> edges) {
+    public Graph(LogicalPlan root, List<LogicalPlan> nodes, Map<Integer, Set<HyperEdge>> edges) {
         this.root = root;
         this.nodes = nodes;
         this.edges = edges;
     }
 
-    public JoinGraph joinWith(LogicalPlan root, JoinGraph other, Map<Integer, Set<Edge>> moreEdges) {
+    public Graph joinWith(LogicalPlan root, Graph other, Map<Integer, Set<HyperEdge>> moreEdges) {
         for (LogicalPlan node : other.nodes) {
             assert !edges.containsKey(node) : "Nodes can not be in both graphs";
         }
@@ -57,20 +57,20 @@ public class JoinGraph {
         newNodes.addAll(nodes);
         newNodes.addAll(other.nodes);
 
-        var newEdges = new HashMap<Integer, Set<Edge>>();
+        var newEdges = new HashMap<Integer, Set<HyperEdge>>();
         newEdges.putAll(edges);
         newEdges.putAll(other.edges);
         newEdges.putAll(moreEdges);
 
 
-        return new JoinGraph(root, newNodes, newEdges);
+        return new Graph(root, newNodes, newEdges);
     }
 
     public List<LogicalPlan> nodes() {
         return nodes;
     }
 
-    public Map<Integer, Set<Edge>> edges() {
+    public Map<Integer, Set<HyperEdge>> edges() {
         return edges;
     }
 
@@ -78,23 +78,27 @@ public class JoinGraph {
         return root;
     }
 
-    public static class Edge {
+    public static class HyperEdge {
         public final Set<Integer> from;
         public final Set<Integer> to;
 
-        public Edge(Set<Integer> left, Set<Integer> right) {
+        public HyperEdge(Set<Integer> left, Set<Integer> right) {
             this.from = left;
             this.to = right;
         }
+
+        boolean isSimple() {
+            return from.size() == 1 && to.size() == 1;
+        }
     }
 
-    public static JoinGraph create(LogicalPlan plan, Function<LogicalPlan, LogicalPlan> resolvePlan) {
+    public static Graph create(LogicalPlan plan, Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var visitor = new Visitor(resolvePlan);
         var context = new HashMap<Symbol, LogicalPlan>();
         return plan.accept(visitor, context);
     }
 
-    private static class Visitor extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
+    private static class Visitor extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, Graph> {
 
         private final Function<LogicalPlan, LogicalPlan> resolvePlan;
 
@@ -103,24 +107,24 @@ public class JoinGraph {
         }
 
         @Override
-        public JoinGraph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
+        public Graph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
             return super.visitPlan(logicalPlan, context);
         }
 
         @Override
-        public JoinGraph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
+        public Graph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
             var resolved = resolvePlan.apply(groupReference);
             return resolved.accept(this, context);
         }
 
         @Override
-        public JoinGraph visitHashJoin(HashJoin joinPlan, Map<Symbol, LogicalPlan> context) {
-            JoinGraph left = joinPlan.lhs().accept(this, context);
-            JoinGraph right = joinPlan.rhs().accept(this, context);
+        public Graph visitHashJoin(HashJoin joinPlan, Map<Symbol, LogicalPlan> context) {
+            Graph left = joinPlan.lhs().accept(this, context);
+            Graph right = joinPlan.rhs().accept(this, context);
 
             // find equi-join conditions such as `a.x = b.y` and create edges
             var split = QuerySplitter.split(joinPlan.joinCondition());
-            var edges = new HashMap<Integer, Set<Edge>>();
+            var edges = new HashMap<Integer, Set<HyperEdge>>();
             for (var entry : split.entrySet()) {
                 if (entry.getKey().size() == 2) {
                     if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
@@ -128,7 +132,7 @@ public class JoinGraph {
                         var b = f.arguments().get(1);
                         var from = context.get(a).id();
                         var to = context.get(b).id();
-                        edges.put(context.get(a).id(), Set.of(new Edge(Set.of(from), Set.of(to))));
+                        edges.put(context.get(a).id(), Set.of(new HyperEdge(Set.of(from), Set.of(to))));
                     }
                 }
             }
@@ -136,11 +140,11 @@ public class JoinGraph {
         }
 
         @Override
-        public JoinGraph visitCollect(Collect collect, Map<Symbol, LogicalPlan> context) {
+        public Graph visitCollect(Collect collect, Map<Symbol, LogicalPlan> context) {
             for (Symbol output : collect.outputs()) {
                 context.put(output, collect);
             }
-            return new JoinGraph(collect, List.of(collect), Map.of());
+            return new Graph(collect, List.of(collect), Map.of());
         }
     }
 

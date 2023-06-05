@@ -61,7 +61,7 @@ public class JoinGraphTest extends CrateDummyClusterServiceUnitTest {
 
         var joinCondition = e.asSymbol("a.x = b.y");
         var hashjoin = new HashJoin(3, lhs, rhs, joinCondition);
-        JoinGraph joinGraph = JoinGraph.create(hashjoin, Function.identity());
+        Graph joinGraph = Graph.create(hashjoin, Function.identity());
        assertThat(joinGraph.nodes()).containsExactly(lhs, rhs);
         var edges = joinGraph.edges().get(lhs.id());
         assertThat(edges).hasSize(1);
@@ -96,7 +96,7 @@ public class JoinGraphTest extends CrateDummyClusterServiceUnitTest {
 
         var firstJoin = new HashJoin(4, a, b, e.asSymbol("a.x = b.y"));
         var secondJoin = new HashJoin(5, firstJoin, c, e.asSymbol("b.y = c.z"));
-        JoinGraph joinGraph = JoinGraph.create(secondJoin, Function.identity());
+        Graph joinGraph = Graph.create(secondJoin, Function.identity());
         // [a]--[a.x = b.y]--[b]--[b.y = c.z]--[c]
         assertThat(joinGraph.nodes()).containsExactly(a, b, c);
         var edges = joinGraph.edges().get(a.id());
