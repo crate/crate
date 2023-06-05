@@ -69,6 +69,7 @@ import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
@@ -126,6 +127,7 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropCheckConstraint;
+import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
@@ -1302,6 +1304,19 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             visitOptionalContext(context.expr(), Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
+    public Node visitDropColumn(SqlBaseParser.DropColumnContext ctx) {
+        var columnDefinitions = Lists2.map(ctx.dropColumnDefinition(), x -> (TableElement<Expression>) visit(x));
+        return new AlterTableDropColumn((Table<?>) visit(ctx.alterTableDefinition()), columnDefinitions);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public Node visitDropColumnDefinition(SqlBaseParser.DropColumnDefinitionContext ctx) {
+        return new DropColumnDefinition(visit(ctx.subscriptSafe()), ctx.EXISTS() != null);
     }
 
     @Override
