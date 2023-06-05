@@ -26,6 +26,7 @@ Synopsis
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
+        | { DROP [ COLUMN ] [ IF EXISTS ] column_name } [, ... ]
         | OPEN
         | CLOSE
         | RENAME TO table_ident
@@ -172,6 +173,20 @@ expression <sql-literal-value>`.
   This can be a sub-column on an existing `OBJECT`.
 
 It's possible to add multiple columns at once.
+
+.. _sql-alter-table-drop-column:
+
+``DROP COLUMN``
+---------------
+
+Can be used to drop a column from a table.
+
+:``column_name``:
+  Name of the column which should be dropped.
+  This can be a sub-column of an `OBJECT`.
+
+It's possible to drop multiple columns at once.
+
 
 .. _sql-alter-table-open-close:
 
