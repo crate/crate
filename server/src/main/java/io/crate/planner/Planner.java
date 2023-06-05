@@ -494,12 +494,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
         ProfilingContext ctx = explainAnalyzedStatement.context();
         if (ctx == null) {
-            return new ExplainPlan(explainAnalyzedStatement.statement().accept(this, context), null);
+            return new ExplainPlan(explainAnalyzedStatement.statement().accept(this, context), explainAnalyzedStatement.showStats(), null);
         } else {
             Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
             Plan subPlan = explainAnalyzedStatement.statement().accept(this, context);
             ctx.stopTimerAndStoreDuration(timer);
-            return new ExplainPlan(subPlan, ctx);
+            return new ExplainPlan(subPlan, explainAnalyzedStatement.showStats(), ctx);
         }
     }
 

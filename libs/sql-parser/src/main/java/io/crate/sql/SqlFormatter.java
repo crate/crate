@@ -229,8 +229,10 @@ public final class SqlFormatter {
         @Override
         protected Void visitExplain(Explain node, Integer indent) {
             append(indent, "EXPLAIN");
-            if (node.isAnalyze()) {
+            if (node.mode() == Explain.Mode.ANALYZE) {
                 builder.append(" ANALYZE");
+            } else if (node.mode() == Explain.Mode.STATS) {
+                builder.append(" STATS");
             }
             return null;
         }

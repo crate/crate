@@ -89,10 +89,12 @@ public class ExplainPlan implements Plan {
     private final Plan subPlan;
     @Nullable
     private final ProfilingContext context;
+    private final boolean showStats;
 
-    public ExplainPlan(Plan subExecutionPlan, @Nullable ProfilingContext context) {
+    public ExplainPlan(Plan subExecutionPlan, boolean showStats, @Nullable ProfilingContext context) {
         this.subPlan = subExecutionPlan;
         this.context = context;
+        this.showStats = showStats;
     }
 
     public Plan subPlan() {
@@ -145,7 +147,7 @@ public class ExplainPlan implements Plan {
             }
         } else {
             if (subPlan instanceof LogicalPlan logicalPlan) {
-                var planAsString = printLogicalPlan(logicalPlan, plannerContext);
+                var planAsString = printLogicalPlan(logicalPlan, plannerContext, showStats);
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsString), SENTINEL), null);
             } else if (subPlan instanceof CopyFromPlan) {
                 BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
@@ -171,8 +173,13 @@ public class ExplainPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static String printLogicalPlan(LogicalPlan logicalPlan, PlannerContext plannerContext) {
-        PrintContext printContext = new PrintContext(plannerContext.planStats());
+    public static String printLogicalPlan(LogicalPlan logicalPlan, PlannerContext plannerContext, boolean showStats) {
+        final PrintContext printContext;
+        if (showStats) {
+             printContext = new PrintContext(plannerContext.planStats());
+        } else {
+             printContext = new PrintContext(null);
+        }
         var optimizedLogicalPlan = logicalPlan.accept(CAST_OPTIMIZER, plannerContext);
         optimizedLogicalPlan.print(printContext);
         return printContext.toString();

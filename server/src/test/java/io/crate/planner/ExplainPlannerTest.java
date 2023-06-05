@@ -124,12 +124,32 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.ts1 (ts TIMESTAMP)")
             .build();
 
-        e.updateTableStats(Map.of(new RelationName("doc", "ts1"), new Stats(20, 20, Map.of())));
-
-        ExplainPlan plan = e.plan("EXPLAIN Select * from ts1 UNION  SELECT * FROM ts1");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
+        ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), false);
         assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
+        );
+    }
+
+    @Test
+    public void test_explain_collect_plan() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.a (x int)")
+            .addTable("CREATE TABLE doc.b (x int)")
+            .build();
+
+        e.updateTableStats(Map.of(
+            new RelationName("doc", "a"), new Stats(100, 100, Map.of()),
+            new RelationName("doc", "b"), new Stats(100, 100, Map.of())
+        ));
+
+        ExplainPlan plan = e.plan("EXPLAIN COSTS SELECT * FROM a join b on a.x = b.x where a.x > 10");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), true);
+        assertThat(printedPlan).isEqualTo(
+        "Eval[x, x] (rows: 100, width: 200)\n" +
+        "  └ HashJoin[(x = x)] (rows: 100, width: 200)\n" +
+        "    ├ Collect[doc.b | [x] | true] (rows: 100, width: 100)\n" +
+        "    └ Collect[doc.a | [x] | (x > 10)] (rows: 33, width: 100)"
         );
     }
 }

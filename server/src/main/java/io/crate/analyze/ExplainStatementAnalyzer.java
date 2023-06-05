@@ -49,17 +49,20 @@ public class ExplainStatementAnalyzer {
 
         final AnalyzedStatement subStatement;
         ProfilingContext profilingContext;
-        if (node.isAnalyze()) {
+        boolean showStats = false;
+        if (node.mode() == Explain.Mode.ANALYZE) {
             profilingContext = new ProfilingContext(List.of());
             Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
-            subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
+        } else if (node.mode() == Explain.Mode.STATS) {
+            showStats = true;
+            profilingContext = null;
         } else {
             profilingContext = null;
-            subStatement = analyzer.analyzedStatement(statement, analysis);
         }
+        subStatement = analyzer.analyzedStatement(statement, analysis);
         String columnName = SqlFormatter.formatSql(node);
-        return new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);
+        return new ExplainAnalyzedStatement(columnName, subStatement, profilingContext, showStats);
     }
 
     private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<>() {

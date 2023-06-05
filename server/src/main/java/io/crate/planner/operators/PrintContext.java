@@ -38,7 +38,7 @@ public final class PrintContext {
     @Nullable
     private final PlanStats planStats;
 
-    public PrintContext(PlanStats planStats) {
+    public PrintContext(@Nullable PlanStats planStats) {
         this.planStats = planStats;
         sb = new StringBuilder();
     }
@@ -74,11 +74,14 @@ public final class PrintContext {
     }
 
     String stats(LogicalPlan logicalPlan) {
+        if (planStats == null) {
+            return "";
+        }
         var stats = planStats.get(logicalPlan);
         if (stats == Stats.EMPTY) {
             return "";
         }
-        return "(" + stats.numDocs() + ", " + stats.sizeInBytes() + ")";
+        return " (rows: " + stats.numDocs() + ", width: " + stats.sizeInBytes() + ")";
     }
 
     @Override

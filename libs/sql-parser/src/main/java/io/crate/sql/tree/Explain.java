@@ -27,20 +27,26 @@ import static java.util.Objects.requireNonNull;
 
 public class Explain extends Statement {
 
-    private final Statement statement;
-    private final boolean analyze;
+    public enum Mode {
+        ANALYZE,
+        STATS,
+        DEFAULT
+    }
 
-    public Explain(Statement statement, boolean analyze) {
+    private final Statement statement;
+    private final Mode mode;
+
+    public Explain(Statement statement, Mode mode) {
         this.statement = requireNonNull(statement, "statement is null");
-        this.analyze = analyze;
+        this.mode = mode;
     }
 
     public Statement getStatement() {
         return statement;
     }
 
-    public boolean isAnalyze() {
-        return analyze;
+    public Mode mode() {
+        return mode;
     }
 
     @Override
@@ -57,20 +63,20 @@ public class Explain extends Statement {
             return false;
         }
         Explain explain = (Explain) o;
-        return analyze == explain.analyze &&
+        return mode == explain.mode &&
                Objects.equals(statement, explain.statement);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(statement, analyze);
+        return Objects.hash(statement, mode);
     }
 
     @Override
     public String toString() {
         return "Explain{" +
                "statement=" + statement +
-               ", analyze=" + analyze +
+               ", mode=" + mode +
                '}';
     }
 }

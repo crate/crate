@@ -41,7 +41,7 @@ statement
     | START TRANSACTION (transactionMode (COMMA? transactionMode)*)?                 #startTransaction
     | COMMIT (WORK | TRANSACTION)?                                                   #commit
     | END (WORK | TRANSACTION)?                                                      #commit
-    | EXPLAIN (ANALYZE)? statement                                                   #explain
+    | EXPLAIN (ANALYZE | COSTS)? statement                                           #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation

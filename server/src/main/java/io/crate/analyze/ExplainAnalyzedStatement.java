@@ -43,8 +43,9 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final ProfilingContext context;
     private final List<Symbol> outputs;
     private final RelationName relationName;
+    private final boolean showStats;
 
-    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, @Nullable ProfilingContext context) {
+    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, @Nullable ProfilingContext context, boolean showStats) {
         relationName = new RelationName(null, "explain");
         ScopedSymbol field = new ScopedSymbol(
             relationName,
@@ -54,6 +55,11 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         this.statement = statement;
         this.context = context;
         this.outputs = List.of(field);
+        this.showStats = showStats;
+    }
+
+    public boolean showStats() {
+        return showStats;
     }
 
     @Override

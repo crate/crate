@@ -37,7 +37,7 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
     }
 
     private static String printPlan(LogicalPlan logicalPlan) {
-        var printContext = new PrintContext(new PlanStats(new TableStats()));
+        var printContext = new PrintContext(null);
         logicalPlan.print(printContext);
         return printContext.toString();
     }
