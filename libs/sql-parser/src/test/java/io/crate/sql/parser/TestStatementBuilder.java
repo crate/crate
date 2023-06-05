@@ -646,6 +646,17 @@ public class TestStatementBuilder {
         printStatement("alter table t add column foo['x'] integer");
         printStatement("alter table t add column foo['x']['y'] object as (z integer)");
 
+        printStatement("alter table t drop foo");
+        printStatement("alter table t drop column foo");
+        printStatement("alter table t drop if exists foo");
+        printStatement("alter table t drop column if exists foo");
+        printStatement("alter table t drop column if exists foo, drop if exists bar");
+        printStatement("alter table t drop column if exists foo");
+        printStatement("alter table t drop foo, drop column if exists bar");
+
+        printStatement("alter table t drop column foo['x']");
+        printStatement("alter table t drop if exists foo['x']['y']");
+
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
     }
@@ -1961,6 +1972,16 @@ public class TestStatementBuilder {
         printStatement("WITH r AS (SELECT * FROM t1)," +
             " s AS (WITH r AS (SELECT * FROM t2) SELECT * FROM r)\n" +
             "SELECT * FROM t2, r");
+    }
+
+    @Test
+    public void test_add_column_drop_column_not_supported_in_the_same_stmt() {
+        assertThatThrownBy(() -> printStatement("alter table t add column a int drop column a"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:32: mismatched input 'drop' expecting {<EOF>, ';'}");
+        assertThatThrownBy(() -> printStatement("alter table t drop column a, add column a int"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
     private static void printStatement(String sql) {
