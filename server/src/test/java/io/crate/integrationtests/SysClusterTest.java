@@ -60,7 +60,7 @@ public class SysClusterTest extends IntegTestCase {
 
     @Test
     public void testExplainSysCluster() throws Exception {
-        execute("explain select * from sys.cluster limit 2");
+        execute("explain (costs false) select * from sys.cluster limit 2");
         assertThat(response.rowCount(), is(1L));
         assertThat(
             printedTable(response.rows()),

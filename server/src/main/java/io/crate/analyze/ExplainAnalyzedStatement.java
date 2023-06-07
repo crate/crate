@@ -43,17 +43,24 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final ProfilingContext context;
     private final List<Symbol> outputs;
     private final RelationName relationName;
+    private final boolean showCosts;
+    private static final String COLUMN_NAME = "QUERY PLAN";
 
-    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, @Nullable ProfilingContext context) {
+    ExplainAnalyzedStatement(AnalyzedStatement statement, @Nullable ProfilingContext context, boolean showCosts) {
         relationName = new RelationName(null, "explain");
         ScopedSymbol field = new ScopedSymbol(
             relationName,
-            new ColumnIdent(columnName),
+            new ColumnIdent(COLUMN_NAME),
             context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
         );
         this.statement = statement;
         this.context = context;
         this.outputs = List.of(field);
+        this.showCosts = showCosts;
+    }
+
+    public boolean showCosts() {
+        return showCosts;
     }
 
     @Override

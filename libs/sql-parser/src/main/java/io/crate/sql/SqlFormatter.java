@@ -231,7 +231,28 @@ public final class SqlFormatter {
             append(indent, "EXPLAIN");
             if (node.isAnalyze()) {
                 builder.append(" ANALYZE");
+            } else {
+                var options = node.options();
+                if (options.isEmpty() == false) {
+                    builder.append(" (");
+                    var entries = options.entrySet().iterator();
+                    while (entries.hasNext()) {
+                        var entry = entries.next();
+                        builder.append(entry.getKey().name());
+                        var value = entry.getValue();
+                        if (value != null) {
+                            builder.append(' ');
+                            builder.append(value);
+                        }
+                        if (entries.hasNext()) {
+                            builder.append(" , ");
+                        }
+                    }
+                    builder.append(')');
+                }
             }
+            builder.append(' ');
+            builder.append(formatSql(node.getStatement()));
             return null;
         }
 

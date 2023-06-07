@@ -291,5 +291,6 @@ public class Get implements LogicalPlan {
             .text(" | ")
             .text(query.toString())
             .text("]");
+        printStats(printContext);
     }
 }

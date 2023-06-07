@@ -209,7 +209,8 @@ public class Order extends ForwardingLogicalPlan {
         printContext
             .text("OrderBy[")
             .text(orderByExprRepr.toString())
-            .text("]")
-            .nest(source::print);
+            .text("]");
+        printStats(printContext);
+        printContext.nest(source::print);
     }
 }

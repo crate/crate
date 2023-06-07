@@ -176,8 +176,8 @@ public class NestedLoopJoin extends JoinPlan {
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
-        var lhStats = plannerContext.planStats().get(plannerContext.transactionContext(), lhs);
-        var rhStats = plannerContext.planStats().get(plannerContext.transactionContext(), rhs);
+        var lhStats = plannerContext.planStats().get(lhs);
+        var rhStats = plannerContext.planStats().get(rhs);
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
@@ -426,9 +426,9 @@ public class NestedLoopJoin extends JoinPlan {
                 .text(" | ")
                 .text(joinCondition.toString());
         }
-        printContext
-            .text("]")
-            .nest(Lists2.map(sources(), x -> x::print));
+        printContext.text("]");
+        printStats(printContext);
+        printContext.nest(Lists2.map(sources(), x -> x::print));
     }
 
     private static boolean isMergePhaseNeeded(Collection<String> executionNodes,

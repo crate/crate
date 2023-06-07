@@ -67,6 +67,7 @@ import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
+import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.FunctionCall;
@@ -435,8 +436,17 @@ public class TestStatementBuilder {
 
     @Test
     public void testExplainStmtBuilder() {
-        printStatement("explain drop table foo");
-        printStatement("explain analyze drop table foo");
+        printStatement("explain select * from foo");
+        printStatement("explain analyze select * from foo");
+        printStatement("explain (costs) select * from foo");
+        printStatement("explain (costs true) select * from foo");
+        printStatement("explain (costs false) select * from foo");
+        printStatement("explain (analyze) select * from foo");
+        printStatement("explain (analyze true) select * from foo");
+        printStatement("explain (analyze false) select * from foo");
+        printStatement("explain (costs, analyze) select * from foo");
+        printStatement("explain (costs true, analyze true) select * from foo");
+        printStatement("explain (costs false, analyze false) select * from foo");
     }
 
     @Test
@@ -1982,6 +1992,7 @@ public class TestStatementBuilder {
             statement instanceof DropSnapshot ||
             statement instanceof Update ||
             statement instanceof Insert ||
+            statement instanceof Explain ||
             statement instanceof SetSessionAuthorizationStatement ||
             statement instanceof Window ||
             statement instanceof CreatePublication ||

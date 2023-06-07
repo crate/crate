@@ -424,7 +424,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table doc.t (x int, y int)");
         execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
         execute("refresh table doc.t");
-        execute("explain select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
+        execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
         assertThat(response).hasRows(
             "Fetch[x, y, x, y]",
             "  └ Limit[3::bigint;0]",
@@ -1173,7 +1173,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                     WHERE
                         t2.id = 1 OR t2.id = 2
                 """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(response.rows()[0][0]).isEqualTo(
@@ -1221,7 +1221,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                         t2.id = 1
                         AND t3.id = 1
                 """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(response).hasRows(
@@ -1253,7 +1253,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 node_id,
                 shards.id
             """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
             Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]
@@ -1291,7 +1291,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 on x.name = y.name and x.name != 'constant-condition'
             """;
 
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
 
         assertThat(response.rows()[0][0]).isEqualTo(
             """
@@ -1342,7 +1342,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 WHERE doc.t3.reference = 'bazinga'
             """;
 
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
                 Eval[id, reference]
@@ -1396,7 +1396,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         // Ensure that the query is using the execution plan we want to test
         // This should prevent the test case from becoming invalid
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
                 """
                    OrderBy[z ASC x ASC]
@@ -1446,7 +1446,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             ORDER BY doc.j1.x;
             """;
 
-        execute("explain " + stmt);
+        execute("explain (costs false)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
                 Eval[x, x, x]
@@ -1487,7 +1487,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 ORDER BY doc.j1.x
             """;
 
-        execute("explain " + stmt);
+        execute("explain (costs false)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
                 OrderBy[x ASC]

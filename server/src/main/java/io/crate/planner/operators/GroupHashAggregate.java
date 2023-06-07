@@ -337,7 +337,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 .text(Lists2.joinOn(", ", aggregates, Symbol::toString));
         }
         printContext
-            .text("]")
-            .nest(source::print);
+            .text("]");
+        printStats(printContext);
+        printContext.nest(source::print);
     }
 }

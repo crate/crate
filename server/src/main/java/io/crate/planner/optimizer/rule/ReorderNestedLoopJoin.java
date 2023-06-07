@@ -55,8 +55,8 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
-        var lhStats = planStats.get(txnCtx, nestedLoop.lhs());
-        var rhStats = planStats.get(txnCtx, nestedLoop.rhs());
+        var lhStats = planStats.get(nestedLoop.lhs());
+        var rhStats = planStats.get(nestedLoop.rhs());
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (lhStats.numDocs() < rhStats.numDocs()) {

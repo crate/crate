@@ -75,7 +75,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             $(1, "Arthur")
         ));
         execute("refresh table doc.tbl");
-        execute("explain select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
+        execute("explain (costs false) select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
         assertThat(response).hasRows(
             "Rename[i, name] AS t",
             "  └ Fetch[ord AS i, name]",

@@ -224,8 +224,9 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             .text("Rename[")
             .text(Lists2.joinOn(", ", outputs, Symbol::toString))
             .text("] AS ")
-            .text(name.toString())
-            .nest(source::print);
+            .text(name.toString());
+        printStats(printContext);
+        printContext.nest(source::print);
     }
 
     @Override

@@ -1768,7 +1768,6 @@ public abstract class IntegTestCase extends ESTestCase {
         Planner planner = cluster().getInstance(Planner.class, nodeName);
         NodeContext nodeCtx = cluster().getInstance(NodeContext.class, nodeName);
         TableStats tableStats = cluster().getInstance(TableStats.class, nodeName);
-        PlanStats planStats = new PlanStats(nodeCtx, tableStats);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             User.CRATE_USER,
@@ -1786,7 +1785,7 @@ public abstract class IntegTestCase extends ESTestCase {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            planStats
+            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats)
         );
         Plan plan = planner.plan(
             analyzer.analyze(

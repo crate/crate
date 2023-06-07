@@ -566,7 +566,7 @@ public class LogicalPlanner {
         } catch (Exception e) {
             // This should really only happen if there are planner bugs,
             // so the additional costs of creating a more informative exception shouldn't matter.
-            PrintContext printContext = new PrintContext();
+            PrintContext printContext = new PrintContext(plannerContext.planStats());
             logicalPlan.print(printContext);
             IllegalArgumentException illegalArgumentException = new IllegalArgumentException(
                 String.format(

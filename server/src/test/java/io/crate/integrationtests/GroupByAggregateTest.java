@@ -1335,7 +1335,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into m.tbl (id) values (?)", ids);
         execute("refresh table m.tbl");
         execute("analyze");
-        execute("explain select distinct id from m.tbl limit 2");
+        execute("explain (costs false) select distinct id from m.tbl limit 2");
         assertThat(response).hasRows(
             "LimitDistinct[2::bigint;0 | [id]]",
             "  └ Collect[m.tbl | [id] | true]"
@@ -1373,7 +1373,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table doc.tbl");
 
 
-        execute("explain select name, count(x), count(x) from doc.tbl group by name");
+        execute("explain (costs false) select name, count(x), count(x) from doc.tbl group by name");
         assertThat(response).hasRows(
             "Eval[name, count(x), count(x)]",
             "  └ GroupHashAggregate[name | count(x)]",

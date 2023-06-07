@@ -51,8 +51,8 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        var lhStats = planStats.get(txnCtx, plan.lhs());
-        var rhStats = planStats.get(txnCtx, plan.rhs());
+        var lhStats = planStats.get(plan.lhs());
+        var rhStats = planStats.get(plan.rhs());
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.

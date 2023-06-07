@@ -41,7 +41,7 @@ statement
     | START TRANSACTION (transactionMode (COMMA? transactionMode)*)?                 #startTransaction
     | COMMIT (WORK | TRANSACTION)?                                                   #commit
     | END (WORK | TRANSACTION)?                                                      #commit
-    | EXPLAIN (ANALYZE)? statement                                                   #explain
+    | EXPLAIN (ANALYZE | explainOptions*) statement                                  #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation
@@ -697,6 +697,14 @@ genericProperties
 genericProperty
     : ident EQ expr
     ;
+
+explainOptions
+   : OPEN_ROUND_BRACKET (explainOption) (COMMA explainOption)* CLOSE_ROUND_BRACKET
+   ;
+
+explainOption
+   : (ANALYZE | COSTS) booleanLiteral?
+   ;
 
 matchPredicateIdents
     : matchPred=matchPredicateIdent

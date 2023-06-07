@@ -164,7 +164,7 @@ public class HashJoin extends JoinPlan {
         }
 
         List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
-        var lhStats = plannerContext.planStats().get(plannerContext.transactionContext(), lhs);
+        var lhStats = plannerContext.planStats().get(lhs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -282,11 +282,12 @@ public class HashJoin extends JoinPlan {
         printContext
             .text("HashJoin[")
             .text(joinCondition.toString())
-            .text("]")
-            .nest(
-                lhs::print,
-                rhs::print
-            );
+            .text("]");
+        printStats(printContext);
+        printContext.nest(
+            lhs::print,
+            rhs::print
+        );
     }
 
     private List<Symbol> setModuloDistribution(List<Symbol> joinSymbols,

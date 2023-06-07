@@ -1774,7 +1774,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
         execute("insert into doc.test (id, region_level_1, marker_type, is_auto) values ('1', '2', '3', false)");
         execute("refresh table doc.test");
-        execute("explain select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
+        execute("explain (costs false) select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
         assertThat(response).hasRows(
             "Get[doc.test | id | DocKeys{'1', '2', '3', false} | ((((id = '1') AND (region_level_1 = '2')) AND (marker_type = '3')) AND (is_auto = false))]"
         );
