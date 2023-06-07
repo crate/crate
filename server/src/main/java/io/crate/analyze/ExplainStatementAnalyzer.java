@@ -26,8 +26,6 @@ import java.util.List;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.profile.ProfilingContext;
-import io.crate.profile.Timer;
-import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.Explain;
@@ -47,19 +45,27 @@ public class ExplainStatementAnalyzer {
         Statement statement = node.getStatement();
         statement.accept(CHECK_VISITOR, null);
 
-        final AnalyzedStatement subStatement;
-        ProfilingContext profilingContext;
-        if (node.isAnalyze()) {
-            profilingContext = new ProfilingContext(List.of());
-            Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
-            subStatement = analyzer.analyzedStatement(statement, analysis);
-            profilingContext.stopTimerAndStoreDuration(timer);
-        } else {
-            profilingContext = null;
-            subStatement = analyzer.analyzedStatement(statement, analysis);
+        if (node.options().isEmpty()) {
+            // default case, no options, show costs
+            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true);
         }
-        String columnName = SqlFormatter.formatSql(node);
-        return new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);
+
+        var isCostsActivated = node.isOptionActivated(Explain.Option.COSTS);
+        var isAnalyzeActivated = node.isOptionActivated(Explain.Option.ANALYZE);
+
+        if (isCostsActivated && isAnalyzeActivated) {
+            throw new IllegalArgumentException("The ANALYZE and COSTS options are not allowed together");
+        } else if (isAnalyzeActivated) {
+            var profilingContext = new ProfilingContext(List.of());
+            var timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
+            var subStatement = analyzer.analyzedStatement(statement, analysis);
+            profilingContext.stopTimerAndStoreDuration(timer);
+            return new ExplainAnalyzedStatement(subStatement, profilingContext, false);
+        } else if (isCostsActivated) {
+            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, true);
+        } else {
+            return new ExplainAnalyzedStatement(analyzer.analyzedStatement(statement, analysis), null, false);
+        }
     }
 
     private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<>() {

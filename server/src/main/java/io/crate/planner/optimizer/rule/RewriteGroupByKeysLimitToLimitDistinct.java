@@ -88,7 +88,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             // because a regular GROUP BY would have to do at least the same amount of work in any case.
             return true;
         }
-        Stats groupHashAggregateStats = planStats.get(txnCtx, groupAggregate);
+        Stats groupHashAggregateStats = planStats.get(groupAggregate);
         var limitSymbol = limit.limit();
         if (limitSymbol instanceof Literal) {
             var limitVal = DataTypes.INTEGER.sanitizeValue(((Literal<?>) limitSymbol).value());
@@ -98,7 +98,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 return false;
             }
         }
-        long sourceRows = planStats.get(txnCtx, groupAggregate.source()).numDocs();
+        long sourceRows = planStats.get(groupAggregate.source()).numDocs();
         if (sourceRows == 0) {
             return false;
         }

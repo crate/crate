@@ -168,6 +168,7 @@ public final class TableFunction implements LogicalPlan {
             .text("] | ")
             .text(where.queryOrFallback().toString())
             .text("]");
+        printStats(printContext);
     }
 
     @Override

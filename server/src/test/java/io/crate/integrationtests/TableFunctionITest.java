@@ -190,7 +190,7 @@ public class TableFunctionITest extends IntegTestCase {
             FROM
                 (VALUES ('crate_4.3.1')) as tbl
             """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE) " + stmt);
         assertThat(printedTable(response.rows()), is(
             "Eval[unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')) AS version]\n" +
             "  └ ProjectSet[unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')), col1]\n" +

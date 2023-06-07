@@ -92,8 +92,9 @@ public class MultiPhase extends ForwardingLogicalPlan {
     @Override
     public void print(PrintContext printContext) {
         printContext
-            .text("MultiPhase")
-            .nest(source::print)
+            .text("MultiPhase");
+        printStats(printContext);
+        printContext.nest(source::print)
             .nest(Lists2.map(subQueries.keySet(), x -> x::print));
     }
 }

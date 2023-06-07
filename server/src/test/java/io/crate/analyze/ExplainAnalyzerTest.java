@@ -54,6 +54,12 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_cost_and_analyze_raises_errors() {
+        assertThatThrownBy(() -> e.analyze("explain (costs, analyze) select id from sys.cluster"))
+            .hasMessage("The ANALYZE and COSTS options are not allowed together");
+    }
+
+    @Test
     public void testAnalyzePropertyIsSetOnExplainAnalyze() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
         assertThat(stmt.context()).isNotNull();
@@ -62,7 +68,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzePropertyIsReflectedInColumnName() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select 1");
-        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN ANALYZE"));
+        assertThat(stmt.outputs()).satisfiesExactly(isField("QUERY PLAN"));
     }
 
     @Test
@@ -70,14 +76,14 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
         assertThat(stmt.statement()).isNotNull();
         assertThat(stmt.statement()).isExactlyInstanceOf(QueriedSelectRelation.class);
-        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN"));
+        assertThat(stmt.outputs()).satisfiesExactly(isField("QUERY PLAN"));
     }
 
     @Test
     public void testExplainCopyFrom() {
         ExplainAnalyzedStatement stmt = e.analyze("explain copy users from '/tmp/*' WITH (shared=True)");
         assertThat(stmt.statement()).isExactlyInstanceOf(AnalyzedCopyFrom.class);
-        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN"));
+        assertThat(stmt.outputs()).satisfiesExactly(isField("QUERY PLAN"));
     }
 
     @Test

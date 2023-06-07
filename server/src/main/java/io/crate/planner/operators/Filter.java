@@ -119,8 +119,9 @@ public final class Filter extends ForwardingLogicalPlan {
         printContext
             .text("Filter[")
             .text(query.toString())
-            .text("]")
-            .nest(source::print);
+            .text("]");
+        printStats(printContext);
+        printContext.nest(source::print);
     }
 
     @Override

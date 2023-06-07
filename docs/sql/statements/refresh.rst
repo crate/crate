@@ -75,11 +75,11 @@ These kind of filters will result in a primary key lookup. You can use the
     CREATE OK, 1 row affected  (... sec)
 
     cr> EXPLAIN SELECT * FROM pk_demo WHERE id = 1;
-    +-----------------------------------------------+
-    | EXPLAIN                                       |
-    +-----------------------------------------------+
-    | Get[doc.pk_demo | id | DocKeys{1} | (id = 1)] |
-    +-----------------------------------------------+
+    +--------------------------------------------------------+
+    | QUERY PLAN                                             |
+    +--------------------------------------------------------+
+    | Get[doc.pk_demo | id | DocKeys{1} | (id = 1)] (rows=1) |
+    +--------------------------------------------------------+
     EXPLAIN 1 row in set (... sec)
 
 
@@ -88,11 +88,11 @@ operator name for a primary key lookup. Compare this with the following
 output::
 
     cr> EXPLAIN SELECT * FROM pk_demo WHERE id > 1;
-    +----------------------------------------+
-    | EXPLAIN                                |
-    +----------------------------------------+
-    | Collect[doc.pk_demo | [id] | (id > 1)] |
-    +----------------------------------------+
+    +-------------------------------------------------------+
+    | QUERY PLAN                                            |
+    +-------------------------------------------------------+
+    | Collect[doc.pk_demo | [id] | (id > 1)] (rows=unknown) |
+    +-------------------------------------------------------+
     EXPLAIN 1 row in set (... sec)
 
 

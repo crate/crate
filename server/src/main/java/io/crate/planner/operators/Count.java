@@ -173,5 +173,6 @@ public class Count implements LogicalPlan {
             .text(" | ")
             .text(where.queryOrFallback().toString())
             .text("]");
+        printStats(printContext);
     }
 }

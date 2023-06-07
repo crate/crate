@@ -57,8 +57,9 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         super.setUp();
         Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         e = new SqlExpressions(sources);
-        planStats = new PlanStats(e.nodeCtx, new TableStats());
+        planStats = new PlanStats(e.nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
         tr1 = (AbstractTableRelation<?>) sources.get(T3.T1);
+
     }
 
     @Test

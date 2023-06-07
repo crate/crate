@@ -932,7 +932,31 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitExplain(SqlBaseParser.ExplainContext context) {
-        return new Explain((Statement) visit(context.statement()), context.ANALYZE() != null);
+        if (context.ANALYZE() != null) {
+            return new Explain((Statement) visit(context.statement()), true, Map.of(Explain.Option.ANALYZE, true));
+        } else if (context.explainOptions() == null) {
+            return new Explain((Statement) visit(context.statement()), false, Map.of(Explain.Option.COSTS, true));
+        } else {
+            var options = new LinkedHashMap<Explain.Option, Boolean>();
+            for (SqlBaseParser.ExplainOptionsContext explainOptions : context.explainOptions()) {
+                for (SqlBaseParser.ExplainOptionContext explainOptionContext : explainOptions.explainOption()) {
+                    if (explainOptionContext.COSTS() != null) {
+                        options.put(Explain.Option.COSTS, getBooleanOrNull(explainOptionContext));
+                    } else if (explainOptionContext.ANALYZE() != null) {
+                        options.put(Explain.Option.ANALYZE, getBooleanOrNull(explainOptionContext));
+                    }
+                }
+            }
+            return new Explain((Statement) visit(context.statement()), false, options);
+        }
+    }
+
+    private Boolean getBooleanOrNull(SqlBaseParser.ExplainOptionContext context) {
+        if (context.booleanLiteral() == null) {
+            return null;
+        } else {
+            return ((BooleanLiteral) visitBooleanLiteral(context.booleanLiteral())).getValue();
+        }
     }
 
     @Override

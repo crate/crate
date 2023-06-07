@@ -160,7 +160,7 @@ public class Session implements AutoCloseable {
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
     private final Runnable onClose;
-    private final PlanStats planStats;
+    private final TableStats tableStats;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
 
@@ -184,7 +184,7 @@ public class Session implements AutoCloseable {
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionSettings = sessionSettings;
-        this.planStats = new PlanStats(nodeCtx, tableStats);
+        this.tableStats = tableStats;
         this.parameterTypeExtractor = new ParameterTypeExtractor();
         this.onClose = onClose;
     }
@@ -226,7 +226,7 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            planStats
+            new PlanStats(nodeCtx, txnCtx, tableStats)
         );
         Plan plan;
         try {
@@ -280,7 +280,7 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            planStats
+            new PlanStats(nodeCtx, txnCtx, tableStats)
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -662,7 +662,7 @@ public class Session implements AutoCloseable {
             null,
             cursors,
             currentTransactionState,
-            planStats
+            new PlanStats(nodeCtx, txnCtx, tableStats)
         );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
@@ -750,7 +750,7 @@ public class Session implements AutoCloseable {
             params,
             cursors,
             currentTransactionState,
-            planStats
+            new PlanStats(nodeCtx, txnCtx, tableStats)
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();

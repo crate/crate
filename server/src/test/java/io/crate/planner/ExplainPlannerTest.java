@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,9 +39,11 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -73,6 +76,40 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
             assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isTrue();
+        }
+    }
+
+    @Test
+    public void testExplainCostsActivated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (COSTS true)" + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isTrue();
+        }
+    }
+
+    @Test
+    public void testExplainCostsActivated1() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (Analyze true, costs false)" + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isTrue();
+            assertThat(plan.showCosts()).isFalse();
+        }
+    }
+
+    @Test
+    public void testExplainCostsDeactivated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (COSTS false)" + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
+            assertThat(plan.showCosts()).isFalse();
         }
     }
 
@@ -83,6 +120,26 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
             assertThat(plan.doAnalyze()).isTrue();
+        }
+    }
+
+    @Test
+    public void testExplainAnalyzeAsOptionActivated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (ANALYZE true) " + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isTrue();
+        }
+    }
+
+    @Test
+    public void testExplainAnalyzeAsOptionDeactivated() {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = e.plan("EXPLAIN (ANALYZE false) " + statement);
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
         }
     }
 
@@ -121,10 +178,48 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE ts1 (ts TIMESTAMP)")
             .build();
 
-        ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
+        ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = 1662740986992");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
+        );
+    }
+
+    @Test
+    public void test_explain_costs_adds_estimated_rows_to_output() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE doc.a (x int)")
+            .addTable("CREATE TABLE doc.b (x int)")
+            .build();
+
+        e.updateTableStats(Map.of(
+            new RelationName("doc", "a"), new Stats(100, 100, Map.of()),
+            new RelationName("doc", "b"), new Stats(100, 100, Map.of())
+        ));
+
+        ExplainPlan plan = e.plan("EXPLAIN SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        assertThat(printedPlan).isEqualTo(
+            "HashAggregate[count(x)] (rows=1)\n" +
+            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
+            "    └ Collect[doc.b | [x] | true] (rows=100)"
+        );
+        plan = e.plan("EXPLAIN (COSTS TRUE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        assertThat(printedPlan).isEqualTo(
+            "HashAggregate[count(x)] (rows=1)\n" +
+            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
+            "    └ Collect[doc.b | [x] | true] (rows=100)"
+        );
+        plan = e.plan("EXPLAIN (COSTS FALSE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        assertThat(printedPlan).isEqualTo(
+            "HashAggregate[count(x)]\n" +
+            "  └ HashJoin[(x = x)]\n" +
+            "    ├ Collect[doc.a | [x] | true]\n" +
+            "    └ Collect[doc.b | [x] | true]"
         );
     }
 }

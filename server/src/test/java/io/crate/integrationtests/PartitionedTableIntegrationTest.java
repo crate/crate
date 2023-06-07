@@ -2371,7 +2371,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into doc.tbl (p, ordinal, name) values (1, 2, 'Trillian')");
         execute("refresh table doc.tbl");
 
-        execute("explain select p, name from doc.tbl order by ordinal limit 100");
+        execute("explain (costs false) select p, name from doc.tbl order by ordinal limit 100");
         assertThat(printedTable(response.rows()), is(
             "Eval[p, name]\n" +
             "  └ Fetch[p, name, ordinal]\n" +

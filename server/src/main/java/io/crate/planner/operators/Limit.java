@@ -164,8 +164,9 @@ public class Limit extends ForwardingLogicalPlan {
             .text(limit.toString())
             .text(";")
             .text(offset.toString())
-            .text("]")
-            .nest(source::print);
+            .text("]");
+        printStats(printContext);
+        printContext.nest(source::print);
     }
 
     static int limitAndOffset(int limit, int offset) {

@@ -60,7 +60,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
     public void prepare() throws Exception {
         sources = T3.sources(clusterService);
         sqlExpressions = new SqlExpressions(sources);
-        planStats = new PlanStats(sqlExpressions.nodeCtx, new TableStats());
+        planStats = new PlanStats(sqlExpressions.nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
     }
 
     @Test

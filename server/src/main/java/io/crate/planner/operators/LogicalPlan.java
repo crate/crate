@@ -42,6 +42,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.costs.PlanStats;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -220,7 +221,20 @@ public interface LogicalPlan extends Plan {
             .text(getClass().getSimpleName())
             .text("[")
             .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
-            .text("]")
-            .nest(Lists2.map(sources(), x -> x::print));
+            .text("]");
+        printStats(printContext);
+        printContext.nest(Lists2.map(sources(), x -> x::print));
+    }
+
+    default void printStats(PrintContext printContext) {
+        PlanStats planStats = printContext.planStats();
+        if (planStats != null) {
+            var stats = planStats.get(this);
+            if (stats.numDocs() == -1) {
+                printContext.text(" (rows=unknown)");
+            } else {
+                printContext.text(" (rows=" + stats.numDocs() + ")");
+            }
+        }
     }
 }

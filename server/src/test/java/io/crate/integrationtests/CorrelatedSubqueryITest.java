@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -57,7 +56,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @Test
     public void test_simple_correlated_subquery() {
-        execute("EXPLAIN SELECT 1, (SELECT t.mountain) FROM sys.summits t");
+        execute("EXPLAIN (COSTS FALSE) SELECT 1, (SELECT t.mountain) FROM sys.summits t");
 
         // This should use the correlated-join execution path;
         // If we later optimize this query, ensure there is a test for CorrelatedJoin execution
@@ -110,7 +109,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     @Test
     public void test_simple_correlated_subquery_with_order_by() {
         String statement = "SELECT 1, (SELECT t.mountain) FROM sys.summits t order by 2 asc limit 5";
-        execute("EXPLAIN " + statement);
+        execute("EXPLAIN (COSTS FALSE)" + statement);
 
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[1, (SELECT mountain FROM (empty_row))]\n" +
@@ -222,7 +221,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     @Test
     public void test_where_exists_with_correlated_subquery() {
         String stmt = "select x from generate_series(1, 2) as t (x) where exists (select t.x)";
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[x]\n" +
             "  └ Filter[EXISTS (SELECT x FROM (empty_row))]\n" +
@@ -244,7 +243,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     @Test
     public void test_can_use_correlated_subquery_in_where_clause() {
         String stmt = "SELECT mountain, region FROM sys.summits t where mountain = (SELECT t.mountain) ORDER BY height desc limit 3";
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[mountain, region]\n" +
             "  └ Limit[3::bigint;0]\n" +
@@ -309,7 +308,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             ORDER BY 1, 2 DESC
             LIMIT 3
             """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[table_name, column_name]\n" +
             "  └ Limit[3::bigint;0]\n" +
@@ -362,7 +361,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             ORDER BY 1, 2 DESC
             LIMIT 3
             """;
-        execute("EXPLAIN " + stmt);
+        execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[table_name, column_name]\n" +
             "  └ Limit[3::bigint;0]\n" +
@@ -404,7 +403,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("refresh table a, b");
         String stmt = "SELECT count(*) FROM a "
             + "WHERE EXISTS (SELECT 1 FROM b where a.f1 = b.f1 and a.f2 = b.f2 and b.f3 ='c') and a.f3 IN ('a','b','c')";
-        assertThat(execute("explain " + stmt)).hasRows(
+        assertThat(execute("explain (costs false)" + stmt)).hasRows(
             "HashAggregate[count(*)]",
             "  └ Filter[EXISTS (SELECT 1 FROM (doc.b))]",
             "    └ CorrelatedJoin[f1, f2, (SELECT 1 FROM (doc.b))]",

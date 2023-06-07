@@ -92,6 +92,11 @@ None
 Changes
 =======
 
+- Extended the :ref:`EXPLAIN <ref-explain>` statement output to include the
+  estimated row count in the output of the execution plan. The statement also
+  has now options for `ANALYZE` and `COSTS` to have better control on
+  the generated output plan.
+
 - Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
   :ref:`numeric data types <data-types-numeric>`,
   :ref:`timestamp <type-timestamp>` and

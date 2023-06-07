@@ -19,6 +19,12 @@ Synopsis
 ::
 
     EXPLAIN [ ANALYZE ] statement
+    EXPLAIN [ ( option [, ...] ) ] statement
+
+    where option is:
+
+        ANALYZE [ boolean ]
+        COSTS [ boolean ]
 
 Description
 ===========
@@ -27,8 +33,12 @@ The ``EXPLAIN`` command displays the execution plan that the planner generates
 for the supplied statement. The plan is returned as a nested object containing
 the plan tree.
 
-When issuing ``EXPLAIN ANALYZE`` the plan of the statement is executed and
-timings of the different phases of the plan are returned.
+When issuing ``EXPLAIN ANALYZE`` or ``EXPLAIN (ANALYZE TRUE)`` the plan of the
+statement is executed and timings of the different phases of the plan are returned.
+
+The ``COSTS`` option is by default enabled and can be disabled by issuing
+``EXPLAIN (COSTS FALSE)``. The output of the execution plan does then exclude
+the costs for each logical plan.
 
 .. NOTE::
 

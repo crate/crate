@@ -198,8 +198,9 @@ public class CorrelatedJoin implements LogicalPlan {
             .text(getClass().getSimpleName())
             .text("[")
             .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
-            .text("]")
-            .nest(Lists2.map(sources(), x -> x::print))
+            .text("]");
+        printStats(printContext);
+        printContext.nest(Lists2.map(sources(), x -> x::print))
             .nest(p -> {
                 p.text("SubPlan");
                 p.nest(subQueryPlan::print);

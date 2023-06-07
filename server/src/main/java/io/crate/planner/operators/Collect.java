@@ -412,5 +412,6 @@ public class Collect implements LogicalPlan {
             .text("] | ")
             .text(immutableWhere.queryOrFallback().toString())
             .text("]");
+        printStats(printContext);
     }
 }

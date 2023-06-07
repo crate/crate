@@ -26,13 +26,25 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.planner.optimizer.costs.PlanStats;
+
 public final class PrintContext {
 
     private final StringBuilder sb;
     private final ArrayList<String> prefixes = new ArrayList<>();
+    @Nullable
+    private final PlanStats planStats;
 
-    public PrintContext() {
+    public PrintContext(@Nullable PlanStats planStats) {
+        this.planStats = planStats;
         sb = new StringBuilder();
+    }
+
+    @Nullable
+    public PlanStats planStats() {
+        return planStats;
     }
 
     public PrintContext text(String s) {
