@@ -56,7 +56,7 @@ enterprise_crate = CrateNode(
 
 class JmxClient:
 
-    SJK_JAR_URL = "https://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=org.gridkit.jvmtool&a=sjk&v=LATEST"
+    SJK_JAR_URL = "https://repo1.maven.org/maven2/org/gridkit/jvmtool/sjk/0.21/sjk-0.21.jar"
 
     CACHE_DIR = os.environ.get(
         'XDG_CACHE_HOME',
