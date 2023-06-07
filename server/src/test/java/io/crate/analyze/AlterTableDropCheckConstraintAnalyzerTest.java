@@ -27,7 +27,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -36,7 +35,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private PlannerContext plannerContext;
 
     @Before
     public void prepare() throws IOException {
@@ -47,7 +45,6 @@ public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyCluster
                       "     constraint check_id_ge_zero check (id >= 0)" +
                       ")")
             .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
     }
 
 

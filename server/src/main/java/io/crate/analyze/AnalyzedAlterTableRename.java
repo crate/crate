@@ -51,11 +51,6 @@ public class AnalyzedAlterTableRename implements DDLStatement {
     }
 
     @Override
-    public boolean isWriteOperation() {
-        return true;
-    }
-
-    @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

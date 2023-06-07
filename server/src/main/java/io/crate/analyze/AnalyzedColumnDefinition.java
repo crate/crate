@@ -292,7 +292,8 @@ public class AnalyzedColumnDefinition<T> {
         this.dataType = DataTypes.of(typeName, parameters);
     }
 
-    public DataType<?> dataType() {
+    @SuppressWarnings("rawtypes")
+    public DataType dataType() {
         return this.dataType;
     }
 
