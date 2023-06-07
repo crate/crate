@@ -45,6 +45,7 @@ import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DropCheckConstraint;
+import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
@@ -207,6 +208,46 @@ public class TableElementsAnalyzer {
             }
 
             context.analyzedColumnDefinition = root;
+            return null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Void visitDropColumnDefinition(DropColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
+            DropColumnDefinition<T> dropColumnDefinition = (DropColumnDefinition<T>) node;
+            assert dropColumnDefinition.name() instanceof Literal : "column name is expected to be a literal already";
+            ColumnIdent column = ColumnIdent.fromPath(((Literal<?>) dropColumnDefinition.name()).value().toString());
+            context.analyzedColumnDefinition.name(column.name());
+
+            assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
+
+            final AnalyzedColumnDefinition<T> root = context.analyzedColumnDefinition;
+            if (!column.path().isEmpty()) {
+                AnalyzedColumnDefinition<T> parent = context.analyzedColumnDefinition;
+                AnalyzedColumnDefinition<T> leaf = parent;
+                for (String name : column.path()) {
+                    parent.dataType(ObjectType.NAME);
+                    // Check if parent is already defined.
+                    // If it is an array, set the collection type to array, or if it's an object keep the object column
+                    // policy.
+                    Reference parentRef = context.tableInfo.getReference(parent.ident());
+                    if (parentRef != null) {
+                        parent.position(parentRef.position());
+                        if (parentRef.valueType().id() == ArrayType.ID) {
+                            parent.collectionType(ArrayType.NAME);
+                        } else {
+                            parent.objectType(parentRef.columnPolicy());
+                        }
+                    }
+                    parent.markAsParentColumn();
+                    assert context.currentColumnPosition > 0 : "DROP COLUMN's column positions should be positive";
+                    leaf = new AnalyzedColumnDefinition<>(context.currentColumnPosition, parent);
+                    leaf.name(name);
+                    parent.addChild(leaf);
+                    parent = leaf;
+                }
+                context.analyzedColumnDefinition = leaf;
+            }
             return null;
         }
 
