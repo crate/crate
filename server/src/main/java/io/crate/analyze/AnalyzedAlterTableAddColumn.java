@@ -59,7 +59,7 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
      * These elements (or in concrete the expressions inside) MUST NOT be evaluated, only bound with parameters or
      * subquery result. Evaluating them would destroy the Symbol tree we want to serialize and store inside the table's
      * metadata in order to evaluate it on every write (generated expression) or read (default expression).
-     *
+     * <p>
      * Putting all together is done by the
      * {@link AnalyzedTableElements#finalizeAndValidate(RelationName, AnalyzedTableElements, AnalyzedTableElements)}
      * method which adds the serialized (printed) symbol tree of these expressions to the evaluated table elements.
