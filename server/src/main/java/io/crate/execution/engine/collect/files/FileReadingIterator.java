@@ -207,6 +207,14 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     return moveNext();
                 }
                 lineProcessor.process(line);
+                if (planAdjusted == false && lineProcessor.inputType() == LineParser.InputType.JSON) {
+                    // JSON has no header, so we try to adjust target columns during regular processing.
+                    // CSV has header, so adjustment happens in readFirstLine().
+                    // Target columns can be adjusted only once.
+                    String[] allColumns = lineProcessor.allColumns();
+                    maybeAddNewColumns(allColumns);
+                }
+
                 return true;
             } else if (currentInputUriIterator != null && currentInputUriIterator.hasNext()) {
                 advanceToNextUri(currentInput);

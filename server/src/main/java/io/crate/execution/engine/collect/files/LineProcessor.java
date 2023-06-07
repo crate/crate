@@ -46,6 +46,14 @@ public final class LineProcessor {
         }
     }
 
+    public LineParser.InputType inputType() {
+        return lineParser.inputType();
+    }
+
+    public String[] allColumns() {
+        return lineContext.sourceAsMap().keySet().toArray(new String[0]);
+    }
+
     void startWithUri(URI currentUri) {
         lineContext.resetCurrentLineNumber();
         lineContext.currentUri(currentUri);
@@ -79,4 +87,6 @@ public final class LineProcessor {
     public void setParsingFailure(String failure) {
         lineContext.setCurrentParsingFailure(failure);
     }
+
+
 }

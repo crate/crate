@@ -46,18 +46,18 @@ public class LineParser {
         this.targetColumns = targetColumns;
     }
 
-    private enum InputType {
+    public enum InputType {
         CSV,
         JSON
     }
 
+    public InputType inputType() {
+        return inputType;
+    }
+
     /**
-     * if return null no need to update context
-     * @param currentUri
-     * @param inputFormat
-     * @param currentReader
-     * @return
-     * @throws IOException
+     * @return all actual columns (including non-existing in the target table) so that new columns can be added to the target columns
+     * or NULL if no need to update target columns.
      */
     @Nullable
     public String[] readFirstLine(URI currentUri,
@@ -78,7 +78,7 @@ public class LineParser {
             }
         } else {
             inputType = InputType.JSON;
-            return null; // TODO: parse first JSON line as well to get info about new columns
+            return null; // JSON has no header, so we adjust target columns (only once) later during regular processing.
         }
     }
 

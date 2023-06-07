@@ -57,7 +57,7 @@ public class LineContext {
     }
 
     @Nullable
-    LinkedHashMap<String, Object> sourceAsMap() {
+    public LinkedHashMap<String, Object> sourceAsMap() {
         if (parsedSource == null) {
             if (rawSource != null) {
                 try {

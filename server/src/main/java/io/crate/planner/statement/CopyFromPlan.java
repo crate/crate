@@ -182,6 +182,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
+            // JSON behaves like CSV with no-header - we take all table columns.
             targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
         }
 
