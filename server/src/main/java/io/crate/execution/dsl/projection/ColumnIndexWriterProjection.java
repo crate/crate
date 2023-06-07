@@ -21,6 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -28,6 +29,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.planner.operators.EquiJoinDetector;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -353,11 +355,16 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     /**
-     * Dynamic columns cannot be partition by columns
+     * Adding all new columns to the projection.
+     * Need to take to account "shift" in indices of InputColumns, otherwise first columns will clash with partitioned columns
+     * as their indices are already taken by partitioned columns in
+     * {@link ProjectionToProjectorVisitor#visitColumnIndexWriterProjection}.
+     *
      */
     public void addNewColumns(List<Reference> newColumns) {
+        int partedColumnsCount = allTargetColumns.size() - targetColsExclPartitionCols.size();
         for (Reference ref: newColumns) {
-            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size(), ref.valueType()));
+            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size() + partedColumnsCount, ref.valueType()));
             targetColsExclPartitionCols.add(ref);
             allTargetColumns.add(ref);
         }
