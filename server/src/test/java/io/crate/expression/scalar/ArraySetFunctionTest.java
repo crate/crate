@@ -27,6 +27,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -148,5 +149,14 @@ public class ArraySetFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluateNull("array_set([1,2,3], [1], ['a'])"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast `'a'` of type `text` to type `integer`");
+    }
+
+    @Test
+    public void test_set_elements_of_object_array() {
+        assertEvaluate("array_set([{a=1},{a=2}], [1,2,3], [{b=1},{b=2},{b=3}])",
+                       List.of(Map.of("b", 1),
+                               Map.of("b", 2),
+                               Map.of("b", 3)));
+        assertEvaluate("array_set([{a=1},{c='c'}]['a'], [1,2], [100,200])", List.of(100, 200));
     }
 }

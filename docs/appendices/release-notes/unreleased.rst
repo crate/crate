@@ -183,6 +183,8 @@ Changes
 
 - Added :ref:`array_set <scalar-array_set>` scalar function.
 
+- Added support for updating arrays by elements.
+
 Fixes
 =====
 
