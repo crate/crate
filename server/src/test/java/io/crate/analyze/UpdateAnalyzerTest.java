@@ -377,21 +377,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUpdateArrayByElement() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Updating a single element of an array is not supported");
-        analyze("update users set friends[1] = 2");
-    }
-
-    @Test
-    public void test_update_array_of_objects_by_elements() {
-        assertThatThrownBy(
-            () -> analyze("update users set friends[1]['val1']['val2'] = true"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Updating a single element of an array is not supported");
-    }
-
-    @Test
     public void testWhereClauseObjectArrayField() throws Exception {
         expectedException.expect(UnsupportedFunctionException.class);
         expectedException.expectMessage("Unknown function: (doc.users.friends['id'] = 5)," +
@@ -624,6 +609,112 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Asserts.assertThat(stmt.outputs()).satisfiesExactly(
             isAlias("foo", isFunction("add", isReference("id"), isLiteral(1L))),
             isAlias("bar", isFunction("subtract")));
+    }
+
+    @Test
+    public void test_using_array_literal_as_a_left_side_of_an_assignment() {
+        assertThatThrownBy(() -> e.analyze("UPDATE users SET [1][1] = 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression [1][1] as a left side of an assignment");
+    }
+
+    @Test
+    public void test_update_object_columns_array_fields_by_element() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (o object as (a int[]))")
+            .build();
+        AnalyzedUpdateStatement stmt = e.analyze("update t set o['a'][1] = 10;");
+        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+            toCondition(isReference("o['a']", DataTypes.INTEGER_ARRAY)),
+            toCondition(isFunction("array_set",
+                                   isReference("o['a']"),
+                                   isFunction("_array", isLiteral(1)),
+                                   isFunction("_array", isLiteral(10)))));
+    }
+
+    @Test
+    public void test_update_array_of_objects_subarray_by_elements() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a array(object as (b int[])))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("update t set a['b'][1][1] = 10;"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Nested array access is not supported");
+        assertThatThrownBy(() -> e.analyze("update t set a[1][1]['b'] = 10;"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Nested array access is not supported");
+        assertThatThrownBy(() -> e.analyze("update t set a[1]['b'][1] = 10;"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Nested array access is not supported");
+
+        assertThatThrownBy(() -> e.analyze("update t set a['b'][1]::array(integer)[1] = 10;"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression CAST(\"a\"['b'][1] AS ARRAY(integer))[1] as a left side of an assignment");
+        assertThatThrownBy(() -> e.analyze("update t set a[1]['b']::array(integer)[1] = 10;"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression CAST(\"a\"[1]['b'] AS ARRAY(integer))[1] as a left side of an assignment");
+        assertThatThrownBy(() -> e.analyze("update t set a[1]::object['b'][1] = 10;"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use expression CAST(\"a\"[1] AS object)['b'][1] as a left side of an assignment");
+
+        assertThatThrownBy(() -> e.analyze("update t set a[1]['b'] = [10];"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Updating fields of object arrays is not supported");
+        assertThatThrownBy(() -> e.analyze("update t set a['b'][1] = [10];"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Updating fields of object arrays is not supported");
+
+        assertThatThrownBy(() -> e.analyze("update t set a['b'] = [[1]];"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Updating fields of object arrays is not supported");
+    }
+
+    @Test
+    public void test_update_array_of_strict_objects_by_elements_dynamically() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a array(object(strict)))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("update t set a[1] = {c=1}"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column a['c'] unknown");
+
+        assertThatThrownBy(() -> e.analyze("update t set a[1]['val1']['val2'] = true"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column a['val1']['val2'] unknown");
+    }
+
+    @Test
+    public void test_update_array_of_dynamic_objects_by_elements_dynamically() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a array(object(dynamic)))")
+            .build();
+
+        AnalyzedUpdateStatement stmt = e.analyze("update t set a[1] = {c=1}");
+        Asserts.assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
+            toCondition(isReference("a", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
+            toCondition(isFunction("array_set",
+                                   isReference("a"),
+                                   isFunction("_array", isLiteral(1)),
+                                   isFunction("_array", isLiteral(Map.of("c", 1))))));
+
+        assertThatThrownBy(() -> e.analyze("update t set a[1]['val1']['val2'] = true"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Updating fields of object arrays is not supported");
+    }
+
+    @Test
+    public void test_repeated_updates_to_the_same_array() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a int[])")
+            .build();
+        assertThatThrownBy(() -> e.analyze("update t set a = [0,0,0], a[1] = 1"))
+            .hasMessage("Target expression repeated: a")
+            .isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> e.analyze("update t set a[1] = 1, a = [0,0,0]"))
+            .hasMessage("Target expression repeated: a")
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     private List<Object[]> execute(Plan plan, Row params) throws Exception {

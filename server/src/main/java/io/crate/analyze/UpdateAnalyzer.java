@@ -21,10 +21,16 @@
 
 package io.crate.analyze;
 
+import static io.crate.expression.symbol.Symbols.unwrapReferenceFromCast;
+
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -41,22 +47,24 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.scalar.ArraySetFunction;
+import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.IntegerLiteral;
-import io.crate.sql.tree.LongLiteral;
-import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
+import io.crate.types.IntegerType;
 import io.crate.types.ObjectType;
 
 /**
@@ -64,8 +72,10 @@ import io.crate.types.ObjectType;
  */
 public final class UpdateAnalyzer {
 
-    private static final Predicate<Reference> IS_OBJECT_ARRAY =
-        input -> input.valueType() instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID;
+    private static final Predicate<Reference> IS_OBJECT_ARRAY = input ->
+        input != null &&
+        input.valueType() instanceof ArrayType<?> arrayType &&
+        arrayType.innerType().id() == ObjectType.ID;
 
     private final NodeContext nodeCtx;
     private final RelationAnalyzer relationAnalyzer;
@@ -159,70 +169,120 @@ public final class UpdateAnalyzer {
         assert assignments instanceof RandomAccess
             : "assignments should implement RandomAccess for indexed loop to avoid iterator allocations";
         TableInfo tableInfo = table.tableInfo();
+        ArraySetFunctionAllocator arraySetFunctionAllocator =
+            new ArraySetFunctionAllocator((func, args) -> sourceExprAnalyzer.allocateFunction(func, args, exprCtx));
         for (int i = 0; i < assignments.size(); i++) {
             Assignment<Expression> assignment = assignments.get(i);
-            AssignmentNameValidator.ensureNoArrayElementUpdate(assignment.columnName());
-
             Symbol target = normalizer.normalize(targetExprAnalyzer.convert(assignment.columnName(), exprCtx), txnCtx);
-            assert target instanceof Reference : "AstBuilder restricts left side of assignments to Columns/Subscripts";
-            Reference targetCol = (Reference) target;
-            if (hasMatchingParent(tableInfo, targetCol, IS_OBJECT_ARRAY)) {
-                // cannot update fields of object arrays
-                throw new IllegalArgumentException("Updating fields of object arrays is not supported");
-            }
+            if (target instanceof Reference targetCol) {
+                rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
 
-            Symbol source = ValueNormalizer.normalizeInputForReference(
-                normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
-                targetCol,
-                tableInfo,
-                s -> normalizer.normalize(s, txnCtx)
-            );
-            if (assignmentByTargetCol.put(targetCol, source) != null) {
-                throw new IllegalArgumentException("Target expression repeated: " + targetCol.column().sqlFqn());
+                Symbol source = ValueNormalizer.normalizeInputForReference(
+                    normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
+                    targetCol,
+                    tableInfo,
+                    s -> normalizer.normalize(s, txnCtx)
+                );
+
+                if (assignmentByTargetCol.put(targetCol, source) != null) {
+                    throw new IllegalArgumentException("Target expression repeated: " + targetCol.column().sqlFqn());
+                }
+                continue;
+            } else if (target instanceof Function function && SubscriptFunction.NAME.equals(function.name())) {
+                var args = function.arguments();
+                Symbol baseCol = args.get(0);
+                Symbol indexToUpdate = args.get(1);
+
+                if (baseCol instanceof Reference targetCol) {
+                    rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
+                    assert targetCol.valueType() instanceof ArrayType<?> : "targetCol should be an array type.";
+                    assert indexToUpdate.valueType() instanceof IntegerType : "indexToUpdate should be an integer type.";
+
+                    SimpleReference arrayElementRefForValueNormalization =
+                        new SimpleReference(
+                            targetCol.ident(),
+                            targetCol.granularity(),
+                            ((ArrayType<?>) targetCol.valueType()).innerType(),
+                            targetCol.columnPolicy(),
+                            targetCol.indexType(),
+                            targetCol.isNullable(),
+                            targetCol.hasDocValues(),
+                            targetCol.position(),
+                            targetCol.defaultExpression()
+                        );
+
+                    Symbol targetValue = ValueNormalizer.normalizeInputForReference(
+                        normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
+                        arrayElementRefForValueNormalization,
+                        tableInfo,
+                        s -> normalizer.normalize(s, txnCtx));
+
+                    arraySetFunctionAllocator.put(targetCol, indexToUpdate, targetValue);
+                    continue;
+                } else if (unwrapReferenceFromCast(baseCol) instanceof Reference targetCol) {
+                    rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
+                }
+            }
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "cannot use expression %s as a left side of an assignment",
+                    assignment.columnName()));
+        }
+        for (var e : arraySetFunctionAllocator.allocate().entrySet()) {
+            if (assignmentByTargetCol.put(e.getKey(), e.getValue()) != null) {
+                throw new IllegalArgumentException("Target expression repeated: " + e.getKey().column().sqlFqn());
             }
         }
         return assignmentByTargetCol;
     }
 
-    private static boolean hasMatchingParent(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
+    private static void rejectUpdatesToFieldsOfObjectArrays(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
         for (var parent : tableInfo.getParents(info.column())) {
             if (parentMatchPredicate.test(parent)) {
-                return true;
+                throw new IllegalArgumentException("Updating fields of object arrays is not supported");
             }
         }
-        return false;
     }
 
-    private static class AssignmentNameValidator extends AstVisitor<Void, Boolean> {
+    private static class ArraySetFunctionAllocator {
+        private final Map<Reference, Map<Symbol, Symbol>> mappings;
+        private final BiFunction<String, List<Symbol>, Symbol> allocateFunction;
 
-        private static final AssignmentNameValidator INSTANCE = new AssignmentNameValidator();
-
-        static void ensureNoArrayElementUpdate(Expression expression) {
-            expression.accept(INSTANCE, false);
+        public ArraySetFunctionAllocator(BiFunction<String, List<Symbol>, Symbol> allocateFunction) {
+            this.allocateFunction = allocateFunction;
+            this.mappings = new HashMap<>();
         }
 
-        @Override
-        protected Void visitSubscriptExpression(SubscriptExpression node, Boolean childOfSubscript) {
-            ensureNoArrayElementUpdate(node.base());
-            node.index().accept(this, true);
-            return super.visitSubscriptExpression(node, childOfSubscript);
-        }
-
-        private Void validateLiteral(Boolean childOfSubscript) {
-            if (childOfSubscript) {
-                throw new IllegalArgumentException("Updating a single element of an array is not supported");
+        public void put(Reference reference, Symbol index, Symbol value) {
+            var mapping = mappings.get(reference);
+            if (mapping != null) {
+                mapping.put(index, value);
+            } else {
+                mapping = new HashMap<>();
+                mapping.put(index, value);
+                mappings.put(reference, mapping);
             }
-            return null;
         }
 
-        @Override
-        protected Void visitLongLiteral(LongLiteral node, Boolean childOfSubscript) {
-            return validateLiteral(childOfSubscript);
-        }
-
-        @Override
-        protected Void visitIntegerLiteral(IntegerLiteral node, Boolean childOfSubscript) {
-            return validateLiteral(childOfSubscript);
+        public Map<Reference, Symbol> allocate() {
+            Map<Reference, Symbol> refToArraySetMap = new HashMap<>(mappings.size());
+            for (var e : mappings.entrySet()) {
+                Reference targetCol = e.getKey();
+                Map<Symbol, Symbol> mapping = e.getValue();
+                refToArraySetMap.put(
+                    targetCol,
+                    allocateFunction.apply(
+                        ArraySetFunction.NAME,
+                        List.of(
+                            targetCol,
+                            allocateFunction.apply(ArrayFunction.NAME, mapping.keySet().stream().toList()),
+                            allocateFunction.apply(ArrayFunction.NAME, mapping.values().stream().toList())
+                        )
+                    )
+                );
+            }
+            return refToArraySetMap;
         }
     }
 }

@@ -29,6 +29,7 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
@@ -1078,5 +1080,36 @@ public class UpdateIntegrationTest extends IntegTestCase {
                 "   PRIMARY KEY (\"id\")\n" +
                 ")"
             );
+    }
+
+    @Test
+    public void test_update_array_by_elements() {
+        execute("create table t (a int[], idx int, value int)");
+        execute("insert into t values ([1,2,3], 2, 10)");
+        refresh();
+        // equivalent to 'update t set a[1] = 11, a[1] = 7, a[2] = a[1]'
+        execute("update t set a[1] = value + 1, a[a[1]] = 7, a[a[1]+1] = a[1]");
+        refresh();
+        execute("select a from t");
+        // the second assignment overrides the first
+        // the third assignment should not be affected by the first two
+        assertThat(printedTable(response.rows())).isEqualTo("[7, 1, 3]\n");
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_update_object_array_by_elements_with_column_policies() {
+        execute("create table t (a array(object(dynamic)))");
+        execute("insert into t values ([{}])");
+        refresh();
+        execute("update t set a[1] = {c=1}");
+        refresh();
+        execute("select a['c'][1] from t");
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
+
+        execute("create table t2 (a array(object(strict)))");
+        assertThatThrownBy(() -> execute("update t2 set a[1] = {c=1}"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column a['c'] unknown");
     }
 }
