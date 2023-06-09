@@ -207,10 +207,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     return moveNext();
                 }
                 lineProcessor.process(line);
-                if (planAdjusted == false && lineProcessor.inputType() == LineParser.InputType.JSON) {
+                if (lineProcessor.inputType() == LineParser.InputType.JSON) {
                     // JSON has no header, so we try to adjust target columns during regular processing.
                     // CSV has header, so adjustment happens in readFirstLine().
-                    // Target columns can be adjusted only once.
                     String[] allColumns = lineProcessor.allColumns();
                     maybeAddNewColumns(allColumns);
                 }
@@ -424,9 +423,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     /**
-     * TODO: Javadoc about DMU.
-     * Called only once even in case of multiple URI-s, as file structure should be homogeneous throughout all URI-s.
-     * // name must be in sqlFqn form if users want to dynamically add a new sub-column to existing object column.
+     * FOR CSV: Called only once after parsing the header.
+     * FOR JSON: Called per-row as JSON entries might be non-homogeneous.
      */
     private void maybeAddNewColumns(String[] allColumns) {
         List<Reference> newColumns = Arrays.asList(allColumns)

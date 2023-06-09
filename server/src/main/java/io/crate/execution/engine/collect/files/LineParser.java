@@ -78,7 +78,7 @@ public class LineParser {
             }
         } else {
             inputType = InputType.JSON;
-            return null; // JSON has no header, so we adjust target columns (only once) later during regular processing.
+            return null; // JSON has no header, so we adjust target columns later during regular processing.
         }
     }
 

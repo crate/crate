@@ -482,6 +482,7 @@ public class InsertFromValues implements LogicalPlan {
             rowShardResolver,
             indexNameResolver,
             () -> collectContext.expressions(),
+            () -> writerProjection.columnReferencesExclPartition().toArray(new Reference[writerProjection.columnReferencesExclPartition().size()]),
             itemFactory,
             true
         );
@@ -620,7 +621,7 @@ public class InsertFromValues implements LogicalPlan {
                         throw e;
                     }
                 }
-                shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null);
+                shardedRequests.addWithLocation(itemAndRoutingAndSourceInfo.item(), shardLocation, null, null);
                 requestItemsIterator.remove();
             }
             if (requestItems.isEmpty()) {

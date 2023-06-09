@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.Reference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -66,11 +67,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Input<Long> lineNumberInput;
     private final UnsafeArrayRow spareRow = new UnsafeArrayRow();
     private Object[] spareCells;
+    private final Supplier<Reference[]> columnReferencesSupplier;
 
     public GroupRowsByShard(ClusterService clusterService,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                            Supplier<Reference[]> columnReferencesSupplier,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices,
                             UpsertResultContext upsertContext) {
@@ -78,6 +81,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
         this.expressionsSupplier = expressionsSupplier;
+        this.columnReferencesSupplier = columnReferencesSupplier;
         this.sourceInfoExpressions = upsertContext.getSourceInfoExpressions();
         this.itemFactory = itemFactory;
         this.itemFailureRecorder = upsertContext.getItemFailureRecorder();
@@ -91,12 +95,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                            Supplier<Reference[]> columnReferencesSupplier,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
              rowShardResolver,
              indexNameResolver,
              expressionsSupplier,
+             columnReferencesSupplier,
              itemFactory,
              autoCreateIndices,
              UpsertResultContext.forRowCount());
@@ -113,7 +119,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
         // To prevent that, this uses a spare row to trigger eager evaluation and copy/link the values
-        if (spareCells == null) {
+        if (spareCells == null || spareCells.length != row.numColumns()) {
             // all rows must have the same amount of columns
             spareCells = new Object[row.numColumns()];
             spareRow.cells(spareCells);
@@ -162,7 +168,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             if (shardLocation == null) {
                 shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
-                shardedRequests.add(item, shardLocation, rowSourceInfo);
+                shardedRequests.addWithLocation(item, shardLocation, rowSourceInfo, columnReferencesSupplier.get());
             }
             return item;
         } catch (CircuitBreakingException e) {
@@ -221,7 +227,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
+                requests.addWithLocation(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo, null);
                 it.remove();
             }
             if (items.isEmpty()) {

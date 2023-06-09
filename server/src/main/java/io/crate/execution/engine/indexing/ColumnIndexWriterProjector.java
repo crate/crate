@@ -142,6 +142,7 @@ public class ColumnIndexWriterProjector implements Projector {
             itemFactory,
             builder::newRequest,
             collectExpressionsSupplier,
+            columnReferencesSupplier,
             indexNameResolver,
             autoCreateIndices,
             elasticsearchClient,

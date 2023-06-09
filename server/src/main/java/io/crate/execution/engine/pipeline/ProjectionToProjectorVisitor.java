@@ -435,8 +435,6 @@ public class ProjectionToProjectorVisitor
             for (Symbol symbol : projection.columnSymbolsExclPartition()) {
                 // It's safe to call supplier multiple times,
                 // 'ctx.add' doesn't create new instance of RowCollectExpression as visitInputColumn caches them in map.
-                // Nevertheless, we adjust projection only once (after reading the header),
-                // so in the next commit a flag will be introduced to make supplier "cached"/lightweight to avoid creation of lists per call.
                 insertInputs.add(ctx.add(symbol));
             }
             return insertInputs;
@@ -448,8 +446,6 @@ public class ProjectionToProjectorVisitor
             for (Symbol symbol : projection.columnSymbolsExclPartition()) {
                 // It's safe to call supplier multiple times or after insertInputsSupplier call which also adds same symbols to the context.
                 // 'ctx.add' doesn't create new instance of RowCollectExpression as visitInputColumn caches them in map.
-                // Nevertheless, we adjust projection only once (after reading the header),
-                // so in the next commit a flag will be introduced to make supplier "cached"/lightweight to avoid creation of lists per call.
                 ctx.add(symbol);
             }
             return ctx.expressions();

@@ -275,7 +275,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
      */
     @UseJdbc(0)
     @Test
-    @Ignore(value = "https://github.com/crate/crate/issues/14249 and also update target columns per row")
+    @Ignore(value = "https://github.com/crate/crate/issues/14249")
     public void testCopyFromFileWithInvalidColumns() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards " +
                 "with (number_of_replicas=0, column_policy='dynamic')");
@@ -304,6 +304,33 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
         // will define integers as longs (no concrete type was specified so use long to be safe)
         assertThat(data.get("_valid"), is(4L));
+    }
+
+    @Test
+    public void test_json_non_homogeneous_adds_all_columns() throws Exception {
+        execute("create table foo (id integer primary key) clustered into 1 shards " +
+            "with (number_of_replicas=0, column_policy='dynamic')");
+        File newFile = folder.newFile();
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
+            writer.write("{\"id\":1, \"c1\":1}\n");
+            writer.write("{\"id\":2, \"c2\":2}\n");
+            writer.write("{\"id\":3, \"c3\":3}\n");
+            writer.write("{\"id\":4, \"c4\":4}\n");
+        }
+
+        execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
+        assertThat(response.rowCount()).isEqualTo(4L);
+        refresh();
+
+        execute("select * from foo order by id");
+
+        assertThat(response).hasRows(
+            "1| 1| NULL| NULL| NULL",
+            "2| NULL| 2| NULL| NULL",
+            "3| NULL| NULL| 3| NULL",
+            "4| NULL| NULL| NULL| 4"
+        );
     }
 
     @Test

@@ -27,12 +27,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.crate.data.Row;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
+
+import javax.annotation.Nullable;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Releasable, Accountable {
@@ -68,7 +78,10 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
-    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+    public void addWithLocation(TItem item,
+                                ShardLocation shardLocation,
+                                RowSourceInfo rowSourceInfo,
+                                @Nullable Reference[] targetColsExclPartitionCols) {
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
@@ -79,6 +92,15 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         }
         location++;
         req.add(location, item);
+
+        ShardUpsertRequest request = (ShardUpsertRequest) req;
+        if (request.insertColumns() != null && targetColsExclPartitionCols != null && request.insertColumns().length < targetColsExclPartitionCols.length) {
+            // This can happen only when importing non-homogenous JSON via COPY FROM.
+            // We adjust insert inputs and target references per row.
+            // However, we can have new inputs after request factory was called.
+            // Hence, after adding each item we try to update references to keep up with new json keys.
+            request.insertColumns(targetColsExclPartitionCols);
+        }
         rowSourceInfos.add(rowSourceInfo);
     }
 

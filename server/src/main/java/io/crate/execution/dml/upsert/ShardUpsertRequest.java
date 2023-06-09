@@ -234,6 +234,14 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         this.insertColumns = columns.toArray(new Reference[0]);
     }
 
+    /**
+     * Should be used when new columns are already given as array
+     * to avoid collection-array conversion.
+     */
+    public void insertColumns(Reference[] columns) {
+        this.insertColumns = columns;
+    }
+
     public boolean continueOnError() {
         return continueOnError;
     }

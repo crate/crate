@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.Reference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -114,6 +115,7 @@ public class ShardingUpsertExecutor
                            ItemFactory<ShardUpsertRequest.Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                           Supplier<Reference[]> columnReferencesSupplier,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
                            ElasticsearchClient elasticsearchClient,
@@ -139,6 +141,7 @@ public class ShardingUpsertExecutor
             rowShardResolver,
             indexNameResolver,
             expressionsSupplier,
+            columnReferencesSupplier,
             itemFactory,
             autoCreateIndices,
             upsertResultContext);
