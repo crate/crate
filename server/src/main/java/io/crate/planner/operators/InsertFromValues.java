@@ -98,7 +98,6 @@ import io.crate.execution.engine.indexing.ShardedRequests;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
 import io.crate.expression.InputFactory;
-import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;

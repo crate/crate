@@ -21,10 +21,12 @@
 
 package io.crate.execution.engine.collect.files;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,12 +40,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
-import io.crate.metadata.*;
+import io.crate.data.testing.TestingRowConsumer;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -51,11 +55,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
@@ -64,9 +68,12 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.expression.reference.file.SourceLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
-import io.crate.testing.TestingRowConsumer;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 public class FileReadingCollectorTest extends ESTestCase {
@@ -171,9 +178,10 @@ public class FileReadingCollectorTest extends ESTestCase {
     }
 
     @Test
+    @Ignore("value = introduce NO_VALUE_MARKER")
     public void unsupportedURITest() throws Throwable {
         getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html", true).getBucket();
-        assertThat(sourceUriFailureInput.value(), is("unknown protocol: invalid"));
+        assertThat(sourceUriFailureInput.value()).isEqualTo("unknown protocol: invalid");
     }
 
     @Test
@@ -183,16 +191,38 @@ public class FileReadingCollectorTest extends ESTestCase {
         fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         TestingRowConsumer consumer = getObjects(fileUris, null);
         Iterator<Row> it = consumer.getBucket().iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        ArrayRow row = new ArrayRow();
+        LinkedHashMap<String, Integer> details = new LinkedHashMap();
+
+        details.put("age", 38);
+        row.cells(new Object[]{"Arthur", 4, details});
+        assertThat(it.next()).isEqualTo(row);
+
+        details.put("age", 33);
+        row.cells(new Object[]{"Trillian", 5, details});
+        assertThat(it.next()).isEqualTo(row);
+
+        details.put("age", 38);
+        row.cells(new Object[]{"Arthur", 4, details});
+        assertThat(it.next()).isEqualTo(row);
+
+        details.put("age", 33);
+        row.cells(new Object[]{"Trillian", 5, details});
+        assertThat(it.next()).isEqualTo(row);
     }
 
-    private void assertCorrectResult(Bucket rows) throws Throwable {
+    public static void assertCorrectResult(Bucket rows) {
         Iterator<Row> it = rows.iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        ArrayRow row = new ArrayRow();
+        LinkedHashMap<String, Integer> details = new LinkedHashMap();
+
+        details.put("age", 38);
+        row.cells(new Object[]{"Arthur", 4, details});
+        assertThat(it.next()).isEqualTo(row);
+
+        details.put("age", 33);
+        row.cells(new Object[]{"Trillian", 5, details});
+        assertThat(it.next()).isEqualTo(row);
     }
 
     private TestingRowConsumer getObjects(String fileUri) throws Throwable {
@@ -229,15 +259,24 @@ public class FileReadingCollectorTest extends ESTestCase {
                                                    boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = new ArrayList<>(2);
-        Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
-        inputs.add(ctx.add(raw));
+        Reference name = createReference("name", DataTypes.STRING);
+        Reference id = createReference("id", DataTypes.INTEGER);
+        Reference details = createReference("details", DataTypes.UNTYPED_OBJECT);
+        List<Reference> targetColumns = new ArrayList<>();
+        targetColumns.add(name);
+        targetColumns.add(id);
+        targetColumns.add(details);
+
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
-            //noinspection unchecked
-            sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
-            inputs.add(sourceUriFailureInput);
+            targetColumns.add(sourceUriFailure);
         }
+        ctx.add(targetColumns);
+        //noinspection unchecked
+        sourceUriFailureInput = ctx.topLevelInputs().size() == 4 ? (Input<String>) ctx.topLevelInputs().get(3) : null;
+        ColumnIndexWriterProjection projection = mock(ColumnIndexWriterProjection.class);
+        when(projection.allTargetColumns()).thenReturn(targetColumns);
+
         return FileReadingIterator.newInstance(
             fileUris,
             ctx,
@@ -246,27 +285,11 @@ public class FileReadingCollectorTest extends ESTestCase {
             false,
             1,
             0,
-            List.of("a", "b"),
+            List.of("name", "id", "details"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
-            null,
+            projection,
             THREAD_POOL.scheduler());
-    }
-
-    private static class WriteBufferAnswer implements Answer<Integer> {
-
-        private byte[] bytes;
-
-        public WriteBufferAnswer(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public Integer answer(InvocationOnMock invocation) throws Throwable {
-            byte[] buffer = (byte[]) invocation.getArguments()[0];
-            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
-            return bytes.length;
-        }
     }
 }

@@ -531,7 +531,7 @@ public class ProjectionToProjectorVisitor
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
-            ()-> null,
+            () -> null,
             projection.returnValues(),
             context.jobId,
             true

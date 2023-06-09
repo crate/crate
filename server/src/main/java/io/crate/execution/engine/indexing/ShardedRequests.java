@@ -27,22 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.crate.data.Row;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Releasable, Accountable {

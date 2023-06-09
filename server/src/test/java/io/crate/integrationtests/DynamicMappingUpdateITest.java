@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

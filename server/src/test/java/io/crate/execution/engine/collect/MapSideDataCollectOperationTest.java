@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.execution.dsl.projection.ProjectionType.COLUMN_INDEX_WRITER;
+import static io.crate.execution.engine.collect.files.FileReadingCollectorTest.assertCorrectResult;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +38,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +56,6 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -78,17 +81,19 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
 
+        List<Reference> targetColumns = Arrays.asList(
+            createReference("name", DataTypes.STRING),
+            createReference("id", DataTypes.INTEGER),
+            createReference("details", DataTypes.UNTYPED_OBJECT)
+        );
         FileUriCollectPhase collectNode = new FileUriCollectPhase(
             UUID.randomUUID(),
             0,
             "test",
             Collections.singletonList("noop_id"),
             Literal.of(Paths.get(tmpFile.toURI()).toUri().toString()),
-            List.of("a", "b"),
-            Arrays.asList(
-                createReference("name", DataTypes.STRING),
-                createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
-            ),
+            List.of("name", "id", "details"),
+            targetColumns.stream().map(ref -> (Symbol) ref).collect(Collectors.toList()),
             Collections.emptyList(),
             null,
             false,
@@ -96,14 +101,18 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY
         );
+
+
+        ColumnIndexWriterProjection projection = mock(ColumnIndexWriterProjection.class);
+        when(projection.allTargetColumns()).thenReturn(targetColumns);
+        when(projection.projectionType()).thenReturn(COLUMN_INDEX_WRITER);
+        collectNode.addProjection(projection);
+
         TestingRowConsumer consumer = new TestingRowConsumer();
         CollectTask collectTask = mock(CollectTask.class);
         BatchIterator<Row> iterator = fileCollectSource.getIterator(
             CoordinatorTxnCtx.systemTransactionContext(), collectNode, collectTask, false).get(5, TimeUnit.SECONDS);
         consumer.accept(iterator, null);
-        assertThat(new CollectionBucket(consumer.getResult()), contains(
-            isRow("Arthur", 38),
-            isRow("Trillian", 33)
-        ));
+        assertCorrectResult(new CollectionBucket(consumer.getResult()));
     }
 }
