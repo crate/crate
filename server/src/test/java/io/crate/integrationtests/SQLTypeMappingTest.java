@@ -468,9 +468,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         });
     }
 
-    /**
-     * https://github.com/crate/crate/issues/13990
-     */
+    // https://github.com/crate/crate/issues/13990
     @Test
     public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
         execute("create table t (a int) with (column_policy ='dynamic')");
@@ -481,11 +479,23 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).contains("NULL| NULL", "NULL| 1");
         // takes different paths than without order by like above
         execute("select * from t order by x nulls first");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-                NULL| NULL
-                NULL| 1
-                """);
+        assertThat(response).hasRows(
+            "NULL| NULL",
+            "NULL| 1"
+        );
+    }
+
+    // https://github.com/crate/crate/issues/13990
+    @Test
+    public void test_dynamic_null_array_get_by_pk() {
+        execute("create table t (a int primary key, o object(dynamic))");
+        execute("insert into t (a, o) values (1, {x={y=[]}})");
+        execute("insert into t (a, o) values (2, {x={y={}}})");
+        execute("refresh table t");
+        execute("select * from t where a = 1");
+        assertThat(response).hasRows("1| {x={y=NULL}}");
+        execute("select * from t where a = 2");
+        assertThat(response).hasRows("2| {x={y={}}}");
     }
 
     @Test

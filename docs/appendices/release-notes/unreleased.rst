@@ -272,3 +272,24 @@ Fixes
 
 - Fixed an issue that resulted in enabled indexing for columns defined as
   the `BIT` data type even when explicitly turning it of using ``INDEX OFF``.
+
+- Fixed an issue that caused an exception to be thrown when inserting a
+  non-array value into a column that is dynamically created by inserting an
+  empty array, ultimately modifying the type of the column and then selecting
+  this column by the row's primary key, for example::
+
+    CREATE TABLE t (id int primary key, o OBJECT(dynamic));
+    INSERT INTO t VALUES (1, {x=[]});
+    INSERT INTO t VALUES (2, {x={}});  /* this is the culprit statement, inserting an object onto an array typed column */
+
+    SELECT * FROM t WHERE id=1;
+    SQLParseException[Cannot cast object element `x` with value `[]` to type `object`]
+
+  after the fix::
+
+    SELECT * FROM t WHERE id=1;
+    +----+-------------+
+    | id | o           |
+    +----+-------------+
+    |  1 | {"x": null} |
+    +----+-------------+

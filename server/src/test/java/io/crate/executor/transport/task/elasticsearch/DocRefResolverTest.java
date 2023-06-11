@@ -47,6 +47,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DocRefResolverTest extends ESTestCase {
 
@@ -90,15 +91,16 @@ public class DocRefResolverTest extends ESTestCase {
         assertThat(collectExpressions.get(6).value()).isEqualTo(1L);
     }
 
-    /**
-     * https://github.com/crate/crate/issues/13990
-     */
+    // https://github.com/crate/crate/issues/13990
     @Test
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
         Doc doc = new Doc(0, "t", "1", 1L, 0L, 1L,
                           // only useful values here
-                          Map.of("x", List.of(), // empty array
-                                 "y", Collections.nCopies(3, null)), // array of nulls
+                          Map.of("a", 1,
+                              "x", List.of(), // empty array
+                                 "y", Collections.nCopies(3, null), // array of nulls
+                                 "o", Map.of("oo", Map.of("oox", List.of(), // nested empty array
+                                             "ooy", Collections.nCopies(3, null)))), // nested array of nulls
                           () -> {
                               throw new AssertionError("this should not be used");
                           });
@@ -126,5 +128,27 @@ public class DocRefResolverTest extends ESTestCase {
         collectExpression = REF_RESOLVER.getImplementation(y);
         collectExpression.setNextRow(doc);
         assertThat(collectExpression.value()).isNull();
+
+        ObjectType ot = new ObjectType.Builder()
+            .setInnerType("oo", new ObjectType.Builder()
+                                        .setInnerType("oox", DataTypes.NUMERIC)
+                                        .setInnerType("ooy", DataTypes.NUMERIC).build())
+            .build();
+        Reference o = new SimpleReference(
+            new ReferenceIdent(
+                new RelationName(null, "doc"),
+                new ColumnIdent("o")),
+            RowGranularity.DOC,
+            ot,
+            0,
+            null);
+        collectExpression = REF_RESOLVER.getImplementation(o);
+        collectExpression.setNextRow(doc);
+        var map = (Map<?, ?>) collectExpression.value();
+        assertThat(map).hasSize(1);
+        var nestedMap = (Map<?, ?>) map.get("oo");
+        assertThat(nestedMap).hasSize(2);
+        assertThat(nestedMap.get("ox")).isNull();
+        assertThat(nestedMap.get("oy")).isNull();
     }
 }
