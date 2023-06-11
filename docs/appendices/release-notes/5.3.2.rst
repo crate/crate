@@ -105,10 +105,10 @@ Fixes
   first argument of :ref:`INTERVAL data type <type-interval>` contains month
   and/or year units.
 
-- Added a workaround for an issue that allowed inserting a non-array value onto
-  a column that is dynamically created by inserting an empty array, ultimately
-  modifying the type of the column. The empty arrays will be convert to
-  ``nulls`` when queried. For example::
+- Fixed an issue that allowed inserting a non-array value into a column that is
+  dynamically created by inserting an empty array, ultimately modifying the type
+  of the column. The empty arrays will be convert to ``nulls`` when queried. For
+  example::
 
     CREATE TABLE t (o OBJECT);
     INSERT INTO t VALUES ({x=[]});
