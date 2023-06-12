@@ -2820,14 +2820,36 @@ return value is ``NULL``. Example:
     +------+
     SELECT 1 row in set (... sec)
 
+
 .. _scalar-array_set:
+
+``array_set(array, index, value)``
+----------------------------------
+
+The ``array_set`` function returns the array with the element at ``index`` set
+to ``value``.
+
+Gaps are filled with ``null``.
+
+Returns: ``array``
+
+::
+
+    cr> select array_set(['_', 'b'], 1, 'a') AS arr;
+    +------------+
+    | arr        |
+    +------------+
+    | ["a", "b"] |
+    +------------+
+    SELECT 1 row in set (... sec)
+
 
 ``array_set(source_array, indexes_array, values_array)``
 --------------------------------------------------------
 
-The ``array_set`` function returns the source array updated according to the
-given indexes and values. Depending on the indexes provided, ``array_set``
-updates or appends the values and also fills any gaps with ``nulls``.
+Second overload for ``array_set`` that updates many indices with many values at
+once. Depending on the indexes provided, ``array_set`` updates or appends the
+values and also fills any gaps with ``nulls``.
 
 Returns: ``array``
 
@@ -2843,7 +2865,8 @@ Returns: ``array``
 
 .. NOTE::
 
-    Updating indexes less than or equal to 0 is currently not supported.
+    Updating indexes less than or equal to 0 is not supported.
+
 
 .. _scalar-array_slice:
 

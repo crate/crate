@@ -35,21 +35,33 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     public static final String NAME = "array_set";
 
     public static void register(ScalarFunctionModule module) {
+        TypeSignature arrayESignature = parseTypeSignature("array(E)");
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
-                new ArrayType(DataTypes.INTEGER).getTypeSignature(),
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)")
+                arrayESignature,
+                new ArrayType<>(DataTypes.INTEGER).getTypeSignature(),
+                arrayESignature,
+                arrayESignature
             ).withTypeVariableConstraints(typeVariable("E")),
             ArraySetFunction::new
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                arrayESignature,
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E"),
+                arrayESignature
+            ).withTypeVariableConstraints(typeVariable("E")),
+            SingleArraySetFunction::new
         );
     }
 
@@ -73,6 +85,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     @Override
     @SafeVarargs
+    @SuppressWarnings("unchecked")
     public final List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
         List<Object> inputArray = (List<Object>) args[0].value();
         if (inputArray == null) {
@@ -97,7 +110,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
         return updated;
     }
 
-    private void setElement(List<Object> source, int index, Object value) {
+    private static void setElement(List<Object> source, int index, Object value) {
         if (index <= 0) {
             throw new UnsupportedOperationException("Updating arrays with indexes <= 0 is not supported");
         }
@@ -109,6 +122,44 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                 source.add(null);
             }
             source.add(value);
+        }
+    }
+
+    static class SingleArraySetFunction extends Scalar<List<Object>, Object> {
+
+        private final Signature signature;
+        private final BoundSignature boundSignature;
+
+        SingleArraySetFunction(Signature signature, BoundSignature boundSignature) {
+            this.signature = signature;
+            this.boundSignature = boundSignature;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
+        }
+
+        @Override
+        public BoundSignature boundSignature() {
+            return boundSignature;
+        }
+
+        @SafeVarargs
+        @Override
+        @SuppressWarnings("unchecked")
+        public final List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+            List<Object> array = (List<Object>) args[0].value();
+            if (array == null) {
+                return null;
+            }
+            Integer index = (Integer) args[1].value();
+            if (index == null) {
+                return null;
+            }
+            Object newValue = args[2].value();
+            setElement(array, index, newValue);
+            return array;
         }
     }
 }
