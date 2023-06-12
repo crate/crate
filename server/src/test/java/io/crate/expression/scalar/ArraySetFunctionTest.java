@@ -21,9 +21,11 @@
 
 package io.crate.expression.scalar;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -119,6 +121,26 @@ public class ArraySetFunctionTest extends ScalarTestCase {
     @Test
     public void test_set_single_index_multiple_times() {
         assertEvaluate("array_set([1,2,3], [1,1,1], [1,2,3])", List.of(3,2,3));
+    }
+
+    @Test
+    public void test_array_set_single_index() throws Exception {
+        assertEvaluate("array_set([1, 2, 3], 2, 10)", List.of(1, 10, 3));
+    }
+
+    @Test
+    public void test_array_set_single_index_null_array_is_null() throws Exception {
+        assertEvaluate("array_set(null, 2, 10)", value -> assertThat(value).isNull());
+    }
+
+    @Test
+    public void test_array_set_single_null_index_is_null() throws Exception {
+        assertEvaluate("array_set([1, 2, 3], null, 10)", value -> assertThat(value).isNull());
+    }
+
+    @Test
+    public void test_array_set_single_index_null_value() throws Exception {
+        assertEvaluate("array_set([1, 2, 3], 2, null)", Arrays.asList(1, null, 3));
     }
 
     @Test
