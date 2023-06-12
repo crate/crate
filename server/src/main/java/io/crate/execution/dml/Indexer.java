@@ -551,7 +551,11 @@ public class Indexer {
         Document doc = new Document();
         Consumer<? super IndexableField> addField = doc::add;
         ArrayList<Reference> newColumns = new ArrayList<>();
-        Consumer<? super Reference> onDynamicColumn = newColumns::add;
+        Consumer<? super Reference> onDynamicColumn = ref -> {
+            ColumnIdent.validateColumnName(ref.column().name());
+            ref.column().path().forEach(ColumnIdent::validateObjectKey);
+            newColumns.add(ref);
+        };
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
