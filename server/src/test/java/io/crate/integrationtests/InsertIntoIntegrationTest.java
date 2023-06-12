@@ -30,7 +30,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
 import java.util.HashMap;
@@ -45,6 +45,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
@@ -1813,5 +1814,23 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "A| 2.0"
         );
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_dynamic_insert_with_invalid_column_names() {
+        execute("create table foo (id integer primary key) clustered into 1 shards " +
+                "with (number_of_replicas=0, column_policy='dynamic')");
+        assertThatThrownBy(() -> execute("insert into foo(id, _invalid) values (1, 1)"))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage("\"_invalid\" conflicts with system column pattern");
+        assertThatThrownBy(() -> execute("insert into foo(id, o) values (2, {\".invalid\"=2})"))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage("\".invalid\" contains a dot");
+        execute("insert into foo(id, _invalid) (select 1, 1);");
+        assertThat(response.rowCount()).isEqualTo(0L);
+        refresh();
+        execute("select * from foo");
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 }
