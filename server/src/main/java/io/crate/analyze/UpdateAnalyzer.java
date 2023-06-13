@@ -246,7 +246,7 @@ public final class UpdateAnalyzer {
     }
 
     private static class ArraySetFunctionAllocator {
-        private final Map<Reference, Map<Symbol, Symbol>> mappings;
+        private final Map<Reference, LinkedHashMap<Symbol, Symbol>> mappings;
         private final BiFunction<String, List<Symbol>, Symbol> allocateFunction;
 
         public ArraySetFunctionAllocator(BiFunction<String, List<Symbol>, Symbol> allocateFunction) {
@@ -259,7 +259,7 @@ public final class UpdateAnalyzer {
             if (mapping != null) {
                 mapping.put(index, value);
             } else {
-                mapping = new HashMap<>();
+                mapping = new LinkedHashMap<>();
                 mapping.put(index, value);
                 mappings.put(reference, mapping);
             }
@@ -269,7 +269,7 @@ public final class UpdateAnalyzer {
             Map<Reference, Symbol> refToArraySetMap = new HashMap<>(mappings.size());
             for (var e : mappings.entrySet()) {
                 Reference targetCol = e.getKey();
-                Map<Symbol, Symbol> mapping = e.getValue();
+                LinkedHashMap<Symbol, Symbol> mapping = e.getValue();
                 refToArraySetMap.put(
                     targetCol,
                     allocateFunction.apply(
