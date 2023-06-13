@@ -19,16 +19,16 @@
 
 package org.elasticsearch.cli;
 
-import joptsimple.OptionException;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+
+import joptsimple.OptionException;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 /**
  * An action to execute within a cli.
@@ -59,30 +59,25 @@ public abstract class Command implements Closeable {
         this.beforeMain = beforeMain;
     }
 
-    private Thread shutdownHookThread;
-
     /** Parses options for this command from args and executes it. */
     public final int main(String[] args, Terminal terminal) throws Exception {
-        if (addShutdownHook()) {
-
-            shutdownHookThread = new Thread(() -> {
-                try {
-                    this.close();
-                } catch (final IOException e) {
-                    try (
-                        StringWriter sw = new StringWriter();
-                        PrintWriter pw = new PrintWriter(sw)) {
-                        e.printStackTrace(pw);
-                        terminal.println(sw.toString());
-                    } catch (final IOException impossible) {
-                        // StringWriter#close declares a checked IOException from the Closeable interface but the Javadocs for StringWriter
-                        // say that an exception here is impossible
-                        throw new AssertionError(impossible);
-                    }
+        Thread shutdownHookThread = new Thread(() -> {
+            try {
+                this.close();
+            } catch (final IOException e) {
+                try (
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw)) {
+                    e.printStackTrace(pw);
+                    terminal.println(sw.toString());
+                } catch (final IOException impossible) {
+                    // StringWriter#close declares a checked IOException from the Closeable interface but the Javadocs for StringWriter
+                    // say that an exception here is impossible
+                    throw new AssertionError(impossible);
                 }
-            });
-            Runtime.getRuntime().addShutdownHook(shutdownHookThread);
-        }
+            }
+        });
+        Runtime.getRuntime().addShutdownHook(shutdownHookThread);
 
         beforeMain.run();
 
@@ -149,24 +144,8 @@ public abstract class Command implements Closeable {
      * Any runtime user errors (like an input file that does not exist), should throw a {@link UserException}. */
     protected abstract void execute(Terminal terminal, OptionSet options) throws Exception;
 
-    /**
-     * Return whether or not to install the shutdown hook to cleanup resources on exit. This method should only be overridden in test
-     * classes.
-     *
-     * @return whether or not to install the shutdown hook
-     */
-    protected boolean addShutdownHook() {
-        return true;
-    }
-
-    /** Gets the shutdown hook thread if it exists **/
-    Thread getShutdownHookThread() {
-        return shutdownHookThread;
-    }
-
     @Override
     public void close() throws IOException {
 
     }
-
 }
