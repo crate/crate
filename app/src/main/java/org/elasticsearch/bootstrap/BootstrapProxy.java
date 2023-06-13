@@ -238,9 +238,7 @@ public class BootstrapProxy {
     /**
      * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
-    public static void init(final boolean foreground,
-                            final boolean quiet,
-                            Environment environment) throws BootstrapException, NodeValidationException, UserException {
+    public static void init(Environment environment) throws BootstrapException, NodeValidationException, UserException {
         // force the class initializer for BootstrapInfo to run before
         // the security manager is installed
         BootstrapInfo.init();
@@ -260,17 +258,7 @@ public class BootstrapProxy {
             }
         }
 
-        final boolean closeStandardStreams = (foreground == false) || quiet;
         try {
-            if (closeStandardStreams) {
-                final Logger rootLogger = LogManager.getRootLogger();
-                final Appender maybeConsoleAppender = Loggers.findAppender(rootLogger, ConsoleAppender.class);
-                if (maybeConsoleAppender != null) {
-                    Loggers.removeAppender(rootLogger, maybeConsoleAppender);
-                }
-                closeSystOut();
-            }
-
             // fail if somebody replaced the lucene jars
             checkLucene();
 
@@ -282,15 +270,11 @@ public class BootstrapProxy {
             INSTANCE.setup(true, environment);
 
             INSTANCE.start();
-
-            if (closeStandardStreams) {
-                closeSysError();
-            }
         } catch (NodeValidationException | RuntimeException e) {
             // disable console logging, so user does not see the exception twice (jvm will show it already)
             final Logger rootLogger = LogManager.getRootLogger();
             final Appender maybeConsoleAppender = Loggers.findAppender(rootLogger, ConsoleAppender.class);
-            if (foreground && maybeConsoleAppender != null) {
+            if (maybeConsoleAppender != null) {
                 Loggers.removeAppender(rootLogger, maybeConsoleAppender);
             }
             Logger logger = LogManager.getLogger(BootstrapProxy.class);
@@ -310,7 +294,7 @@ public class BootstrapProxy {
                 logger.error("Exception", e);
             }
             // re-enable it if appropriate, so they can see any logging during the shutdown process
-            if (foreground && maybeConsoleAppender != null) {
+            if (maybeConsoleAppender != null) {
                 Loggers.addAppender(rootLogger, maybeConsoleAppender);
             }
 
