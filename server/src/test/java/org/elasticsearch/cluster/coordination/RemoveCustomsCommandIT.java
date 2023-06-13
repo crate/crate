@@ -18,11 +18,10 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-import org.apache.lucene.tests.util.LuceneTestCase.ThrowingRunnable;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -49,8 +48,9 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
 
         Environment environment = TestEnvironment.newEnvironment(
             Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
-        expectThrows(() -> removeCustoms(environment, true, new String[]{ "index-graveyard" }),
-            ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
+        assertThatThrownBy(() -> removeCustoms(environment, true, new String[]{ "index-graveyard" }))
+            .isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessageContaining(ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
     }
 
     @Test
@@ -59,7 +59,8 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         String node = cluster().startNode();
         createIndex("test");
         client().admin().indices().delete(new DeleteIndexRequest("test")).get();
-        assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+            .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
         cluster().stopRandomDataNode();
@@ -71,12 +72,13 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
                 new String[]{ "index-graveyard" } :
                 new String[]{ "index-*" }
             );
-        assertThat(terminal.getOutput(), containsString(RemoveCustomsCommand.CUSTOMS_REMOVED_MSG));
-        assertThat(terminal.getOutput(), containsString("The following customs will be removed:"));
-        assertThat(terminal.getOutput(), containsString("index-graveyard"));
+        assertThat(terminal.getOutput()).contains(RemoveCustomsCommand.CUSTOMS_REMOVED_MSG);
+        assertThat(terminal.getOutput()).contains("The following customs will be removed:");
+        assertThat(terminal.getOutput()).contains("index-graveyard");
 
         cluster().startNode(dataPathSettings);
-        assertEquals(0, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+            .isEmpty();
     }
 
     @Test
@@ -85,17 +87,20 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         String node = cluster().startNode();
         createIndex("test");
         client().admin().indices().delete(new DeleteIndexRequest("test")).get();
-        assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+            .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
         cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
             Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
-        UserException ex = expectThrows(UserException.class, () -> removeCustoms(environment, false,
-            new String[]{ "index-greveyard-with-typos" }));
-        assertThat(ex.getMessage(), containsString("No custom metadata matching [index-greveyard-with-typos] were " +
-            "found on this node"));
+
+        assertThatThrownBy(() -> removeCustoms(environment, false, new String[]{ "index-greveyard-with-typos" }))
+            .isExactlyInstanceOf(UserException.class)
+            .hasMessageContaining(
+                "No custom metadata matching [index-greveyard-with-typos] were found on this node"
+            );
     }
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command, Environment environment, boolean abort, String... args)
@@ -115,7 +120,7 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         try {
             command.execute(terminal, options, environment);
         } finally {
-            assertThat(terminal.getOutput(), containsString(ElasticsearchNodeCommand.STOP_WARNING_MSG));
+            assertThat(terminal.getOutput()).contains(ElasticsearchNodeCommand.STOP_WARNING_MSG);
         }
 
         return terminal;
@@ -123,13 +128,8 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
 
     private MockTerminal removeCustoms(Environment environment, boolean abort, String... args) throws Exception {
         final MockTerminal terminal = executeCommand(new RemoveCustomsCommand(), environment, abort, args);
-        assertThat(terminal.getOutput(), containsString(RemoveCustomsCommand.CONFIRMATION_MSG));
-        assertThat(terminal.getOutput(), containsString(RemoveCustomsCommand.CUSTOMS_REMOVED_MSG));
+        assertThat(terminal.getOutput()).contains(RemoveCustomsCommand.CONFIRMATION_MSG);
+        assertThat(terminal.getOutput()).contains(RemoveCustomsCommand.CUSTOMS_REMOVED_MSG);
         return terminal;
-    }
-
-    private void expectThrows(ThrowingRunnable runnable, String message) {
-        ElasticsearchException ex = expectThrows(ElasticsearchException.class, runnable);
-        assertThat(ex.getMessage(), containsString(message));
     }
 }
