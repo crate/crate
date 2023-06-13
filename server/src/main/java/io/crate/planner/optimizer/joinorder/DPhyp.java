@@ -90,7 +90,7 @@ public class DPhyp {
         long next;
 
         while ((next = nextBitSet(prev, nS)) != nS) {
-            var subset = new long();
+            var subset = LongBitmap.newBitmap();
             subset.or(s);
             if (dpTable.containsKey(s | next)) {
                 emitCsg(s | next);
@@ -149,7 +149,7 @@ public class DPhyp {
         // First we need to take care of simple edges, we just add them to the neighborhood
         for (int i = 1; i <= graph.edges().size(); i++) {
             if (S[i]) {
-                for (HyperEdge e : graph.findSimpleEdges(i)) {
+                for (Graph.HyperEdge e : graph.edges().values())) {
                     if (!X[ * e.to.begin()
                 }])
                 res.set( * e.to.begin());
