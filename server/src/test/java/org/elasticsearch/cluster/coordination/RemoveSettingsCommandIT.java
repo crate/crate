@@ -21,12 +21,10 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
-import org.apache.lucene.tests.util.LuceneTestCase.ThrowingRunnable;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cli.MockTerminal;
@@ -54,9 +52,12 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
 
         Environment environment = TestEnvironment.newEnvironment(
             Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
-        expectThrows(() -> removeSettings(environment, true,
-                                          new String[]{ DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() }),
-                     ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
+        assertThatThrownBy(() -> removeSettings(
+            environment,
+            true,
+            new String[]{ DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() })
+        ).isExactlyInstanceOf(ElasticsearchException.class)
+            .hasMessageContaining(ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
     }
 
     @Test
@@ -64,8 +65,8 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
-                   contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+            .containsExactly(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
         cluster().stopRandomDataNode();
@@ -77,14 +78,14 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
                                                    new String[]{ DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() } :
                                                    new String[]{ "cluster.routing.allocation.disk.*" }
         );
-        assertThat(terminal.getOutput(), containsString(RemoveSettingsCommand.SETTINGS_REMOVED_MSG));
-        assertThat(terminal.getOutput(), containsString("The following settings will be removed:"));
-        assertThat(terminal.getOutput(), containsString(
-            DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() + ": "  + false));
+        assertThat(terminal.getOutput()).contains(RemoveSettingsCommand.SETTINGS_REMOVED_MSG);
+        assertThat(terminal.getOutput()).contains("The following settings will be removed:");
+        assertThat(terminal.getOutput()).contains(
+            DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() + ": "  + false);
 
         cluster().startNode(dataPathSettings);
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
-                   not(contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey())));
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+            .doesNotContain(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
     }
 
     @Test
@@ -92,18 +93,20 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
-                   contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+            .contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
         cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
             Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
-        UserException ex = expectThrows(UserException.class, () -> removeSettings(environment, false,
-                                                                                  new String[]{ "cluster.routing.allocation.disk.bla.*" }));
-        assertThat(ex.getMessage(), containsString("No persistent cluster settings matching [cluster.routing.allocation.disk.bla.*] were " +
-                                                   "found on this node"));
+
+        assertThatThrownBy(() -> removeSettings(environment, false, new String[]{ "cluster.routing.allocation.disk.bla.*" }))
+            .isExactlyInstanceOf(UserException.class)
+            .hasMessageContaining(
+                "No persistent cluster settings matching [cluster.routing.allocation.disk.bla.*] were found on this node"
+            );
     }
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command, Environment environment, boolean abort, String... args)
@@ -123,7 +126,7 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         try {
             command.execute(terminal, options, environment);
         } finally {
-            assertThat(terminal.getOutput(), containsString(ElasticsearchNodeCommand.STOP_WARNING_MSG));
+            assertThat(terminal.getOutput()).contains(ElasticsearchNodeCommand.STOP_WARNING_MSG);
         }
 
         return terminal;
@@ -131,13 +134,8 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
 
     private MockTerminal removeSettings(Environment environment, boolean abort, String... args) throws Exception {
         final MockTerminal terminal = executeCommand(new RemoveSettingsCommand(), environment, abort, args);
-        assertThat(terminal.getOutput(), containsString(RemoveSettingsCommand.CONFIRMATION_MSG));
-        assertThat(terminal.getOutput(), containsString(RemoveSettingsCommand.SETTINGS_REMOVED_MSG));
+        assertThat(terminal.getOutput()).contains(RemoveSettingsCommand.CONFIRMATION_MSG);
+        assertThat(terminal.getOutput()).contains(RemoveSettingsCommand.SETTINGS_REMOVED_MSG);
         return terminal;
-    }
-
-    private void expectThrows(ThrowingRunnable runnable, String message) {
-        ElasticsearchException ex = expectThrows(ElasticsearchException.class, runnable);
-        assertThat(ex.getMessage(), containsString(message));
     }
 }
