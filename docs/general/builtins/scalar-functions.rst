@@ -902,18 +902,18 @@ Synopsis::
 
 Example::
 
-    cr> SELECT parse_url('https://my_user@cluster.crate.io:4200/doc?sslmode=verify-full') as url;                                                                               
+    cr> SELECT parse_url('https://my_user@cluster.crate.io:8000/doc?sslmode=verify-full') as url;
     +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | url                                                                                                                                                                                                    |
     +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | {"fragment": null, "hostname": "cluster.crate.io", "parameters": {"sslmode": ["verify-full"]}, "path": "/doc", "port": 4200, "query": "sslmode=verify-full", "scheme": "https", "userinfo": "my_user"} |
+    | {"fragment": null, "hostname": "cluster.crate.io", "parameters": {"sslmode": ["verify-full"]}, "path": "/doc", "port": 8000, "query": "sslmode=verify-full", "scheme": "https", "userinfo": "my_user"} |
     +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
 If you just want to select a specific URL component, you can use the bracket 
 notation on the returned object::
 
-    cr> SELECT parse_url('https://my_user@cluster.crate.io:5432')['hostname'] as url_hostname;                                                                                  
+    cr> SELECT parse_url('https://my_user@cluster.crate.io:5432')['hostname'] as url_hostname;
     +------------------+
     | url_hostname     |
     +------------------+
@@ -924,7 +924,7 @@ notation on the returned object::
 Parameter values are always treated as ``text``. There is no conversion of 
 comma-separated parameter values into arrays::
 
-    cr> SELECT parse_url('http://crate.io?p1=1,2,3&p1=a&p2[]=1,2,3')['parameters'] as params;                                                                                                                        
+    cr> SELECT parse_url('http://crate.io?p1=1,2,3&p1=a&p2[]=1,2,3')['parameters'] as params;
     +-------------------------------------------+
     | params                                    |
     +-------------------------------------------+
