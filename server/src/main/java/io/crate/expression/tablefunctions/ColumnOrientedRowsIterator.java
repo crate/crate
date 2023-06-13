@@ -21,13 +21,14 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
-import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 class ColumnOrientedRowsIterator implements Iterable<Row> {
 

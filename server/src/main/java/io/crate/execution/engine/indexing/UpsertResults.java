@@ -21,17 +21,18 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.exceptions.JobKilledException;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.exceptions.JobKilledException;
 
 class UpsertResults {
 

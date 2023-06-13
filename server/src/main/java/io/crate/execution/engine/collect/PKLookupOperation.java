@@ -34,8 +34,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -50,6 +48,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;

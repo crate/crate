@@ -21,11 +21,11 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -111,7 +111,7 @@ public class BatchPagingIteratorTest {
                             while (source.moveNext()) {
                                 rows.add(new RowN(source.currentElement().materialize()));
                             }
-                            return singleton(new KeyIterable<>(1, rows));
+                            return Collections.singleton(new KeyIterable<>(1, rows));
                         }),
                         t -> {});
                 } catch (Exception e) {

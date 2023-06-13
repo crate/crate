@@ -21,16 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.InputCondition;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.memory.MemoryManager;
-import org.elasticsearch.Version;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +29,17 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+
+import org.elasticsearch.Version;
+
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputCondition;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.MemoryManager;
 
 /**
  * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.

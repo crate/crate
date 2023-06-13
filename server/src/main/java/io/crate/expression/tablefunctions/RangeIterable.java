@@ -22,13 +22,13 @@
 package io.crate.expression.tablefunctions;
 
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 
 public final class RangeIterable<T> implements Iterable<Row> {

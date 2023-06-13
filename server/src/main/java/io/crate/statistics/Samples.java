@@ -21,18 +21,19 @@
 
 package io.crate.statistics;
 
-import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 class Samples implements Writeable {
 

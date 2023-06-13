@@ -21,6 +21,21 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+
+import org.elasticsearch.Version;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -30,20 +45,6 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.MemoryManager;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Iterator;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 /**
  * Collector implementation which uses {@link AggregateMode}s and {@code keyInputs}

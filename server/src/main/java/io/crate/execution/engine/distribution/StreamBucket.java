@@ -21,26 +21,27 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.data.RowN;
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.Iterator;
+
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.Iterator;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 public class StreamBucket implements Bucket, Writeable {
 

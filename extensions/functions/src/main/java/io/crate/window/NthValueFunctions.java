@@ -21,6 +21,14 @@
 
 package io.crate.window;
 
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -31,13 +39,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
-import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class NthValueFunctions implements WindowFunction {
 
