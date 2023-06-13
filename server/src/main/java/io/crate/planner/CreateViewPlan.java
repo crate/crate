@@ -47,7 +47,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Table;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -34,8 +34,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
@@ -158,7 +158,7 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<Reference> iterator() {
         return columns.values().iterator();
     }

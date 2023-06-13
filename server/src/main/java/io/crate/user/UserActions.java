@@ -32,7 +32,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.Map;

@@ -23,7 +23,7 @@ package io.crate.expression.scalar;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
@@ -103,7 +103,7 @@ public class SubstrFunction extends Scalar<String, Object> {
         return evaluate(val, (beginIdx).intValue());
     }
 
-    private static String evaluate(@Nonnull String inputStr, int beginIdx) {
+    private static String evaluate(@NotNull String inputStr, int beginIdx) {
         final int startPos = Math.max(0, beginIdx - 1);
         if (startPos > inputStr.length() - 1) {
             return "";
@@ -113,7 +113,7 @@ public class SubstrFunction extends Scalar<String, Object> {
     }
 
     @VisibleForTesting
-    static String evaluate(@Nonnull String inputStr, int beginIdx, int len) {
+    static String evaluate(@NotNull String inputStr, int beginIdx, int len) {
         final int startPos = Math.max(0, beginIdx - 1);
         if (startPos > inputStr.length() - 1) {
             return "";

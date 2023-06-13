@@ -23,8 +23,8 @@ package io.crate.user;
 
 import io.crate.metadata.IndexParts;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -148,7 +148,7 @@ public class UserPrivileges implements Iterable<Privilege> {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<Privilege> iterator() {
         return privilegeByIdent.values().iterator();

@@ -20,7 +20,7 @@
 package org.elasticsearch.action;
 
 import org.elasticsearch.ElasticsearchException;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;

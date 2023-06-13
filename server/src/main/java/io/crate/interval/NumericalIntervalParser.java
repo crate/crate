@@ -23,7 +23,7 @@ package io.crate.interval;
 
 import org.joda.time.Period;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

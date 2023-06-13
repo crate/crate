@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import org.elasticsearch.action.ActionListener;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -55,7 +55,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     }
 
     @Override
-    public void onFailure(@Nonnull Exception e) {
+    public void onFailure(@NotNull Exception e) {
         consumer.accept(null, e);
     }
 

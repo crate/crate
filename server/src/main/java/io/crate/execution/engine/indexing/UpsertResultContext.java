@@ -29,7 +29,7 @@ import io.crate.expression.InputFactory;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;

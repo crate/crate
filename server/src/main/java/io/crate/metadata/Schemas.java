@@ -36,8 +36,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -306,7 +306,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemaInfo;
     }
 
-    @Nonnull
+    @NotNull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
     }

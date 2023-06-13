@@ -36,7 +36,7 @@ import java.util.TreeMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.AliasedRelation;

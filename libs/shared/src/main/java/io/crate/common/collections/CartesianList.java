@@ -21,7 +21,7 @@
 
 package io.crate.common.collections;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;

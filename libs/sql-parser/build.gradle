@@ -17,7 +17,7 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:${versions.antlr}"
 
     implementation project(':libs:shared')
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
 
     testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
     testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"

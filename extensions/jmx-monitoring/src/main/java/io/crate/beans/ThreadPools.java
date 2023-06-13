@@ -24,7 +24,7 @@ package io.crate.beans;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.beans.ConstructorProperties;
 
 import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STARTED;

@@ -30,8 +30,8 @@ import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.ThreadSafe;
+import org.jetbrains.annotations.Nullable;
+import io.crate.common.annotations.ThreadSafe;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;

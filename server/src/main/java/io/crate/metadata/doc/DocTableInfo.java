@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -451,7 +451,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
     }
 
-    @Nonnull
+    @NotNull
     public Reference resolveColumn(String targetColumnName,
                                    boolean forWrite,
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {

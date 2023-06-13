@@ -22,7 +22,7 @@
 package io.crate.exceptions;
 
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 
 public class ScriptException extends RuntimeException {

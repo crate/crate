@@ -23,7 +23,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-shared'
 
 dependencies {
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
     implementation "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
 
     testImplementation "org.assertj:assertj-core:${versions.assertj}"

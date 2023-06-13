@@ -33,8 +33,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -171,7 +171,7 @@ public class StreamBucket implements Bucket, Writeable {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<Row> iterator() {
         if (size < 1) {
             return Collections.emptyIterator();

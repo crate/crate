@@ -30,7 +30,7 @@ import io.crate.sql.tree.Query;
 
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 

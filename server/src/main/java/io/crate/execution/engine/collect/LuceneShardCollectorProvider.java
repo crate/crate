@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.SentinelRow;

@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;

@@ -23,7 +23,7 @@ package io.crate.concurrent;
 
 import io.crate.data.Killable;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -52,7 +52,7 @@ public final class KillableCompletionStage<T> implements CompletionStage<T>, Kil
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         onKill.accept(throwable);
     }
 

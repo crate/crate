@@ -21,13 +21,11 @@
 
 package io.crate.sql.tree;
 
-import javax.annotation.concurrent.Immutable;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Locale;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-
-@Immutable
 public class Extract extends Expression {
 
     private final Expression expression;

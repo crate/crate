@@ -29,7 +29,7 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 import java.util.List;
 import java.util.function.IntPredicate;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;

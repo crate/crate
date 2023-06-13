@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.check;
 
 
-import javax.annotation.concurrent.ThreadSafe;
+import io.crate.common.annotations.ThreadSafe;
 import java.util.concurrent.CompletableFuture;
 
 @ThreadSafe

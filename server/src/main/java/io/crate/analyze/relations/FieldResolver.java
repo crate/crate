@@ -24,7 +24,7 @@ package io.crate.analyze.relations;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface FieldResolver {
 

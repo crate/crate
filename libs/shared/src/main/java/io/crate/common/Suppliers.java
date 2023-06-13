@@ -21,7 +21,7 @@
 
 package io.crate.common;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Locale;
 import java.util.Objects;

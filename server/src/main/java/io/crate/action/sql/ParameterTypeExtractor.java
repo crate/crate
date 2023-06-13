@@ -29,7 +29,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -67,7 +67,7 @@ class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> i
      * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if
      *         parameters can't be obtained.
      */
-    DataType<?>[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
+    DataType<?>[] getParameterTypes(@NotNull Consumer<Consumer<? super Symbol>> consumer) {
         consumer.accept(this);
         if (!parameterSymbols.isEmpty() && parameterSymbols.last().index() != parameterSymbols.size() - 1) {
             throw new IllegalStateException("The assembled list of ParameterSymbols is invalid. Missing parameters.");

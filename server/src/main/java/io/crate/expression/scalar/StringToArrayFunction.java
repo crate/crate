@@ -29,8 +29,8 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -120,7 +120,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
      *                  if they match. May be {@code null}.
      * @return An array of {@code String}.
      */
-    private static List<String> split(@Nonnull String str, @Nullable String separator, @Nullable String nullStr) {
+    private static List<String> split(@NotNull String str, @Nullable String separator, @Nullable String nullStr) {
 
         if (separator == null) {
             ArrayList<String> subStrings = new ArrayList<>(str.length());

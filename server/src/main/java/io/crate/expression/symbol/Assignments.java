@@ -23,7 +23,7 @@ package io.crate.expression.symbol;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -61,7 +61,7 @@ public final class Assignments {
      *
      * @return a tuple or null if the input is null.
      */
-    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments, NodeContext nodeCtx) {
+    public static Assignments convert(@NotNull Map<Reference, ? extends Symbol> assignments, NodeContext nodeCtx) {
         String[] targetNames = new String[assignments.size()];
         Reference[] targetColumns = new Reference[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];

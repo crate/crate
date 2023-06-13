@@ -39,7 +39,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import io.crate.user.UserLookup;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

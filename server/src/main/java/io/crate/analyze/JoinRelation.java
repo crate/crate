@@ -24,8 +24,8 @@ package io.crate.analyze;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -109,7 +109,7 @@ public class JoinRelation implements AnalyzedRelation {
         throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

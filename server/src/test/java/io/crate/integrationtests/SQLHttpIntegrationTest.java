@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Locale;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;

@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
@@ -104,7 +104,7 @@ public class IndexReference extends SimpleReference {
 
     @Nullable
     private final String analyzer;
-    @Nonnull
+    @NotNull
     private final List<Reference> columns;
 
     public IndexReference(StreamInput in) throws IOException {

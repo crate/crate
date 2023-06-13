@@ -27,7 +27,7 @@ import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.security.cert.Certificate;
 import java.util.Objects;
 

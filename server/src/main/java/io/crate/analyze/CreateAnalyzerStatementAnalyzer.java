@@ -40,7 +40,7 @@ import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
 import io.crate.common.collections.Tuple;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;

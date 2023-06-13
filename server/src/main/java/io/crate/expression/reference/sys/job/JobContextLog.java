@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys.job;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.planner.operators.StatementClassifier;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;

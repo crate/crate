@@ -23,7 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
@@ -68,7 +68,7 @@ public class IntervalType extends PGType<Period> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Period period) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Period period) {
         buffer.writeInt(TYPE_LEN);
         // from PostgreSQL code:
         // pq_sendint64(&buf, interval->time);
@@ -116,7 +116,7 @@ public class IntervalType extends PGType<Period> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Period value) {
+    byte[] encodeAsUTF8Text(@NotNull Period value) {
         StringBuffer sb = new StringBuffer();
         io.crate.types.IntervalType.PERIOD_FORMATTER.printTo(sb, (ReadablePeriod) value);
         return sb.toString().getBytes(StandardCharsets.UTF_8);

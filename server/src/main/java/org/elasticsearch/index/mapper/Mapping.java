@@ -38,7 +38,7 @@ import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wrapper around everything that defines a mapping, without references to
@@ -71,7 +71,7 @@ public final class Mapping implements ToXContentFragment {
         this.meta = meta;
     }
 
-    @Nonnull
+    @NotNull
     public Set<String> indices() {
         if (meta == null) {
             return Set.of();

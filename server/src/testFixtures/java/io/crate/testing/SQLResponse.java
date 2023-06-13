@@ -23,7 +23,7 @@ package io.crate.testing;
 
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 
 public class SQLResponse {

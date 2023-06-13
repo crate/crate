@@ -33,8 +33,8 @@ import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
@@ -90,7 +90,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         return relationName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

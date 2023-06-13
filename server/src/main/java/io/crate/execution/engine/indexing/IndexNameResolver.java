@@ -27,8 +27,8 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -71,7 +71,7 @@ public class IndexNameResolver {
             .maximumSize(20)
             .build(new CacheLoader<List<String>, String>() {
                 @Override
-                public String load(@Nonnull List<String> key) {
+                public String load(@NotNull List<String> key) {
                     return IndexParts.toIndexName(relationName, PartitionName.encodeIdent(key));
                 }
             });

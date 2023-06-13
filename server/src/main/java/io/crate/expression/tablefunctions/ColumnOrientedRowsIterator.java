@@ -24,7 +24,7 @@ package io.crate.expression.tablefunctions;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
@@ -37,7 +37,7 @@ class ColumnOrientedRowsIterator implements Iterable<Row> {
         this.iteratorsPerColumn = iteratorsPerColumn;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<Row> iterator() {
         Iterator<Object>[] iterators = iteratorsPerColumn.get();

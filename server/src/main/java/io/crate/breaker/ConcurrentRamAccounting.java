@@ -23,7 +23,7 @@ package io.crate.breaker;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import javax.annotation.concurrent.ThreadSafe;
+import io.crate.common.annotations.ThreadSafe;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 

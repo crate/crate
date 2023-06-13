@@ -34,8 +34,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -813,7 +813,7 @@ public class AnalyzedTableElements<T> {
         return checkConstraints;
     }
 
-    @Nonnull
+    @NotNull
     public Map<String, Object> indicesMap() {
         return indicesMap;
     }

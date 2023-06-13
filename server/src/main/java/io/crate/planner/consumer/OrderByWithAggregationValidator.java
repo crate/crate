@@ -23,7 +23,7 @@ package io.crate.planner.consumer;
 
 import java.util.Collection;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;

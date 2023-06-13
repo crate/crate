@@ -29,8 +29,8 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
@@ -99,7 +99,7 @@ public class Id {
         return compileWithNullValidation(numPks, idx);
     }
 
-    @Nonnull
+    @NotNull
     private static <T> T ensureNonNull(@Nullable T pkValue) throws IllegalArgumentException {
         if (pkValue == null) {
             throw new IllegalArgumentException("A primary key value must not be NULL");

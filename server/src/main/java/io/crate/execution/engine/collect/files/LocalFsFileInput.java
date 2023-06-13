@@ -24,8 +24,8 @@ package io.crate.execution.engine.collect.files;
 
 import io.crate.common.annotations.VisibleForTesting;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -53,12 +53,12 @@ public class LocalFsFileInput implements FileInput {
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((file://|/)[^\\*]*/)[^\\*]*\\*.*");
 
-    @Nonnull
+    @NotNull
     private final URI uri;
     @Nullable
     @VisibleForTesting
     final URI preGlobUri;
-    @Nonnull
+    @NotNull
     private final Predicate<URI> uriPredicate;
 
     public LocalFsFileInput(URI uri) throws IOException {

@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -115,7 +115,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             this.count--;
         }
 
-        public void reduce(@Nonnull AverageState other, boolean isIntegral) {
+        public void reduce(@NotNull AverageState other, boolean isIntegral) {
             this.count += other.count;
             this.sum = isIntegral ? this.sum + other.sum : kahanSummationForDouble.sum(this.sum, other.sum);
         }

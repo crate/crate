@@ -34,7 +34,7 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_THROTTL
 
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;

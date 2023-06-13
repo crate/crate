@@ -24,7 +24,7 @@ package io.crate.exceptions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 
 public class JobKilledException extends ElasticsearchException implements UnscopedException {

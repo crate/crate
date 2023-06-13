@@ -29,7 +29,7 @@ import io.crate.metadata.TransactionContext;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class LuceneSortGenerator {
 

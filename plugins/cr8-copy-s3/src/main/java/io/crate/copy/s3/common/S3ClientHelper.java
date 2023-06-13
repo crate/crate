@@ -33,8 +33,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import io.crate.common.annotations.VisibleForTesting;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import org.jetbrains.annotations.Nullable;
+import io.crate.common.annotations.NotThreadSafe;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;

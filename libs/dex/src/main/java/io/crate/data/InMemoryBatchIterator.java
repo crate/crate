@@ -21,8 +21,8 @@
 
 package io.crate.data;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.Exceptions;
 
@@ -107,7 +107,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         killed = throwable;
     }
 

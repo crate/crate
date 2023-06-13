@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.common.annotations.VisibleForTesting;

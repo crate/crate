@@ -24,7 +24,7 @@ package io.crate.metadata.sys;
 import io.crate.planner.operators.StatementClassifier;
 import org.HdrHistogram.Histogram;
 
-import javax.annotation.concurrent.Immutable;
+import io.crate.common.annotations.Immutable;
 
 @Immutable
 public final class MetricsView {

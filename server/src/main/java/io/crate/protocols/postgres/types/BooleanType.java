@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import io.netty.buffer.ByteBuf;
 
@@ -68,7 +68,7 @@ class BooleanType extends PGType<Boolean> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Boolean value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Boolean value) {
         byte byteValue = (byte) (value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);
         buffer.writeByte(byteValue);
@@ -76,7 +76,7 @@ class BooleanType extends PGType<Boolean> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Boolean value) {
+    byte[] encodeAsUTF8Text(@NotNull Boolean value) {
         return value ? TEXT_TRUE : TEXT_FALSE;
     }
 

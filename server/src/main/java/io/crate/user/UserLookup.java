@@ -21,7 +21,7 @@
 
 package io.crate.user;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.pgcatalog.OidHash;
 

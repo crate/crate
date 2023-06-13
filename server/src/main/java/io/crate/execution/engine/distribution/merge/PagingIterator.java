@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;

@@ -25,7 +25,7 @@ import io.crate.metadata.table.StoredTable;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 

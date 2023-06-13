@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.memory.MemoryManager;
