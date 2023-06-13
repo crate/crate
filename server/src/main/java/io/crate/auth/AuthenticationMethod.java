@@ -25,7 +25,7 @@ import io.crate.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface AuthenticationMethod {
 

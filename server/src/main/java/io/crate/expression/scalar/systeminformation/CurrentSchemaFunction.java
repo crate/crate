@@ -35,7 +35,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 
 public class CurrentSchemaFunction extends Scalar<String, Object> {

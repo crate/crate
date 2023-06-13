@@ -25,7 +25,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationInfo;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**

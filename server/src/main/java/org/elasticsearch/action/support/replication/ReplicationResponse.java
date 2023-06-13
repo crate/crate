@@ -23,7 +23,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;

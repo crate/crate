@@ -104,7 +104,7 @@ dependencies {
         exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
     }
 
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
 
     implementation "joda-time:joda-time:${versions.jodatime}"
     implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
@@ -138,7 +138,7 @@ dependencies {
     testFixturesApi "org.hamcrest:hamcrest:${versions.hamcrest}"
     testFixturesApi "org.mockito:mockito-core:${versions.mockito}"
     testFixturesApi "org.postgresql:postgresql:${versions.jdbc}"
-    testFixturesImplementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    testFixturesImplementation "org.jetbrains:annotations:${versions.annotations}"
     testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
     testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"

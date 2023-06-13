@@ -23,7 +23,7 @@ package io.crate.plugin;
 
 import java.lang.management.ManagementFactory;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;

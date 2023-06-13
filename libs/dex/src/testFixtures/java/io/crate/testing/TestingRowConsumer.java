@@ -28,7 +28,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;

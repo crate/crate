@@ -24,7 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;

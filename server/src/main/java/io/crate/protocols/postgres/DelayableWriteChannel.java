@@ -25,7 +25,7 @@ import java.net.SocketAddress;
 import java.util.ArrayDeque;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;

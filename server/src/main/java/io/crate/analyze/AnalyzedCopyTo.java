@@ -26,7 +26,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 

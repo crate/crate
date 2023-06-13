@@ -43,7 +43,7 @@ import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 
 public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> {

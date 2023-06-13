@@ -23,7 +23,7 @@ package io.crate.user;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import org.elasticsearch.action.ActionListener;

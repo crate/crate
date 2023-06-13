@@ -31,7 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;

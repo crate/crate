@@ -20,7 +20,7 @@
 package org.elasticsearch.cluster;
 
 import org.elasticsearch.Version;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.NamedWriteable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

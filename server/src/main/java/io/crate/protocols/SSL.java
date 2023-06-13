@@ -24,7 +24,7 @@ package io.crate.protocols;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;

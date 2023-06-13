@@ -50,8 +50,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -676,7 +676,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@Nonnull Throwable t) {
+        public void fail(@NotNull Throwable t) {
             listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
@@ -734,7 +734,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@Nonnull Throwable t) {
+        public void fail(@NotNull Throwable t) {
             listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
@@ -767,7 +767,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@Nonnull Throwable t) {
+        public void fail(@NotNull Throwable t) {
             rowCounts[resultIdx] = Row1.ERROR;
             super.fail(t);
         }

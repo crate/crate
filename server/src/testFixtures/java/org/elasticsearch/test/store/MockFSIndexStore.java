@@ -20,7 +20,7 @@
 package org.elasticsearch.test.store;
 
 import org.apache.logging.log4j.Logger;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;

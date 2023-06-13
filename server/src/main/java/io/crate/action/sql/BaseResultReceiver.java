@@ -23,8 +23,7 @@ package io.crate.action.sql;
 
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-
+import io.crate.common.annotations.OverridingMethodsMustInvokeSuper;
 import io.crate.data.Row;
 
 public class BaseResultReceiver implements ResultReceiver<Void> {

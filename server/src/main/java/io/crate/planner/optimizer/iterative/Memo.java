@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 

@@ -21,7 +21,7 @@
 
 package io.crate.data;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -42,7 +42,7 @@ public final class TopNDistinctBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         source.kill(throwable);
     }
 

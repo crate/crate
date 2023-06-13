@@ -23,8 +23,8 @@ package io.crate.testing;
 
 import io.crate.data.BatchIterator;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.PrimitiveIterator;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -142,7 +142,7 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         delegate.kill(throwable);
     }
 

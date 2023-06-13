@@ -21,9 +21,9 @@
 
 package io.crate.metadata;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class RoutineInfo {
     private final String specificName;
@@ -63,12 +63,12 @@ public class RoutineInfo {
         this(name, type, null, null, definition, null, null, false);
     }
 
-    @Nonnull
+    @NotNull
     public String name() {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     public String type() {
         return type;
     }

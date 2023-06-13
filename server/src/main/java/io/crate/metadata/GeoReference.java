@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;

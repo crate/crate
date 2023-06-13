@@ -30,7 +30,7 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;

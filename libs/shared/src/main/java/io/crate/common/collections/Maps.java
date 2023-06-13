@@ -31,7 +31,7 @@ import java.util.RandomAccess;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.StringUtils;
 import io.crate.common.TriConsumer;

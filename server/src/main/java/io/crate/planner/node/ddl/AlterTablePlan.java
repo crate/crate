@@ -50,7 +50,7 @@ import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Function;
 
 public class AlterTablePlan implements Plan {

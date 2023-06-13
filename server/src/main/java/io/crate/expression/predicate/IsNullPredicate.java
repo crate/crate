@@ -28,7 +28,7 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;

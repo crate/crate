@@ -23,7 +23,7 @@ package io.crate.auth;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface Authentication {
 

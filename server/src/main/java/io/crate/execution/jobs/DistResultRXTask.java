@@ -24,8 +24,8 @@ package io.crate.execution.jobs;
 import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.Exceptions;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -67,7 +67,7 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     }
 
     @Override
-    public void kill(@Nonnull Throwable t) {
+    public void kill(@NotNull Throwable t) {
         pageBucketReceiver.kill(t);
     }
 

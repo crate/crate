@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;

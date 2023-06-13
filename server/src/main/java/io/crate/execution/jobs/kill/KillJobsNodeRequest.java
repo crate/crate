@@ -29,7 +29,7 @@ import org.elasticsearch.transport.TransportRequest;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.User;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;

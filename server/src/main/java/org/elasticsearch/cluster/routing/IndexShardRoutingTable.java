@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.routing;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.Randomness;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;

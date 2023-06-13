@@ -31,8 +31,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -105,7 +105,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputSymbols;

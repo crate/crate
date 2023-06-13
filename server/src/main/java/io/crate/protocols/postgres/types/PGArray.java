@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.ByteArrayList;
 
@@ -114,7 +114,7 @@ public class PGArray extends PGType<List<Object>> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull List<Object> value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull List<Object> value) {
         int dimensions = getDimensions(value);
 
         List<Integer> dimensionsList = new ArrayList<>();
@@ -137,7 +137,7 @@ public class PGArray extends PGType<List<Object>> {
         return INT32_BYTE_SIZE + len; // add also the size of the length itself
     }
 
-    private int getDimensions(@Nonnull Object value) {
+    private int getDimensions(@NotNull Object value) {
         int dimensions = 0;
         Object array = value;
 
@@ -177,7 +177,7 @@ public class PGArray extends PGType<List<Object>> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull List<Object> array) {
+    byte[] encodeAsUTF8Text(@NotNull List<Object> array) {
         boolean isJson = JsonType.OID == innerType.oid();
         ByteArrayList encodedValues = new ByteArrayList();
         encodedValues.add((byte) '{');

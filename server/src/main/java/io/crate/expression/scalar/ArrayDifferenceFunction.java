@@ -32,7 +32,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.user.UserLookup;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;

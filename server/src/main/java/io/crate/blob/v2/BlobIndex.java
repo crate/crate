@@ -23,7 +23,7 @@ package io.crate.blob.v2;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 

@@ -1,6 +1,7 @@
 apply from: "$rootDir/extensions/extensionModule.gradle"
 
 dependencies {
+    implementation "org.jetbrains:annotations:${versions.annotations}"
     implementation project(':server')
     pluginDependency("com.microsoft.azure:azure-storage:${versions.azure_storage}") {
         exclude group: 'org.checkerframework', module: 'checker-compat-qual'

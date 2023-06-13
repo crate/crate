@@ -33,7 +33,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.List;
 
@@ -79,7 +79,7 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
         return relationName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);

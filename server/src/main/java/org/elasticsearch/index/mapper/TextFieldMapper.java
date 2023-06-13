@@ -34,7 +34,7 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /** A {@link FieldMapper} for full-text fields. */
 public class TextFieldMapper extends FieldMapper {
@@ -183,7 +183,7 @@ public class TextFieldMapper extends FieldMapper {
         }
     }
 
-    @Nonnull
+    @NotNull
     private final List<String> sources;
 
     public static final class TextFieldType extends MappedFieldType {

@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class JobResponse extends TransportResponse {
 
     private final List<StreamBucket> directResponse;
 
-    public JobResponse(@Nonnull List<StreamBucket> directResponse) {
+    public JobResponse(@NotNull List<StreamBucket> directResponse) {
         this.directResponse = directResponse;
     }
 

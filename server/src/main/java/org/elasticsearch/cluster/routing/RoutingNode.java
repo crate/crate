@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.index.Index;

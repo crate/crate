@@ -28,7 +28,7 @@ import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;

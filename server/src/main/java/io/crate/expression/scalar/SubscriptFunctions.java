@@ -30,7 +30,7 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class SubscriptFunctions {

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import io.crate.common.annotations.NotThreadSafe;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;

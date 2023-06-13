@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

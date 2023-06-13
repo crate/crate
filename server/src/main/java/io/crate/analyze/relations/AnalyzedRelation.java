@@ -30,8 +30,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -86,7 +86,7 @@ public interface AnalyzedRelation extends AnalyzedStatement {
      * Either the outputs that would be included by `SELECT *` or the list of
      * symbols the user explicitly selected
      */
-    @Nonnull
+    @NotNull
     @Override
     List<Symbol> outputs();
 

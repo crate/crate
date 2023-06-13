@@ -23,7 +23,7 @@ package io.crate.protocols.postgres;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.PreparedStmt;
 import io.crate.action.sql.RowConsumerToResultReceiver;

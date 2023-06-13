@@ -21,7 +21,7 @@ package org.elasticsearch.cluster;
 
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ack.AckedRequest;

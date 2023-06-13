@@ -24,7 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
 
 class SmallIntType extends PGType<Short> {
@@ -55,14 +55,14 @@ class SmallIntType extends PGType<Short> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Short value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Short value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeShort(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Short value) {
+    protected byte[] encodeAsUTF8Text(@NotNull Short value) {
         return Short.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

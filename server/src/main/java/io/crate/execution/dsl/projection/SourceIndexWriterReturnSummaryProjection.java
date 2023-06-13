@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;

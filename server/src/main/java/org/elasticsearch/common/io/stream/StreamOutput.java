@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.apache.lucene.index.CorruptIndexException;

@@ -21,7 +21,7 @@ package org.elasticsearch.common.lucene.search;
 
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.search.BooleanClause;

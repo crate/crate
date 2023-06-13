@@ -26,7 +26,7 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 public class DropConstraintRequest extends AcknowledgedRequest<DropConstraintRequest> {
@@ -34,8 +34,8 @@ public class DropConstraintRequest extends AcknowledgedRequest<DropConstraintReq
     private final RelationName relationName;
     private final String constraintName;
 
-    public DropConstraintRequest(@Nonnull RelationName relationName,
-                                 @Nonnull String constraintName) {
+    public DropConstraintRequest(@NotNull RelationName relationName,
+                                 @NotNull String constraintName) {
         this.relationName = relationName;
         this.constraintName = constraintName;
     }

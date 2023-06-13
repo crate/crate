@@ -27,8 +27,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class BoundCreateTable {
@@ -76,7 +76,7 @@ public class BoundCreateTable {
         return ifNotExists;
     }
 
-    @Nonnull
+    @NotNull
     public List<List<String>> partitionedBy() {
         return analyzedTableElements().partitionedBy();
     }

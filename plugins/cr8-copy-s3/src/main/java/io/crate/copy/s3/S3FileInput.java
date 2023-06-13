@@ -33,8 +33,8 @@ import io.crate.execution.engine.collect.files.Globs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -53,11 +53,11 @@ public class S3FileInput implements FileInput {
 
     private final S3ClientHelper clientBuilder;
 
-    @Nonnull
+    @NotNull
     private final S3URI normalizedS3URI;
     @Nullable
     private final S3URI preGlobUri;
-    @Nonnull
+    @NotNull
     private final Predicate<S3URI> uriPredicate;
     @Nullable
     private final String protocolSetting;

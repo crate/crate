@@ -25,7 +25,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 

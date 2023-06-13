@@ -32,8 +32,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import org.jetbrains.annotations.Nullable;
+import io.crate.common.annotations.NotThreadSafe;
 
 import org.elasticsearch.index.translog.Translog;
 

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
 import io.crate.types.ArrayType;

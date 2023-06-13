@@ -26,7 +26,7 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;

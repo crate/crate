@@ -23,7 +23,7 @@ package io.crate.expression.udf;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 import org.junit.Before;

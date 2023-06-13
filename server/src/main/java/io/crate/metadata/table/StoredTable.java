@@ -24,7 +24,7 @@ package io.crate.metadata.table;
 
 import org.elasticsearch.Version;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface StoredTable {
 

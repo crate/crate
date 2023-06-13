@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -146,7 +146,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     @Override
-    public void kill(@Nonnull Throwable t) {
+    public void kill(@NotNull Throwable t) {
         killed.set(t);
     }
 

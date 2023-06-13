@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.xcontent;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 

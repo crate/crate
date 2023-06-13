@@ -87,7 +87,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 
 /**

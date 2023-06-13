@@ -45,7 +45,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.Term;

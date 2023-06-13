@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.junit.After;
 import org.junit.Before;
@@ -119,7 +119,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task dummyContext = new DummyTask() {
 
             @Override
-            public void innerKill(@Nonnull Throwable throwable) {
+            public void innerKill(@NotNull Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -146,7 +146,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task dummyContext = new DummyTask() {
 
             @Override
-            public void innerKill(@Nonnull Throwable throwable) {
+            public void innerKill(@NotNull Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -159,7 +159,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask() {
             @Override
-            public void innerKill(@Nonnull Throwable throwable) {
+            public void innerKill(@NotNull Throwable throwable) {
                 kill2Called.set(true);
             }
         });

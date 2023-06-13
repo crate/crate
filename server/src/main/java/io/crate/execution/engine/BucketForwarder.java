@@ -28,7 +28,7 @@ import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.transport.JobResponse;
 import org.elasticsearch.action.ActionListener;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -80,7 +80,7 @@ final class BucketForwarder {
         }
     }
 
-    protected void failed(@Nonnull Throwable t) {
+    protected void failed(@NotNull Throwable t) {
         initializationTracker.jobInitializationFailed(t);
         for (PageBucketReceiver pageBucketReceiver : pageBucketReceivers) {
             pageBucketReceiver.kill(t);

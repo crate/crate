@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Close;

@@ -46,7 +46,7 @@ import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;

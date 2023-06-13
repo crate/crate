@@ -35,7 +35,7 @@ import io.crate.user.UserLookup;
 import org.elasticsearch.common.TriFunction;
 import org.joda.time.Period;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;

@@ -26,7 +26,7 @@ import org.apache.lucene.search.MultiTermQuery;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.search.MatchQuery;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class ParsedOptions {
 

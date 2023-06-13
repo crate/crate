@@ -21,8 +21,8 @@
 
 package io.crate.rest.action;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
@@ -51,7 +51,7 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void fail(@Nonnull Throwable t) {
+    public void fail(@NotNull Throwable t) {
         results[resultIdx] = new Result(SQLExceptions.messageOf(t), rowCount);
         super.fail(t);
     }

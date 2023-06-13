@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -242,7 +242,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, @Nonnull TransactionContext txnCtx) {
+    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, @NotNull TransactionContext txnCtx) {
         RoutedCollectPhase result = this;
         Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, txnCtx);
         List<Symbol> newToCollect = Lists2.map(toCollect, normalize);

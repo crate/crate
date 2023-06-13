@@ -26,7 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
@@ -160,7 +160,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
         synchronized (this) {
             killed = throwable;

@@ -28,7 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;

@@ -24,7 +24,7 @@ package io.crate.signatures;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;

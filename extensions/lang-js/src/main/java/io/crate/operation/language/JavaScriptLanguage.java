@@ -36,7 +36,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.util.Locale;

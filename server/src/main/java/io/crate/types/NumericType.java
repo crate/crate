@@ -28,8 +28,8 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -151,14 +151,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     /**
      * Returns the size of {@link BigDecimal} in bytes
      */
-    public static long size(@Nonnull BigDecimal value) {
+    public static long size(@NotNull BigDecimal value) {
         // BigInteger overhead 20 bytes
         // BigDecimal overhead 16 bytes
         // size of unscaled value
         return 36 + value.unscaledValue().bitLength() / 8 + 1;
     }
 
-    public static long sizeDiff(@Nonnull BigDecimal first, @Nonnull BigDecimal second) {
+    public static long sizeDiff(@NotNull BigDecimal first, @NotNull BigDecimal second) {
         return NumericType.size(first) - NumericType.size(second);
     }
 

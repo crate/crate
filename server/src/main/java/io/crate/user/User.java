@@ -24,7 +24,7 @@ package io.crate.user;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.pgcatalog.OidHash;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Objects;

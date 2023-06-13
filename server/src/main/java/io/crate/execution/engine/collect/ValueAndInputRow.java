@@ -25,7 +25,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.InputRow;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;

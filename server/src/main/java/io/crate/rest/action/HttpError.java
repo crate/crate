@@ -25,7 +25,7 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;

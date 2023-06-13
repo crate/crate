@@ -35,7 +35,7 @@ import io.crate.types.TimestampType;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class NullSentinelValues {
 

@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 import java.util.Collections;
 import java.util.Locale;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class ColumnUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
@@ -79,7 +79,7 @@ public class ColumnUnknownException extends RuntimeException implements Resource
         return exceptionVisitor.visitColumnUnknownException(this, context);
     }
 
-    @Nonnull
+    @NotNull
     public RelationType relationType() {
         return relationType;
     }

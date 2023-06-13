@@ -33,7 +33,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

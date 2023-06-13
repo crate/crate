@@ -24,7 +24,7 @@ package io.crate.metadata;
 import java.io.IOException;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;

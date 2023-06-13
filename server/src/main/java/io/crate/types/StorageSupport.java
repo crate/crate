@@ -24,7 +24,7 @@ package io.crate.types;
 
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
 

@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.operation;
 
 import io.crate.expression.reference.sys.job.ContextLog;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;

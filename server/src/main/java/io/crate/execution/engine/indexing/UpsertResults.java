@@ -25,7 +25,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.JobKilledException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

@@ -25,7 +25,7 @@ import static io.crate.common.collections.Lists2.concat;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.AmbiguousColumnException;

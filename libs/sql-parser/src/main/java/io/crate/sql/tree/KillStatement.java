@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class KillStatement<T> extends Statement {
 

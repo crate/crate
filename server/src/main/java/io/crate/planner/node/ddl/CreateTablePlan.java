@@ -56,7 +56,7 @@ import io.crate.sql.tree.PartitionedBy;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;

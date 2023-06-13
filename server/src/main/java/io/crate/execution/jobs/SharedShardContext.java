@@ -23,7 +23,7 @@ package io.crate.execution.jobs;
 
 import java.util.function.UnaryOperator;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import io.crate.common.annotations.NotThreadSafe;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.index.IndexNotFoundException;

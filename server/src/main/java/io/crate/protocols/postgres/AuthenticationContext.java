@@ -27,7 +27,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.Closeable;
 
 class AuthenticationContext implements Closeable {

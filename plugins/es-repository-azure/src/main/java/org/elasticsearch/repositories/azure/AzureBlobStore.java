@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.blobstore.BlobContainer;

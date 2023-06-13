@@ -21,7 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
@@ -68,7 +68,7 @@ class RowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void fail(@Nonnull Throwable throwable) {
+    public void fail(@NotNull Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel.bypassDelay(), accessControl, throwable);
         channel.writePendingMessages(delayedWrites);
         channel.flush();

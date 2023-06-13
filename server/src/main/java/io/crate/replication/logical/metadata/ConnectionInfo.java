@@ -32,7 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.RemoteCluster;
 import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;

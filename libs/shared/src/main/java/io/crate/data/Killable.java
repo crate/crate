@@ -21,7 +21,7 @@
 
 package io.crate.data;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public interface Killable {
 
@@ -43,5 +43,5 @@ public interface Killable {
      *
      * @param throwable the reason for the interruption or null if there is none.
      */
-    void kill(@Nonnull Throwable throwable);
+    void kill(@NotNull Throwable throwable);
 }

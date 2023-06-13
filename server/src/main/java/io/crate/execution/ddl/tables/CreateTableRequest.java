@@ -36,8 +36,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +139,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         return putIndexTemplateRequest;
     }
 
-    @Nonnull
+    @NotNull
     public RelationName getTableName() {
         return relationName;
     }
@@ -206,7 +206,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
     }
 
-    @Nonnull
+    @NotNull
     public Settings settings() {
         return settings;
     }
@@ -216,32 +216,32 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         return routingColumn;
     }
 
-    @Nonnull
+    @NotNull
     public ColumnPolicy tableColumnPolicy() {
         return tableColumnPolicy;
     }
 
-    @Nonnull
+    @NotNull
     public List<List<String>> partitionedBy() {
         return partitionedBy;
     }
 
-    @Nonnull
+    @NotNull
     public Map<String, Object> indices() {
         return indices;
     }
 
-    @Nonnull
+    @NotNull
     public Map<String, String> checkConstraints() {
         return this.checkConstraints;
     }
 
-    @Nonnull
+    @NotNull
     public List<Reference> references() {
         return this.colsToAdd;
     }
 
-    @Nonnull
+    @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
     }

@@ -22,7 +22,7 @@ package org.elasticsearch.common.util;
 import org.apache.lucene.util.SetOnce;
 import org.apache.lucene.util.ThreadInterruptedException;
 import org.elasticsearch.ElasticsearchException;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
