@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.UUIDs;
 

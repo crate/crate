@@ -71,7 +71,7 @@ dependencies {
     impl("org.apache.xbean:xbean-finder:${versions.xbeanfinder}") {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
-    impl "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    impl "org.jetbrains:annotations:${versions.annotations}"
 
     plugins.each { pluginProject ->
         runtimeOnly pluginProject

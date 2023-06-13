@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 

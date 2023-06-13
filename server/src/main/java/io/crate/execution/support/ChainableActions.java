@@ -24,7 +24,7 @@ package io.crate.execution.support;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.MultiException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

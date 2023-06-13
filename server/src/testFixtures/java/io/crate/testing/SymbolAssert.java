@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.ObjectAssert;

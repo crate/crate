@@ -19,7 +19,7 @@
 package org.elasticsearch.test;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;

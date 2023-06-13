@@ -25,7 +25,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {

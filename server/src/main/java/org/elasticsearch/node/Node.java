@@ -45,7 +45,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SNIHostName;
 
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;

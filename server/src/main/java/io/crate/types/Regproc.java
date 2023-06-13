@@ -24,7 +24,7 @@ package io.crate.types;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 public class Regproc {
@@ -34,14 +34,14 @@ public class Regproc {
     private final int oid;
     private final String name;
 
-    public static Regproc of(@Nonnull String name) {
+    public static Regproc of(@NotNull String name) {
         return new Regproc(
             OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature())),
             name
         );
     }
 
-    public static Regproc of(int functionOid, @Nonnull String name) {
+    public static Regproc of(int functionOid, @NotNull String name) {
         // To match PostgreSQL behavior 1:1 this would need to lookup the
         // function name by oid and fallback to using the oid as name if there is
         // no match.
@@ -63,7 +63,7 @@ public class Regproc {
         return oid;
     }
 
-    @Nonnull
+    @NotNull
     public String name() {
         return name;
     }

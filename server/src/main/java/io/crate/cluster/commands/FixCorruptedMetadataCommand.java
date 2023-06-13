@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterState;
@@ -290,7 +290,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     }
 
     @VisibleForTesting
-    static RelationName fixTemplateName(@Nonnull String templateName) {
+    static RelationName fixTemplateName(@NotNull String templateName) {
         if (templateName.startsWith(".partitioned")) {
             String[] parts = templateName.split("\\.");
             if (parts.length == 4 && parts[0].isEmpty() && parts[1].equals("partitioned")) {
@@ -314,7 +314,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     }
 
     @VisibleForTesting
-    static String fixIndexName(@Nonnull String indexName) {
+    static String fixIndexName(@NotNull String indexName) {
         if (indexName.startsWith(".partitioned")) {
             try {
                 new IndexParts(indexName);

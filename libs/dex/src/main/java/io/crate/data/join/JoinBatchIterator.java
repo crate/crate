@@ -23,7 +23,7 @@ package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -106,7 +106,7 @@ public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
 
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         left.kill(throwable);
         right.kill(throwable);
     }

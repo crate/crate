@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.commons.math3.util.FastMath;
 import org.apache.lucene.util.NumericUtils;

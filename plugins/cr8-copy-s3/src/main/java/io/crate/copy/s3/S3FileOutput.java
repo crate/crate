@@ -34,8 +34,8 @@ import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import org.jetbrains.annotations.Nullable;
+import io.crate.common.annotations.NotThreadSafe;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

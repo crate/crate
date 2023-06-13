@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -95,7 +95,7 @@ public final class TimeTZParser {
         return new TimeTZ(checkRange(source, value, MAX_MICROS), 0);
     }
 
-    public static TimeTZ parse(@Nonnull String format) {
+    public static TimeTZ parse(@NotNull String format) {
         TemporalAccessor dt;
         try {
             dt = TIMETZ_PARSER.parse(format.replaceAll("\\s+", ""));
@@ -129,7 +129,7 @@ public final class TimeTZParser {
         return time.isSupported(field) ? time.get(field) : 0;
     }
 
-    public static String formatTime(@Nonnull TimeTZ time) {
+    public static String formatTime(@NotNull TimeTZ time) {
         String localTime = LocalTime
             .ofNanoOfDay(time.getMicrosFromMidnight() * 1000L)
             .format(DateTimeFormatter.ISO_TIME);

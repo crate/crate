@@ -23,8 +23,8 @@ package io.crate.protocols.postgres;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
@@ -96,7 +96,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void fail(@Nonnull Throwable throwable) {
+    public void fail(@NotNull Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
         channel.writePendingMessages(delayedWrites);
         channel.flush();

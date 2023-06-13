@@ -28,7 +28,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import javax.annotation.concurrent.GuardedBy;
+import io.crate.common.annotations.GuardedBy;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 

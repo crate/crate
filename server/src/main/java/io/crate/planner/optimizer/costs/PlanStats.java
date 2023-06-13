@@ -24,7 +24,7 @@ package io.crate.planner.optimizer.costs;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;

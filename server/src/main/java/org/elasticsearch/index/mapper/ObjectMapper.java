@@ -40,7 +40,7 @@ import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 
 public class ObjectMapper extends Mapper implements Cloneable {

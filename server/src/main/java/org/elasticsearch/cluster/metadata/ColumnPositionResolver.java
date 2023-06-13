@@ -21,8 +21,8 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -68,7 +68,7 @@ public class ColumnPositionResolver<T> {
         }
 
         @Override
-        public int compareTo(@Nonnull Column<T> o) {
+        public int compareTo(@NotNull Column<T> o) {
             // column position calculation : by depth (ascending) first, columnOrdering (descending) second then by name third
             if (this.columnOrdering == null && o.columnOrdering == null) {
                 return this.name.compareTo(o.name);

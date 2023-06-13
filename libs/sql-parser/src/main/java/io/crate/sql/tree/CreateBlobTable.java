@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;

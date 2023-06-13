@@ -26,7 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.Message;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.function.Function;
 
@@ -75,7 +75,7 @@ public final class FilteredLogSink<T> implements LogSink<T> {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<T> iterator() {
         return delegate.iterator();
     }

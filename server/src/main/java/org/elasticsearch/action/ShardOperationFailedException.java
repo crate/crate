@@ -19,7 +19,7 @@
 
 package org.elasticsearch.action;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.rest.RestStatus;

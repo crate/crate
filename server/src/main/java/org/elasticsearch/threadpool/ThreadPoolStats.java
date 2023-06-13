@@ -23,7 +23,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.Collections;
@@ -141,7 +141,7 @@ public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> impleme
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<Stats> iterator() {
         return stats.iterator();
     }

@@ -40,7 +40,7 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 

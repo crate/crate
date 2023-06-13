@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;

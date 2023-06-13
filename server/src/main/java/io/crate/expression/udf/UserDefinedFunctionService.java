@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 import org.apache.logging.log4j.LogManager;

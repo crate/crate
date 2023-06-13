@@ -28,7 +28,7 @@ description = 'CrateDB JavaScript Language for UDF'
 dependencies {
     implementation project(':server')
 
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
     implementation "org.graalvm.js:js:${versions.graalvm}"
     implementation "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
     implementation "org.graalvm.truffle:truffle-api:${versions.graalvm}"

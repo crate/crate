@@ -43,8 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -160,7 +160,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         killed = throwable;
     }
 

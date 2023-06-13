@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -257,7 +257,7 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, @Nonnull TransactionContext txnCtx) {
+    public Symbol normalize(@Nullable Symbol symbol, @NotNull TransactionContext txnCtx) {
         if (symbol == null) {
             return null;
         }

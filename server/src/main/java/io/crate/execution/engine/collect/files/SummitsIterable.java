@@ -26,7 +26,7 @@ import io.crate.common.Suppliers;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Point;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;

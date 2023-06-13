@@ -24,7 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
 
 class DoubleType extends PGType<Double> {
@@ -55,14 +55,14 @@ class DoubleType extends PGType<Double> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Double value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Double value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Double value) {
+    protected byte[] encodeAsUTF8Text(@NotNull Double value) {
         return Double.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

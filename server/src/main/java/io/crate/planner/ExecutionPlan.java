@@ -24,7 +24,7 @@ package io.crate.planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.projection.Projection;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface ExecutionPlan {
 

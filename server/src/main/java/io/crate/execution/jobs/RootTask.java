@@ -34,8 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Logger;
 
@@ -358,7 +358,7 @@ public class RootTask implements CompletionListenable<Void> {
             finishIfNeeded();
         }
 
-        private void onFailure(@Nonnull Throwable t) {
+        private void onFailure(@NotNull Throwable t) {
             t = SQLExceptions.unwrap(t);
             failure = t;
             jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t));

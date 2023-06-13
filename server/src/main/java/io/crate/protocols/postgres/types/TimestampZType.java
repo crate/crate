@@ -24,7 +24,7 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -92,7 +92,7 @@ final class TimestampZType extends BaseTimestampType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Object value) {
+    byte[] encodeAsUTF8Text(@NotNull Object value) {
         long msecs = (long) value;
         if (msecs >= FIRST_MSEC_AFTER_CHRIST) {
             return ISO_FORMATTER.print(msecs).getBytes(StandardCharsets.UTF_8);

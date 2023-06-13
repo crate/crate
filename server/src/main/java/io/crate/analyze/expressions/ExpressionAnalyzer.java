@@ -36,8 +36,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import org.joda.time.Period;
 
@@ -364,7 +364,7 @@ public class ExpressionAnalyzer {
      *         references to other window definitions.
      * @throws IllegalArgumentException If the window definition is not found.
      */
-    private Window resolveWindowRef(@Nonnull String name, Map<String, Window> windows) {
+    private Window resolveWindowRef(@NotNull String name, Map<String, Window> windows) {
         var window = windows.get(name);
         if (window == null) {
             throw new IllegalArgumentException("Window " + name + " does not exist");

@@ -32,7 +32,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 
 

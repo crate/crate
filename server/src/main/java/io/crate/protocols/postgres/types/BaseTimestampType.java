@@ -23,7 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 abstract class BaseTimestampType extends PGType {
 
@@ -37,12 +37,12 @@ abstract class BaseTimestampType extends PGType {
     private static final long EPOCH_DIFF_IN_MS = 946_684_800_000L;
 
 
-    BaseTimestampType(int oid, int typeLen, int typeMod, @Nonnull String typeName) {
+    BaseTimestampType(int oid, int typeLen, int typeMod, @NotNull String typeName) {
         super(oid, typeLen, typeMod, typeName);
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeLong(toPgTimestamp((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;

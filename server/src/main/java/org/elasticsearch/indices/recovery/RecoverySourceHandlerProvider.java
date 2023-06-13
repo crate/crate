@@ -19,7 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.index.shard.IndexShard;
 

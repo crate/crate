@@ -34,8 +34,8 @@ import io.netty.util.collection.IntObjectHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.GuardedBy;
+import org.jetbrains.annotations.NotNull;
+import io.crate.common.annotations.GuardedBy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -280,7 +280,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     }
 
     @Override
-    public void kill(@Nonnull Throwable t) {
+    public void kill(@NotNull Throwable t) {
         boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             lastThrowable = t;

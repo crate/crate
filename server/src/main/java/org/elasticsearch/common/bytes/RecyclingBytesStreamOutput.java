@@ -22,7 +22,7 @@ package org.elasticsearch.common.bytes;
 import java.io.IOException;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;

@@ -36,7 +36,7 @@ import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements AnalyzedRelation {
@@ -77,7 +77,7 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
         return tableInfo().ident();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);

@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl.util;
 
 import io.crate.common.annotations.VisibleForTesting;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.math.BigDecimal;
 
 public class OverflowAwareMutableLong implements NumericValueHolder {

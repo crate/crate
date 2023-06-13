@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import io.crate.metadata.ColumnIdent;

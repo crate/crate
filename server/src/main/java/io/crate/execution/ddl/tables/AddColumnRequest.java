@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,10 +48,10 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
      */
-    public AddColumnRequest(@Nonnull RelationName relationName,
-                            @Nonnull List<Reference> colsToAdd,
-                            @Nonnull Map<String, String> checkConstraints,
-                            @Nonnull IntArrayList pKeyIndices) {
+    public AddColumnRequest(@NotNull RelationName relationName,
+                            @NotNull List<Reference> colsToAdd,
+                            @NotNull Map<String, String> checkConstraints,
+                            @NotNull IntArrayList pKeyIndices) {
         this.relationName = relationName;
         this.colsToAdd = colsToAdd;
         this.checkConstraints = checkConstraints;
@@ -124,22 +124,22 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         writeReferencesAndConstraints(out, checkConstraints, colsToAdd, pKeyIndices);
     }
 
-    @Nonnull
+    @NotNull
     public RelationName relationName() {
         return this.relationName;
     }
 
-    @Nonnull
+    @NotNull
     public Map<String, String> checkConstraints() {
         return this.checkConstraints;
     }
 
-    @Nonnull
+    @NotNull
     public List<Reference> references() {
         return this.colsToAdd;
     }
 
-    @Nonnull
+    @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
     }

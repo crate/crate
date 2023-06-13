@@ -27,7 +27,7 @@ import static io.crate.types.DataTypes.STRING;
 import java.util.Collections;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.RestoreInProgress;
 

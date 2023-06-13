@@ -27,8 +27,8 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -52,12 +52,12 @@ public class PartitionName {
     @Nullable
     private String ident;
 
-    public PartitionName(RelationName relationName, @Nonnull List<String> values) {
+    public PartitionName(RelationName relationName, @NotNull List<String> values) {
         this.relationName = relationName;
         this.values = Objects.requireNonNull(values);
     }
 
-    public PartitionName(RelationName relationName, @Nonnull String partitionIdent) {
+    public PartitionName(RelationName relationName, @NotNull String partitionIdent) {
         this.relationName = relationName;
         this.ident = Objects.requireNonNull(partitionIdent);
     }

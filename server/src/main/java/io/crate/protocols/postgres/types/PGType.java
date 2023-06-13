@@ -23,7 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -89,7 +89,7 @@ public abstract class PGType<T> {
     private final int typeMod;
     private final String typName;
 
-    PGType(int oid, int typeLen, int typeMod, @Nonnull String typName) {
+    PGType(int oid, int typeLen, int typeMod, @NotNull String typName) {
         this.oid = oid;
         this.typeLen = typeLen;
         this.typeMod = typeMod;
@@ -168,7 +168,7 @@ public abstract class PGType<T> {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public int writeAsText(ByteBuf buffer, @Nonnull T value) {
+    public int writeAsText(ByteBuf buffer, @NotNull T value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
@@ -199,7 +199,7 @@ public abstract class PGType<T> {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public abstract int writeAsBinary(ByteBuf buffer, @Nonnull T value);
+    public abstract int writeAsBinary(ByteBuf buffer, @NotNull T value);
 
     public abstract T readBinaryValue(ByteBuf buffer, int valueLength);
 
@@ -207,7 +207,7 @@ public abstract class PGType<T> {
     /**
      * Return the UTF8 encoded text representation of the value
      */
-    abstract byte[] encodeAsUTF8Text(@Nonnull T value);
+    abstract byte[] encodeAsUTF8Text(@NotNull T value);
 
     /**
      * Convert a UTF8 encoded text representation into the actual value

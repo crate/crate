@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;

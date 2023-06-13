@@ -26,7 +26,7 @@ import static io.crate.types.Regproc.REGPROC_ZERO;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
 
 public class AnyType extends PGType<Integer> {
@@ -57,7 +57,7 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Integer value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Integer value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -74,7 +74,7 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Integer value) {
+    protected byte[] encodeAsUTF8Text(@NotNull Integer value) {
         return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

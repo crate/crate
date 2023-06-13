@@ -33,7 +33,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public class UserFunction extends Scalar<String, Object> {
 

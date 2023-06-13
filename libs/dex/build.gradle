@@ -27,11 +27,11 @@ archivesBaseName = 'crate-dex'
 idea.module.testSourceDirs += sourceSets.testFixtures.java.srcDirs
 
 dependencies {
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
     implementation project(':libs:shared')
 
     testFixturesImplementation project(':libs:shared')
-    testFixturesImplementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    testFixturesImplementation "org.jetbrains:annotations:${versions.annotations}"
     testFixturesImplementation "junit:junit:${versions.junit}"
     testFixturesApi "org.assertj:assertj-core:${versions.assertj}"
 

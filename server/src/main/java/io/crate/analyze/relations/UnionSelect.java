@@ -24,7 +24,7 @@ package io.crate.analyze.relations;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.elasticsearch.common.UUIDs;
 
@@ -95,7 +95,7 @@ public class UnionSelect implements AnalyzedRelation {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Symbol> outputs() {
         return (List<Symbol>)(List) outputs;

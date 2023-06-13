@@ -30,7 +30,7 @@ import org.elasticsearch.common.xcontent.ParsedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;

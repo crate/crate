@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 public class BoundAlterTable {

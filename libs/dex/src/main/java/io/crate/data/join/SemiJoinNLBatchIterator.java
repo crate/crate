@@ -23,7 +23,7 @@ package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
@@ -138,7 +138,7 @@ public class SemiJoinNLBatchIterator<L, R, C> implements BatchIterator<L> {
     }
 
     @Override
-    public void kill(@Nonnull Throwable throwable) {
+    public void kill(@NotNull Throwable throwable) {
         left.kill(throwable);
         right.kill(throwable);
     }

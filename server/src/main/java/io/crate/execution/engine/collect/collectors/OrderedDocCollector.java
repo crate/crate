@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.function.Supplier;
 
@@ -66,7 +66,7 @@ public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardI
     }
 
     @Override
-    public void kill(@Nonnull Throwable t) {
+    public void kill(@NotNull Throwable t) {
     }
 
     /**

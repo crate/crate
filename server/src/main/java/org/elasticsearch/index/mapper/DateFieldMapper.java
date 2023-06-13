@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;

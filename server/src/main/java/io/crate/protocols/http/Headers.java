@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.regex.Pattern;

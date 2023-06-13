@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SortItem;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;

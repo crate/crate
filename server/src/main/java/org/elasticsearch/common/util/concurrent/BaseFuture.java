@@ -21,7 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.MasterService;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Objects;

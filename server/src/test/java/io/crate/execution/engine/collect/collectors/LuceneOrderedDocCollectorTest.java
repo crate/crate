@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;

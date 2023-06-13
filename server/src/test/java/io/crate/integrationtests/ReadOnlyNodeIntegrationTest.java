@@ -26,7 +26,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;

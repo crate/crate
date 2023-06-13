@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import io.crate.common.collections.Lists2;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;

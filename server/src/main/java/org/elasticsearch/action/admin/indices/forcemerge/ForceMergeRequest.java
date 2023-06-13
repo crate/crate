@@ -21,7 +21,7 @@ package org.elasticsearch.action.admin.indices.forcemerge;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;

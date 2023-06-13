@@ -33,8 +33,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.GuardedBy;
+import org.jetbrains.annotations.NotNull;
+import io.crate.common.annotations.GuardedBy;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -122,7 +122,7 @@ public class FetchTask implements Task {
         return -1;
     }
 
-    @Nonnull
+    @NotNull
     public RelationName tableIdent(int readerId) {
         var entry = tableIdents.floorEntry(readerId);
         if (entry == null) {
@@ -131,7 +131,7 @@ public class FetchTask implements Task {
         return entry.getValue();
     }
 
-    @Nonnull
+    @NotNull
     public DocTableInfo table(int readerId) {
         var relationName = tableIdent(readerId);
         var table = getTableInfo.apply(relationName);
@@ -141,7 +141,7 @@ public class FetchTask implements Task {
         return table;
     }
 
-    @Nonnull
+    @NotNull
     public BorrowedItem<IndexSearcher> searcher(int readerId) {
         synchronized (jobId) {
             if (killed != null) {
@@ -164,7 +164,7 @@ public class FetchTask implements Task {
         }
     }
 
-    @Nonnull
+    @NotNull
     public IndexService indexService(int readerId) {
         SharedShardContext sharedShardContext = shardContexts.get(readerId);
         if (sharedShardContext == null) {

@@ -31,7 +31,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 
 public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {

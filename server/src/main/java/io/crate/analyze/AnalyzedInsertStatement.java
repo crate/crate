@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Maps;

@@ -37,7 +37,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import org.elasticsearch.Version;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;

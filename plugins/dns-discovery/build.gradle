@@ -27,7 +27,7 @@ group = 'io.crate'
 dependencies {
     implementation project(':libs:shared')
     implementation project(':server')
-    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.jetbrains:annotations:${versions.annotations}"
     implementation "io.netty:netty-resolver-dns:${versions.netty4}"
     testImplementation(testFixtures(project(':server')))
     testImplementation "org.mockito:mockito-core:${versions.mockito}"

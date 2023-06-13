@@ -32,7 +32,7 @@ import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
