@@ -104,22 +104,20 @@ crate = ConnectingCrateLayer(
 
 
 def crash_transform(s):
-    # The examples in the docs show the real port '4200' to a reader.
-    # Our test suite requires the port to be '44200' to avoid conflicts.
+    # The examples in the docs show the port '4200' to a reader.
+    # The test suite uses a port range, and may run on another port if 4200 is in use.
     # Therefore, we need to replace the ports before a test is being run.
     if s.startswith('_'):
         return s[1:]
-    if hasattr(crate, 'addresses'):
-        s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
+    s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
     return u'cmd.process({0})'.format(repr(s.strip().rstrip(';')))
 
 
 def bash_transform(s):
-    # The examples in the docs show the real port '4200' to a reader.
-    # Our test suite requires the port to be '44200' to avoid conflicts.
+    # The examples in the docs show the port '4200' to a reader.
+    # The test suite uses a port range, and may run on another port if 4200 is in use.
     # Therefore, we need to replace the ports before a test is being run.
-    if hasattr(crate, 'addresses'):
-        s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
+    s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return u'cmd.process({0})'.format(repr(s.strip().rstrip(';')))
@@ -429,7 +427,6 @@ def get_abspath(name):
 class DocTests(unittest.TestSuite):
 
     def run(self, result, debug=False):
-        crate.start()
         try:
             super().run(result, debug)
         finally:
@@ -439,6 +436,7 @@ class DocTests(unittest.TestSuite):
 
 def load_tests(loader, suite, ignore):
     tests = []
+    crate.start()
     for fn in doctest_files('general/blobs.rst', 'interfaces/http.rst',):
         tests.append(
             docsuite(
@@ -520,6 +518,7 @@ def load_tests(loader, suite, ignore):
         tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
 
     if not tests:
+        crate.stop()
         raise ValueError("ITEST_FILE_NAME_FILTER, no matches for: {}".format(ITEST_FILE_NAME_FILTER))
 
     # randomize order of tests to make sure they don't depend on each other
