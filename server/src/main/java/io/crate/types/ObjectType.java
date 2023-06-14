@@ -37,8 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,10 +45,10 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.MapComparator;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;

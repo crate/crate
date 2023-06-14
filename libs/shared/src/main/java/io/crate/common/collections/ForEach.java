@@ -40,8 +40,8 @@ public class ForEach {
                 Object elem = Array.get(arrayOrCollection, i);
                 consumer.accept(elem);
             }
-        } else if (arrayOrCollection instanceof Collection) {
-            for (Object elem : ((Collection) arrayOrCollection)) {
+        } else if (arrayOrCollection instanceof Collection<?> collection) {
+            for (Object elem : collection) {
                 consumer.accept(elem);
             }
         } else {
