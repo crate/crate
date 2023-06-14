@@ -23,12 +23,13 @@ package io.crate.protocols.postgres.parser;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
-
-import com.carrotsearch.hppc.ByteArrayList;
 
 import io.crate.protocols.postgres.antlr.v4.PgArrayBaseVisitor;
 import io.crate.protocols.postgres.antlr.v4.PgArrayParser;
+import io.crate.protocols.postgres.antlr.v4.PgArrayParser.ItemContext;
 import io.crate.protocols.postgres.antlr.v4.PgArrayParser.NullContext;
 import io.crate.protocols.postgres.antlr.v4.PgArrayParser.QuotedStringContext;
 import io.crate.protocols.postgres.antlr.v4.PgArrayParser.UnquotedStringContext;
@@ -43,11 +44,12 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
 
     @Override
     public Object visitArray(PgArrayParser.ArrayContext ctx) {
-        ArrayList<Object> array = new ArrayList<>();
-        for (var value : ctx.item()) {
-            array.add(value.accept(this));
+        List<ItemContext> items = ctx.item();
+        ArrayList<Object> result = new ArrayList<>(items.size());
+        for (var item : items) {
+            result.add(item.accept(this));
         }
-        return array;
+        return result;
     }
 
     @Override
@@ -72,7 +74,9 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
      * @param bytes {@code byte[]} that represent an array's item.
      */
     private static byte[] removeEscapes(byte[] bytes) {
-        var itemBytes = new ByteArrayList(bytes.length);
+        byte[] itemBytes = new byte[bytes.length];
+        int elementsCount = 0;
+
         int end = bytes.length - 1;
         for (int i = 0; i <= end; i++) {
             char c = (char) bytes[i];
@@ -82,8 +86,8 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
                     i++;
                 }
             }
-            itemBytes.add(bytes[i]);
+            itemBytes[elementsCount++] = bytes[i];
         }
-        return itemBytes.toArray();
+        return Arrays.copyOf(itemBytes, elementsCount);
     }
 }
