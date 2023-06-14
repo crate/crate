@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.data;
+package io.crate.concurrent;
 
 import org.jetbrains.annotations.NotNull;
 

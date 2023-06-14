@@ -21,14 +21,15 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.data.Killable;
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
-
-import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.function.Supplier;
+
+import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.concurrent.Killable;
+import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
 
 public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardId, Row>>, AutoCloseable, Killable {
 

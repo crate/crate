@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.Killable;
+import io.crate.concurrent.Killable;
 
 public interface Task extends CompletionListenable<Void>, Killable {
 
