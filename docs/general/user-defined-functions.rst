@@ -404,7 +404,7 @@ is returned::
 
 .. _ECMAScript 2019: https://262.ecma-international.org/10.0/index.html
 .. _GraalVM JavaScript: https://www.graalvm.org/reference-manual/js/
-.. _GraalVM JavaScript Compatibility FAQ: https://www.graalvm.org/22.0/reference-manual/js/FAQ/#compatibility
+.. _GraalVM JavaScript Compatibility FAQ: https://www.graalvm.org/latest/reference-manual/js/JavaScriptCompatibility/
 .. _GraalVM Polyglot API: https://www.graalvm.org/reference-manual/embed-languages/
 .. _GraalVM Security Guide: https://www.graalvm.org/security-guide/
 .. _stock host Java VM JIT compilers: https://www.graalvm.org/reference-manual/js/RunOnJDK/
