@@ -19,26 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.common.collections;
+package io.crate.types;
 
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
-public final class MapComparator implements Comparator<Map> {
-
-    private static final MapComparator INSTANCE = new MapComparator();
+public final class MapComparator {
 
     private MapComparator() {}
 
-    public static MapComparator getInstance() {
-        return INSTANCE;
-    }
-
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static <K, V> int compareMaps(Map<K, V> m1, Map<K, V> m2) {
         Objects.requireNonNull(m1, "map is null");
         Objects.requireNonNull(m2, "map is null");
@@ -79,10 +69,5 @@ public final class MapComparator implements Comparator<Map> {
             }
         }
         return 0;
-    }
-
-    @Override
-    public int compare(Map o1, Map o2) {
-        return compareMaps(o1, o2);
     }
 }

@@ -21,26 +21,24 @@
 
 package io.crate.common.collections;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class ForEachTest extends ESTestCase {
+public class ForEachTest {
 
     private void assertForEachCalledOnAllElements(Object elements, int expected) {
         final AtomicInteger sum = new AtomicInteger(0);
         ForEach.forEach(elements, input -> sum.getAndAdd((int) input));
-        assertThat(sum.get(), is(expected));
+        assertThat(sum.get()).isEqualTo(expected);
     }
 
     @Test
     public void testPrimitiveArray() throws Exception {
-        int[] array = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        int[] array = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         assertForEachCalledOnAllElements(array, 55);
     }
 
@@ -52,7 +50,7 @@ public class ForEachTest extends ESTestCase {
 
     @Test
     public void testArray() throws Exception {
-        Integer[] array = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        Integer[] array = new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         assertForEachCalledOnAllElements(array, 55);
     }
 
