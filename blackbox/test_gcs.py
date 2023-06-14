@@ -4,6 +4,7 @@ import unittest
 import subprocess
 from crate.client import connect
 from cr8.run_crate import CrateNode
+from testutils.paths import crate_path
 
 FAKE_GCS_NAME = 'fake_gcs_server'
 FAKE_GCS_PORT = '4443:4443'

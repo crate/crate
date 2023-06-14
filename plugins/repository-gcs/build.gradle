@@ -3,6 +3,7 @@ apply from: "$rootDir/extensions/extensionModule.gradle"
 dependencies {
     implementation project(':server')
     pluginDependency("com.google.api:gax:${versions.google_api_gax}")
+    pluginDependency("com.google.auth:google-auth-library-credentials:${versions.google_auth_library_credentials}")
     pluginDependency("com.google.auth:google-auth-library-oauth2-http:${versions.google_auth_library_oauth2_http}")
     pluginDependency("com.google.cloud:google-cloud-storage:${versions.google_cloud_storage}")
 }
