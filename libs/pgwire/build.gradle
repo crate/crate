@@ -37,7 +37,6 @@ dependencies {
     antlr4 "org.antlr:antlr4:${versions.antlr}"
 
     implementation "org.antlr:antlr4-runtime:${versions.antlr}"
-    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
     testImplementation "org.assertj:assertj-core:${versions.assertj}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
