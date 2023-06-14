@@ -111,4 +111,90 @@ public class MappingConstants {
                 "\"nested_col_fulltext\":{\"type\":\"text\",\"position\":7,\"analyzer\":\"stop\",\"sources\":[\"author.name\",\"title\"]}," +
                 "\"title\":{\"type\":\"keyword\",\"position\":1,\"copy_to\":[\"nested_col_fulltext\",\"title_desc_fulltext\"]}," +
                 "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":6,\"analyzer\":\"standard\",\"sources\":[\"description\",\"title\"]}}}}";
+
+    // Obtained by executing test_copy_deep_nested_object_to_partitioned_table_results_in_dynamic_mapping_updates manually.
+    static final String DEEP_NESTED_MAPPING =
+        """
+            {
+              "default": {
+                "_meta": {
+                  "partitioned_by": [
+                    [
+                      "p",
+                      "integer"
+                    ]
+                  ]
+                },
+                "dynamic": "true",
+                "properties": {
+                  "p": {
+                    "index": false,
+                    "position": 2,
+                    "type": "integer"
+                  },
+                  "tb": {
+                    "type": "array",
+                    "inner": {
+                      "dynamic": "true",
+                      "position": 1,
+                      "type": "object",
+                      "properties": {
+                        "t1": {
+                          "type": "array",
+                          "inner": {
+                            "position": 3,
+                            "properties": {
+                              "t6": {
+                                "type": "array",
+                                "inner": {
+                                  "position": 6,
+                                  "type": "long"
+                                }
+                              },
+                              "t3": {
+                                "position": 5,
+                                "properties": {
+                                  "t4": {
+                                    "position": 7,
+                                    "properties": {
+                                      "t5": {
+                                        "position": 8,
+                                        "type": "long"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "t2": {
+                          "position": 4,
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  "o": {
+                    "position": 9,
+                    "properties": {
+                      "a": {
+                        "position": 10,
+                        "properties": {
+                          "b": {
+                            "position": 12,
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "b": {
+                        "position": 11,
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
 }

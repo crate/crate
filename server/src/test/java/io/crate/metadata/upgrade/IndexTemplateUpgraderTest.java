@@ -389,4 +389,24 @@ public class IndexTemplateUpgraderTest {
         assertThat(actualMap)
             .isEqualTo(expectedMap);
     }
+
+    @Test
+    public void test_upgrade_deep_nested_object_mapping() throws Exception {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(MappingConstants.DEEP_NESTED_MAPPING)
+            .build();
+
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetadata updatedTemplate = result.get(templateName);
+
+        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.DEEP_NESTED_MAPPING);
+
+        assertThat(actualMap)
+            .isEqualTo(expectedMap);
+    }
 }
