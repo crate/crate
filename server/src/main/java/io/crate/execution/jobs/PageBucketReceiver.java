@@ -21,15 +21,15 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.Streamer;
-import io.crate.concurrent.CompletionListenable;
-import io.crate.data.Bucket;
-import io.crate.data.Killable;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
+
+import io.crate.Streamer;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.concurrent.Killable;
+import io.crate.data.Bucket;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 
 /**
  * A component which receives buckets from one or more upstreams.
