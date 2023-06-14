@@ -13,15 +13,14 @@ public class GCSBlobStore implements BlobStore {
 
     private final Bucket bucket;
 
-    GCSBlobStore(String bucket) {
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        this.bucket = storage.get(bucket);
+    GCSBlobStore(Bucket bucket) {
+        this.bucket = bucket;
     }
 
     // From interface BlobStore.
     @Override
     public BlobContainer blobContainer(BlobPath path) {
-        return new GCSBlobContainer(path, bucket);
+        return new GCSBlobContainer(bucket, path);
     }
 
     // From interface Closeable.

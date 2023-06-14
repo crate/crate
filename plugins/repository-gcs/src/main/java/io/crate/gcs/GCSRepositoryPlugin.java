@@ -25,6 +25,8 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(
+            GCSRepository.ENDPOINT_SETTING,
+            GCSRepository.SERVICE_ACCOUNT_KEY_SETTING,
             GCSRepository.BUCKET_SETTING,
             GCSRepository.BASE_PATH_SETTING);
     }
@@ -38,8 +40,12 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 @Override
                 public TypeSettings settings() {
                     return new TypeSettings(
-                        List.of(GCSRepository.BUCKET_SETTING), // Required
-                        List.of(GCSRepository.BASE_PATH_SETTING)); // Optional
+                        List.of(// Required settings
+                            GCSRepository.BUCKET_SETTING,
+                            GCSRepository.SERVICE_ACCOUNT_KEY_SETTING),
+                        List.of(// Optional settings
+                            GCSRepository.ENDPOINT_SETTING,
+                            GCSRepository.BASE_PATH_SETTING));
                 }
 
                 @Override

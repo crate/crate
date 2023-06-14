@@ -30,7 +30,7 @@ public class GCSBlobContainer extends AbstractBlobContainer {
 
     private final Bucket bucket;
 
-    public GCSBlobContainer(BlobPath path, Bucket bucket) {
+    public GCSBlobContainer(Bucket bucket, BlobPath path) {
         super(path);
         this.bucket = bucket;
     }

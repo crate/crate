@@ -71,6 +71,16 @@ allprojects {
             force "com.google.code.findbugs:jsr305:${versions.jsr305}"
             force "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
             force "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
+
+            // Forced versions to resolve conflicts between Google Cloud Storage
+            // and Azure, and between different Google artifacts.
+            force "com.google.guava:guava:${versions.google_guava}"
+            force "com.google.http-client:google-http-client:${versions.google_http_client}"
+            force "com.google.http-client:google-http-client-gson:${versions.google_http_client_gson}"
+            force "com.google.errorprone:error_prone_annotations:${versions.google_errorprone}"
+            force "com.google.j2objc:j2objc-annotations:${versions.j2objc_annotations}"
+            force "org.checkerframework:checker-qual:${versions.checker_qual}"
+            force "io.grpc:grpc-context:${versions.grpc_context}"
         }
     }
 }
