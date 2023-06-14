@@ -154,7 +154,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
             if (ArrayType.NAME.equals(type)) {
                 Map<String, Object> innerMapping = Maps.get(columnProperties, "inner");
                 String innerType = Maps.get(innerMapping, "type");
-                if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                if (innerType == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
                     updated |= addIndexColumnSources(rootMapping, innerMapping, columnFQN);
                 }
             } else {
