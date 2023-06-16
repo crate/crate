@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import static io.crate.execution.dsl.projection.ProjectionType.COLUMN_INDEX_WRITER_RETURN_SUMMARY;
+
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final boolean failFast;
@@ -359,12 +361,18 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      * Need to take to account "shift" in indices of InputColumns, otherwise first columns will clash with partitioned columns
      * as their indices are already taken by partitioned columns in
      * {@link ProjectionToProjectorVisitor#visitColumnIndexWriterProjection}.
+     * Another possible shift is 4 reserved columns for summary projection.
      *
      */
     public void addNewColumns(List<Reference> newColumns) {
-        int partedColumnsCount = allTargetColumns.size() - targetColsExclPartitionCols.size();
+        int shift = allTargetColumns.size() - targetColsExclPartitionCols.size();
+        if (projectionType() == COLUMN_INDEX_WRITER_RETURN_SUMMARY) {
+            // There are 4 reserved InputColumn-s: sourceUri, sourceUriFailure,lineNumber, sourceParsingFailure.
+            shift += 4;
+
+        }
         for (Reference ref: newColumns) {
-            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size() + partedColumnsCount, ref.valueType()));
+            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size() + shift, ref.valueType()));
             targetColsExclPartitionCols.add(ref);
             allTargetColumns.add(ref);
         }
