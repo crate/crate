@@ -34,4 +34,6 @@ public class Constants {
     public static final String DEFAULT_DATE_STYLE = "ISO";
 
     public static final int MAX_SHARD_MISSING_RETRIES = 3;
+
+    public static final Object NO_VALUE_MARKER = new Object();
 }

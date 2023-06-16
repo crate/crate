@@ -25,6 +25,8 @@ import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
+import static io.crate.Constants.NO_VALUE_MARKER;
+
 public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
 
     private final ColumnIdent columnIdent;
@@ -38,7 +40,8 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
 
     @Override
     public Object value() {
-        return type.implicitCast(context.get(columnIdent));
+        Object value = context.get(columnIdent);
+        return NO_VALUE_MARKER.equals(value) ? value : type.implicitCast(value);
     }
 
     @Override
