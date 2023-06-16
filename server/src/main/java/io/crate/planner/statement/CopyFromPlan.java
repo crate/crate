@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -43,8 +42,6 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
-import io.crate.expression.scalar.conditional.CoalesceFunction;
-import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -244,10 +241,6 @@ public final class CopyFromPlan implements Plan {
 
         List<Symbol> toCollect = new ArrayList<>(targetColumns);
 
-        // InputColumns.create(generatedReference, sourceSymbols) would reset COALESCE usage to original expression.
-        // This map is used for direct InputColumn creation out of concrete COALESCE function and also for setting partition literals.
-        Map<ColumnIdent, io.crate.expression.symbol.Function> coalesceFunctionsByGenRef = new HashMap<>();
-
         // Initialized when all refs are added.
         // In summary mode we add RAW (for now), in regular mode we add not-yet added top-level target columns.
         InputColumns.SourceSymbols sourceSymbols;
@@ -340,25 +333,11 @@ public final class CopyFromPlan implements Plan {
                 targetColsExclPartitionCols.add(column);
             }
 
-            // For generated columns, we first try to get provided in a file value and validate it.
-            // If it's not provided we generate it ourselves.
-            for (int i = 0; i < toCollect.size(); i++) {
-                Symbol symbol = toCollect.get(i);
-                if (symbol instanceof GeneratedReference genRef) {
-                    var function = new io.crate.expression.symbol.Function(
-                        CoalesceFunction.SIGNATURE,
-                        List.of(genRef, genRef.generatedExpression()),
-                        Symbols.typeView(List.of(genRef.generatedExpression())).get(0)
-                    );
-                    toCollect.set(i, function);
-                    coalesceFunctionsByGenRef.put(genRef.column(), function);
-                }
-            }
 
             sourceSymbols = new InputColumns.SourceSymbols(toCollect);
 
             if (clusteredBy != null) {
-                clusteredByInputCol = inputColumnsForReference(table.getReference(clusteredBy), coalesceFunctionsByGenRef, sourceSymbols);
+                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
             }
 
             indexWriterProjection = new ColumnIndexWriterProjection(
@@ -367,12 +346,12 @@ public final class CopyFromPlan implements Plan {
                 table.primaryKey(),
                 targetColsInCorrectOrder,
                 targetColsExclPartitionCols,
-                inputColumnsForReferences(targetColsExclPartitionCols, coalesceFunctionsByGenRef, sourceSymbols),
+                InputColumns.create(targetColsExclPartitionCols, sourceSymbols),
                 false, // Irrelevant for COPY FROM
                 boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
                 null, // ON UPDATE SET assignments is irrelevant for COPY FROM
-                inputColumnsForReferences(primaryKeyRefs, coalesceFunctionsByGenRef, sourceSymbols),
-                inputColumnsForReferences(table.partitionedByColumns(), coalesceFunctionsByGenRef, sourceSymbols),
+                InputColumns.create(primaryKeyRefs, sourceSymbols),
+                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
                 table.clusteredBy(),
                 clusteredByInputCol,
                 boundedCopyFrom.settings(),
@@ -382,11 +361,24 @@ public final class CopyFromPlan implements Plan {
             );
         }
 
+        // We generally don't unwrap generated references as we handle them in the Indexer.
+        // However, PARTITIONED BY columns are not included into targetColumns, so if they are generated we need to unwrap them here.
+        List<Symbol> unwrappedToCollect = toCollect
+            .stream()
+            .map(symbol -> {
+                if (symbol instanceof GeneratedReference genRef && table.partitionedByColumns().contains(genRef)) {
+                    return genRef.generatedExpression();
+                } else {
+                    return symbol;
+                }
+            })
+            .collect(Collectors.toList());
+
         // if there are partitionValues (we've had a PARTITION clause in the statement)
         // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
         // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
         if (partitionValues != null) {
-            rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect, coalesceFunctionsByGenRef);
+            rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, unwrappedToCollect);
         }
 
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
@@ -399,7 +391,7 @@ public final class CopyFromPlan implements Plan {
                 boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
             boundedCopyFrom.targetColumns(),
-            toCollect,
+            unwrappedToCollect,
             Collections.emptyList(),
             COMPRESSION_SETTING.getOrNull(boundedCopyFrom.settings()),
             boundedCopyFrom.settings().getAsBoolean("shared", null),
@@ -423,42 +415,15 @@ public final class CopyFromPlan implements Plan {
 
     private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
                                                              List<String> partitionValues,
-                                                             List<Symbol> toCollect,
-                                                             Map<ColumnIdent, io.crate.expression.symbol.Function> coalesceFunctionsByGenRef) {
+                                                             List<Symbol> toCollect) {
         for (int i = 0; i < partitionValues.size(); i++) {
             Reference partitionedByColumn = partitionedByColumns.get(i);
-            int idx;
-            if (partitionedByColumn instanceof GeneratedReference genRef) {
-                io.crate.expression.symbol.Function function = coalesceFunctionsByGenRef.get(genRef.column());
-                assert function != null : "Every GeneratedReference must have corresponding COALESCE function";
-                idx = toCollect.indexOf(function);
-            } else {
-                idx = toCollect.indexOf(partitionedByColumn);
-            }
+            int idx = toCollect.indexOf(partitionedByColumn);
+
             if (idx > -1) {
                 toCollect.set(idx, Literal.of(partitionValues.get(i)));
             }
         }
-    }
-
-    private static List<Symbol> inputColumnsForReferences(List<Reference> columns,
-                                                          Map<ColumnIdent, io.crate.expression.symbol.Function> coalesceFunctionsByGenRef,
-                                                          InputColumns.SourceSymbols sourceSymbols) {
-        return columns
-            .stream()
-            .map(ref -> inputColumnsForReference(ref, coalesceFunctionsByGenRef, sourceSymbols))
-            .collect(Collectors.toList());
-    }
-
-    private static Symbol inputColumnsForReference(Reference reference,
-                                                   Map<ColumnIdent, io.crate.expression.symbol.Function> coalesceFunctionsByGenRef,
-                                                   InputColumns.SourceSymbols sourceSymbols) {
-        if (reference instanceof GeneratedReference genRef) {
-            io.crate.expression.symbol.Function function = coalesceFunctionsByGenRef.get(genRef.column());
-            assert function != null : "Every GeneratedReference must have corresponding COALESCE function";
-            return InputColumns.create(function, sourceSymbols);
-        }
-        return InputColumns.create(reference, sourceSymbols);
     }
 
     /**

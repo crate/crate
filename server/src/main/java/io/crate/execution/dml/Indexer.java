@@ -83,6 +83,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
+import static io.crate.Constants.NO_VALUE_MARKER;
+
 /**
  * <p>
  *  Component to create a {@link ParsedDocument} from a {@link IndexItem}
@@ -248,6 +250,18 @@ public class Indexer {
     interface ColumnConstraint {
 
         void verify(Object providedValue);
+
+        /**
+         * @return generated value for CheckGeneratedValue or NULL for other constraints.
+         * Note, that there is no way to differentiate between
+         * NULL -> 'no expected value for constraint' and NULL -> 'generated value is always NULL'.
+         * However, it doesn't matter since we write returned value to the source
+         * and we never write NULL to the source.
+         */
+        @Nullable
+        default Object expectedValue() {
+            return null;
+        }
     }
 
     interface TableConstraint {
@@ -339,6 +353,12 @@ public class Indexer {
                     generatedValue
                 );
             }
+        }
+
+        @Nullable
+        @Override
+        public Object expectedValue() {
+            return input.value();
         }
     }
 
@@ -565,11 +585,27 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                Object value = reference.valueType().valueForInsert(values[i]);
+                Object value = values[i];
                 ColumnConstraint check = columnConstraints.get(reference.column());
-                if (check != null) {
-                    check.verify(value);
+
+                if (NO_VALUE_MARKER.equals(value)) {
+                    // NO_VALUE_MARKER is only relevant for COPY FROM.
+                    if (check != null) {
+                        // If reference is a generated column, we skip validation and generate it ourselves.
+                        // If it's not generated constraint or "generated as null" we skip it later.
+                        value = check.expectedValue();
+                    } else {
+                        // Switch back from marker to NULL as in this case
+                        // we want to fallback into skip null shirt-circuit below and don't write it to the source.
+                        value = null;
+                    }
+                } else {
+                    value = reference.valueType().valueForInsert(values[i]);
+                    if (check != null) {
+                        check.verify(value);
+                    }
                 }
+
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
