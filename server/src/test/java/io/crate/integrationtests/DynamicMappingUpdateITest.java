@@ -129,6 +129,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         concurrentUpdates8.join();
         concurrentUpdates9.join();
 
+        refresh();
+
         execute("""
             SELECT
                 column_name
