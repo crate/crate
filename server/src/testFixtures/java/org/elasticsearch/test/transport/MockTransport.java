@@ -19,14 +19,12 @@
 
 package org.elasticsearch.test.transport;
 
-import static org.apache.lucene.tests.util.CrateLuceneTestCase.rarely;
+import static io.crate.lucene.CrateLuceneTestCase.rarely;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -49,6 +47,7 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
 

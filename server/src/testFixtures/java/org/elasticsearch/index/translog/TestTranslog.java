@@ -47,13 +47,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.io.IOUtils;
+import io.crate.lucene.CrateLuceneTestCase;
 
 /**
  * Helpers for testing translog.

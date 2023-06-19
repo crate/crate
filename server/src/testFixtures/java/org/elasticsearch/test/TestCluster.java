@@ -20,7 +20,7 @@
 package org.elasticsearch.test;
 
 import static io.crate.common.unit.TimeValue.timeValueSeconds;
-import static org.apache.lucene.tests.util.CrateLuceneTestCase.rarely;
+import static io.crate.lucene.CrateLuceneTestCase.rarely;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
@@ -60,8 +60,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -142,6 +140,7 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectLongMap;
