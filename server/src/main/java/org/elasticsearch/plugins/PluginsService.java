@@ -498,7 +498,7 @@ public class PluginsService {
         }
 
         // create a child to load the plugin in this bundle
-        ClassLoader parentLoader = PluginLoaderIndirection.createLoader(getClass().getClassLoader(), extendedLoaders);
+        ClassLoader parentLoader = ExtendedPluginsClassLoader.create(getClass().getClassLoader(), extendedLoaders);
         ClassLoader loader = URLClassLoader.newInstance(bundle.urls.toArray(new URL[0]), parentLoader);
 
         // reload SPI with any new services from the plugin
