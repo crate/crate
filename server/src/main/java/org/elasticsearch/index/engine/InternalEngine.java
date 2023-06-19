@@ -42,8 +42,6 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -61,7 +59,6 @@ import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.index.ShuffleForcedMergePolicy;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
@@ -115,11 +112,13 @@ import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.Booleans;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.lucene.index.ShuffleForcedMergePolicy;
 import io.crate.metadata.doc.DocSysColumns;
 
 public class InternalEngine extends Engine {

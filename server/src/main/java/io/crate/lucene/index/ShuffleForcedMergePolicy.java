@@ -17,17 +17,24 @@
  * under the License.
  */
 
-package org.apache.lucene.index;
+package io.crate.lucene.index;
 
-import org.elasticsearch.common.lucene.Lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.lucene.index.CodecReader;
+import org.apache.lucene.index.FilterMergePolicy;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.SegmentReader;
+import org.elasticsearch.common.lucene.Lucene;
 
 /**
  * A {@link FilterMergePolicy} that interleaves eldest and newest segments picked by {@link MergePolicy#findForcedMerges}
@@ -78,9 +85,7 @@ public class ShuffleForcedMergePolicy extends FilterMergePolicy {
                 @Override
                 public void setMergeInfo(SegmentCommitInfo info) {
                     // record that this segment was merged with interleaved segments
-                    Map<String, String> copy = new HashMap<>(info.info.getDiagnostics());
-                    copy.put(SHUFFLE_MERGE_KEY, "");
-                    info.info.setDiagnostics(copy);
+                    info.info.addDiagnostics(Map.of(SHUFFLE_MERGE_KEY, ""));
                     super.setMergeInfo(info);
                 }
             });

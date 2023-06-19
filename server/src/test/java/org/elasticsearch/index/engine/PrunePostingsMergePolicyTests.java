@@ -36,7 +36,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.ShuffleForcedMergePolicy;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -49,6 +48,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.lucene.index.ShuffleForcedMergePolicy;
 
 public class PrunePostingsMergePolicyTests extends ESTestCase {
 
