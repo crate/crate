@@ -21,9 +21,6 @@ package org.elasticsearch.common.lucene.search;
 
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -31,6 +28,9 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.ElasticsearchException;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.lucene.ExtendedCommonTermsQuery;
 
 public class Queries {
 

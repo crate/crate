@@ -17,8 +17,9 @@
  * under the License.
  */
 
-package org.apache.lucene.queries;
+package io.crate.lucene;
 
+import org.apache.lucene.queries.CommonTermsQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.elasticsearch.common.lucene.search.Queries;
 

@@ -33,7 +33,6 @@ import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.queries.spans.SpanMultiTermQueryWrapper;
 import org.apache.lucene.queries.spans.SpanNearQuery;
 import org.apache.lucene.queries.spans.SpanOrQuery;
@@ -62,6 +61,8 @@ import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.support.QueryParsers;
+
+import io.crate.lucene.ExtendedCommonTermsQuery;
 
 public class MatchQuery {
 
