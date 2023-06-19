@@ -86,7 +86,6 @@ import org.apache.lucene.analysis.it.ItalianAnalyzer;
 import org.apache.lucene.analysis.lt.LithuanianAnalyzer;
 import org.apache.lucene.analysis.lv.LatvianAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
-import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
 import org.apache.lucene.analysis.miscellaneous.KeywordRepeatFilter;
 import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountFilter;
@@ -142,6 +141,8 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.tartarus.snowball.ext.DutchStemmer;
 import org.tartarus.snowball.ext.FrenchStemmer;
+
+import io.crate.lucene.DisableGraphAttribute;
 
 public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
 

@@ -19,18 +19,19 @@
 
 package org.elasticsearch.analysis.common;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.cjk.CJKBigramFilter;
-import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import io.crate.lucene.DisableGraphAttribute;
 
 /**
  * Factory that creates a {@link CJKBigramFilter} to form bigrams of CJK terms
