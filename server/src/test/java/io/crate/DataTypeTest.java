@@ -22,6 +22,7 @@
 package io.crate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -49,6 +50,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.Regproc;
 import io.crate.types.RowType;
+import io.crate.types.TimeTZ;
 import io.crate.types.UndefinedType;
 
 public class DataTypeTest extends ESTestCase {
@@ -274,5 +276,12 @@ public class DataTypeTest extends ESTestCase {
     public void test_estimate_size_of_record() throws Exception {
         var type = new RowType(List.of(DataTypes.LONG, DataTypes.INTEGER));
         assertThat(type.valueBytes(new RowN(20L, 10))).isEqualTo(40L);
+    }
+
+    @Test
+    public void test_guess_timetz_type() {
+        assertThatThrownBy(() -> DataTypes.guessType(new TimeTZ(46800000000L, 0)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot detect the type of the value: 13:00:00");
     }
 }

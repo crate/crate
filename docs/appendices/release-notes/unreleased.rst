@@ -68,6 +68,9 @@ Fixes
   with a ``ON CONFLICT`` clause on tables with generated primary key columns to
   fail with an ``ArrayIndexOutOfBoundsException``.
 
+- Fixed an issue that caused an ``NullPointerException`` while inserting
+  a ``TIMETZ`` typed value dynamically which is not supported.
+
 - Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
   to reject invalid dynamic columns and their value without raising an error or
   skipping the whole record. An example ::
