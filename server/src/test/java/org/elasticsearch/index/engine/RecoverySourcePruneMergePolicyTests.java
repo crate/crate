@@ -44,7 +44,6 @@ import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.index.ShuffleForcedMergePolicy;
 import org.apache.lucene.index.StandardDirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -55,6 +54,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.NullInfoStream;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.test.ESTestCase;
+
+import io.crate.lucene.index.ShuffleForcedMergePolicy;
 
 public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
 

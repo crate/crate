@@ -36,6 +36,8 @@ import org.apache.lucene.tests.index.BaseMergePolicyTestCase;
 import org.apache.lucene.tests.util.VerifyTestClassNamingConvention;
 import org.junit.Test;
 
+import io.crate.lucene.index.ShuffleForcedMergePolicy;
+
 /**
  * Note: the class name starts with Test to follow Lucene test class naming convention, {@link
  * VerifyTestClassNamingConvention}
