@@ -36,7 +36,7 @@
  * limitations under the License.
  */
 
-package org.apache.lucene.tests.util;
+package io.crate.lucene;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -61,8 +61,14 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.apache.lucene.tests.util.LuceneTestCase.LiveIWCFlushMode;
+import org.apache.lucene.tests.util.FailureMarker;
+import org.apache.lucene.tests.util.LuceneJUnit3MethodProvider;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.LuceneTestCase.ThrowingRunnable;
+import org.apache.lucene.tests.util.QuickPatchThreadsFilter;
+import org.apache.lucene.tests.util.RunListenerPrintReproduceInfo;
+import org.apache.lucene.tests.util.TestRuleMarkFailure;
+import org.apache.lucene.tests.util.TimeUnits;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -171,10 +177,6 @@ public abstract class CrateLuceneTestCase {
 
     public String toString() {
         return luceneTestCase.toString();
-    }
-
-    static void setLiveIWCFlushMode(LiveIWCFlushMode flushMode) {
-        LuceneTestCase.setLiveIWCFlushMode(flushMode);
     }
 
     @Before

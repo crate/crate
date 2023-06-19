@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.lucene.index;
+package io.crate.lucene;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,8 +23,27 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.index.Impact;
+import org.apache.lucene.index.Impacts;
+import org.apache.lucene.index.ImpactsEnum;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PointValues.IntersectVisitor;
 import org.apache.lucene.index.PointValues.Relation;
+import org.apache.lucene.index.PostingsEnum;
+import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.TermState;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -202,8 +221,8 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
 
             // reuse if the codec reused
             final PostingsEnum actualReuse;
-            if (reuse instanceof AssertingPostingsEnum) {
-                actualReuse = ((AssertingPostingsEnum) reuse).in;
+            if (reuse instanceof AssertingPostingsEnum postingsEnum) {
+                actualReuse = postingsEnum.unwrap();
             } else {
                 actualReuse = null;
             }
@@ -487,7 +506,9 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
             assert docID() >= 0 || lastShallowTarget >= 0
                 : "Cannot get impacts until the iterator is positioned or advanceShallow has been called";
             Impacts impacts = in.getImpacts();
-            CheckIndex.checkImpacts(impacts, Math.max(docID(), lastShallowTarget));
+
+            // Package private, can't use:
+            // CheckIndex.checkImpacts(impacts, Math.max(docID(), lastShallowTarget));
             return new AssertingImpacts(impacts, this);
         }
 

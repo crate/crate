@@ -21,7 +21,7 @@ package org.elasticsearch.common.io;
 
 import java.nio.file.FileSystem;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import io.crate.lucene.CrateLuceneTestCase;
 
 /**
  * Exposes some package private stuff in PathUtils for framework purposes only!

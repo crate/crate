@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.BytesRef;
@@ -38,6 +37,8 @@ import org.elasticsearch.test.ESTestCase;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.SeedUtils;
+
+import io.crate.lucene.CrateLuceneTestCase;
 
 public class MockBigArrays extends BigArrays {
 
