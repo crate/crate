@@ -318,7 +318,9 @@ public final class DataTypes {
             return valueFromList(Arrays.asList((Object[]) value));
         }
         DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
-        assert dataType != null : "Must be able to guess type of value: " + value;
+        if (dataType == null) {
+            throw new IllegalArgumentException("Cannot detect the type of the value: " + value);
+        }
         return dataType;
     }
 
