@@ -20,11 +20,12 @@
 package org.elasticsearch.index.analysis;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.miscellaneous.DisableGraphAttribute;
 import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexSettings;
+
+import io.crate.lucene.DisableGraphAttribute;
 
 public class ShingleTokenFilterFactory extends AbstractTokenFilterFactory {
 
