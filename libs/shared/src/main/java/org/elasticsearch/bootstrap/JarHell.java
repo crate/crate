@@ -19,10 +19,8 @@
 
 package org.elasticsearch.bootstrap;
 
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.io.PathUtils;
-
 import java.io.IOException;
+import java.lang.Runtime.Version;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -45,6 +43,10 @@ import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+
+import org.elasticsearch.common.io.PathUtils;
+
+import io.crate.common.SuppressForbidden;
 
 /**
  * Simple check for duplicate class files across the classpath.
@@ -226,16 +228,7 @@ public class JarHell {
     }
 
     public static void checkVersionFormat(String targetVersion) {
-        if (!JavaVersion.isValid(targetVersion)) {
-            throw new IllegalStateException(
-                    String.format(
-                            Locale.ROOT,
-                            "version string must be a sequence of nonnegative decimal integers separated by \".\"'s and may have " +
-                                "leading zeros but was %s",
-                            targetVersion
-                    )
-            );
-        }
+        Runtime.Version.parse(targetVersion);
     }
 
     /**
@@ -243,16 +236,17 @@ public class JarHell {
      * required by {@code resource} is compatible with the current installation.
      */
     public static void checkJavaVersion(String resource, String targetVersion) {
-        JavaVersion version = JavaVersion.parse(targetVersion);
-        if (JavaVersion.current().compareTo(version) < 0) {
+        Version target = Runtime.Version.parse(targetVersion);
+        Version current = Runtime.version();
+        if (current.compareTo(target) < 0) {
             throw new IllegalStateException(
-                    String.format(
-                            Locale.ROOT,
-                            "%s requires Java %s:, your system: %s",
-                            resource,
-                            targetVersion,
-                            JavaVersion.current().toString()
-                    )
+                String.format(
+                    Locale.ROOT,
+                    "%s requires Java %s:, your system: %s",
+                    resource,
+                    targetVersion,
+                    current.toString()
+                )
             );
         }
     }
