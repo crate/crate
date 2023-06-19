@@ -51,6 +51,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.Regproc;
 import io.crate.types.RowType;
 import io.crate.types.TimeTZ;
+import io.crate.types.TimeTZType;
 import io.crate.types.UndefinedType;
 
 public class DataTypeTest extends ESTestCase {
@@ -280,8 +281,16 @@ public class DataTypeTest extends ESTestCase {
 
     @Test
     public void test_guess_timetz_type() {
-        assertThatThrownBy(() -> DataTypes.guessType(new TimeTZ(46800000000L, 0)))
+        assertThat(DataTypes.guessType(new TimeTZ(46800000000L, 0))).isEqualTo(TimeTZType.INSTANCE);
+    }
+
+    @Test
+    public void test_guess_unknown_type() {
+        record Dummy() {
+        }
+
+        assertThatThrownBy(() -> DataTypes.guessType(new Dummy()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot detect the type of the value: 13:00:00");
+            .hasMessage("Cannot detect the type of the value: Dummy[]");
     }
 }
