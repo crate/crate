@@ -319,7 +319,8 @@ public final class DataTypes {
         entry(PointImpl.class, GEO_POINT),
         entry(JtsPoint.class, GEO_POINT),
         entry(Character.class, STRING),
-        entry(BitString.class, BitStringType.INSTANCE_ONE)
+        entry(BitString.class, BitStringType.INSTANCE_ONE),
+        entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
     public static DataType<?> guessType(Object value) {
