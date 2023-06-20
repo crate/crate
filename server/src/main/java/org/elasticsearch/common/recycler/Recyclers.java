@@ -19,9 +19,9 @@
 
 package org.elasticsearch.common.recycler;
 
-import com.carrotsearch.hppc.BitMixer;
-
 import java.util.ArrayDeque;
+
+import com.carrotsearch.hppc.BitMixer;
 
 public enum Recyclers {
     ;
@@ -131,7 +131,7 @@ public enum Recyclers {
             }
 
             int slot() {
-                final long id = Thread.currentThread().getId();
+                final long id = Thread.currentThread().threadId();
                 // don't trust Thread.hashCode to have equiprobable low bits
                 int slot = (int) BitMixer.mix64(id);
                 // make positive, otherwise % may return negative numbers

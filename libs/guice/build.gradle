@@ -1,7 +1,0 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
-archivesBaseName = 'crate-guice'
-
-dependencies {
-    implementation "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
-}

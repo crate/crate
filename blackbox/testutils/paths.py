@@ -23,6 +23,7 @@ from os.path import dirname, join
 from pathlib import Path
 from cr8.run_crate import get_crate
 from subprocess import run
+import multiprocessing
 
 here = dirname(__file__)  # blackbox/testutils
 project_root = dirname(dirname(here))
@@ -38,11 +39,12 @@ def docs_path(*parts):
 
 def crate_path():
     root = Path(project_root)
-    app_build = root / "app" / "build" / "distributions"
+    app_build = root / "app" / "target"
     tarball = next(app_build.glob("crate-*.tar.gz"), None)
     if not tarball:
-        gradlew = root / "gradlew"
-        run([str(gradlew), "--no-daemon", "distTar"], cwd=root)
+        cpus = multiprocessing.cpu_count()
+        gradlew = root / "mvnw"
+        run([str(gradlew), "-T", str(cpus), "package", "-DskipTests=true"], cwd=root)
         tarball = next(app_build.glob("crate-*.tar.gz"), None)
     uri = tarball.as_uri()
     return get_crate(uri)
