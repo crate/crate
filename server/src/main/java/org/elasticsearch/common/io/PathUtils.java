@@ -21,13 +21,13 @@
 
 package org.elasticsearch.common.io;
 
-import io.crate.common.SuppressForbidden;
-
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import io.crate.common.SuppressForbidden;
 
 /**
  * Utilities for creating a Path from names,
