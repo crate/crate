@@ -17,21 +17,26 @@
  * under the License.
  */
 
-package org.elasticsearch.cli;
-
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import joptsimple.util.KeyValuePair;
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.InternalSettingsPreparer;
+package io.crate.server.cli;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import org.elasticsearch.cli.Command;
+import org.elasticsearch.cli.ExitCodes;
+import org.elasticsearch.cli.Terminal;
+import org.elasticsearch.cli.UserException;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.InternalSettingsPreparer;
+
+import io.crate.common.SuppressForbidden;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import joptsimple.util.KeyValuePair;
 
 /** A cli command which requires an {@link org.elasticsearch.env.Environment} to use current paths and settings. */
 public abstract class EnvironmentAwareCommand extends Command {

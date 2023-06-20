@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -36,6 +35,7 @@ import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionSet;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
