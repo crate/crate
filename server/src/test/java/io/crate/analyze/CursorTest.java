@@ -30,13 +30,13 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.TestingRowConsumer;
 
 public class CursorTest extends CrateDummyClusterServiceUnitTest {
 

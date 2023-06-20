@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,11 +36,12 @@ import java.util.Map;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.CopyOnWriteHashMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.time.IsoLocale;
 
 
 public class ObjectMapper extends Mapper implements Cloneable {

@@ -26,13 +26,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.concurrent.ConcurrencyLimit;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-
-import io.crate.concurrent.limits.ConcurrencyLimit;
 
 /**
  * Tracks concurrency limits per node

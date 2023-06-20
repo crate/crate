@@ -34,9 +34,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableLong;
 import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;

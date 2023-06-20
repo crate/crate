@@ -51,7 +51,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.BorrowedItem;
 import io.crate.common.collections.RefCountedItem;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;

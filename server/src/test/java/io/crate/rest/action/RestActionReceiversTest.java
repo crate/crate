@@ -33,11 +33,11 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;

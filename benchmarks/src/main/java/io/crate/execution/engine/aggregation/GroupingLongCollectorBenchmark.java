@@ -59,12 +59,12 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;

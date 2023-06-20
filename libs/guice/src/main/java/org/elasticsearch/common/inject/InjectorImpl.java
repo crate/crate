@@ -16,7 +16,23 @@
 
 package org.elasticsearch.common.inject;
 
-import org.elasticsearch.common.Classes;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static org.elasticsearch.common.inject.internal.Annotations.findScopeAnnotation;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.common.inject.internal.Annotations;
 import org.elasticsearch.common.inject.internal.BindingImpl;
 import org.elasticsearch.common.inject.internal.Errors;
@@ -36,23 +52,6 @@ import org.elasticsearch.common.inject.spi.Dependency;
 import org.elasticsearch.common.inject.spi.ProviderBinding;
 import org.elasticsearch.common.inject.spi.ProviderKeyBinding;
 import org.elasticsearch.common.inject.util.Providers;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static org.elasticsearch.common.inject.internal.Annotations.findScopeAnnotation;
 
 /**
  * Default {@link Injector} implementation.

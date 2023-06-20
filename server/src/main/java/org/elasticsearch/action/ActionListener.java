@@ -30,7 +30,7 @@ import org.elasticsearch.common.CheckedRunnable;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.CheckedSupplier;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
 /**

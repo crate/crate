@@ -44,13 +44,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.RefCountedItem;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
-import io.crate.exceptions.Exceptions;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
@@ -58,7 +59,6 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.testing.TestingRowConsumer;
 
 public class CollectTaskTest extends ESTestCase {
 

@@ -48,13 +48,13 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.sources.FileCollectSource;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 

@@ -26,9 +26,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-import org.elasticsearch.common.inject.ModuleTestCase;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.junit.Test;
+
+import io.crate.server.inject.ModuleTestCase;
 
 public class SettingsModuleTests extends ModuleTestCase {
 

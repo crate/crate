@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -55,6 +54,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 
+import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionSet;
 
 public class NodeRepurposeCommandTests extends ESTestCase {

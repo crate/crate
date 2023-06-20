@@ -42,8 +42,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.ParsedXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -51,6 +49,8 @@ import org.junit.Test;
 import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.server.xcontent.ParsedXContent;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;

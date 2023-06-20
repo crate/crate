@@ -37,9 +37,9 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.data.testing.BatchIteratorTester;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
-import io.crate.testing.BatchIteratorTester;
 
 public class LuceneBatchIteratorTest {
 

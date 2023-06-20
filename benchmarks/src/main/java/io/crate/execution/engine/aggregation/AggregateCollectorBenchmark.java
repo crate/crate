@@ -39,10 +39,10 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.RowCollectExpression;

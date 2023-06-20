@@ -21,7 +21,7 @@
 
 package io.crate.execution.support;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.MultiException;
 
 import org.jetbrains.annotations.Nullable;

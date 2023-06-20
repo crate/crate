@@ -26,7 +26,8 @@ import java.io.IOException;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FilterDirectoryReader;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.PatchedAssertingLeafReader;
+
+import io.crate.lucene.PatchedAssertingLeafReader;
 
 /**
  * AssertingDirectoryReader

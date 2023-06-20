@@ -22,8 +22,8 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 
 import java.util.Collections;
 import java.util.Set;

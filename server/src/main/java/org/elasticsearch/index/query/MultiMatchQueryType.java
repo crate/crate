@@ -22,8 +22,8 @@
 package org.elasticsearch.index.query;
 
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.index.search.MatchQuery;
 
 public enum MultiMatchQueryType {

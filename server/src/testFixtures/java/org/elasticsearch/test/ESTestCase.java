@@ -59,7 +59,6 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.status.StatusConsoleListener;
 import org.apache.logging.log4j.status.StatusData;
 import org.apache.logging.log4j.status.StatusLogger;
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.LuceneTestCase.SuppressCodecs;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
@@ -88,7 +87,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.MockBigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -135,6 +133,8 @@ import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
 
 import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
+import io.crate.lucene.CrateLuceneTestCase;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.testing.Asserts;
 
 /**

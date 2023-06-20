@@ -22,13 +22,13 @@
 package io.crate.execution.engine.window;
 
 import io.crate.common.collections.Iterables;
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Buckets;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.Sort;
 import org.apache.logging.log4j.Logger;

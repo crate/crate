@@ -40,7 +40,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
@@ -49,6 +48,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.server.xcontent.XContentHelper;
 
 public class DDLClusterStateHelpers {
 

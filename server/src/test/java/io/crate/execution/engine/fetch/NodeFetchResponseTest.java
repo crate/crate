@@ -43,8 +43,8 @@ import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.types.DataTypes;
 

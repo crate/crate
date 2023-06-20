@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cluster.service;
 
-import static org.apache.lucene.tests.util.CrateLuceneTestCase.random;
+import static io.crate.lucene.CrateLuceneTestCase.random;
 import static org.elasticsearch.test.ESTestCase.randomInt;
 import static org.mockito.Mockito.mock;
 

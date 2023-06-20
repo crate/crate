@@ -27,10 +27,11 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.common.recycler.Recycler.V;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+
+import io.crate.lucene.CrateLuceneTestCase;
 
 public class MockPageCacheRecycler extends PageCacheRecycler {
 

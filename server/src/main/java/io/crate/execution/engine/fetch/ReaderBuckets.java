@@ -36,10 +36,10 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import org.apache.lucene.util.Accountable;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.CloseableIterator;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.planner.node.fetch.FetchSource;
 
 /**

@@ -44,7 +44,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.analyze.BoundCreateTable;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;

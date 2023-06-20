@@ -21,8 +21,8 @@ package org.elasticsearch.index.query.support;
 
 import org.apache.lucene.search.MultiTermQuery;
 import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.ParseField;
 
 public final class QueryParsers {
 

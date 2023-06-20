@@ -23,7 +23,7 @@ package io.crate.execution.support;
 
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 
 import java.util.ArrayList;
 import java.util.Collection;

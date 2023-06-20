@@ -59,18 +59,18 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.breaker.RowAccounting;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.metadata.Reference;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 

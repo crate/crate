@@ -39,7 +39,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;

@@ -21,11 +21,11 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.CollectExpression;
 import org.apache.lucene.util.ArrayUtil;
 

@@ -51,6 +51,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
+import io.crate.data.testing.BatchIteratorTester;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
@@ -67,7 +68,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 
 public class NodeStatsTest extends ESTestCase {

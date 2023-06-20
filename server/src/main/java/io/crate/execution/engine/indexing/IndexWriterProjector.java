@@ -47,13 +47,13 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Maps;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;

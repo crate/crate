@@ -28,8 +28,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -43,6 +41,8 @@ import io.crate.data.LimitingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.sql.tree.Declare.Hold;

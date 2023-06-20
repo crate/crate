@@ -32,7 +32,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 

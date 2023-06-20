@@ -22,10 +22,10 @@
 package io.crate.data.join;
 
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.data.breaker.RowAccounting;
 
 import java.util.ArrayList;
 import java.util.function.IntSupplier;

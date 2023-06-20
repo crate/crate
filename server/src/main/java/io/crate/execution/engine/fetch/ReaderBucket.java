@@ -29,9 +29,9 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.EstimateCellsSize;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.node.fetch.FetchSource;
 

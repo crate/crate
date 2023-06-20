@@ -28,8 +28,8 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.TestingBatchIterators;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.TestingBatchIterators;
 
 public class FilteringBatchIteratorTest {
 

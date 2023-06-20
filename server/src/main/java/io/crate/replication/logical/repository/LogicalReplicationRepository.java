@@ -74,9 +74,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;

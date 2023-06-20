@@ -36,8 +36,8 @@ import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 
 public class LimitAndOffsetProjectorTest extends ESTestCase {
 

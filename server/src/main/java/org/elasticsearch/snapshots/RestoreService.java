@@ -101,8 +101,8 @@ import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 

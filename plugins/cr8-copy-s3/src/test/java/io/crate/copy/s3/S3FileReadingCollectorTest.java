@@ -70,6 +70,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
@@ -83,7 +84,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class S3FileReadingCollectorTest extends ESTestCase {

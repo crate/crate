@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.IntegerType;

@@ -21,7 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;

@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
+import static io.crate.common.exceptions.Exceptions.userFriendlyMessageInclNested;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
@@ -50,6 +49,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.IndexParts;
+import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
 

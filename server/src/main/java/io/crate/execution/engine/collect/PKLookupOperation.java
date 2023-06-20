@@ -38,7 +38,6 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -51,13 +50,13 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.SentinelRow;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
@@ -67,6 +66,7 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.server.xcontent.XContentHelper;
 
 public final class PKLookupOperation {
 

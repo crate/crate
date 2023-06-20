@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.test;
 
-import static org.apache.lucene.tests.util.CrateLuceneTestCase.assumeTrue;
+import static io.crate.lucene.CrateLuceneTestCase.assumeTrue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;

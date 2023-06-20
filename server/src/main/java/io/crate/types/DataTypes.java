@@ -36,14 +36,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
@@ -303,7 +302,8 @@ public final class DataTypes {
         entry(PointImpl.class, GEO_POINT),
         entry(JtsPoint.class, GEO_POINT),
         entry(Character.class, STRING),
-        entry(BitString.class, BitStringType.INSTANCE_ONE)
+        entry(BitString.class, BitStringType.INSTANCE_ONE),
+        entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
     @SuppressWarnings("unchecked")

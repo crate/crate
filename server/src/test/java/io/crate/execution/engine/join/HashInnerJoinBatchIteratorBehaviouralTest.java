@@ -34,14 +34,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 
 public class HashInnerJoinBatchIteratorBehaviouralTest {
 

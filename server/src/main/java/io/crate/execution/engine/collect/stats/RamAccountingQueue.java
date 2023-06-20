@@ -22,7 +22,8 @@
 package io.crate.execution.engine.collect.stats;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.UUIDs;

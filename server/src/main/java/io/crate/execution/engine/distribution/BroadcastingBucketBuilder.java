@@ -22,8 +22,8 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 
 /**
  * MultiBucketBuilder that returns N buckets where N is the number of buckets specified in the constructor.

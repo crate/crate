@@ -37,19 +37,19 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class SortingLimitAndOffsetProjectorTest extends ESTestCase {

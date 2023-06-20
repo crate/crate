@@ -38,7 +38,7 @@ import org.elasticsearch.Version;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;

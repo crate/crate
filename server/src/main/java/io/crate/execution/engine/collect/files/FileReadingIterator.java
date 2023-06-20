@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
-import static io.crate.exceptions.Exceptions.rethrowUnchecked;
+import static io.crate.common.exceptions.Exceptions.rethrowUnchecked;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,11 +53,11 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
 

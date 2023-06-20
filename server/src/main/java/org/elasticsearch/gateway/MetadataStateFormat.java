@@ -50,7 +50,6 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -59,6 +58,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 /**
  * MetadataStateFormat is a base class to write checksummed

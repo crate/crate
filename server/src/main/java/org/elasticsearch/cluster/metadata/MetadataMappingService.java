@@ -45,7 +45,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -60,6 +59,7 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Service responsible for submitting mapping changes
