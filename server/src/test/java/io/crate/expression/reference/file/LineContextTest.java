@@ -40,7 +40,8 @@ public class LineContextTest extends ESTestCase {
         context.rawSource(source.getBytes(StandardCharsets.UTF_8));
 
         assertThat(context.get(new ColumnIdent("invalid", "column"))).isEqualTo(NO_VALUE_MARKER);
-        assertThat(context.get(new ColumnIdent("details", "invalid"))).isEqualTo(NO_VALUE_MARKER);
+        // We use marker only for COPY FROM and only for top-level columns
+        assertThat(context.get(new ColumnIdent("details", "invalid"))).isNull();
         assertThat(context.get(new ColumnIdent("details", "age"))).isEqualTo(43);
     }
 }

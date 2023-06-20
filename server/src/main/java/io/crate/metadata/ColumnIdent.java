@@ -166,6 +166,8 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     /**
      * Get the first value (could be a map for the object column root) from a map by traversing the name/path of the column
      * Provided NULL is returned "as is" and for missing value special marker value is returned.
+     *
+     * Marker value is COPY FROM specific and used only on top-level columns as COPY FROM works only with top-level columns.
      */
     public static Object get(Map<?, Object> map, ColumnIdent column) {
         Object obj = map.getOrDefault(column.name, NO_VALUE_MARKER);
