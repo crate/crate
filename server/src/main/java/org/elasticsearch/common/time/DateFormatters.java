@@ -21,6 +21,8 @@ package org.elasticsearch.common.time;
 
 import org.elasticsearch.common.Strings;
 
+import io.crate.common.time.IsoLocale;
+
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Instant;

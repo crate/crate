@@ -25,7 +25,6 @@ import java.math.BigDecimal;
 import java.util.Locale;
 
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.time.IsoLocale;
 import org.joda.time.Chronology;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeField;
@@ -43,7 +42,9 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.DateTimeParser;
 import org.joda.time.format.DateTimeParserBucket;
 import org.joda.time.format.DateTimePrinter;
-import org.joda.time.format.StrictISODateTimeFormat;
+
+import io.crate.common.time.IsoLocale;
+import io.crate.time.StrictISODateTimeFormat;
 
 public class Joda {
 

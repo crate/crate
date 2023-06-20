@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common.time;
+package io.crate.common.time;
 
 import java.util.Locale;
 

@@ -17,13 +17,17 @@
  * under the License.
  */
 
-package org.joda.time.format;
-
-import org.joda.time.DateTimeFieldType;
+package io.crate.time;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.joda.time.DateTimeFieldType;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+import org.joda.time.format.DateTimeParser;
 
 /*
  * Elasticsearch Note: This class has been copied almost identically from joda, where the
