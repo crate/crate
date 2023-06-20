@@ -17,9 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common;
-
-import org.elasticsearch.common.xcontent.DeprecationHandler;
+package org.elasticsearch.common.xcontent;
 
 import java.util.Collections;
 import java.util.HashSet;

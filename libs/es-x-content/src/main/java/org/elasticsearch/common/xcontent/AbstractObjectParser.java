@@ -20,7 +20,7 @@
 package org.elasticsearch.common.xcontent;
 
 import io.crate.common.CheckedFunction;
-import org.elasticsearch.common.ParseField;
+
 import org.elasticsearch.common.xcontent.ObjectParser.NamedObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser.ValueType;
 
