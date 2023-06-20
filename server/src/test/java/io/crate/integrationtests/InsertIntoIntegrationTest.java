@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -47,7 +48,6 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
@@ -191,7 +191,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void testInsertBadIPAddress() throws Exception {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
-        Asserts.assertSQLError(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"))
+        assertSQLError(() -> execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Cannot cast `'192.168.1.500'` of type `text` to type `ip`");
@@ -315,7 +315,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "A towel is about the most massively useful thing an interstellar hitch hiker can have."});
         refresh();
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
             "insert into test (pk_col, message) values (?, ?)",
             new Object[] {
                 "1",
@@ -357,7 +357,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         Object[] args = new Object[]{"1", null};
-        Asserts.assertSQLError(() -> execute("insert into t (pk_col, message) values (?, ?)", args))
+        assertSQLError(() -> execute("insert into t (pk_col, message) values (?, ?)", args))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"message\" must not be null");
@@ -371,7 +371,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 ") not null)");
         ensureYellow();
 
-        Asserts.assertSQLError(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"))
+        assertSQLError(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"stuff['level1']\" must not be null");
@@ -387,7 +387,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 ") not null)");
         ensureYellow();
 
-        Asserts.assertSQLError(() -> execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"))
+        assertSQLError(() -> execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"stuff['level1']['level2']\" must not be null");
@@ -402,7 +402,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
-        Asserts.assertSQLError(() -> execute("insert into test (pk_col, message) values (?, ?)",
+        assertSQLError(() -> execute("insert into test (pk_col, message) values (?, ?)",
                 new Object[] {
                     "1",
                     "I always thought something was fundamentally wrong with the universe" }))
@@ -420,7 +420,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "This has made a lot of people very angry and been widely regarded as a bad move."
         };
 
-        Asserts.assertSQLError(() -> execute("insert into test (message) values (?)", args))
+        assertSQLError(() -> execute("insert into test (message) values (?)", args))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Column `pk_col` is required but is missing from the insert statement");
@@ -432,7 +432,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "with (number_of_replicas=0)");
         ensureYellow();
 
-        Asserts.assertSQLError(() -> execute("insert into quotes (id, quote) values(?, ?)",
+        assertSQLError(() -> execute("insert into quotes (id, quote) values(?, ?)",
                                    new Object[]{null, "I'd far rather be happy than right any day."}))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -444,7 +444,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
 
-        Asserts.assertSQLError(() -> execute("insert into quotes (quote) values(?)",
+        assertSQLError(() -> execute("insert into quotes (quote) values(?)",
                                    new Object[]{"I'd far rather be happy than right any day."}))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -831,7 +831,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
 
-        Asserts.assertSQLError(() -> execute("insert into users (name) (select name from users where _version = 1)"))
+        assertSQLError(() -> execute("insert into users (name) (select name from users where _version = 1)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
@@ -1108,7 +1108,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        Asserts.assertSQLError(() -> execute("insert into generated_column (id, ts) values (1, null)"))
+        assertSQLError(() -> execute("insert into generated_column (id, ts) values (1, null)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"gen_col\" must not be null");
@@ -1122,7 +1122,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        Asserts.assertSQLError(() -> execute("insert into generated_column (id, gen_col) values (1, null)"))
+        assertSQLError(() -> execute("insert into generated_column (id, gen_col) values (1, null)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"gen_col\" must not be null");
@@ -1247,7 +1247,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select col2 from test");
         assertThat(response.rows()[0][0]).isEqualTo(4);
 
-        Asserts.assertSQLError(() -> execute("insert into test(col1, col2) values (1, 0)"))
+        assertSQLError(() -> execute("insert into test(col1, col2) values (1, 0)"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining(
@@ -1267,7 +1267,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into source (col1) values (1)");
         refresh();
-        Asserts.assertSQLError(() -> execute("insert into target (col1) (select col1 from source)"))
+        assertSQLError(() -> execute("insert into target (col1) (select col1 from source)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Column \"col2\" is required but is missing from the insert statement");
@@ -1330,7 +1330,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
         execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
-        Asserts.assertSQLError(() -> execute("insert into test (col1) values ('a')"))
+        assertSQLError(() -> execute("insert into test (col1) values ('a')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Primary key value must not be NULL");
@@ -1387,7 +1387,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test (id, name) values (1, 'foo')");
         assertThat(response).hasRowCount(1L);
-        Asserts.assertSQLError(() -> execute("insert into test (id, name) values (1, 'bar')"))
+        assertSQLError(() -> execute("insert into test (id, name) values (1, 'bar')"))
             .hasPGError(UNIQUE_VIOLATION)
             .hasHTTPError(CONFLICT, 4091)
             .hasMessageContaining("A document with the same primary key exists already");
@@ -1717,7 +1717,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     public void test_inner_column_contains_new_line_character() {
         execute("CREATE TABLE new_lines (obj OBJECT);");
-        Asserts.assertSQLError(() -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"))
+        assertSQLError(() -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4003)
                 .hasMessageContaining("Column name 'a\nb' contains illegal whitespace character");
@@ -1827,6 +1827,19 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(0L);
         refresh();
         execute("select * from foo");
+        assertThat(response.rowCount()).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_generated_sub_column_provided_null_is_validated() {
+        execute("create table t (id int, obj object as (a object as (b int as id)))");
+
+        assertSQLError(() -> execute("insert into t (id, obj) values (1, {\"a\" = {\"b\" = null}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Given value null for generated column obj['a']['b'] does not match calculation id = 1");
+
+        execute("insert into t (id, obj) (select 1, {\"a\" = {\"b\" = null}} from sys.cluster)");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
 }
