@@ -53,13 +53,13 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;

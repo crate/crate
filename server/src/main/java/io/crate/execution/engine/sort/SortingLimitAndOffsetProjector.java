@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.stream.Collector;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -34,6 +33,7 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.CollectExpression;
 
 public class SortingLimitAndOffsetProjector implements Projector {

@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.breaker.RowAccounting;
+import io.crate.data.breaker.RowAccounting;
 
 public class IgnoreRowCellsAccounting implements RowAccounting<Object[]> {
 

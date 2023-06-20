@@ -22,7 +22,7 @@
 package io.crate.rest.action;
 
 import static io.crate.action.sql.Session.UNNAMED;
-import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -55,10 +55,10 @@ import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;

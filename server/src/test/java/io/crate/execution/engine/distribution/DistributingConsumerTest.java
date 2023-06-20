@@ -49,9 +49,9 @@ import org.mockito.invocation.InvocationOnMock;
 
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 import io.crate.data.testing.TestingBatchIterators;

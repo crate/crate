@@ -21,8 +21,8 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.data.breaker.RamAccounting;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -28,8 +28,8 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.types.DataType;

@@ -28,13 +28,13 @@ import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;

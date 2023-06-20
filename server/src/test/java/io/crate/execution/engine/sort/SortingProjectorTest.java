@@ -36,12 +36,12 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;

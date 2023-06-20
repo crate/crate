@@ -46,13 +46,13 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Iterators;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;

@@ -42,12 +42,12 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;

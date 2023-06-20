@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.data.breaker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

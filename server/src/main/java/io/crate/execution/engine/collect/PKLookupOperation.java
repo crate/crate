@@ -51,13 +51,13 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.SentinelRow;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.pipeline.ProjectorFactory;

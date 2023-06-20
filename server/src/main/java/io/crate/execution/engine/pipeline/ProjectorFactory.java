@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Projector;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;

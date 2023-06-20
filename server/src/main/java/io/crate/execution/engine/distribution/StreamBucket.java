@@ -22,10 +22,11 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
+
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;

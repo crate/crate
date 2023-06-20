@@ -31,7 +31,7 @@ import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>

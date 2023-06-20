@@ -27,9 +27,9 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.types.DataTypes;
 
 public class BroadcastingBucketBuilderTest {

@@ -32,8 +32,8 @@ import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;

@@ -27,12 +27,12 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 
 import io.crate.breaker.EstimateCellsSize;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;

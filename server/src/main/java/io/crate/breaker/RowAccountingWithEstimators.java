@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 

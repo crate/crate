@@ -47,7 +47,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;

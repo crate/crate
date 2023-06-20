@@ -37,9 +37,9 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Paging;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;

@@ -48,13 +48,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.projection.AggregationProjection;

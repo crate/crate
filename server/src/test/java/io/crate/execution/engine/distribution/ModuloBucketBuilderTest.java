@@ -28,9 +28,9 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 

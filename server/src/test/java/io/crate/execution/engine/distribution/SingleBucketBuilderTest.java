@@ -37,10 +37,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 import io.crate.data.testing.TestingBatchIterators;

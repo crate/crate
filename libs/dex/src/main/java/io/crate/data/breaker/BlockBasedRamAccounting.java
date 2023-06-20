@@ -19,9 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.data.breaker;
 
 import java.util.function.LongConsumer;
+
+import io.crate.data.breaker.RamAccounting;
 
 /**
  * A RamAccounting implementation that reserves blocks of memory up-front.

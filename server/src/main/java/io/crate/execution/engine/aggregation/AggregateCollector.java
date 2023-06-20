@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
