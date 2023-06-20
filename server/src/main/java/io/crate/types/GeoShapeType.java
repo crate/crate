@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -42,6 +41,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -50,7 +50,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, true, null) {
 
         @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(DocTableInfo table,
+        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
                                                               Function<ColumnIdent, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {

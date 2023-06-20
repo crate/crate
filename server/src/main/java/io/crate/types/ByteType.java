@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,6 +34,7 @@ import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
@@ -47,7 +47,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
             new IntEqQuery()) {
 
         @Override
-        public ValueIndexer<Number> valueIndexer(DocTableInfo table,
+        public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {

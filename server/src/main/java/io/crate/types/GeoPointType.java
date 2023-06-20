@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -42,6 +41,7 @@ import io.crate.execution.dml.GeoPointIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
 
@@ -50,7 +50,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, true, null) {
 
         @Override
-        public ValueIndexer<Point> valueIndexer(DocTableInfo table,
+        public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
                                                 Function<ColumnIdent, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {

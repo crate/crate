@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,6 +35,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 /**
  * Object type that makes no assumptions about neither the keys or values, treating them like generic values and lifting
@@ -50,7 +50,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     private static final StorageSupport<Map<Object, Object>> STORAGE = new StorageSupport<>(false, false, false, null) {
 
         @Override
-        public ValueIndexer<Map<Object, Object>> valueIndexer(DocTableInfo table,
+        public ValueIndexer<Map<Object, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
                                                               Function<ColumnIdent, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {

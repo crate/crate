@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -43,6 +42,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -236,7 +236,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
 
     @Nullable
-    public final ValueIndexer<? super T> valueIndexer(DocTableInfo table,
+    public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
                                                       Function<ColumnIdent, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {

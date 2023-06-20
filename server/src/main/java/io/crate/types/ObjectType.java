@@ -37,7 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -55,6 +54,7 @@ import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -70,7 +70,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, true, null) {
 
         @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(DocTableInfo table,
+        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
                                                               Function<ColumnIdent, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {

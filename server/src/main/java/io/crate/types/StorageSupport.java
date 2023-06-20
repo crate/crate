@@ -24,7 +24,6 @@ package io.crate.types;
 
 import java.util.function.Function;
 
-import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -33,6 +32,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public abstract class StorageSupport<T> {
 
@@ -59,7 +59,7 @@ public abstract class StorageSupport<T> {
 
 
     public abstract ValueIndexer<? super T> valueIndexer(
-        DocTableInfo table,
+        RelationName table,
         Reference ref,
         Function<ColumnIdent, FieldType> getFieldType,
         Function<ColumnIdent, Reference> getRef);

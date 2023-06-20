@@ -1421,8 +1421,6 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl (o) values ({x='foo'}), ({x=10})");
         assertThat(response).hasRowCount(2);
         execute("refresh table tbl");
-        execute("select _raw from tbl");
-        assertThat(response).hasRowCount(2);
         execute("select o['x'], count(*) from tbl group by o['x']");
         assertThat(printedTable(response.rows())).satisfiesAnyOf(
             rows -> assertThat(rows).isEqualTo("foo| 1\n10| 1\n"),
