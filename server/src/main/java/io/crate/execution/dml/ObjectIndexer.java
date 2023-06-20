@@ -108,12 +108,14 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             String innerName = entry.getKey();
             DataType<?> type = entry.getValue();
             ColumnIdent innerColumn = column.getChild(innerName);
-            Object innerValue = value == null ? null : value.get(innerName);
-            if (innerValue == null) {
+            Object innerValue = null;
+            if (value == null || value.containsKey(innerName) == false) {
                 Synthetic synthetic = synthetics.get(innerColumn);
                 if (synthetic != null) {
                     innerValue = synthetic.input().value();
                 }
+            } else {
+                innerValue = value.get(innerName);
             }
             ColumnConstraint check = checks.get(innerColumn);
             if (check != null) {
