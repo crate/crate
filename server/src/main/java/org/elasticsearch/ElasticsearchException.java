@@ -19,10 +19,10 @@
 
 package org.elasticsearch;
 
+import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
-import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
 
 import java.io.IOException;
 import java.util.ArrayList;

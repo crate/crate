@@ -45,7 +45,6 @@ import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
@@ -59,6 +58,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.ColumnIdent;
+import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Collector implementation which writes the rows to the configured {@link FileOutput}

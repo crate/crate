@@ -56,7 +56,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
@@ -73,6 +72,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.server.xcontent.XContentHelper;
 
 @Singleton
 public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, AcknowledgedResponse> {

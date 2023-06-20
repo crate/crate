@@ -20,8 +20,8 @@
 package org.elasticsearch.test;
 
 import static com.carrotsearch.randomizedtesting.generators.RandomStrings.randomAsciiOfLength;
+import static io.crate.server.xcontent.XContentHelper.createParser;
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.common.xcontent.XContentHelper.createParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,11 +39,12 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.rest.yaml.ObjectPath;
+
+import io.crate.server.xcontent.XContentHelper;
 
 public final class XContentTestUtils {
     private XContentTestUtils() {

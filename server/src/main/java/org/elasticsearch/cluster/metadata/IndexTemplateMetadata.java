@@ -40,7 +40,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -49,6 +48,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
+import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {
 

@@ -17,11 +17,12 @@
  * under the License.
  */
 
-package org.elasticsearch.common.xcontent;
+package io.crate.server.xcontent;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.logging.DeprecationLogger;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
 
 /**
  * Logs deprecations to the {@link DeprecationLogger}.

@@ -39,7 +39,6 @@ import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
@@ -59,6 +58,7 @@ import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

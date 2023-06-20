@@ -38,7 +38,6 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -67,6 +66,7 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.server.xcontent.XContentHelper;
 
 public final class PKLookupOperation {
 

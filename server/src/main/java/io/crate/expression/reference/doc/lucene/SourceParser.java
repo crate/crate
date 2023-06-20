@@ -35,13 +35,13 @@ import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;

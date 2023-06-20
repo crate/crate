@@ -30,13 +30,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
+import io.crate.server.xcontent.XContentHelper;
 
 public class DDLClusterStateHelpersTest {
 

@@ -27,11 +27,11 @@ import java.util.Map;
 
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
+import io.crate.server.xcontent.XContentHelper;
 
 public class DocumentMapperParser {
 

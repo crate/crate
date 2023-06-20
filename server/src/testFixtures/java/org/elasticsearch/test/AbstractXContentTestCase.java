@@ -36,11 +36,11 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.common.CheckedFunction;
+import io.crate.server.xcontent.XContentHelper;
 
 
 public abstract class AbstractXContentTestCase<T extends ToXContent> extends ESTestCase {
