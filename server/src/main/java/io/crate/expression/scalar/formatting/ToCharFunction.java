@@ -112,7 +112,7 @@ public class ToCharFunction extends Scalar<String, Object> {
         if (formatter == null) {
             formatter = new DateTimeFormatter(pattern);
         }
-        Long ts = DataTypes.TIMESTAMPZ.sanitizeValue(timestamp);
+        Long ts = DataTypes.TIMESTAMPZ.sanitizeType(timestamp);
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), TimeZone.getTimeZone("UTC").toZoneId());
         return formatter.format(dateTime);
     }
@@ -121,7 +121,7 @@ public class ToCharFunction extends Scalar<String, Object> {
         if (formatter == null) {
             formatter = new DateTimeFormatter(pattern);
         }
-        Period period = DataTypes.INTERVAL.sanitizeValue(interval);
+        Period period = DataTypes.INTERVAL.sanitizeType(interval);
         LocalDateTime dateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0, 0)
             .plusYears(period.getYears())
             .plusMonths(period.getMonths())
@@ -136,8 +136,8 @@ public class ToCharFunction extends Scalar<String, Object> {
 
     @Override
     public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
-        Object expression = expressionType.sanitizeValue(args[0].value());
-        String pattern = DataTypes.STRING.sanitizeValue(args[1].value());
+        Object expression = expressionType.sanitizeType(args[0].value());
+        String pattern = DataTypes.STRING.sanitizeType(args[1].value());
 
         if (expression == null) {
             return null;

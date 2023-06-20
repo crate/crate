@@ -108,7 +108,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public StandardDeviation sanitizeValue(Object value) {
+        public StandardDeviation sanitizeType(Object value) {
             return (StandardDeviation) value;
         }
 

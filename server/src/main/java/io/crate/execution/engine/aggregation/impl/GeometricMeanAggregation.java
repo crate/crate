@@ -187,7 +187,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
-        public GeometricMeanState sanitizeValue(Object value) {
+        public GeometricMeanState sanitizeType(Object value) {
             return (GeometricMeanState) value;
         }
 

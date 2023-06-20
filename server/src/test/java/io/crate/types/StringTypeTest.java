@@ -124,26 +124,26 @@ public class StringTypeTest extends ESTestCase {
 
     @Test
     public void test_value_for_insert_text_with_length_on_literals_of_length_lte_length() {
-        assertThat(StringType.of(4).valueForInsert("abcd"), is("abcd"));
-        assertThat(StringType.of(3).valueForInsert("a"), is("a"));
+        assertThat(StringType.of(4).sanitizeValue("abcd"), is("abcd"));
+        assertThat(StringType.of(3).sanitizeValue("a"), is("a"));
     }
 
     @Test
     public void test_value_for_insert_text_without_length_does_not_change_input_value() {
-        assertThat(StringType.INSTANCE.valueForInsert("abcd"), is("abcd"));
+        assertThat(StringType.INSTANCE.sanitizeValue("abcd"), is("abcd"));
     }
 
     @Test
     public void test_value_for_insert_text_with_length_trims_exceeding_chars_if_they_are_whitespaces() {
-        assertThat(StringType.of(2).valueForInsert("a    "), is("a "));
-        assertThat(StringType.of(2).valueForInsert("ab  "), is("ab"));
+        assertThat(StringType.of(2).sanitizeValue("a    "), is("a "));
+        assertThat(StringType.of(2).sanitizeValue("ab  "), is("ab"));
     }
 
     @Test
     public void test_value_for_insert_text_with_length_for_literal_exceeding_length_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'abcd' is too long for the text type of length: 3");
-        StringType.of(3).valueForInsert("abcd");
+        StringType.of(3).sanitizeValue("abcd");
     }
 
     @Test

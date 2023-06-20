@@ -111,7 +111,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             );
             onDynamicColumn.accept(newColumn);
         }
-        value = type.sanitizeValue(value);
+        value = type.sanitizeType(value);
         indexer.indexValue(
             value,
             xcontentBuilder,
@@ -146,7 +146,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * For example a `Integer` results in a BIGINT type.
      * </p>
      * <p>
-     *  Users should sanitize the value using {@link DataType#sanitizeValue(Object)}
+     *  Users should sanitize the value using {@link DataType#sanitizeType(Object)}
      *  of the result type.
      * </p>
      */

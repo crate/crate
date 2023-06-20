@@ -46,7 +46,7 @@ public class NumberOfShards {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "invalid number '%s'", numberOfShards));
         }
-        var numShards = DataTypes.INTEGER.sanitizeValue(numberOfShards);
+        var numShards = DataTypes.INTEGER.sanitizeType(numberOfShards);
         if (numShards < 1) {
             throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
         }

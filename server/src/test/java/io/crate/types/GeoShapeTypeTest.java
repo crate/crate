@@ -192,7 +192,7 @@ public class GeoShapeTypeTest extends ESTestCase {
     @Test
     public void test_sanitize_value_geo_shape_objects() {
         for (Shape shape : GeoJSONUtilsTest.SHAPES) {
-            Map<String, Object> map = type.sanitizeValue(shape);
+            Map<String, Object> map = type.sanitizeType(shape);
             GeoJSONUtils.validateGeoJson(map);
         }
     }

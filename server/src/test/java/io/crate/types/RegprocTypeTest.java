@@ -78,7 +78,7 @@ public class RegprocTypeTest extends ESTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             REGPROC.getName() + " cannot be used in insert statements");
-        REGPROC.valueForInsert(Regproc.of("func"));
+        REGPROC.sanitizeValue(Regproc.of("func"));
     }
 
     @Test

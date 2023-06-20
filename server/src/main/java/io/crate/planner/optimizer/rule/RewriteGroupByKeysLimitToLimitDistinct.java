@@ -91,7 +91,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
         Stats groupHashAggregateStats = planStats.get(txnCtx, groupAggregate);
         var limitSymbol = limit.limit();
         if (limitSymbol instanceof Literal) {
-            var limitVal = DataTypes.INTEGER.sanitizeValue(((Literal<?>) limitSymbol).value());
+            var limitVal = DataTypes.INTEGER.sanitizeType(((Literal<?>) limitSymbol).value());
             // Would consume all source rows -> prefer default group by implementation which has other optimizations
             // which are more beneficial in this scenario
             if (limitVal > groupHashAggregateStats.numDocs()) {

@@ -190,7 +190,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {
         for (int i = 0; i < sourceSymbols.size(); i++) {
             for (Object[] inputRow : inputRows) {
-                inputRow[i] = sourceSymbols.get(i).valueType().sanitizeValue(inputRow[i]);
+                inputRow[i] = sourceSymbols.get(i).valueType().sanitizeType(inputRow[i]);
             }
         }
     }

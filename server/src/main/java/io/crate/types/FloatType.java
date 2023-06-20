@@ -154,7 +154,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
-    public Float sanitizeValue(Object value) {
+    public Float sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Float f) {

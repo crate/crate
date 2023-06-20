@@ -62,10 +62,10 @@ public final class CoordinateFunction {
 
 
     private static Double getLatitude(Object value) {
-        return (DataTypes.GEO_POINT.sanitizeValue(value)).getY();
+        return (DataTypes.GEO_POINT.sanitizeType(value)).getY();
     }
 
     private static Double getLongitude(Object value) {
-        return (DataTypes.GEO_POINT.sanitizeValue(value)).getX();
+        return (DataTypes.GEO_POINT.sanitizeType(value)).getX();
     }
 }

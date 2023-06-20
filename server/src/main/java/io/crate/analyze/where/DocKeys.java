@@ -71,7 +71,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> version(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withVersions && key.get(width) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width), params, subQueryResults);
-                return Optional.of(DataTypes.LONG.sanitizeValue(val));
+                return Optional.of(DataTypes.LONG.sanitizeType(val));
             }
             return Optional.empty();
         }
@@ -79,7 +79,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> sequenceNo(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width), params, subQueryResults);
-                return Optional.of(LongType.INSTANCE.sanitizeValue(val));
+                return Optional.of(LongType.INSTANCE.sanitizeType(val));
             }
             return Optional.empty();
         }
@@ -87,7 +87,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public Optional<Long> primaryTerm(TransactionContext txnCtx, NodeContext nodeCtx, Row params, SubQueryResults subQueryResults) {
             if (withSequenceVersioning && key.get(width + 1) != null) {
                 Object val = SymbolEvaluator.evaluate(txnCtx, nodeCtx, key.get(width + 1), params, subQueryResults);
-                return Optional.of(LongType.INSTANCE.sanitizeValue(val));
+                return Optional.of(LongType.INSTANCE.sanitizeType(val));
             }
             return Optional.empty();
         }

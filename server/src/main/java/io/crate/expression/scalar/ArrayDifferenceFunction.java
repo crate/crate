@@ -108,7 +108,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         } else {
             subtractSet = new HashSet<>();
             for (Object element : values) {
-                subtractSet.add(innerType.sanitizeValue(element));
+                subtractSet.add(innerType.sanitizeType(element));
             }
         }
         return new ArrayDifferenceFunction(signature, boundSignature, subtractSet);
@@ -133,7 +133,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
                 List<Object> values = (List<Object>) argValue;
                 for (Object element : values) {
-                    localSubtractSet.add(innerType.sanitizeValue(element));
+                    localSubtractSet.add(innerType.sanitizeType(element));
                 }
             }
         } else {
@@ -142,7 +142,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
         ArrayList<Object> resultList = new ArrayList<>(inputValues.size());
         for (Object value : inputValues) {
-            if (!localSubtractSet.contains(innerType.sanitizeValue(value))) {
+            if (!localSubtractSet.contains(innerType.sanitizeType(value))) {
                 resultList.add(value);
             }
         }

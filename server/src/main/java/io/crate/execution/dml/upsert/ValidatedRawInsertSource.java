@@ -116,7 +116,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
                 var value = entry.getValue().value();
                 var valueForInsert = reference
                     .valueType()
-                    .valueForInsert(value);
+                    .sanitizeValue(value);
                 var column = reference.column();
                 Maps.mergeInto(validatedSource, column.name(), column.path(), valueForInsert);
             }

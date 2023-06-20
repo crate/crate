@@ -57,7 +57,7 @@ public class DocInputFactory {
             refResolver = ref -> {
                 if (orderBy.orderBySymbols().contains(ref)) {
                     DataType<?> dataType = ref.valueType();
-                    return new OrderByCollectorExpression(ref, orderBy, dataType::sanitizeValue);
+                    return new OrderByCollectorExpression(ref, orderBy, dataType::sanitizeType);
                 }
                 return referenceResolver.getImplementation(ref);
             };

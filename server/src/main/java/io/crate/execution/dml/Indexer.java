@@ -328,8 +328,8 @@ public class Indexer {
             int compare = Comparator
                 .nullsFirst(valueType)
                 .compare(
-                    valueType.sanitizeValue(generatedValue),
-                    valueType.sanitizeValue(providedValue)
+                    valueType.sanitizeType(generatedValue),
+                    valueType.sanitizeType(providedValue)
                 );
             if (compare != 0) {
                 throw new IllegalArgumentException(
@@ -565,7 +565,7 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                Object value = reference.valueType().valueForInsert(values[i]);
+                Object value = reference.valueType().sanitizeValue(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
                     check.verify(value);
@@ -579,7 +579,7 @@ public class Indexer {
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
                 xContentBuilder.field(reference.column().leafName());
                 valueIndexer.indexValue(
-                    reference.valueType().sanitizeValue(value),
+                    reference.valueType().sanitizeType(value),
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
@@ -711,7 +711,7 @@ public class Indexer {
             Object[] values = indexItem.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = targetColumns.get(i);
-                Object value = reference.valueType().valueForInsert(values[i]);
+                Object value = reference.valueType().sanitizeValue(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
                     check.verify(value);

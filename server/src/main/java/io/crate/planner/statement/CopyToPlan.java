@@ -261,7 +261,7 @@ public final class CopyToPlan implements Plan {
             outputs,
             table,
             whereClause,
-            Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
+            Literal.of(DataTypes.STRING.sanitizeType(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,
             outputNames.isEmpty() ? null : outputNames,

@@ -127,7 +127,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (valueIndexer != null) {
                 xContentBuilder.field(innerName);
                 valueIndexer.indexValue(
-                    type.sanitizeValue(innerValue),
+                    type.sanitizeType(innerValue),
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
@@ -174,7 +174,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
-            innerValue = type.sanitizeValue(innerValue);
+            innerValue = type.sanitizeType(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
                 xContentBuilder.field(innerName);

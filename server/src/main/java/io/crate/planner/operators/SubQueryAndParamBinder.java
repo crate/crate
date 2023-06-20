@@ -69,14 +69,14 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
             return selectSymbol;
         }
         Object value = subQueryResults.getSafe(selectSymbol);
-        return Literal.ofUnchecked(valueType, valueType.sanitizeValue(value));
+        return Literal.ofUnchecked(valueType, valueType.sanitizeType(value));
     }
 
     @Override
     public Symbol visitOuterColumn(OuterColumn outerColumn, Void context) {
         DataType<?> valueType = outerColumn.valueType();
         Object value = subQueryResults.get(outerColumn);
-        return Literal.ofUnchecked(valueType, valueType.sanitizeValue(value));
+        return Literal.ofUnchecked(valueType, valueType.sanitizeType(value));
     }
 
     @Override

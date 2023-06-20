@@ -56,7 +56,7 @@ public class BitStringTypeTest extends ESTestCase {
     @Test
     public void test_value_for_insert_only_allows_exact_length_matches() throws Exception {
         BitStringType type = new BitStringType(3);
-        Assertions.assertThatThrownBy(() -> type.valueForInsert(BitString.ofRawBits("00010001")))
+        Assertions.assertThatThrownBy(() -> type.sanitizeValue(BitString.ofRawBits("00010001")))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("bit string length 8 does not match type bit(3)");
     }

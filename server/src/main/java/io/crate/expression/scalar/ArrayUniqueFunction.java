@@ -101,7 +101,7 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 continue;
             }
             for (Object element : values) {
-                Object value = elementType.sanitizeValue(element);
+                Object value = elementType.sanitizeType(element);
                 if (uniqueSet.add(value)) {
                     uniqueItems.add(value);
                 }

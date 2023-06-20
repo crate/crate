@@ -59,7 +59,7 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
     }
 
     @Override
-    public NumericAverageState sanitizeValue(Object value) {
+    public NumericAverageState sanitizeType(Object value) {
         return (NumericAverageState) value;
     }
 

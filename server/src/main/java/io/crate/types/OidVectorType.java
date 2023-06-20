@@ -63,7 +63,7 @@ public class OidVectorType extends DataType<List<Integer>> {
     }
 
     @Override
-    public List<Integer> sanitizeValue(Object value) {
+    public List<Integer> sanitizeType(Object value) {
         return (List<Integer>) value;
     }
 

@@ -132,7 +132,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String sanitizeValue(Object value) {
+    public String sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else {

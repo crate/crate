@@ -91,7 +91,7 @@ public class KillPlan implements Plan {
         if (jobId != null) {
             try {
                 return UUID.fromString(
-                    DataTypes.STRING.sanitizeValue(
+                    DataTypes.STRING.sanitizeType(
                         SymbolEvaluator.evaluate(
                             txnCtx,
                             nodeCtx,

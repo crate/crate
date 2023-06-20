@@ -348,7 +348,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         public Object partialResult(RamAccounting ramAccounting, CmpByLongState state) {
             CompareBy compareBy = new CompareBy();
             if (state.hasValue) {
-                compareBy.cmpValue = (Comparable) searchType.sanitizeValue(state.cmpValue);
+                compareBy.cmpValue = (Comparable) searchType.sanitizeType(state.cmpValue);
                 try {
                     resultExpression.setNextReader(new ReaderContext(state.leafReaderContext));
                     resultExpression.setNextDocId(state.docId);

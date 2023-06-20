@@ -198,7 +198,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         }
 
         @Override
-        public MutableLong sanitizeValue(Object value) {
+        public MutableLong sanitizeType(Object value) {
             return (MutableLong) value;
         }
 

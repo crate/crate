@@ -76,13 +76,13 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
     }
 
     @Override
-    public Regproc valueForInsert(Object value) {
+    public Regproc sanitizeValue(Object value) {
         throw new UnsupportedOperationException(
             getName() + " cannot be used in insert statements.");
     }
 
     @Override
-    public Regproc sanitizeValue(Object value) {
+    public Regproc sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else {

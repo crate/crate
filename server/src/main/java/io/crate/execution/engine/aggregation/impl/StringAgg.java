@@ -117,7 +117,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
 
         @Override
-        public StringAggState sanitizeValue(Object value) {
+        public StringAggState sanitizeType(Object value) {
             return (StringAggState) value;
         }
 

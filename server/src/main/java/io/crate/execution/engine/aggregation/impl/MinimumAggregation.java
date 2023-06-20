@@ -113,7 +113,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         @Override
         public Object partialResult(RamAccounting ramAccounting, MutableLong state) {
             if (state.hasValue()) {
-                return partialType.sanitizeValue(state.value());
+                return partialType.sanitizeType(state.value());
             } else {
                 return null;
             }

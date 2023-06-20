@@ -60,7 +60,7 @@ public class SwapTablePlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         boolean dropSource = Objects.requireNonNull(
-            DataTypes.BOOLEAN.sanitizeValue(SymbolEvaluator.evaluate(
+            DataTypes.BOOLEAN.sanitizeType(SymbolEvaluator.evaluate(
                 plannerContext.transactionContext(),
                 dependencies.nodeContext(),
                 swapTable.dropSource(),

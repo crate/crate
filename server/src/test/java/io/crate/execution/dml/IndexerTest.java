@@ -675,7 +675,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 Object expected = values.get(i);
                 assertThat(source).hasEntrySatisfying(
                     "c_" + type.getName(),
-                    v -> assertThat(type.sanitizeValue(v)).isEqualTo(expected)
+                    v -> assertThat(type.sanitizeType(v)).isEqualTo(expected)
                 );
             }
         }

@@ -49,7 +49,7 @@ public class ByteTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(ByteType.INSTANCE.sanitizeValue(1f), is((byte) 1));
+        assertThat(ByteType.INSTANCE.sanitizeType(1f), is((byte) 1));
     }
 
     @Test

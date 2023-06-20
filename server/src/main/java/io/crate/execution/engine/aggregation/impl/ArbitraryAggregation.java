@@ -192,7 +192,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
-                    var value = dataType.sanitizeValue(values.nextValue());
+                    var value = dataType.sanitizeType(values.nextValue());
                     ramAccounting.addBytes(dataType.valueBytes(value));
                     state.setValue(value);
                 }
@@ -293,7 +293,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
-                    var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
+                    var value = dataType.sanitizeType(values.nextValue().utf8ToString());
                     ramAccounting.addBytes(dataType.valueBytes(value));
                     state.setValue(value);
                 }

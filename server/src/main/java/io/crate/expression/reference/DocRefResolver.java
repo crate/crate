@@ -108,7 +108,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                         return null;
                     }
                     try {
-                        return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), column));
+                        return ref.valueType().sanitizeType(ValueExtractors.fromMap(response.getSource(), column));
                     } catch (ClassCastException | ConversionException e) {
                         // due to a bug: https://github.com/crate/crate/issues/13990
                         Object value = ValueExtractors.fromMap(response.getSource(), column);

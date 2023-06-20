@@ -80,10 +80,10 @@ class ArrayAppendFunction extends Scalar<List<Object>, Object> {
         Object valueToAdd = args[1].value();
         if (values != null) {
             for (Object value : values) {
-                resultList.add(innerType.sanitizeValue(value));
+                resultList.add(innerType.sanitizeType(value));
             }
         }
-        resultList.add(innerType.sanitizeValue(valueToAdd));
+        resultList.add(innerType.sanitizeType(valueToAdd));
         return resultList;
     }
 }

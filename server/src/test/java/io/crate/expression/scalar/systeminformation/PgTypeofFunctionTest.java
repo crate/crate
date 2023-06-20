@@ -106,7 +106,7 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
             DataTypes.GEO_POINT.getName(),
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.sanitizeValue(List.of(1.0, 2.0))
+                DataTypes.GEO_POINT.sanitizeType(List.of(1.0, 2.0))
             )
         );
 

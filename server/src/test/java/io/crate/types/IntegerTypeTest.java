@@ -49,7 +49,7 @@ public class IntegerTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(IntegerType.INSTANCE.sanitizeValue(1f), is(1));
+        assertThat(IntegerType.INSTANCE.sanitizeType(1f), is(1));
     }
 
     @Test

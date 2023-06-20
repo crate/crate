@@ -116,7 +116,7 @@ public class PlanStats {
         public Stats visitLimit(Limit limit, TransactionContext txnCtx) {
             var stats = limit.source().accept(this, txnCtx);
             if (limit.limit() instanceof Literal<?> literal) {
-                var numberOfRows = DataTypes.LONG.sanitizeValue(literal.value());
+                var numberOfRows = DataTypes.LONG.sanitizeType(literal.value());
                 return stats.withNumDocs(numberOfRows);
             }
             return stats;

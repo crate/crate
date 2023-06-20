@@ -109,7 +109,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ sanitizeValue(Object value) {
+    public TimeTZ sanitizeType(Object value) {
         if (value == null) {
             return null;
         }
@@ -117,7 +117,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ valueForInsert(Object value) {
+    public TimeTZ sanitizeValue(Object value) {
         throw new UnsupportedOperationException(String.format(
             Locale.ENGLISH,
             "%s cannot be used in insert statements",

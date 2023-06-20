@@ -93,7 +93,7 @@ public class Limit extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         int limit = Objects.requireNonNullElse(
-            DataTypes.INTEGER.sanitizeValue(evaluate(
+            DataTypes.INTEGER.sanitizeType(evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 this.limit,
@@ -101,7 +101,7 @@ public class Limit extends ForwardingLogicalPlan {
                 subQueryResults)),
             NO_LIMIT);
         int offset = Objects.requireNonNullElse(
-            DataTypes.INTEGER.sanitizeValue(evaluate(
+            DataTypes.INTEGER.sanitizeType(evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 this.offset,

@@ -50,7 +50,7 @@ public class ShortTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(ShortType.INSTANCE.sanitizeValue(1f), is((short) 1));
+        assertThat(ShortType.INSTANCE.sanitizeType(1f), is((short) 1));
     }
 
     @Test

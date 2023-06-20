@@ -50,7 +50,7 @@ public final class GeoHashFunction {
     }
 
     private static String getGeoHash(Object value) {
-        Point geoValue = GeoPointType.INSTANCE.sanitizeValue(value);
+        Point geoValue = GeoPointType.INSTANCE.sanitizeType(value);
         return GeoHashUtils.stringEncode(geoValue.getX(), geoValue.getY());
     }
 }

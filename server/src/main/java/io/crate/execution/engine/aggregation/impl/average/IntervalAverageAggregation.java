@@ -196,7 +196,7 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
         }
 
         @Override
-        public IntervalAverageState sanitizeValue(Object value) {
+        public IntervalAverageState sanitizeType(Object value) {
             return (IntervalAverageState) value;
         }
 

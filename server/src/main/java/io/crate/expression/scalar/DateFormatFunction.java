@@ -102,7 +102,7 @@ public class DateFormatFunction extends Scalar<String, Object> {
         if (tsValue == null) {
             return null;
         }
-        Long timestamp = DataTypes.TIMESTAMPZ.sanitizeValue(tsValue);
+        Long timestamp = DataTypes.TIMESTAMPZ.sanitizeType(tsValue);
         DateTimeZone timezone = DateTimeZone.UTC;
         if (timezoneLiteral != null) {
             Object timezoneValue = timezoneLiteral.value();

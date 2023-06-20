@@ -232,13 +232,13 @@ public class DataTypesTest extends ESTestCase {
         if (val1 == null || val2 == null) {
             assertThat(
                 Comparator.nullsFirst(dt).compare(
-                    dt.sanitizeValue(val1),
-                    dt.sanitizeValue(val2)
+                    dt.sanitizeType(val1),
+                    dt.sanitizeType(val2)
                 ),
                 is(expected)
             );
         } else {
-            assertThat(dt.compare(dt.sanitizeValue(val1), dt.sanitizeValue(val2)), is(expected));
+            assertThat(dt.compare(dt.sanitizeType(val1), dt.sanitizeType(val2)), is(expected));
         }
     }
 }

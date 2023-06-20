@@ -373,7 +373,7 @@ public class ProjectionToProjectorVisitor
         }
 
         projection = projection.normalize(normalizer, context.txnCtx);
-        String uri = DataTypes.STRING.sanitizeValue(
+        String uri = DataTypes.STRING.sanitizeType(
             SymbolEvaluator.evaluate(context.txnCtx, nodeCtx, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
 

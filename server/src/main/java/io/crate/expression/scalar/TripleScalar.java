@@ -68,15 +68,15 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
     @Override
     public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 3 : "TripleScalar expects exactly 3 arguments, got: " + args.length;
-        T value1 = type.sanitizeValue(args[0].value());
+        T value1 = type.sanitizeType(args[0].value());
         if (value1 == null) {
             return null;
         }
-        T value2 = type.sanitizeValue(args[1].value());
+        T value2 = type.sanitizeType(args[1].value());
         if (value2 == null) {
             return null;
         }
-        T value3 = type.sanitizeValue(args[2].value());
+        T value3 = type.sanitizeType(args[2].value());
         if (value3 == null) {
             return null;
         }

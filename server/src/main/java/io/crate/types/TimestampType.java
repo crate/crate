@@ -133,7 +133,7 @@ public final class TimestampType extends DataType<Long>
     }
 
     @Override
-    public Long sanitizeValue(Object value) {
+    public Long sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Long l) {

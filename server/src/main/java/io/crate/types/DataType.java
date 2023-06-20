@@ -139,12 +139,14 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     /**
      * To prepare a value of the same {@link DataType<T>} for insertion.
-     *
+     * <p>
+     * For example, to blank pad 'a' to 'a ' when inserting it to a char(2)
+     * column.
      * @param value The value of the {@link DataType<T>}.
      * @return The prepared for insertion value of the {@link DataType<T>}.
      */
     @SuppressWarnings("unchecked")
-    public T valueForInsert(Object value) {
+    public T sanitizeValue(Object value) {
         return (T) value;
     }
 
@@ -160,7 +162,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @return The value of {@link DataType}.
      * @see DataType#implicitCast(Object)
      */
-    public abstract T sanitizeValue(Object value);
+    public abstract T sanitizeType(Object value);
 
     public TypeSignature getTypeSignature() {
         return new TypeSignature(getName());

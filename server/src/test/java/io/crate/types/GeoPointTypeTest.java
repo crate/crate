@@ -52,7 +52,7 @@ public class GeoPointTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_list_of_doubles_value() {
-        Point value = DataTypes.GEO_POINT.sanitizeValue(List.of(1d, 2d));
+        Point value = DataTypes.GEO_POINT.sanitizeType(List.of(1d, 2d));
         assertThat(value.getX(), is(1.0d));
         assertThat(value.getY(), is(2.0d));
     }

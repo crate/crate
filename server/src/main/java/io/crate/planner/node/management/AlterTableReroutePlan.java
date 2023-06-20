@@ -147,13 +147,13 @@ public class AlterTableReroutePlan implements Plan {
                 Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
-                DataTypes.STRING.sanitizeValue(boundedPromoteReplica.node()));
+                DataTypes.STRING.sanitizeType(boundedPromoteReplica.node()));
 
             return new AllocateStalePrimaryAllocationCommand(
                 index,
-                DataTypes.INTEGER.sanitizeValue(boundedPromoteReplica.shardId()),
+                DataTypes.INTEGER.sanitizeType(boundedPromoteReplica.shardId()),
                 toNodeId,
-                DataTypes.BOOLEAN.sanitizeValue(context.eval.apply(statement.acceptDataLoss()))
+                DataTypes.BOOLEAN.sanitizeType(context.eval.apply(statement.acceptDataLoss()))
             );
 
         }
@@ -169,12 +169,12 @@ public class AlterTableReroutePlan implements Plan {
                 Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
-                DataTypes.STRING.sanitizeValue(boundedMoveShard.toNodeIdOrName()));
+                DataTypes.STRING.sanitizeType(boundedMoveShard.toNodeIdOrName()));
 
             return new MoveAllocationCommand(
                 index,
-                DataTypes.INTEGER.sanitizeValue(boundedMoveShard.shardId()),
-                DataTypes.STRING.sanitizeValue(boundedMoveShard.fromNodeIdOrName()),
+                DataTypes.INTEGER.sanitizeType(boundedMoveShard.shardId()),
+                DataTypes.STRING.sanitizeType(boundedMoveShard.fromNodeIdOrName()),
                 toNodeId
             );
         }
@@ -192,11 +192,11 @@ public class AlterTableReroutePlan implements Plan {
                 Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String toNodeId = resolveNodeId(
                 context.nodes,
-                DataTypes.STRING.sanitizeValue(boundedRerouteAllocateReplicaShard.nodeIdOrName()));
+                DataTypes.STRING.sanitizeType(boundedRerouteAllocateReplicaShard.nodeIdOrName()));
 
             return new AllocateReplicaAllocationCommand(
                 index,
-                DataTypes.INTEGER.sanitizeValue(boundedRerouteAllocateReplicaShard.shardId()),
+                DataTypes.INTEGER.sanitizeType(boundedRerouteAllocateReplicaShard.shardId()),
                 toNodeId
             );
         }
@@ -217,11 +217,11 @@ public class AlterTableReroutePlan implements Plan {
                 Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
             String nodeId = resolveNodeId(
                 context.nodes,
-                DataTypes.STRING.sanitizeValue(boundedRerouteCancelShard.nodeIdOrName()));
+                DataTypes.STRING.sanitizeType(boundedRerouteCancelShard.nodeIdOrName()));
 
             return new CancelAllocationCommand(
                 index,
-                DataTypes.INTEGER.sanitizeValue(boundedRerouteCancelShard.shardId()),
+                DataTypes.INTEGER.sanitizeType(boundedRerouteCancelShard.shardId()),
                 nodeId,
                 allowPrimary
             );
@@ -254,7 +254,7 @@ public class AlterTableReroutePlan implements Plan {
                                                              GenericProperties<Object> properties) {
             for (String key : properties.keys()) {
                 if (propertyKey.equals(key)) {
-                    return DataTypes.BOOLEAN.sanitizeValue(properties.get(propertyKey));
+                    return DataTypes.BOOLEAN.sanitizeType(properties.get(propertyKey));
                 } else {
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "\"%s\" is not a valid setting for CANCEL SHARD", key));

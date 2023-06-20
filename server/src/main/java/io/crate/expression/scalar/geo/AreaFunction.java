@@ -72,7 +72,7 @@ public final class AreaFunction {
 
     protected static Double getArea(Object value) {
 
-        Map<String, Object> shapeAsMap = GeoShapeType.INSTANCE.sanitizeValue(value);
+        Map<String, Object> shapeAsMap = GeoShapeType.INSTANCE.sanitizeType(value);
         Shape shape = GeoJSONUtils.map2Shape(shapeAsMap);
 
         return shape.getArea(JtsSpatialContext.GEO);

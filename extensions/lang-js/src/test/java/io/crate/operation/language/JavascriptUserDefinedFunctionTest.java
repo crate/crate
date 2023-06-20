@@ -191,7 +191,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.IP,
             List.of(),
             "function f() { return \"127.0.0.1\"; }");
-        assertEvaluate("f()", DataTypes.IP.sanitizeValue("127.0.0.1"));
+        assertEvaluate("f()", DataTypes.IP.sanitizeType("127.0.0.1"));
     }
 
     @Test

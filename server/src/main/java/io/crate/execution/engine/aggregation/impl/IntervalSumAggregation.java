@@ -84,7 +84,7 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
                           MemoryManager memoryManager,
                           Period state,
                           Input<?>[] args) throws CircuitBreakingException {
-        return reduce(ramAccounting, state, DataTypes.INTERVAL.sanitizeValue(args[0].value()));
+        return reduce(ramAccounting, state, DataTypes.INTERVAL.sanitizeType(args[0].value()));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     public Period removeFromAggregatedState(RamAccounting ramAccounting,
                                             Period previousAggState,
                                             Input<?>[] stateToRemove) {
-        return previousAggState.minus(DataTypes.INTERVAL.sanitizeValue(stateToRemove[0].value()));
+        return previousAggState.minus(DataTypes.INTERVAL.sanitizeType(stateToRemove[0].value()));
     }
 
     @Nullable

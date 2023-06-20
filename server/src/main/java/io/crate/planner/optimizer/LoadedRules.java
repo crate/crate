@@ -60,7 +60,7 @@ public class LoadedRules implements SessionSettingProvider {
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> {},
-            objects -> DataTypes.BOOLEAN.sanitizeValue(objects[0]),
+            objects -> DataTypes.BOOLEAN.sanitizeType(objects[0]),
             (sessionSettings, activateRule) -> {
                 if (activateRule) {
                     // All rules are activated by default

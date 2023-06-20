@@ -98,7 +98,7 @@ public class DateType extends DataType<Long>
     }
 
     @Override
-    public Long sanitizeValue(Object value) {
+    public Long sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Number) {

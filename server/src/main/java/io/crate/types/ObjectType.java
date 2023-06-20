@@ -163,8 +163,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Map<String, Object> sanitizeValue(Object value) {
-        return convert(value, DataType::sanitizeValue);
+    public Map<String, Object> sanitizeType(Object value) {
+        return convert(value, DataType::sanitizeType);
     }
 
     @SuppressWarnings("unchecked")

@@ -70,7 +70,7 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
     @Override
     public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
-        T value = type.sanitizeValue(args[0].value());
+        T value = type.sanitizeType(args[0].value());
         if (value == null) {
             return null;
         }

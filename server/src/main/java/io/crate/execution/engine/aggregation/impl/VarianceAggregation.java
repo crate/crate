@@ -108,7 +108,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public Variance sanitizeValue(Object value) {
+        public Variance sanitizeType(Object value) {
             return (Variance) value;
         }
 

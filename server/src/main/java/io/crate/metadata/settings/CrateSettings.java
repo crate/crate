@@ -135,7 +135,7 @@ public final class CrateSettings {
                 "Cannot set \"" + key + "\" to `null`. Use `RESET [GLOBAL] \"" + key +
                 "\"` to reset a setting to its default value");
         } else if (value instanceof List) {
-            List<String> values = DataTypes.STRING_ARRAY.sanitizeValue(value);
+            List<String> values = DataTypes.STRING_ARRAY.sanitizeType(value);
             settingsBuilder.put(key, String.join(",", values));
         } else {
             settingsBuilder.put(key, value.toString());

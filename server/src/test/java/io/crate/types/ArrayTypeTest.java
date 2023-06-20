@@ -112,8 +112,8 @@ public class ArrayTypeTest extends ESTestCase {
     @Test
     public void test_compare_arrays_of_string_that_contain_nulls() {
         int cmp = DataTypes.STRING_ARRAY.compare(
-            DataTypes.STRING_ARRAY.sanitizeValue("{'a', null}"),
-            DataTypes.STRING_ARRAY.sanitizeValue("{'a', 'b'}")
+            DataTypes.STRING_ARRAY.sanitizeType("{'a', null}"),
+            DataTypes.STRING_ARRAY.sanitizeType("{'a', 'b'}")
         );
         assertThat(cmp, is(-1));
     }

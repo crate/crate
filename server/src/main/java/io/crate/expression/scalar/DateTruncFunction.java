@@ -186,9 +186,9 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             }
             return truncate(
                 rounding(interval, timeZone),
-                DataTypes.TIMESTAMPZ.sanitizeValue(value));
+                DataTypes.TIMESTAMPZ.sanitizeType(value));
         }
-        return truncate(tzRounding, DataTypes.TIMESTAMPZ.sanitizeValue(value));
+        return truncate(tzRounding, DataTypes.TIMESTAMPZ.sanitizeType(value));
     }
 
     private Rounding rounding(String interval, String timeZoneString) {

@@ -112,8 +112,8 @@ public final class GeneratedColumns<T> {
             if (Comparator
                     .nullsFirst(dataType)
                     .compare(
-                        dataType.sanitizeValue(generatedValue),
-                        dataType.sanitizeValue(providedValue)
+                        dataType.sanitizeType(generatedValue),
+                        dataType.sanitizeType(providedValue)
                     ) != 0) {
                 throw new IllegalArgumentException(
                     "Given value " + providedValue +

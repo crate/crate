@@ -80,7 +80,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
     }
 
     @Override
-    public Regclass sanitizeValue(Object value) {
+    public Regclass sanitizeType(Object value) {
         if (value == null) {
             return null;
         }

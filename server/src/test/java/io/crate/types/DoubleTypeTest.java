@@ -61,7 +61,7 @@ public class DoubleTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(DoubleType.INSTANCE.sanitizeValue(1f), is(1d));
+        assertThat(DoubleType.INSTANCE.sanitizeType(1f), is(1d));
     }
 
     @Test

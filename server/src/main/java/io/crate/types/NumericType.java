@@ -134,7 +134,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
-    public BigDecimal sanitizeValue(Object value) {
+    public BigDecimal sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else {
@@ -143,7 +143,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
-    public BigDecimal valueForInsert(Object value) {
+    public BigDecimal sanitizeValue(Object value) {
         throw new UnsupportedOperationException(
             getName() + " type cannot be used in insert statements");
     }

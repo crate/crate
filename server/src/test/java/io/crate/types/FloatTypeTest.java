@@ -51,7 +51,7 @@ public class FloatTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(FloatType.INSTANCE.sanitizeValue(1d), is(1f));
+        assertThat(FloatType.INSTANCE.sanitizeType(1d), is(1f));
     }
 
     @Test

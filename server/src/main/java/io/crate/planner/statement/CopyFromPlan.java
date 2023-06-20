@@ -425,13 +425,13 @@ public final class CopyFromPlan implements Plan {
 
     private static Symbol validateAndConvertToLiteral(Object uri) {
         if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.sanitizeValue(uri));
+            return Literal.of(DataTypes.STRING.sanitizeType(uri));
         } else if (uri instanceof List) {
             Object value = ((List) uri).get(0);
             if (!(value instanceof String)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
-            return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
+            return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeType(uri));
         }
         throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
     }

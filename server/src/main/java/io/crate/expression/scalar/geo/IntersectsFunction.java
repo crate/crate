@@ -72,8 +72,8 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         if (right == null) {
             return null;
         }
-        Shape leftShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeValue(left));
-        Shape rightShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeValue(right));
+        Shape leftShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeType(left));
+        Shape rightShape = GeoJSONUtils.map2Shape(DataTypes.GEO_SHAPE.sanitizeType(right));
         return leftShape.relate(rightShape).intersects();
     }
 

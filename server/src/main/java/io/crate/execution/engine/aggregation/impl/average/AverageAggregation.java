@@ -184,7 +184,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
-        public AverageState sanitizeValue(Object value) {
+        public AverageState sanitizeType(Object value) {
             return (AverageState) value;
         }
 

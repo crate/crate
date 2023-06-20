@@ -63,7 +63,7 @@ public final class TruncFunction {
                         n -> {
                             double val = ((Number) n).doubleValue();
                             Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
-                            return (Number) returnType.sanitizeValue(f.apply(val));
+                            return (Number) returnType.sanitizeType(f.apply(val));
                         }
                     )
             );

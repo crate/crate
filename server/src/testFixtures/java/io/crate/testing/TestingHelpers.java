@@ -406,7 +406,7 @@ public class TestingHelpers {
             if (RandomizedTest.randomIntBetween(0, length - 1) == 0) {
                 values.add(null);
             } else {
-                values.add(dataType.sanitizeValue(generator.get()));
+                values.add(dataType.sanitizeType(generator.get()));
             }
         }
         return values;

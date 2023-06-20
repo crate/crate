@@ -114,7 +114,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
             List<Double> fractions = Arrays.asList(0.5, 0.8);
             Object[][] rowsWithSingleFraction = new Object[10][];
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
-                rowsWithSingleFraction[i] = new Object[]{ valueType.sanitizeValue(i), fractions.get(0) };
+                rowsWithSingleFraction[i] = new Object[]{ valueType.sanitizeType(i), fractions.get(0) };
             }
             assertThat(execSingleFractionPercentile(valueType, rowsWithSingleFraction), is(4.5));
         }
@@ -126,7 +126,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
             List<Double> fractions = Arrays.asList(0.5, 0.8);
             Object[][] rowsWithFractionsArray = new Object[10][];
             for (int i = 0; i < rowsWithFractionsArray.length; i++) {
-                rowsWithFractionsArray[i] = new Object[]{ valueType.sanitizeValue(i), fractions };
+                rowsWithFractionsArray[i] = new Object[]{ valueType.sanitizeType(i), fractions };
             }
             assertThat(
                 execArrayFractionPercentile(valueType, rowsWithFractionsArray),

@@ -44,7 +44,7 @@ public final class FloorFunction {
                         signature,
                         boundSignature,
                         type,
-                        x -> returnType.sanitizeValue(Math.floor(((Number) x).doubleValue()))
+                        x -> returnType.sanitizeType(Math.floor(((Number) x).doubleValue()))
                     )
             );
         }

@@ -76,7 +76,7 @@ public final class UserActions {
         final String PASSWORD_PROPERTY = "password";
         for (String key : properties.keySet()) {
             if (PASSWORD_PROPERTY.equals(key)) {
-                String value = DataTypes.STRING.sanitizeValue(properties.get(key));
+                String value = DataTypes.STRING.sanitizeType(properties.get(key));
                 if (value != null) {
                     return new SecureString(value.toCharArray());
                 }

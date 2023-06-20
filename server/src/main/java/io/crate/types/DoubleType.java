@@ -150,7 +150,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
-    public Double sanitizeValue(Object value) {
+    public Double sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Double d) {

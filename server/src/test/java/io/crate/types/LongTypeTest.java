@@ -48,7 +48,7 @@ public class LongTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(LongType.INSTANCE.sanitizeValue(1f), is(1L));
+        assertThat(LongType.INSTANCE.sanitizeType(1f), is(1L));
     }
 
     @Test

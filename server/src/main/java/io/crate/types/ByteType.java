@@ -104,7 +104,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public Byte sanitizeValue(Object value) {
+    public Byte sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Byte) {

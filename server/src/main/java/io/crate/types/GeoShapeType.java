@@ -102,7 +102,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> sanitizeValue(Object value) {
+    public Map<String, Object> sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Map<?, ?> map) {

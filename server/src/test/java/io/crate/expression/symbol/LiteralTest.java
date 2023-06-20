@@ -48,9 +48,9 @@ public class LiteralTest extends ESTestCase {
             if (type.id() == BooleanType.ID) {
                 value = true;
             } else if (type.id() == DataTypes.IP.id()) {
-                value = type.sanitizeValue("123.34.243.23");
+                value = type.sanitizeType("123.34.243.23");
             } else if (type.id() == DataTypes.INTERVAL.id()) {
-                value = type.sanitizeValue(new Period().withSeconds(100));
+                value = type.sanitizeType(new Period().withSeconds(100));
             } else {
                 value = type.implicitCast("0");
             }

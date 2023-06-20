@@ -110,7 +110,7 @@ public class NumericTypeTest extends ESTestCase {
     }
 
     public void test_sanitize_numeric_value() {
-        assertThat(NumericType.INSTANCE.sanitizeValue(BigDecimal.valueOf(1)), is(BigDecimal.valueOf(1)));
+        assertThat(NumericType.INSTANCE.sanitizeType(BigDecimal.valueOf(1)), is(BigDecimal.valueOf(1)));
     }
 
     @Test

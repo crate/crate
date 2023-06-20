@@ -68,7 +68,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
         return true;
     }
 
-    public Object sanitizeValue(Object value) {
+    public Object sanitizeType(Object value) {
         return value;
     }
 

@@ -400,7 +400,7 @@ public class AnalyzedColumnDefinition<T> {
                 throw new IllegalArgumentException("array literal not allowed for the analyzer property");
             }
 
-            String analyzerName = DataTypes.STRING.sanitizeValue(definition.analyzer);
+            String analyzerName = DataTypes.STRING.sanitizeType(definition.analyzer);
             if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzerName)) {
                 Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzerName);
                 definition.analyzerSettings(settings);

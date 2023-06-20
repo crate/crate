@@ -117,7 +117,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
-    public Point sanitizeValue(Object value) {
+    public Point sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof List values) {

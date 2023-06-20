@@ -175,8 +175,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public List<T> sanitizeValue(Object value) {
-        return convert(value, innerType, innerType::sanitizeValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+    public List<T> sanitizeType(Object value) {
+        return convert(value, innerType, innerType::sanitizeType, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
     public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
@@ -261,8 +261,8 @@ public class ArrayType<T> extends DataType<List<T>> {
         } else if (value instanceof Point point && DataTypes.isNumericPrimitive(innerType)) {
             // As per docs: [<lon_value>, <lat_value>]
             return (List<T>) List.of(
-                innerType.sanitizeValue(point.getLon()),
-                innerType.sanitizeValue(point.getLat()));
+                innerType.sanitizeType(point.getLon()),
+                innerType.sanitizeType(point.getLat()));
         } else {
             return convertObjectArray((Object[]) value, convertInner);
         }

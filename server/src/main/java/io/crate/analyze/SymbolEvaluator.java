@@ -85,6 +85,6 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     @Override
     public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
         DataType type = selectSymbol.valueType();
-        return Literal.of(type, type.sanitizeValue(subQueryResults.getSafe(selectSymbol)));
+        return Literal.of(type, type.sanitizeType(subQueryResults.getSafe(selectSymbol)));
     }
 }

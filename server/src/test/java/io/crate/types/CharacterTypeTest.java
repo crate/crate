@@ -36,7 +36,7 @@ public class CharacterTypeTest extends ESTestCase {
 
     @Test
     public void test_value_for_insert_adds_blank_padding() {
-        assertThat(CharacterType.of(5).valueForInsert("a"), is("a    "));
+        assertThat(CharacterType.of(5).sanitizeValue("a"), is("a    "));
     }
 
     @Test

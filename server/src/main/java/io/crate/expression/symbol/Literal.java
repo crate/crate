@@ -111,11 +111,11 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
                 }
             }
             // lets do the expensive "deep" map value conversion only after everything else succeeded
-            Map<String, Object> safeValue = objectType.sanitizeValue(value);
+            Map<String, Object> safeValue = objectType.sanitizeType(value);
             return safeValue.size() == mapValue.size();
         }
 
-        return Objects.equals(type.sanitizeValue(value), value);
+        return Objects.equals(type.sanitizeType(value), value);
     }
 
     @Override

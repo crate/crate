@@ -135,7 +135,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {
-                precision = DataTypes.INTEGER.sanitizeValue(args[1].value());
+                precision = DataTypes.INTEGER.sanitizeType(args[1].value());
             }
             state.init(memoryManager, precision);
         }
@@ -444,7 +444,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public HllState sanitizeValue(Object value) {
+        public HllState sanitizeType(Object value) {
             return (HyperLogLogDistinctAggregation.HllState) value;
         }
 
@@ -518,7 +518,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                return BitMixer.mix64(DataTypes.LONG.sanitizeValue(val));
+                return BitMixer.mix64(DataTypes.LONG.sanitizeType(val));
             }
         }
 
@@ -529,7 +529,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             @Override
             long hash(Object val) {
                 return BitMixer.mix64(
-                    doubleToLongBits(DataTypes.DOUBLE.sanitizeValue(val)));
+                    doubleToLongBits(DataTypes.DOUBLE.sanitizeType(val)));
             }
         }
 

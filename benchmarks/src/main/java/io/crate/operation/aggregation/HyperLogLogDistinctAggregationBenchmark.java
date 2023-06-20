@@ -128,7 +128,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Benchmark
     public long benchmarkHLLPlusPlusMurmur128() throws Exception {
         for (int i = 0; i < rows.size(); i++) {
-            String value = DataTypes.STRING.sanitizeValue(rows.get(i).get(0));
+            String value = DataTypes.STRING.sanitizeType(rows.get(i).get(0));
             byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
             MurmurHash3.Hash128 hash128 = MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
             hyperLogLogPlusPlus.collect(hash128.h1);
@@ -139,7 +139,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Benchmark
     public long benchmarkHLLPlusPlusMurmur64() throws Exception {
         for (int i = 0; i < rows.size(); i++) {
-            String value = DataTypes.STRING.sanitizeValue(rows.get(i).get(0));
+            String value = DataTypes.STRING.sanitizeType(rows.get(i).get(0));
             byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
             hyperLogLogPlusPlus.collect(MurmurHash3.hash64(bytes, 0, bytes.length));
         }

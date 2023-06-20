@@ -71,8 +71,8 @@ public class CreateFunctionPlan implements Plan {
             createFunction.name(),
             createFunction.arguments(),
             createFunction.returnType(),
-            StringType.INSTANCE.sanitizeValue(eval.apply(createFunction.language())),
-            StringType.INSTANCE.sanitizeValue(eval.apply(createFunction.definition()))
+            StringType.INSTANCE.sanitizeType(eval.apply(createFunction.language())),
+            StringType.INSTANCE.sanitizeType(eval.apply(createFunction.definition()))
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metadata, createFunction.replace());
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, r -> new Row1(1L));

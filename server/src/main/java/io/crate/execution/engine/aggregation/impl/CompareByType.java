@@ -79,7 +79,7 @@ public class CompareByType extends DataType<CompareBy> implements Streamer<Compa
     }
 
     @Override
-    public CompareBy sanitizeValue(Object value) {
+    public CompareBy sanitizeType(Object value) {
         return (CompareBy) value;
     }
 

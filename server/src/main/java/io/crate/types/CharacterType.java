@@ -99,7 +99,7 @@ public class CharacterType extends StringType {
     }
 
     @Override
-    public String valueForInsert(Object value) {
+    public String sanitizeValue(Object value) {
         if (value == null) {
             return null;
         }

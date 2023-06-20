@@ -32,15 +32,15 @@ public class IpTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_value() {
-        assertThat(IpType.INSTANCE.sanitizeValue(null), is(nullValue()));
-        assertThat(IpType.INSTANCE.sanitizeValue("127.0.0.1"), is("127.0.0.1"));
+        assertThat(IpType.INSTANCE.sanitizeType(null), is(nullValue()));
+        assertThat(IpType.INSTANCE.sanitizeType("127.0.0.1"), is("127.0.0.1"));
     }
 
     @Test
     public void test_sanitize_invalid_ip_value_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");
-        IpType.INSTANCE.sanitizeValue("2000.0.0.1");
+        IpType.INSTANCE.sanitizeType("2000.0.0.1");
     }
 
     @Test

@@ -151,7 +151,7 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
     }
 
     @Override
-    public Row sanitizeValue(Object value) {
+    public Row sanitizeType(Object value) {
         return (Row) value;
     }
 

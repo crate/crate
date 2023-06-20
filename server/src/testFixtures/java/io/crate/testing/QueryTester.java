@@ -172,7 +172,7 @@ public final class QueryTester implements AutoCloseable {
                             Object param = params[parameterSymbol.index()];
                             return Literal.ofUnchecked(
                                 parameterSymbol.valueType(),
-                                parameterSymbol.valueType().sanitizeValue(param)
+                                parameterSymbol.valueType().sanitizeType(param)
                             );
                         }
                     }, null);

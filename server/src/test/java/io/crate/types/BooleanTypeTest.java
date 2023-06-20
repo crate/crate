@@ -69,12 +69,12 @@ public class BooleanTypeTest extends ESTestCase {
 
     @Test
     public void test_sanitize_boolean_value() {
-        assertThat(BooleanType.INSTANCE.sanitizeValue(Boolean.FALSE)).isFalse();
+        assertThat(BooleanType.INSTANCE.sanitizeType(Boolean.FALSE)).isFalse();
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(BooleanType.INSTANCE.sanitizeValue(1)).isTrue();
+        assertThat(BooleanType.INSTANCE.sanitizeType(1)).isTrue();
     }
 
     @Test

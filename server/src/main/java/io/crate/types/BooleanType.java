@@ -142,7 +142,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public Boolean sanitizeValue(Object value) {
+    public Boolean sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Boolean) {

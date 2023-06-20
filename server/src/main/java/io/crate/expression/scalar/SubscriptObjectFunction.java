@@ -118,7 +118,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
                 if (path == null) {
                     path = new ArrayList<>();
                 }
-                path.add(DataTypes.STRING.sanitizeValue(((Literal<?>) arg).value()));
+                path.add(DataTypes.STRING.sanitizeType(((Literal<?>) arg).value()));
             } else {
                 return null;
             }

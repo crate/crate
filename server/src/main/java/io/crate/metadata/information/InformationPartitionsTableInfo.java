@@ -115,7 +115,7 @@ public class InformationPartitionsTableInfo {
 
                 .startObject("mapping")
                     .startObject("total_fields")
-                        .add("limit", INTEGER, fromSetting(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING, INTEGER::sanitizeValue))
+                        .add("limit", INTEGER, fromSetting(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING, INTEGER::sanitizeType))
                     .endObject()
                 .endObject()
 

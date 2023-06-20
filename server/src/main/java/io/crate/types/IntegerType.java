@@ -108,7 +108,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
-    public Integer sanitizeValue(Object value) {
+    public Integer sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Integer i) {

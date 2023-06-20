@@ -106,7 +106,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
             );
             executionPlan.addProjection(evalProjection);
         }
-        int limit = DataTypes.INTEGER.sanitizeValue(
+        int limit = DataTypes.INTEGER.sanitizeType(
             evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
@@ -115,7 +115,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
                 subQueryResults
             )
         );
-        int offset = DataTypes.INTEGER.sanitizeValue(
+        int offset = DataTypes.INTEGER.sanitizeType(
             evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),

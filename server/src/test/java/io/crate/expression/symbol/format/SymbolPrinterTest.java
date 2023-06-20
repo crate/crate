@@ -299,7 +299,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertPrint(
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.sanitizeValue(map)
+                DataTypes.GEO_SHAPE.sanitizeType(map)
             ),
             "{\"type\"='Point', \"coordinates\"=[1.0, 2.0]}"
         );

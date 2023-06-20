@@ -590,7 +590,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ord = intLiteral.getValue();
         } else if (expression instanceof LongLiteral longLiteral) {
             try {
-                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.getValue());
+                ord = DataTypes.INTEGER.sanitizeType(longLiteral.getValue());
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
@@ -650,7 +650,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         Integer ord;
         try {
-            ord = DataTypes.INTEGER.sanitizeValue(ordinal.value());
+            ord = DataTypes.INTEGER.sanitizeType(ordinal.value());
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,

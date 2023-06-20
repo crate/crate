@@ -96,7 +96,7 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     }
 
     @Override
-    public Period sanitizeValue(Object value) {
+    public Period sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else {

@@ -153,7 +153,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString sanitizeValue(Object value) {
+    public BitString sanitizeType(Object value) {
         if (value instanceof String str) {
             // InsertSourceGen.SOURCE_WRITERS writes a BitSet bytes as a byte array
             // which internally uses JsonGenerator.writeBinary which is by default Base64Variants.MIME_NO_LINEFEEDS encoder
@@ -188,7 +188,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString valueForInsert(Object value) {
+    public BitString sanitizeValue(Object value) {
         if (value == null) {
             return null;
         }

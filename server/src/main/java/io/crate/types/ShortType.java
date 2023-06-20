@@ -102,7 +102,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     }
 
     @Override
-    public Short sanitizeValue(Object value) {
+    public Short sanitizeType(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Short s) {
