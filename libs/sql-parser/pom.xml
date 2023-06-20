@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.crate</groupId>
+    <artifactId>crate</artifactId>
+    <version>5.5.0</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>crate-libs-sql-parser</artifactId>
+  <packaging>jar</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>4.13.1</version>
+        <configuration>
+          <sourceDirectory>${basedir}/src/main/antlr</sourceDirectory>
+          <outputDirectory>${basedir}/src/main/java/io/crate/sql/parser/antlr/v4</outputDirectory>
+          <visitor>true</visitor>
+          <arguments>
+            <argument>-package</argument>
+            <argument>io.crate.sql.parser.antlr.v4</argument>
+          </arguments>
+        </configuration>
+        <executions>
+          <execution>
+            <id>antlr</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-libs-shared</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>${versions.antlr}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>${versions.annotations}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.pholser</groupId>
+      <artifactId>junit-quickcheck-core</artifactId>
+      <version>${versions.quickcheck}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.pholser</groupId>
+      <artifactId>junit-quickcheck-generators</artifactId>
+      <version>${versions.quickcheck}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${versions.assertj}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${versions.junit5}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${versions.junit5}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

@@ -28,7 +28,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test jacocoReport'
+            sh './mvnw test -Dtests.crate.slow=true -Dcheckstyle.skip jacoco:report'
 
             // Upload coverage report to Codecov.
             // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
@@ -48,7 +48,7 @@ pipeline {
           }
           post {
             always {
-              junit '**/build/test-results/test/*.xml'
+              junit '**/target/surefire-reports/*.xml'
             }
           }
         }

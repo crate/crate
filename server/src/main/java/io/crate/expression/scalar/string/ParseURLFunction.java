@@ -22,6 +22,8 @@
 package io.crate.expression.scalar.string;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -77,8 +79,8 @@ public final class ParseURLFunction extends Scalar<Object, String> {
         URL url = null;
 
         try {
-            url = new URL(urlText);
-        } catch (MalformedURLException e1) {
+            url = URL.of(new URI(urlText), null);
+        } catch (MalformedURLException | URISyntaxException e1) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                             "unable to parse url %s",
                                                              urlText));

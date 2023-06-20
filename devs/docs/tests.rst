@@ -2,9 +2,29 @@
 Test cheatsheet
 ===============
 
-Run tests in a single module using multiple forks::
+To run all tests::
 
-    $ ./gradlew --parallel -PtestForks=2 :sql:test
+    $ ./mvnw test
+
+
+To run tests in a single module, you have to install the modules once::
+
+    $ ./mvnw install -DskipTests=true
+
+And then run::
+
+    $ ./mvnw test -pl <module>
+
+For example::
+
+    $ ./mvnw test -pl server
+
+Run tests using multiple forks::
+
+    $ ./mvnw test -DforkCount=4
+
+This requires ``$JAVA_HOME`` to match the used toolchain version because
+maven/surefire won't use the toolchain JDK to run the test forks.
 
 Run all `doctests`_::
 
@@ -45,21 +65,17 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./gradlew test --tests '*ClassName.testMethodName'
+    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -pl server
 
 Extra options::
 
-    $ ./gradlew :server:test -Dtests.seed=8352BE0120F826A9
+    $ ./mvnw test -pl server -Dtests.seed=8352BE0120F826A9
 
-    $ ./gradlew :server:test -Dtests.iters=20
+    $ ./mvnw test -pl server -Dtests.iters=20
 
-    $ ./gradlew :server:test -Dtests.nightly=true # defaults to "false"
+    $ ./mvnw test -pl server -Dtests.nightly=true # defaults to "false"
 
-    $ ./gradlew :server:test -Dtests.verbose=true # log result of all invoked tests
-
-More logging::
-
-    $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :server:test
+    $ ./mvnw test -pl server -Dtests.verbose=true # log result of all invoked tests
 
 More logging by changing code:
 

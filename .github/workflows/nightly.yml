@@ -14,15 +14,15 @@ jobs:
       matrix:
         os: [windows-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Gradle Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
 
       - name: Run tests on ${{ matrix.os }}
-        uses: gradle/gradle-build-action@v2.4.2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        with:
-          arguments: :server:test -Dtests.crate.run-windows-incompatible=false
+        run: mvn test -Dtests.crate.run-windows-incompatible=false -Dcheckstyle.skip
