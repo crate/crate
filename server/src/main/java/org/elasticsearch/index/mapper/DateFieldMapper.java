@@ -30,6 +30,8 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.time.IsoLocale;
+
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -39,7 +41,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
-import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /** A {@link FieldMapper} for ip addresses. */
