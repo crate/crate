@@ -58,7 +58,7 @@ import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
 

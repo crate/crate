@@ -64,7 +64,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.unit.TimeValue;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Service responsible for submitting index templates updates

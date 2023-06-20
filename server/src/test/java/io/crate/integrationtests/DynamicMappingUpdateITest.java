@@ -49,7 +49,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.testing.UseRandomizedOptimizerRules;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 
 /**
