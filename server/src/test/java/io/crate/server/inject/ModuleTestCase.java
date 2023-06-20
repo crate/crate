@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.elasticsearch.common.inject;
+
+package io.crate.server.inject;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -25,6 +26,7 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.spi.Element;
 import org.elasticsearch.common.inject.spi.Elements;
 import org.elasticsearch.common.inject.spi.InstanceBinding;
@@ -59,7 +61,7 @@ public abstract class ModuleTestCase extends ESTestCase {
                         return;
                     }
                 }
-            } else  if (element instanceof ProviderInstanceBinding) {
+            } else if (element instanceof ProviderInstanceBinding) {
                 ProviderInstanceBinding binding = (ProviderInstanceBinding) element;
                 if (to.equals(binding.getKey().getTypeLiteral().getType())) {
                     assertTrue(tester.test(to.cast(binding.getProviderInstance().get())));
