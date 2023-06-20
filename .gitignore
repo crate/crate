@@ -64,3 +64,4 @@ sandbox/crate/repo/
 sandbox/crate2/data/
 sandbox/crate2/repo/
 **/antlr/
+**/gen/
