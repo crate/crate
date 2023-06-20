@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import io.crate.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester;
 
 public class TopNDistinctBatchIteratorTest {
 

@@ -19,10 +19,6 @@
 
 package org.elasticsearch.env;
 
-import org.apache.lucene.util.Constants;
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.io.PathUtils;
-
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
@@ -30,6 +26,11 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
 import java.util.List;
+
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.io.PathUtils;
+
+import io.crate.common.SuppressForbidden;
 
 /**
  * Implementation of FileStore that supports

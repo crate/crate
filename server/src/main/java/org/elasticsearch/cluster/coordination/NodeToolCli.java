@@ -19,12 +19,12 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.cli.CommandLoggingConfigurator;
 import org.elasticsearch.cli.MultiCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.env.NodeRepurposeCommand;
 
 import io.crate.cluster.commands.FixCorruptedMetadataCommand;
+import io.crate.server.cli.CommandLoggingConfigurator;
 
 // NodeToolCli does not extend LoggingAwareCommand, because LoggingAwareCommand performs logging initialization
 // after LoggingAwareCommand instance is constructed.

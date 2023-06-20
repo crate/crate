@@ -45,9 +45,10 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
@@ -66,7 +67,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {

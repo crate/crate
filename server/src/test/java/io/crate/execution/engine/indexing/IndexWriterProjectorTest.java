@@ -43,12 +43,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.pipeline.TableSettingsResolver;
@@ -64,7 +65,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorTest extends IntegTestCase {

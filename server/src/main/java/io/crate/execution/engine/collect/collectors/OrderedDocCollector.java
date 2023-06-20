@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.concurrent.Killable;
+import io.crate.common.concurrent.Killable;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 

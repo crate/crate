@@ -23,7 +23,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletionStage;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
 

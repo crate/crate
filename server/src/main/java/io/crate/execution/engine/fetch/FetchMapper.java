@@ -35,7 +35,7 @@ import com.carrotsearch.hppc.IntSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.AsyncFlatMapper;
 import io.crate.data.Bucket;
 import io.crate.data.CloseableIterator;

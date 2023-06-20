@@ -20,8 +20,8 @@
 package org.elasticsearch.common.geo.parsers;
 
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
+import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;

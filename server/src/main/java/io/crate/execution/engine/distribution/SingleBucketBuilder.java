@@ -22,12 +22,12 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;

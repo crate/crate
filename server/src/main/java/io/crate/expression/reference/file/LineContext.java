@@ -22,12 +22,13 @@
 package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.server.xcontent.ParsedXContent;
+import io.crate.server.xcontent.XContentHelper;
+
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.xcontent.ParsedXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import org.jetbrains.annotations.Nullable;

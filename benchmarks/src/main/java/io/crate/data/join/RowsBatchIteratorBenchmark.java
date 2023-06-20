@@ -42,8 +42,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -53,6 +51,8 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;

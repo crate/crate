@@ -40,11 +40,11 @@ import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.types.DataTypes;

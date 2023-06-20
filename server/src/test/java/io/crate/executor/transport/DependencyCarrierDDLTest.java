@@ -38,6 +38,7 @@ import org.junit.Test;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.test.IntegTestCase;
@@ -47,7 +48,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import io.crate.testing.TestingRowConsumer;
 
 public class DependencyCarrierDDLTest extends IntegTestCase {
 

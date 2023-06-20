@@ -44,11 +44,11 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.testing.RowGenerator;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
 
 public class FileWriterProjectorTest extends ESTestCase {
 

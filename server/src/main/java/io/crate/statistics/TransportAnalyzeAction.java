@@ -47,7 +47,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;

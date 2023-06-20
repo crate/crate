@@ -60,8 +60,8 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
 /**

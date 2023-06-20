@@ -29,9 +29,9 @@ import java.util.Collections;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;
 import io.crate.data.join.CrossJoinNLBatchIterator;
 import io.crate.sql.tree.JoinType;

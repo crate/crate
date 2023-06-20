@@ -25,8 +25,8 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 import io.crate.Streamer;
+import io.crate.common.concurrent.Killable;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.concurrent.Killable;
 import io.crate.data.Bucket;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;

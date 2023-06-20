@@ -21,9 +21,10 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.RowGenerator;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.RowGenerator;
+
 import org.junit.Test;
 
 import java.util.Arrays;

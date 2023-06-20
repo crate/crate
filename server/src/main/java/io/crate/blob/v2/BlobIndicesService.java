@@ -30,8 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -51,6 +49,7 @@ import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Manages the creation and deletion of BlobIndex and BlobShard instances.

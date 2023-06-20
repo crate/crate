@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.lucene.tests.util.TestUtil;
-import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -39,6 +38,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.cluster.commands.FixCorruptedMetadataCommand;
+import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionParser;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)

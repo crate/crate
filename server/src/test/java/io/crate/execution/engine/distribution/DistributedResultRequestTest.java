@@ -38,8 +38,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.types.DataTypes;
 
 public class DistributedResultRequestTest extends ESTestCase {

@@ -35,7 +35,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 
 @Singleton

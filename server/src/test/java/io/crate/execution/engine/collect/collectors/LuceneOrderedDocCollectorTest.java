@@ -73,8 +73,8 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;

@@ -21,7 +21,7 @@
 
 package io.crate.statistics;
 
-import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
@@ -63,13 +63,13 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.Streamer;
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.FetchId;

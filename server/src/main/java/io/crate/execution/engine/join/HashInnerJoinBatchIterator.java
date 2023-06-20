@@ -21,11 +21,11 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterator;
 import io.netty.util.collection.IntObjectHashMap;

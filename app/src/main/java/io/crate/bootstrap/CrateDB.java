@@ -31,7 +31,6 @@ import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;
-import org.elasticsearch.cli.EnvironmentAwareCommand;
 import org.elasticsearch.cli.ExitCodes;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
@@ -43,6 +42,7 @@ import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.NodeNames;
 import org.elasticsearch.node.NodeValidationException;
 
+import io.crate.server.cli.EnvironmentAwareCommand;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpecBuilder;
 

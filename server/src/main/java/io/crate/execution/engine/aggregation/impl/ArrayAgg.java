@@ -30,8 +30,8 @@ import java.util.List;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.BoundSignature;

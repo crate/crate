@@ -39,7 +39,6 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
-import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -91,9 +90,9 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 
-
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 

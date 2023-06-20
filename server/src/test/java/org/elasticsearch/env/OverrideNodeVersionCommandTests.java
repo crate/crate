@@ -29,7 +29,6 @@ import java.nio.file.Path;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -42,6 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 

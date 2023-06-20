@@ -45,8 +45,8 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.LongArrayList;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 

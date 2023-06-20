@@ -36,10 +36,10 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 
 public class AsyncCompositeBatchIteratorTest {
 

@@ -62,7 +62,7 @@ import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;

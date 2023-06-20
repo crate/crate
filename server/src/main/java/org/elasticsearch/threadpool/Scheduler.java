@@ -20,8 +20,8 @@
 package org.elasticsearch.threadpool;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;

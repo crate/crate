@@ -23,12 +23,12 @@ package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.where.DocKeys;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
-import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;

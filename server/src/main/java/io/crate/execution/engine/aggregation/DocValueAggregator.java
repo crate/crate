@@ -25,7 +25,7 @@ import java.io.IOException;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.Version;

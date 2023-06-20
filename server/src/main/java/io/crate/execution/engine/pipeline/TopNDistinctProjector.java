@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.TopNDistinctBatchIterator;
+import io.crate.data.breaker.RowAccounting;
 
 public final class TopNDistinctProjector implements Projector {
 

@@ -34,9 +34,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
 
 public class CollectingBatchIteratorTest {
 

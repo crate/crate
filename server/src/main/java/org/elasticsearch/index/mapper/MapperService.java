@@ -42,7 +42,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -53,6 +52,7 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 public class MapperService extends AbstractIndexComponent implements Closeable {
 

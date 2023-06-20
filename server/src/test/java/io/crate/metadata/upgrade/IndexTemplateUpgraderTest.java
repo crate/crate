@@ -39,13 +39,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
+import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateUpgraderTest {
 

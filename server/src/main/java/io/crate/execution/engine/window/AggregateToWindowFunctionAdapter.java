@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.ExpressionsInput;

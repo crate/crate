@@ -21,7 +21,13 @@
 
 package io.crate.blob.v2;
 
-import io.crate.blob.BlobContainer;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -31,14 +37,9 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
+
+import io.crate.blob.BlobContainer;
 
 public class BlobShard {
 

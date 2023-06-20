@@ -21,10 +21,10 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;

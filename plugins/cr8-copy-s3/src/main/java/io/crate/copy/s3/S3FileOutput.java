@@ -28,7 +28,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
-import io.crate.concurrent.CompletableFutures;
+
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.dsl.projection.WriterProjection;
@@ -36,6 +36,8 @@ import io.crate.execution.engine.export.FileOutput;
 
 import org.jetbrains.annotations.Nullable;
 import io.crate.common.annotations.NotThreadSafe;
+import io.crate.common.concurrent.CompletableFutures;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

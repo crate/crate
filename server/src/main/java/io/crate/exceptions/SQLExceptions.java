@@ -57,6 +57,7 @@ import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import io.crate.auth.AccessControl;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 

@@ -46,11 +46,12 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -72,7 +73,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest {

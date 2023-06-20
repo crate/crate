@@ -35,10 +35,10 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.CoordinatorTxnCtx;

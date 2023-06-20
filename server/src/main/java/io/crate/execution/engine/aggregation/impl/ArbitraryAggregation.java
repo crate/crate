@@ -34,9 +34,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.MutableObject;
 import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;

@@ -84,8 +84,8 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.netty.channel.ChannelFuture;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {

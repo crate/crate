@@ -50,7 +50,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakGroup;
 
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)

@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
-import org.elasticsearch.common.time.IsoLocale;
+import io.crate.common.time.IsoLocale;
 
 /**
  * Utilities for for dealing with {@link Locale} objects
