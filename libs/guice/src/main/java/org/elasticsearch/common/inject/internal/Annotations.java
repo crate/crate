@@ -16,16 +16,16 @@
 
 package org.elasticsearch.common.inject.internal;
 
-import org.elasticsearch.common.Classes;
-import org.elasticsearch.common.inject.BindingAnnotation;
-import org.elasticsearch.common.inject.Key;
-import org.elasticsearch.common.inject.ScopeAnnotation;
-import org.elasticsearch.common.inject.TypeLiteral;
-
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Member;
+
+import org.elasticsearch.common.inject.BindingAnnotation;
+import org.elasticsearch.common.inject.Classes;
+import org.elasticsearch.common.inject.Key;
+import org.elasticsearch.common.inject.ScopeAnnotation;
+import org.elasticsearch.common.inject.TypeLiteral;
 
 /**
  * Annotation utilities.
