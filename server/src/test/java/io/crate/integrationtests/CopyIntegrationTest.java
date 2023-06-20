@@ -362,16 +362,21 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromWithInvalidGivenGeneratedColumn() throws Exception {
         execute("create table quotes (" +
                 " id int," +
-                " quote as cast(id as string)" +
+                " quote as cast(id as string)," +
+                " obj object as (a object as (b int as id))" +
                 ")");
-        // same with test_copy_from.json but with last entry with explicitly provided null
-        // in order to test that we can differentiate between "provided null" and "no value"
+        // 4 scenarios where provided value doesn't match computation:
+        //   1. provided incorrect not-null top-level value
+        //   2. provided incorrect null top-level value
+        //   3. provided incorrect not-null sub-column value
+        //   4. provided incorrect null sub-column value
+        // Scenarios 2 and 4 testing that we don't treat null as "no value, generate it ourselves".
         Path path = tmpFileWithLines(Arrays.asList(
             """
-                {"id": 1, "quote": "Don't pañic."}
-                {"id": 2, "quote": "Would it save you a lot of time if I just gave up and went mad now?"}
-                {"id": 3, "quote": "Time is an illusion. Lunchtime doubly so."}
-                {"id": 4, "quote": null}
+                {"id": 1, "quote": "test", "obj":{"a":{"b":1}}}
+                {"id": 2, "quote": null,   "obj":{"a":{"b":2}}}
+                {"id": 3, "quote": "3",    "obj":{"a":{"b":4}}}
+                {"id": 4, "quote": "4",    "obj":{"a":{"b":null}}}
             """
         ));
         execute("copy quotes from ? with (shared=true)", new Object[] { path.toUri().toString() + "*.json"});
