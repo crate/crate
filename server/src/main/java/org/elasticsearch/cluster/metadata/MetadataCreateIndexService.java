@@ -99,7 +99,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Service responsible for submitting create index requests
