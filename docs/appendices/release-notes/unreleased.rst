@@ -220,3 +220,8 @@ Fixes
   In 5.2.0 neither variant inserted a record. The first ``INSERT`` raised an
   error, and the second resulted in row count 0.
 
+- Fixed an issue which caused ``INSERT INTO`` statements
+  to skip generated column validation for sub-columns if provided value is
+  ``NULL``.
+
+
