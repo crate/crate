@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.crate.concurrent.limits;
+package io.crate.common.concurrent;
 
 import java.util.function.DoubleUnaryOperator;
 

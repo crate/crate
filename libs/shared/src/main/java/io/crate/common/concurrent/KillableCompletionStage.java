@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.concurrent;
+package io.crate.common.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

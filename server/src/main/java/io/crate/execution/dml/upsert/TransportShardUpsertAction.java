@@ -71,7 +71,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.AddColumnRequest;

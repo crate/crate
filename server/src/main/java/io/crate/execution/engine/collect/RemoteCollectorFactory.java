@@ -39,10 +39,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.RemoteCollector;

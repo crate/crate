@@ -37,7 +37,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.common.collections.Lists2;
-import io.crate.concurrent.KillableCompletionStage;
+import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;

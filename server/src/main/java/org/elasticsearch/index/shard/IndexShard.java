@@ -159,9 +159,9 @@ import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.Booleans;
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 

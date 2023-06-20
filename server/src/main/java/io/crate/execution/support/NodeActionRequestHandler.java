@@ -30,7 +30,7 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 public final class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
     implements TransportRequestHandler<TRequest> {

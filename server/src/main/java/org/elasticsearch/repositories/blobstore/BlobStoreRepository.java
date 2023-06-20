@@ -141,8 +141,8 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.InvalidArgumentException;
 
 

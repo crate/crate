@@ -22,7 +22,6 @@
 package io.crate.execution.jobs;
 
 import io.crate.Streamer;
-import io.crate.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -36,6 +35,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.jetbrains.annotations.NotNull;
 import io.crate.common.annotations.GuardedBy;
+import io.crate.common.concurrent.KillableCompletionStage;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;

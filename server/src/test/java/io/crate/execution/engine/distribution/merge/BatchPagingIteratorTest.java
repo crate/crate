@@ -41,7 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.concurrent.KillableCompletionStage;
+import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;

@@ -55,8 +55,8 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;

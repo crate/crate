@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * A BatchIterator that is initially empty and can be loaded with {@link #loadNextBatch()} via {@code loadItems}

@@ -179,8 +179,8 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.metadata.doc.DocSysColumns;
 
 /**

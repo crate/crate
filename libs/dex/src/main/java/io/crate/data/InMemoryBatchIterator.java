@@ -24,7 +24,7 @@ package io.crate.data;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 import java.util.Collections;
 import java.util.Iterator;

@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;

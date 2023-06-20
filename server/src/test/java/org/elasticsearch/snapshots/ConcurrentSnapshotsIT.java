@@ -69,8 +69,8 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.testing.UseRandomizedSchema;

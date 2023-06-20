@@ -19,9 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.concurrent;
-
-import io.crate.common.SuppressForbidden;
+package io.crate.common.concurrent;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +27,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+
+import io.crate.common.SuppressForbidden;
 
 public final class CompletableFutures {
 

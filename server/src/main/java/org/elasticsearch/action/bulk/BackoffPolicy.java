@@ -23,8 +23,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
+import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.limits.ConcurrencyLimit;
 
 /**
  * Provides a backoff policy for bulk requests. Whenever a bulk request is rejected due to resource constraints (i.e. the client's internal

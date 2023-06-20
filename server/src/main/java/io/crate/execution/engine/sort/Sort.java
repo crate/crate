@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import static io.crate.concurrent.CompletableFutures.supplyAsync;
+import static io.crate.common.concurrent.CompletableFutures.supplyAsync;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public final class Sort {

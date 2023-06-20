@@ -29,7 +29,7 @@ import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 
-import io.crate.concurrent.limits.ConcurrencyLimit;
+import io.crate.common.concurrent.ConcurrencyLimit;
 
 class IsUsedBytesOverThreshold implements Predicate<Accountable> {
 

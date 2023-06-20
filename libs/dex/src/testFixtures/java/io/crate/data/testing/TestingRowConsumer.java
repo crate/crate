@@ -30,12 +30,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.Exceptions;
 
 public final class TestingRowConsumer implements RowConsumer {
 

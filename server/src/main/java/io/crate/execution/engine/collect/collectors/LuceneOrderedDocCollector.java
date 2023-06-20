@@ -52,9 +52,9 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
