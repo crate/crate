@@ -41,7 +41,7 @@ import org.junit.Test;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.testing.BatchSimulatingIterator;
+import io.crate.data.testing.BatchSimulatingIterator;
 
 public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
 

@@ -35,8 +35,8 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.FailingBatchIterator;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.FailingBatchIterator;
 
 public class BatchIteratorsTest {
 

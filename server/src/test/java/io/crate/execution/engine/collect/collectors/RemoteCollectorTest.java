@@ -48,6 +48,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -65,7 +66,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {

@@ -36,13 +36,13 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.crate.data.RowConsumer;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.TestingRowConsumer;
 
 public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUnitTest {
 

@@ -33,6 +33,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.action.FutureActionListener;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllRequest;
@@ -40,7 +41,6 @@ import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
 
 public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
 

@@ -48,16 +48,16 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class WindowBatchIteratorTest {

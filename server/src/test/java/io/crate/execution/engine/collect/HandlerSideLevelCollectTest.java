@@ -47,6 +47,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
@@ -72,7 +73,6 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)

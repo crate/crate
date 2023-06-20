@@ -56,6 +56,7 @@ import org.junit.Test;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.testing.BatchIteratorTester;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
@@ -66,7 +67,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.NodeContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.BatchIteratorTester;
 
 public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 

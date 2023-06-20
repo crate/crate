@@ -45,10 +45,10 @@ import io.crate.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.RowGenerator;
-import io.crate.testing.TestingBatchIterators;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.RowGenerator;
+import io.crate.data.testing.TestingBatchIterators;
 
 public class BatchPagingIteratorTest {
 
