@@ -61,7 +61,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -77,6 +76,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
 
 public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragment {

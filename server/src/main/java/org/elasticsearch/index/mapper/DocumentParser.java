@@ -32,8 +32,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
@@ -41,6 +39,8 @@ import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactor
 
 import io.crate.common.collections.Tuple;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
+import io.crate.server.xcontent.XContentHelper;
 
 /** A parser for documents, given mappings from a DocumentMapper */
 final class DocumentParser {

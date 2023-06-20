@@ -31,7 +31,6 @@ import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -46,6 +45,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
 
 public class DocRefResolverTest extends ESTestCase {

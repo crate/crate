@@ -17,13 +17,15 @@
  * under the License.
  */
 
-package org.elasticsearch.common.xcontent;
-
-import org.elasticsearch.common.ParsingException;
-import org.elasticsearch.common.xcontent.XContentParser.Token;
+package io.crate.server.xcontent;
 
 import java.io.IOException;
 import java.util.Locale;
+
+import org.elasticsearch.common.ParsingException;
+import org.elasticsearch.common.xcontent.XContentLocation;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentParser.Token;
 
 /**
  * A set of static methods to get {@link Token} from {@link XContentParser}

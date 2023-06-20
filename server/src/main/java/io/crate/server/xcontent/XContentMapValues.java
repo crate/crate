@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common.xcontent.support;
+package io.crate.server.xcontent;
 
 import org.elasticsearch.common.Numbers;
 

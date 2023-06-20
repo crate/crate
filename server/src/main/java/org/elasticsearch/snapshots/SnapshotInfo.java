@@ -45,11 +45,11 @@ import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.rest.RestStatus;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.server.xcontent.XContentParserUtils;
 
 /**
  * Information about a snapshot

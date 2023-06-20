@@ -36,10 +36,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.metadata.RelationName;
+import io.crate.server.xcontent.XContentHelper;
 
 public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
 

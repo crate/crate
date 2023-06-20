@@ -34,10 +34,10 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
 
+import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
+
 import java.io.IOException;
 import java.util.Arrays;
-
-import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /**
  * Base class for write action responses.

@@ -31,6 +31,7 @@ import java.util.function.BiFunction;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -43,7 +44,7 @@ import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
-import org.elasticsearch.common.xcontent.XContentHelper;
+
 import org.elasticsearch.common.xcontent.XContentType;
 
 public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {

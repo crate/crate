@@ -43,18 +43,18 @@ import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.store.ByteArrayIndexInput;
 import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.CorruptStateException;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
 import io.crate.common.CheckedFunction;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
+import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Snapshot metadata file format used in v2.0 and above

@@ -19,7 +19,7 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 
 import java.io.IOException;
 import java.util.Iterator;

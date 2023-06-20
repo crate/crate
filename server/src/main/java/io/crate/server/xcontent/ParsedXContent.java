@@ -19,9 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.common.xcontent;
+package io.crate.server.xcontent;
 
 import java.util.Map;
+
+import org.elasticsearch.common.xcontent.XContentType;
 
 public record ParsedXContent(XContentType type, Map<String, Object> map) {
 }

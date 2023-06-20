@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
@@ -43,6 +42,7 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 

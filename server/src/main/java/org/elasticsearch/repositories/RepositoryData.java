@@ -25,12 +25,14 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.snapshots.SnapshotsService;
 
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.server.xcontent.XContentParserUtils;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;

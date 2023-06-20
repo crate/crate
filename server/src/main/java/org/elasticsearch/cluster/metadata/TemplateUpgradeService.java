@@ -47,7 +47,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.IndexTemplateMissingException;
@@ -58,6 +57,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Upgrades Templates on behalf of installed {@link Plugin}s when a node joins the cluster

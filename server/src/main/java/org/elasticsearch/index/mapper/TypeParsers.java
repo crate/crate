@@ -19,9 +19,9 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
+import static io.crate.server.xcontent.XContentMapValues.nodeStringValue;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,8 +30,9 @@ import java.util.Map;
 
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
+
+import io.crate.server.xcontent.XContentMapValues;
 
 public class TypeParsers {
 
