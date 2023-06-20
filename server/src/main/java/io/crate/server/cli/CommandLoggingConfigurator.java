@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.cli;
+package io.crate.server.cli;
 
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.common.logging.LogConfigurator;

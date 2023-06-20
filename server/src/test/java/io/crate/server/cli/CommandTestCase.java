@@ -17,8 +17,10 @@
  * under the License.
  */
 
-package org.elasticsearch.cli;
+package io.crate.server.cli;
 
+import org.elasticsearch.cli.Command;
+import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 

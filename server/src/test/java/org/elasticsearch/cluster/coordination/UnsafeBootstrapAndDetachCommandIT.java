@@ -35,7 +35,6 @@ import java.util.Locale;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -52,6 +51,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
+import io.crate.server.cli.MockTerminal;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
 

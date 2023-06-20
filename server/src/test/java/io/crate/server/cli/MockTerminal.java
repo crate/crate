@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.cli;
+package io.crate.server.cli;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -26,6 +26,8 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.elasticsearch.cli.Terminal;
 
 /**
  * A terminal for tests which captures all output, and
