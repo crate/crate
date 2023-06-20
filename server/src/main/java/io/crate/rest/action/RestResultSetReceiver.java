@@ -28,8 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.action.sql.ResultReceiver;
-import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.Symbol;
 
 class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {

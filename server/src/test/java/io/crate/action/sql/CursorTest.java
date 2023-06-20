@@ -36,13 +36,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;

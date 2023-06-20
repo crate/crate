@@ -19,24 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.breaker;
+package io.crate.data.breaker;
 
 /**
- * Accounts for memory of rows representations to avoid OutOfMemoryErrors.
- * Calculated memory usage can be released.
+ * Accounts for RAM usage by counting allocated bytes.
+ * Throws a CircuitBreakingException to avoid OutOfMemoryErrors,
+ * in case it thinks that too many bytes have been allocated.
  */
-public interface RowAccounting<T> {
+public interface RamAccounting {
+
+    RamAccounting NO_ACCOUNTING = new RamAccounting() {
+        @Override
+        public void addBytes(long bytes) {
+        }
+
+        @Override
+        public long totalBytes() {
+            return 0;
+        }
+
+        @Override
+        public void release() {
+        }
+
+        @Override
+        public void close() {
+        }
+    };
 
     /**
-     * Accounts memory usage of the supplied row representation.
-     * May throw an exception if it thinks that the entities accounted for
-     * occupy too much memory.
-     * @throws CircuitBreakingException if too much memory would be consumer after materializing this row.
+     * Accounts for the supplied number of bytes
+     * @throws CircuitBreakingException if too many bytes have been added.
      */
-    void accountForAndMaybeBreak(T row);
+    void addBytes(long bytes);
+
+    long totalBytes();
 
     /**
      * Stops accounting for previously accounted rows.
      */
     void release();
+
+    /**
+     * Closes this RamAccounting and prevents further use.
+     */
+    void close();
+
 }

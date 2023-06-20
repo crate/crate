@@ -28,7 +28,6 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
@@ -38,6 +37,7 @@ import io.crate.data.FilteringBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.join.AntiJoinNLBatchIterator;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;

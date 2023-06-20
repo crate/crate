@@ -24,6 +24,8 @@ package io.crate.breaker;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import io.crate.common.annotations.ThreadSafe;
+import io.crate.data.breaker.RamAccounting;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 

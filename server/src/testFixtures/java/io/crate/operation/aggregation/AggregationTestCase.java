@@ -88,12 +88,12 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.data.ArrayBucket;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;

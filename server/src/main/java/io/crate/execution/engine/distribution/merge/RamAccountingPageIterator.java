@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.breaker.RowAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
+import io.crate.data.breaker.RowAccounting;
 
 /**
- * Wraps a PagingIterator and uses {@link io.crate.breaker.RamAccounting} to apply the circuit breaking logic
+ * Wraps a PagingIterator and uses {@link io.crate.data.breaker.RamAccounting} to apply the circuit breaking logic
  */
 public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row> {
 

@@ -29,7 +29,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 
 public class BulkShardCreationLimiterTest extends ESTestCase {

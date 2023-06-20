@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl.templates;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.DocValues;

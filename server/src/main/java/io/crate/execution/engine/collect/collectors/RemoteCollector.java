@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;

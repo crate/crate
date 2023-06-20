@@ -28,8 +28,8 @@ import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;

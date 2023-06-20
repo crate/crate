@@ -42,9 +42,9 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexService;
 
 import io.crate.Streamer;
-import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;

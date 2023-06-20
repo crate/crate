@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 
 public class FetchRequestTest {
 

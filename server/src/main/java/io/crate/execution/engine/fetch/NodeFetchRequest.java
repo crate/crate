@@ -39,7 +39,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.support.NodeRequest;
 
 public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest> {

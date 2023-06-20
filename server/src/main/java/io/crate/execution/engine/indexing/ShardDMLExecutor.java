@@ -47,7 +47,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -55,6 +54,7 @@ import io.crate.data.BatchIterators;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;

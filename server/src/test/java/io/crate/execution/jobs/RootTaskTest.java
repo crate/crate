@@ -47,7 +47,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;

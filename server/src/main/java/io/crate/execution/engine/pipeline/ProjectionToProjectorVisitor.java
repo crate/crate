@@ -54,7 +54,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
@@ -62,6 +61,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;

@@ -31,11 +31,11 @@ import java.util.function.Function;
 
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.BlockBasedRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.PKLookupOperation;

@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
