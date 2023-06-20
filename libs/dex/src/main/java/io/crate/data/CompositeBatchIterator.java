@@ -21,7 +21,7 @@
 
 package io.crate.data;
 
-import static io.crate.concurrent.CompletableFutures.supplyAsync;
+import static io.crate.common.concurrent.CompletableFutures.supplyAsync;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +34,8 @@ import java.util.function.IntSupplier;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * BatchIterator implementations backed by multiple other BatchIterators.

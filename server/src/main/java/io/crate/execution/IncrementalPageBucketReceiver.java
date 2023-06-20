@@ -22,12 +22,12 @@
 package io.crate.execution;
 
 import io.crate.Streamer;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.Exceptions;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;

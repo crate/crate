@@ -29,7 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.concurrent.limits.ConcurrencyLimit;
+import io.crate.common.concurrent.ConcurrencyLimit;
 
 
 public class NodeLimitsTest extends ESTestCase {

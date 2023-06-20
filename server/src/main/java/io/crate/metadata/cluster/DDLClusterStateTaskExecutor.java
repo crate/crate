@@ -26,7 +26,7 @@ import java.util.List;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 
 public abstract class DDLClusterStateTaskExecutor<Request> implements ClusterStateTaskExecutor<Request> {
 

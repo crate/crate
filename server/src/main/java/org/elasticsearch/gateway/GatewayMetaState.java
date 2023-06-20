@@ -67,8 +67,8 @@ import org.elasticsearch.transport.TransportService;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
-import io.crate.exceptions.Exceptions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 

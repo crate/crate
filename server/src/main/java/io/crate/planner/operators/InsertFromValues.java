@@ -68,7 +68,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.breaker.RamAccounting;
-import io.crate.concurrent.limits.ConcurrencyLimit;
+import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;

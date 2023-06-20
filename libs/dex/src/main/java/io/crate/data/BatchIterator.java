@@ -24,7 +24,7 @@ package io.crate.data;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
-import io.crate.concurrent.Killable;
+import io.crate.common.concurrent.Killable;
 
 
 /**

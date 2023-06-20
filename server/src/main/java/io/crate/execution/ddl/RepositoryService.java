@@ -22,7 +22,7 @@
 package io.crate.execution.ddl;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.LogManager;

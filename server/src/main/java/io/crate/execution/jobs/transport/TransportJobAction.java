@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.concurrent.CompletableFutures;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
 import io.crate.execution.jobs.JobSetup;

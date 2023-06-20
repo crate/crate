@@ -20,8 +20,9 @@ package org.elasticsearch.test.disruption;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 
 import org.elasticsearch.test.TestCluster;
 

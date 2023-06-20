@@ -52,7 +52,7 @@ import org.elasticsearch.transport.TransportService.HandshakeResponse;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists2;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
 public final class SniffRemoteClient extends AbstractClient {

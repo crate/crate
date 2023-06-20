@@ -29,8 +29,8 @@ import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.ElasticsearchTimeoutException;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
 public class FutureUtils {

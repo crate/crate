@@ -21,10 +21,10 @@
 
 package io.crate.data.testing;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.exceptions.Exceptions;
 
 public class FailingBatchIterator<T> extends ForwardingBatchIterator<T> {
 

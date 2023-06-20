@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.common.exceptions;
 
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;

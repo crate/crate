@@ -38,9 +38,9 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 
 /**
  * A class which can be used to verify that a {@link io.crate.data.BatchIterator} implements

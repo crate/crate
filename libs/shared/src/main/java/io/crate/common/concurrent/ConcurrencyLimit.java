@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package io.crate.concurrent.limits;
+package io.crate.common.concurrent;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntFunction;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import io.crate.common.concurrent.Measurement;
 
 
 /**

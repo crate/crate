@@ -21,7 +21,7 @@
 
 package io.crate.rest.action;
 
-import static io.crate.exceptions.Exceptions.userFriendlyMessage;
+import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
 
 import java.io.IOException;
 

@@ -24,7 +24,7 @@ package io.crate.execution.jobs.kill;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import io.crate.concurrent.Killable;
+import io.crate.common.concurrent.Killable;
 
 public interface KillableCallable<T> extends Callable<T>, Killable {
 

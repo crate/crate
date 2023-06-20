@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.concurrent.KillableCompletionStage;
+import io.crate.common.concurrent.KillableCompletionStage;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
 
 import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;

@@ -23,8 +23,8 @@ package io.crate.expression.reference.sys.snapshot;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.Exceptions;
+import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.RelationName;
 
