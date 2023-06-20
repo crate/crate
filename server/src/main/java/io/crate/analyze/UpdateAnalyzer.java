@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.expression.symbol.Symbols.unwrapReferenceFromCast;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -208,6 +209,8 @@ public final class UpdateAnalyzer {
                             targetCol.isNullable(),
                             targetCol.hasDocValues(),
                             targetCol.position(),
+                            targetCol.oid(),
+                            targetCol.isDropped(),
                             targetCol.defaultExpression()
                         );
 
