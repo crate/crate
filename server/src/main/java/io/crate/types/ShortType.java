@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +36,6 @@ import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
@@ -45,7 +45,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, true, new IntEqQuery()) {
 
         @Override
-        public ValueIndexer<Number> valueIndexer(RelationName table,
+        public ValueIndexer<Number> valueIndexer(DocTableInfo table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {

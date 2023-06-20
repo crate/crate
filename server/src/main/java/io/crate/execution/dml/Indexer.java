@@ -100,6 +100,7 @@ import io.crate.types.ObjectType;
 public class Indexer {
 
     private final List<ValueIndexer<?>> valueIndexers;
+    private final DocTableInfo table;
     private final List<Reference> columns;
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
@@ -351,6 +352,7 @@ public class Indexer {
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
+        this.table = table;
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
@@ -377,11 +379,11 @@ public class Indexer {
                         table.ident()
                     ));
                 }
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef);
+                valueIndexer = new DynamicIndexer(table, ref.ident(), position, getFieldType, getRef);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
-                    table.ident(),
+                    table,
                     ref,
                     getFieldType,
                     getRef
@@ -427,7 +429,7 @@ public class Indexer {
                 }
                 Input<?> input = HashMap::new;
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
-                    table.ident(),
+                    table,
                     parentRef,
                     getFieldType,
                     getRef
@@ -440,7 +442,7 @@ public class Indexer {
                 ? ctxForRefs.add(ref)
                 : ctxForRefs.add(ref.defaultExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
-                table.ident(),
+                table,
                 ref,
                 getFieldType,
                 getRef
@@ -461,7 +463,7 @@ public class Indexer {
             }
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
-                table.ident(),
+                table,
                 ref,
                 getFieldType,
                 getRef
@@ -598,7 +600,7 @@ public class Indexer {
                 if (value == null) {
                     continue;
                 }
-                xContentBuilder.field(column.leafName());
+                xContentBuilder.field(Long.toString(table.getReference(column).oid()));
                 indexer.indexValue(
                     value,
                     xContentBuilder,

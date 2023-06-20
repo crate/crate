@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -59,13 +60,13 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final HashMap<String, ValueIndexer<Object>> innerIndexers;
     private final ColumnIdent column;
     private final Function<ColumnIdent, Reference> getRef;
-    private final RelationName table;
+    private final DocTableInfo table;
     private final Reference ref;
     private final Function<ColumnIdent, FieldType> getFieldType;
     private final HashMap<String, DataType<?>> innerTypes;
 
     @SuppressWarnings("unchecked")
-    public ObjectIndexer(RelationName table,
+    public ObjectIndexer(DocTableInfo table,
                          Reference ref,
                          Function<ColumnIdent, FieldType> getFieldType,
                          Function<ColumnIdent, Reference> getRef) {
@@ -192,7 +193,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             boolean nullable = true;
             Symbol defaultExpression = null;
             Reference newColumn = new SimpleReference(
-                new ReferenceIdent(table, column.getChild(innerName)),
+                new ReferenceIdent(table.ident(), column.getChild(innerName)),
                 RowGranularity.DOC,
                 type,
                 ref.columnPolicy(),

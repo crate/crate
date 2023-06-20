@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -48,7 +49,6 @@ import io.crate.execution.dml.LongIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public final class TimestampType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
@@ -71,7 +71,7 @@ public final class TimestampType extends DataType<Long>
     private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, true, new LongEqQuery()) {
 
         @Override
-        public ValueIndexer<Long> valueIndexer(RelationName table,
+        public ValueIndexer<Long> valueIndexer(DocTableInfo table,
                                                Reference ref,
                                                Function<ColumnIdent, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {

@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -53,7 +54,6 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -96,7 +96,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                     innerStorage.eqQuery()) {
 
                 @Override
-                public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
+                public ValueIndexer<T> valueIndexer(DocTableInfo table, Reference ref,
                                                     Function<ColumnIdent, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(

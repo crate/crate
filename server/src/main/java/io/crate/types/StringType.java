@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -56,7 +57,6 @@ import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -102,7 +102,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
         @Override
         @SuppressWarnings({"rawtypes", "unchecked"})
-        public ValueIndexer<Object> valueIndexer(RelationName table,
+        public ValueIndexer<Object> valueIndexer(DocTableInfo table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {

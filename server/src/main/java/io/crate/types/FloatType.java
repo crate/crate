@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -41,7 +42,6 @@ import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -94,7 +94,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     ) {
 
         @Override
-        public ValueIndexer<Float> valueIndexer(RelationName table,
+        public ValueIndexer<Float> valueIndexer(DocTableInfo table,
                                                 Reference ref,
                                                 Function<ColumnIdent, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {

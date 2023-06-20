@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -41,7 +42,6 @@ import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
@@ -94,7 +94,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     ) {
 
         @Override
-        public ValueIndexer<Number> valueIndexer(RelationName table,
+        public ValueIndexer<Number> valueIndexer(DocTableInfo table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {

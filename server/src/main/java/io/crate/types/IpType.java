@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.Query;
@@ -38,7 +39,6 @@ import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public class IpType extends DataType<String> implements Streamer<String> {
 
@@ -84,7 +84,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     ) {
 
         @Override
-        public ValueIndexer<String> valueIndexer(RelationName table,
+        public ValueIndexer<String> valueIndexer(DocTableInfo table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {

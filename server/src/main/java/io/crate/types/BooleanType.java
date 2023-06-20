@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -40,7 +41,6 @@ import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
@@ -80,7 +80,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
             EQ_QUERY) {
 
         @Override
-        public ValueIndexer<Boolean> valueIndexer(RelationName table,
+        public ValueIndexer<Boolean> valueIndexer(DocTableInfo table,
                                                   Reference ref,
                                                   Function<ColumnIdent, FieldType> getFieldType,
                                                   Function<ColumnIdent, Reference> getRef) {

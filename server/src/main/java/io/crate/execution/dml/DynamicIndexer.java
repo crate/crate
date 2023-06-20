@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -55,6 +56,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
+    private final DocTableInfo table;
     private final ReferenceIdent refIdent;
     private final Function<ColumnIdent, FieldType> getFieldType;
     private final Function<ColumnIdent, Reference> getRef;
@@ -62,10 +64,12 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
 
-    public DynamicIndexer(ReferenceIdent refIdent,
+    public DynamicIndexer(DocTableInfo table,
+                          ReferenceIdent refIdent,
                           int position,
                           Function<ColumnIdent, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef) {
+        this.table = table;
         this.refIdent = refIdent;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
@@ -108,7 +112,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 defaultExpression
             );
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
-                refIdent.tableIdent(),
+                table,
                 newColumn,
                 getFieldType,
                 getRef
