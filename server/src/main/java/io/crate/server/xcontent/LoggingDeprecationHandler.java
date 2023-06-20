@@ -20,9 +20,9 @@
 package io.crate.server.xcontent;
 
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.ParseField;
 
 /**
  * Logs deprecations to the {@link DeprecationLogger}.

@@ -20,7 +20,6 @@
 package org.elasticsearch.common.xcontent;
 
 import io.crate.common.CheckedFunction;
-import org.elasticsearch.common.ParseField;
 
 import java.io.IOException;
 import java.util.ArrayList;
