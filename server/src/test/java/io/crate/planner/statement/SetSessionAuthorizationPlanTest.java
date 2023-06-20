@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;
@@ -42,7 +43,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.user.User;
 import io.crate.user.UserManager;
 

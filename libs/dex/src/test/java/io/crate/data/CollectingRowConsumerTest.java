@@ -31,8 +31,8 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
 
 public class CollectingRowConsumerTest {
 

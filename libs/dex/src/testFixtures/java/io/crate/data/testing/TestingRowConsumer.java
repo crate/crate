@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.data.testing;
 
 import java.util.ArrayList;
 import java.util.List;

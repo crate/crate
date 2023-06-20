@@ -53,11 +53,11 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
 
 public class DistResultRXTaskTest extends ESTestCase {
 

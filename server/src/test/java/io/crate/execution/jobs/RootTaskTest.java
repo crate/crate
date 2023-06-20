@@ -48,6 +48,7 @@ import org.mockito.Mockito;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -58,7 +59,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.profile.ProfilingContext;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
 
 public class RootTaskTest extends ESTestCase {

@@ -19,18 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.data.testing;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowN;
+import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-import static io.crate.data.SentinelRow.SENTINEL;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.testing.RowGenerator;
 
 public class TestingBatchIterators {
 

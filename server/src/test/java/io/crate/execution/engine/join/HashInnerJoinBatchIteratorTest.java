@@ -45,9 +45,9 @@ import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CombinedRow;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.TestingBatchIterators;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)

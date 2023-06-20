@@ -34,7 +34,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.testing.RowGenerator;
+import io.crate.data.testing.RowGenerator;
 import io.crate.types.DataTypes;
 
 public class RowAccountingWithEstimatorsTest extends ESTestCase {

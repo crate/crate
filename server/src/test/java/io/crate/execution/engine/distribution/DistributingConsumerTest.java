@@ -52,16 +52,16 @@ import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.data.testing.BatchSimulatingIterator;
+import io.crate.data.testing.FailingBatchIterator;
+import io.crate.data.testing.TestingBatchIterators;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.support.NodeRequest;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.FailingBatchIterator;
-import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class DistributingConsumerTest extends ESTestCase {

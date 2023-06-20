@@ -64,6 +64,7 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.testing.BatchIteratorTester;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
@@ -72,7 +73,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 
 public class FileReadingIteratorTest extends ESTestCase {

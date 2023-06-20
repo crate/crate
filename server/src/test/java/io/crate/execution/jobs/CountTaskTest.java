@@ -39,6 +39,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -49,7 +50,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.testing.TestingRowConsumer;
 
 public class CountTaskTest extends ESTestCase {
 
