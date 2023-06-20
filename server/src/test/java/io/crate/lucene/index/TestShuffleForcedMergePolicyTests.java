@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.lucene.index;
+package io.crate.lucene.index;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -29,14 +29,19 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.index.BaseMergePolicyTestCase;
 import org.apache.lucene.tests.util.VerifyTestClassNamingConvention;
 import org.junit.Test;
-
-import io.crate.lucene.index.ShuffleForcedMergePolicy;
 
 /**
  * Note: the class name starts with Test to follow Lucene test class naming convention, {@link
