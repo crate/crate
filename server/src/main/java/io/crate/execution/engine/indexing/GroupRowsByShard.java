@@ -50,8 +50,6 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 
-import static io.crate.Constants.NO_VALUE_MARKER;
-
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements TriFunction<ShardedRequests<TReq, TItem>, Row, Boolean, TItem>,
                BiConsumer<ShardedRequests<TReq, TItem>, Row> {
@@ -147,9 +145,6 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             // the cells for them get set
             try {
                 spareCells[c] = row.get(c);
-                if (NO_VALUE_MARKER.equals(spareCells[c])) {
-                    return null;
-                }
             } catch (Throwable t) {
                 err = t;
             }
