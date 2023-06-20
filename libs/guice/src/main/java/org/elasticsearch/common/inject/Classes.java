@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common;
+package org.elasticsearch.common.inject;
 
 import java.lang.reflect.Modifier;
 
