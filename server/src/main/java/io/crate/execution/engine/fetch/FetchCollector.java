@@ -89,9 +89,12 @@ class FetchCollector {
                 try {
                     var readerContext = readerContexts.get(readerIndex);
                     if (readerContext == null) {
-                        if (collectSequential) {
-                            var storedFieldReader = sequentialStoredFieldReader(subReaderContext);
-                            readerContext = new ReaderContext(subReaderContext, storedFieldReader::document);
+                        // If the document access is sequential, the field reader from the merge instance can be used
+                        // to provide a significant speed up. However, accessing the merge CompressingStoredFieldsReader is expensive
+                        // because the underlying inputData is cloned.
+                        if (collectSequential && subReaderContext.reader() instanceof SequentialStoredFieldsLeafReader storedFieldsLeafReader) {
+                            StoredFieldsReader sequentialStoredFieldsReader = storedFieldsLeafReader.getSequentialStoredFieldsReader();
+                            readerContext = new ReaderContext(subReaderContext, sequentialStoredFieldsReader::document);
                         } else {
                             readerContext = new ReaderContext(subReaderContext);
                         }
@@ -125,20 +128,5 @@ class FetchCollector {
         int last = docIds.get(docIds.size() - 1);
         int first = docIds.get(0);
         return last - first == docIds.size() - 1;
-    }
-
-    static StoredFieldsReader sequentialStoredFieldReader(LeafReaderContext context) {
-        // If the document access is sequential, the field reader from the merge instance can be used
-        // to provide a significant speed up. However, accessing the merge CompressingStoredFieldsReader is expensive
-        // because the underlying inputData is cloned.
-        if (context.reader() instanceof SequentialStoredFieldsLeafReader) {
-            try {
-                SequentialStoredFieldsLeafReader reader = (SequentialStoredFieldsLeafReader) context.reader();
-                return reader.getSequentialStoredFieldsReader();
-            } catch (IOException e) {
-                throw Exceptions.toRuntimeException(e);
-            }
-        }
-        throw new RuntimeException("Sequential StoredFieldReader not available");
     }
 }
