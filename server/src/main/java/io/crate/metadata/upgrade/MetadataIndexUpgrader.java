@@ -147,6 +147,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
                     }
                     sources.add(columnFQN);
                 }
+                columnProperties.remove("copy_to");
             }
 
             // There can be nested "properties" field
