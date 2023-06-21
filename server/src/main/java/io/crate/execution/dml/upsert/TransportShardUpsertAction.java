@@ -518,6 +518,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         final long startTime = System.nanoTime();
         ParsedDocument parsedDoc = indexer.index(item);
+        // should not hold encoded source so that we can replace names by OIDS
 
         // Replica must use the same values for undeterministic defaults/generated columns
         if (indexer.hasUndeterministicSynthetics()) {
@@ -534,11 +535,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             addColumnAction.execute(addColumnRequest).get();
         }
 
+        //now all columns are added and got OIDS - maybe need to get updated table/refs from the cluster state
+        // and update parsedDoc decoded "source" here?
+
+        //now encode source
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,
-            parsedDoc,
+            parsedDoc, //at this point we have proper encoded source with oids
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             indexShard.getOperationPrimaryTerm(),
             version,

@@ -174,6 +174,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 ));
             }
             if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                // no way to use oid instead of innerName as ref doesn't exists yet. we create it below with oid  = 0
+//                Reference newColumn = new SimpleReference(
+//                    new ReferenceIdent(table, column.getChild(innerName)), .. COLUMN_OID_UNASSIGNED
                 xContentBuilder.field(innerName, innerValue);
                 continue;
             }
