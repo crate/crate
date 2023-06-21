@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 public final class LineProcessor {
@@ -50,8 +51,8 @@ public final class LineProcessor {
         return lineParser.inputType();
     }
 
-    public String[] allColumns() {
-        return lineContext.sourceAsMap().keySet().toArray(new String[0]);
+    public Collection<String> allColumns() {
+        return lineContext.sourceAsMap().keySet();
     }
 
     void startWithUri(URI currentUri) {
@@ -60,7 +61,7 @@ public final class LineProcessor {
     }
 
     @Nullable
-    String[] readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+    Collection<String> readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
         return lineParser.readFirstLine(currentUri, inputFormat, currentReader);
     }
 

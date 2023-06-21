@@ -357,25 +357,22 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     /**
-     * Adding all new columns to the projection.
+     * Adding a new column to the projection.
      * Need to take to account "shift" in indices of InputColumns, otherwise first columns will clash with partitioned columns
      * as their indices are already taken by partitioned columns in
      * {@link ProjectionToProjectorVisitor#visitColumnIndexWriterProjection}.
      * Another possible shift is 4 reserved columns for summary projection.
      *
      */
-    public void addNewColumns(List<Reference> newColumns) {
+    public void addNewColumn(Reference newColumn) {
         int shift = allTargetColumns.size() - targetColsExclPartitionCols.size();
         if (projectionType() == COLUMN_INDEX_WRITER_RETURN_SUMMARY) {
             // There are 4 reserved InputColumn-s: sourceUri, sourceUriFailure,lineNumber, sourceParsingFailure.
             shift += 4;
-
         }
-        for (Reference ref: newColumns) {
-            targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size() + shift, ref.valueType()));
-            targetColsExclPartitionCols.add(ref);
-            allTargetColumns.add(ref);
-        }
+        targetColsSymbolsExclPartition.add(new InputColumn(targetColsSymbolsExclPartition.size() + shift, newColumn.valueType()));
+        targetColsExclPartitionCols.add(newColumn);
+        allTargetColumns.add(newColumn);
 
     }
 }

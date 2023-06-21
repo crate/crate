@@ -32,12 +32,8 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.sql.Ref;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +44,7 @@ import java.util.zip.GZIPInputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.DynamicReference;
@@ -134,6 +131,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final Iterator<TimeValue> backOffPolicy;
     private boolean planAdjusted = false;
 
+    // Reflection of projection.allTargetColumns() which is stored separately
+    // solely to speed up new-column check (especially for wide tables) which is done per-row.
+    // Updated in sync with projection.allTargetColumns() update.
+    // Not part of projection itself to avoid streaming redundant structures.
+    private final Map<String, Reference> targetColumnsByFQN = new HashMap<>();
+
     @VisibleForTesting
     FileReadingIterator(Collection<String> fileUris,
                         InputFactory.Context<LineCollectorExpression<?>> ctx,
@@ -150,6 +153,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.projection = projection;
+        for (Reference reference: projection.allTargetColumns()) {
+            targetColumnsByFQN.put(reference.column().sqlFqn(), reference);
+        }
         this.ctx = ctx;
         this.row = new InputRow(ctx.topLevelInputs());
         this.fileInputFactories = fileInputFactories;
@@ -209,9 +215,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 lineProcessor.process(line);
                 if (lineProcessor.inputType() == LineParser.InputType.JSON) {
                     // JSON has no header, so we try to adjust target columns during regular processing.
-                    // CSV has header, so adjustment happens in readFirstLine().
-                    String[] allColumns = lineProcessor.allColumns();
-                    maybeAddNewColumns(allColumns);
+                    // CSV can have a header, so adjustment happens in readFirstLine().
+                    maybeAddNewColumns(lineProcessor.allColumns());
                 }
 
                 return true;
@@ -271,7 +276,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
-        String[] allColumns = lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        Collection<String> allColumns = lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
         if (targetColumns.isEmpty() && allColumns != null && planAdjusted == false) {
             maybeAddNewColumns(allColumns);
         }
@@ -426,19 +431,29 @@ public class FileReadingIterator implements BatchIterator<Row> {
      * FOR CSV: Called only once after parsing the header.
      * FOR JSON: Called per-row as JSON entries might be non-homogeneous.
      */
-    private void maybeAddNewColumns(String[] allColumns) {
-        List<Reference> newColumns = Arrays.asList(allColumns)
-            .stream()
-            .filter(name -> !projection.allTargetColumns().stream().map(reference -> reference.column().sqlFqn()).collect(Collectors.toList()).contains(name))
-            .map(name -> new DynamicReference(new ReferenceIdent(projection.tableIdent(), name), RowGranularity.DOC, 0))
-            .collect(Collectors.toList());
+    private void maybeAddNewColumns(Collection<String> allColumns) {
+        for(String columnName: allColumns) {
+            Reference existingRef = targetColumnsByFQN.get(columnName);
+            if (existingRef == null) {
+                DynamicReference newColumn = new DynamicReference(new ReferenceIdent(projection.tableIdent(), columnName), RowGranularity.DOC, 0);
 
-        if (newColumns.isEmpty() == false) {
-            ctx.add(newColumns);
+                Input<?> input = ctx.add(newColumn);
+                // Adding one by one in order to avoid creation of
+                // intermediate collection to call ctx.add(collection) for each row.
+                // When adding one by one, symbols are not added to topLevelInputs, doing it explicitly.
+                ctx.topLevelInputs().add(input);
+
+                projection.addNewColumn(newColumn);
+                targetColumnsByFQN.put(columnName, newColumn);
+
+                planAdjusted = true;
+            }
+        }
+
+        if (planAdjusted) {
             this.row = new InputRow(ctx.topLevelInputs());
             this.collectorExpressions = ctx.expressions();
-            lineProcessor.startCollect(collectorExpressions); // make sure new expressions gets lineContext
-            projection.addNewColumns(newColumns);
+            lineProcessor.startCollect(collectorExpressions); // Make sure new expressions get lineContext.
             planAdjusted = true;
         }
     }

@@ -24,13 +24,14 @@ package io.crate.execution.engine.collect.files;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class LineParser {
@@ -60,9 +61,9 @@ public class LineParser {
      * or NULL if no need to update target columns.
      */
     @Nullable
-    public String[] readFirstLine(URI currentUri,
-                              FileUriCollectPhase.InputFormat inputFormat,
-                              BufferedReader currentReader) throws IOException {
+    public Collection<String> readFirstLine(URI currentUri,
+                                            FileUriCollectPhase.InputFormat inputFormat,
+                                            BufferedReader currentReader) throws IOException {
         for (long i = 0; i < parserProperties.skipNumLines(); i++) {
             currentReader.readLine();
         }
@@ -70,7 +71,7 @@ public class LineParser {
             csvLineParser = new CSVLineParser(parserProperties, targetColumns);
             inputType = InputType.CSV;
             if (parserProperties.fileHeader()) {
-                return csvLineParser.parseHeader(currentReader.readLine());
+                return Arrays.asList(csvLineParser.parseHeader(currentReader.readLine()));
             } else {
                 // if CSV doesn't have header, we explicitly set target columns to table columns on planning stage,
                 // no need to update context and adjust plan.
