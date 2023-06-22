@@ -32,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static io.crate.Constants.NO_VALUE_MARKER;
 import static io.crate.common.StringUtils.nullOrString;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -77,7 +78,14 @@ public class IndexNameResolver {
             });
         return () -> {
             // copy because the values of the inputs are mutable
-            List<String> partitions = Lists2.map(partitionedByInputs, input -> nullOrString(input.value()));
+            List<String> partitions = Lists2.map(partitionedByInputs, input -> {
+                Object value = input.value();
+                // COPY FROM can return marker value for absent column.
+                // Marker value is used for source-written columns to decide
+                // for generated columns whether we need to generate value or not.
+                // Partitioned columns are not written to the source and thus we fall back to null-ident behavior.
+                return NO_VALUE_MARKER.equals(value) ? null : nullOrString(value);
+            });
             return cache.get(partitions);
         };
     }
