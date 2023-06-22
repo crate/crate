@@ -72,7 +72,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     /**
      * create index with type and mapping and validate DocumentMapper serialization
      */
-    private DocumentMapper mapper(String indexName, String mapping) throws IOException {
+    public static DocumentMapper mapper(String indexName, String mapping) throws IOException {
         IndicesModule indicesModule = new IndicesModule(List.of());
         MapperService mapperService = MapperTestUtils.newMapperService(
             NamedXContentRegistry.EMPTY,

@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -40,11 +41,15 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -928,6 +933,48 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     "new=" + source.utf8ToString() + "\n" +
                     "keys=" + keys)
                 .isEqualTo(source);
+        }
+    }
+
+    /**
+     * Ensures that docs containing numeric values created by our indexer uses the same Lucene fields definition
+     * than the FieldMapper used when inserting documents read from the translog.
+     */
+    @Test
+    public void test_indexing_number_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
+        var idx = 0;
+        for (var dt : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var tableName = "tbl_" + idx++;
+            SQLExecutor e = SQLExecutor.builder(clusterService)
+                    .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
+                    .build();
+
+            Indexer indexer = getIndexer(e, tableName, NumberFieldMapper.FIELD_TYPE, "x");
+            ParsedDocument doc = indexer.index(item(1));
+            IndexableField[] fields = doc.doc().getFields("x");
+
+            // @formatter: off
+            String mapping = Strings.toString(JsonXContent.builder()
+                .startObject()
+                    .startObject("properties")
+                        .startObject("x")
+                            .field("type", DataTypes.esMappingNameFrom(dt.id()))
+                            .field("index", false)
+                        .endObject()
+                    .endObject()
+                .endObject());
+
+            var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
+            DocumentMapper mapper = mapper(indexName, mapping);
+            ParsedDocument docFromSource = mapper.parse(
+                    new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
+            );
+            IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
+
+            assertThat(fields.length).isEqualTo(fieldsFromSource.length);
+            for (int i = 0; i < fields.length; i++) {
+                assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
+            }
         }
     }
 }
