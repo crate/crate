@@ -96,4 +96,8 @@ Fixes
   to skip generated column validation for sub-columns if provided value is
   ``NULL``.
 
+- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes
+  and/or broken replica shards when ingesting into a table using a number type
+  column with explicit turned off indexing by declaring ``INDEX OFF``.
+
 
