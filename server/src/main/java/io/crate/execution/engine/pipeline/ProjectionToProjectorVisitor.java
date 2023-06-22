@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
@@ -127,6 +128,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -495,6 +497,27 @@ public class ProjectionToProjectorVisitor
         for (Symbol symbol : projection.columnSymbolsExclPartition()) {
             insertInputs.add(ctx.add(symbol));
         }
+
+        // In addition to non partitioned columns,
+        // we also add partitioned generated columns (only those which are part of target columns)
+        // to the inputs and target references.
+        // Partitioned columns  are not written to the source,
+        // they added only to validate generated expression for partitioned columns.
+        List<Reference> partedGenColumns = new ArrayList<>();
+        for (Reference reference : projection.allTargetColumns()) {
+            if (reference.granularity() == RowGranularity.PARTITION && reference instanceof GeneratedReference) {
+                partedGenColumns.add(reference);
+            }
+        }
+        List<Symbol> partedGenSymbols = InputColumns.create(
+            partedGenColumns,
+            new InputColumns.SourceSymbols(projection.allTargetColumns()));
+        for (Symbol symbol : partedGenSymbols) {
+            // It's fine to add to the context twice as inputs are cached in the context.
+            // First call could be when filling partitionedByInputs
+            insertInputs.add(ctx.add(symbol));
+        }
+
         ClusterState state = clusterService.state();
         Settings tableSettings = TableSettingsResolver.get(state.metadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
@@ -520,7 +543,7 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.columnReferencesExclPartition(),
+            Lists2.concat(projection.columnReferencesExclPartition(), partedGenColumns),
             insertInputs,
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),

@@ -229,4 +229,6 @@ Fixes
   to skip generated column validation for sub-columns if provided value is
   ``NULL``.
 
+- Fixed an issue which caused ``INSERT INTO`` statements
+  to skip generated column validation for partitioned columns.
 

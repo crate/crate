@@ -1846,4 +1846,17 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into t (id, obj) (select 1, {\"a\" = {\"b\" = null}} from sys.cluster)");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
+
+    @Test
+    public void test_generated_partitioned_column_is_validated() {
+        execute("create table t (a INT, b INT GENERATED ALWAYS AS a+1) partitioned by (b)");
+
+        assertSQLError(() -> execute("insert into t (a, b) values (null, 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Given value 1 for generated column b does not match calculation (a + 1) = null");
+
+        execute("insert into t (a, b) select null, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+    }
 }

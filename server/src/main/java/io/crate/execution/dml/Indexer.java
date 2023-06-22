@@ -454,6 +454,8 @@ public class Indexer {
         }
         for (var ref : table.generatedColumns()) {
             if (ref.granularity() == RowGranularity.PARTITION) {
+                // addGeneratedToVerify is already called for generated partitioned columns
+                // since they are part of targetColumns.
                 continue;
             }
             if (targetColumns.contains(ref)) {
@@ -525,7 +527,6 @@ public class Indexer {
                                       Context<?> ctxForRefs,
                                       Reference ref) {
         if (ref instanceof GeneratedReference generated
-                && ref.granularity() == RowGranularity.DOC
                 && Symbols.isDeterministic(generated.generatedExpression())) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
@@ -571,6 +572,11 @@ public class Indexer {
                     check.verify(value);
                 }
                 if (reference.granularity() == RowGranularity.PARTITION) {
+                    // We used to send only non-partitioned by columns
+                    // but since 5.3.3 we send partitioned generated columns as well
+                    // in order to verify generated expressions on such columns.
+                    // See https://github.com/crate/crate/issues/14304.
+                    // However, we still don't write such columns to the source.
                     continue;
                 }
                 if (value == null) {
