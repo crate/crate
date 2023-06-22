@@ -29,14 +29,17 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class FloatIndexer implements ValueIndexer<Float> {
@@ -60,17 +63,25 @@ public class FloatIndexer implements ValueIndexer<Float> {
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         float floatValue = value.floatValue();
-        if (ref.hasDocValues()) {
-            addField.accept(new FloatField(name, floatValue));
+        if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
+            addField.accept(new FloatField(name, floatValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
         } else {
-            addField.accept(new FloatPoint(name, floatValue));
-            addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
-                name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-        }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, floatValue));
+            if (ref.indexType() != IndexType.NONE) {
+                addField.accept(new FloatPoint(name, floatValue));
+            }
+            if (ref.hasDocValues()) {
+                addField.accept(
+                        new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(floatValue))
+                );
+            } else {
+                addField.accept(new Field(
+                        FieldNamesFieldMapper.NAME,
+                        name,
+                        FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+            }
+            if (fieldType.stored()) {
+                addField.accept(new StoredField(name, floatValue));
+            }
         }
     }
 }
