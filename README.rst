@@ -56,6 +56,8 @@ Features
 
 - Self-healing and auto-rebalancing.
 
+- `User-defined functions`_ (UDFs) can be used to extend the functionality of CrateDB.
+
 
 Screenshots
 ===========
@@ -149,7 +151,8 @@ Looking for more help?
 .. _reference manual: https://crate.io/docs/crate/reference/
 .. _relational: https://en.wikipedia.org/wiki/Relational_model
 .. _scaled horizontally: https://stackoverflow.com/questions/11707879/difference-between-scaling-horizontally-and-vertically-for-databases
+.. _sql console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console
 .. _standard SQL: https://crate.io/docs/crate/reference/en/latest/sql/index.html
 .. _support channels: https://crate.io/support/
 .. _time-series data: https://crate.io/docs/crate/tutorials/en/latest/normalize-intervals.html
-.. _sql console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console
+.. _user-defined functions: https://crate.io/docs/crate/reference/en/latest/general/user-defined-functions.html
