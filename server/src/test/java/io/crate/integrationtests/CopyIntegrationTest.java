@@ -1012,7 +1012,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseIgnoresTypeValidation() throws Exception {
 
         // copying an empty string to a boolean column
@@ -1050,7 +1049,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseStillValidatesIfGeneratedColumnsInvolved() throws Exception {
         execute("create table t (a boolean, b int generated always as 1)");
 
@@ -1067,7 +1065,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseAndInsertingToPartitionedByColumn() throws Exception {
         // copying an empty string to a boolean column
 
@@ -1090,7 +1087,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseAndInsertingToNonPartitionedByColumn() throws Exception {
         // copying an empty string to a boolean column
 
@@ -1108,7 +1104,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseStillValidatesIfDefaultExpressionsInvolved() throws Exception {
         execute("create table t (a boolean, b int default 1)");
 
@@ -1125,7 +1120,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("handle validation = false or turn it into no-op")
     public void testCopyFromWithValidationSetToFalseIgnoreCheckConstraints() throws Exception {
         execute("create table t (a boolean check (a = true))");
 
