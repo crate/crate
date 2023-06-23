@@ -557,18 +557,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table locations");
 
         execute("create table aggs (" +
-                " c long," +
+                " c double," +
                 " s double" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("insert into aggs (c, s) (select count(*), sum(position) from locations)");
+        execute("insert into aggs (c, s) (select avg(position), sum(position) from locations)");
         assertThat(response).hasRowCount(1L);
 
         execute("refresh table aggs");
         execute("select c, s from aggs");
         assertThat(response).hasRowCount(1L);
-        assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(13L);
+        assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(2L);
         assertThat((Double) response.rows()[0][1]).isEqualTo(38.0);
     }
 
