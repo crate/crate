@@ -281,7 +281,7 @@ public final class CopyFromPlan implements Plan {
 
         boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
         boolean overwriteDuplicates = boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false);
-        boolean validation = boundedCopyFrom.settings().getAsBoolean("validation", true);
+        boolean validation = false; //temporal change to compare with anoterh branch//boundedCopyFrom.settings().getAsBoolean("validation", true);
         if (returnSummary || failFast) {
 
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
