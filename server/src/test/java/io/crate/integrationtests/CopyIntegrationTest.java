@@ -275,7 +275,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
      */
     @UseJdbc(0)
     @Test
-    @Ignore(value = "https://github.com/crate/crate/issues/14249")
     public void testCopyFromFileWithInvalidColumns() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards " +
                 "with (number_of_replicas=0, column_policy='dynamic')");
