@@ -369,7 +369,8 @@ public class Indexer {
                    NodeContext nodeCtx,
                    Function<ColumnIdent, FieldType> getFieldType,
                    List<Reference> targetColumns,
-                   Symbol[] returnValues) {
+                   Symbol[] returnValues,
+                   boolean validation) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
@@ -408,20 +409,25 @@ public class Indexer {
                 );
             }
             this.valueIndexers.add(valueIndexer);
-            addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
+            if (validation) {
+                addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
+            }
         }
         this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
-        addNotNullConstraints(
-            tableConstraints,
-            columnConstraints,
-            table,
-            targetColumns,
-            ctxForRefs
-        );
-        for (var constraint : table.checkConstraints()) {
-            Symbol expression = constraint.expression();
-            Input<?> input = ctxForRefs.add(expression);
-            tableConstraints.add(new TableCheckConstraint(input, constraint));
+        if (validation) {
+            addNotNullConstraints(
+                tableConstraints,
+                columnConstraints,
+                table,
+                targetColumns,
+                ctxForRefs
+            );
+
+            for (var constraint : table.checkConstraints()) {
+                Symbol expression = constraint.expression();
+                Input<?> input = ctxForRefs.add(expression);
+                tableConstraints.add(new TableCheckConstraint(input, constraint));
+            }
         }
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {

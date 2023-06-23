@@ -183,7 +183,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             nodeCtx,
             getFieldType,
             insertColumns,
-            request.returnValues()
+            request.returnValues(),
+            request.validation()
         );
         if (indexer.hasUndeterministicSynthetics()) {
             request.insertColumns(indexer.insertColumns(insertColumns));
@@ -363,7 +364,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             nodeCtx,
             getFieldType,
             targetColumns,
-            null
+            null,
+            request.validation()
         );
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
