@@ -68,6 +68,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
@@ -160,6 +161,8 @@ public class DocValuesAggregates {
                         // to the normal aggregation implementation
                         return null;
                     }
+                    assert reference.ident().columnIdent().fqn().startsWith(DocSysColumns.Names.DOC) == false :
+                        "Source look-up for Reference " + reference + " is not allowed in DocValuesAggregates.";
                     aggregationReferences.add(reference);
                 }
             }
