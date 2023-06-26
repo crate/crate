@@ -22,8 +22,6 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -61,8 +59,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         SimpleReference arrayRef = new SimpleReference(
             new ReferenceIdent(name, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(arrayRef),
-            instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
+        assertThat(luceneReferenceResolver.getImplementation(arrayRef))
+            .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
     }
 
     @Test
@@ -70,7 +68,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         SimpleReference seqNumberRef = new SimpleReference(
             new ReferenceIdent(name, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
+        assertThat(luceneReferenceResolver.getImplementation(seqNumberRef))
+            .isExactlyInstanceOf(SeqNoCollectorExpression.class);
     }
 
     @Test
@@ -78,8 +77,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         SimpleReference primaryTerm = new SimpleReference(
             new ReferenceIdent(name, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
-                   instanceOf(PrimaryTermCollectorExpression.class));
+        assertThat(luceneReferenceResolver.getImplementation(primaryTerm))
+            .isExactlyInstanceOf(PrimaryTermCollectorExpression.class);
     }
 
     @Test
@@ -87,8 +86,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         Reference ignored = new DynamicReference(
             new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
 
-        assertThat(luceneReferenceResolver.getImplementation(ignored),
-                   instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
+        assertThat(luceneReferenceResolver.getImplementation(ignored))
+            .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
     }
 
     @Test
