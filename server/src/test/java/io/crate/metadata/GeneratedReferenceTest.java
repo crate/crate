@@ -24,8 +24,6 @@ package io.crate.metadata;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -78,7 +76,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         StreamInput in = out.bytes().streamInput();
         GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
 
-        assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));
+        assertThat(generatedReferenceInfo2).isEqualTo(generatedReferenceInfo);
     }
 
     @Test
@@ -94,7 +92,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         StreamInput in = out.bytes().streamInput();
         GeneratedReference generatedReference2 = Reference.fromStream(in);
 
-        assertThat(generatedReference2, is(generatedReference));
+        assertThat(generatedReference2).isEqualTo(generatedReference);
 
     }
 
