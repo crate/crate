@@ -92,6 +92,10 @@ None
 Changes
 =======
 
+- Improved the partition filtering logic to also narrow partitions if the
+  partition is based on a generated column using the :ref:`date_bin <date-bin>`
+  scalar.
+
 - Extended the :ref:`EXPLAIN <ref-explain>` statement output to include the
   estimated row count in the output of the execution plan. The statement also
   has now options for `ANALYZE` and `COSTS` to have better control on
