@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -63,6 +64,16 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
+            )
+            .addPartitionedTable("""
+                create table partdatebin (
+                    id int,
+                    ts timestamp,
+                    month as date_bin(INTERVAL '28' DAY, ts, 0)
+                ) partitioned by (month)
+                """,
+                new PartitionName(new RelationName("doc", "partdatebin"), List.of("1676352000000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "partdatebin"), List.of("1687767893000")).asIndexName()
             )
             .build();
     }
@@ -164,5 +175,14 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and score = 2.0 or (name = 'bar' and score = 1.0)");
         assertThat(query.docKeys()).hasToString("Optional[DocKeys{'bar'; 'foo'}]");
+    }
+
+    @Test
+    public void test_expands_filter_on_date_bin_generated_column() throws Exception {
+        WhereClauseOptimizer.DetailedQuery query = optimize(
+            "select * from partdatebin where ts > '2023-05-01'");
+        assertThat(query.query()).isSQL(
+            "((doc.partdatebin.ts > 1682899200000::bigint) AND (month AS date_bin('P28D'::interval, ts, 0::bigint) >= 1681344000000::bigint))"
+        );
     }
 }

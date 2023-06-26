@@ -47,7 +47,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // source
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // origin
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
+            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
             DateBinFunction::new);
 
         module.register(
@@ -57,7 +57,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMP.getTypeSignature(), // source
                 DataTypes.TIMESTAMP.getTypeSignature(), // origin
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
+            ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
             DateBinFunction::new);
     }
 
@@ -99,7 +99,8 @@ public class DateBinFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         assert args.length == 3 : "Invalid number of arguments";
 
         var interval = args[0].value();
@@ -172,7 +173,8 @@ public class DateBinFunction extends Scalar<Long, Object> {
         }
 
         @Override
-        public Long evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+        @SafeVarargs
+        public final Long evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
             // Validation for arguments amount is done in compile.
 
             var timestamp = args[1].value();
