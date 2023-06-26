@@ -27,12 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+<<<<<<< HEAD
 import javax.annotation.Nullable;
 
+=======
+>>>>>>> b33f055da9 (Preserve `GeneratedReference` instances on cast)
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
@@ -216,11 +220,11 @@ public class GeneratedReference implements Reference {
     }
 
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        Symbol result = ref.cast(targetType, modes);
-        if (ref == result) {
+        Symbol result = Reference.super.cast(targetType, modes);
+        if (result == this) {
             return this;
         }
-        if (result instanceof Reference castRef) {
+        if (result instanceof Reference castRef && !(result instanceof GeneratedReference)) {
             return new GeneratedReference(
                 castRef,
                 formattedGeneratedExpression,

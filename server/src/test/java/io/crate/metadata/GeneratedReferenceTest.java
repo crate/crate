@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 import static org.hamcrest.Matchers.is;
@@ -35,11 +36,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 
 public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -93,5 +96,32 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(generatedReference2, is(generatedReference));
 
+    }
+
+    @Test
+    public void test_generated_reference_cast_keeps_generated_reference() throws Exception {
+        var relationName = new RelationName("doc", "tbl");
+        var referenceIdent = new ReferenceIdent(relationName, "year");
+        var simpleRef = new SimpleReference(
+            referenceIdent,
+            RowGranularity.DOC,
+            DataTypes.LONG,
+            1,
+            null
+        );
+        var generatedReference = new GeneratedReference(
+            simpleRef,
+            "date_trunc('year', ts)",
+            null
+        );
+        Symbol cast = generatedReference.cast(DataTypes.STRING, CastMode.EXPLICIT);
+        assertThat(cast).isFunction(
+            "cast",
+            arg1 -> {
+                assertThat(arg1).isExactlyInstanceOf(GeneratedReference.class);
+                assertThat(arg1).isReference("year");
+            },
+            arg2 -> assertThat(arg2).isLiteral(null)
+        );
     }
 }
