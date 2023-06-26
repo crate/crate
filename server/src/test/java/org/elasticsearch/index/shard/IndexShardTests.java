@@ -3168,7 +3168,7 @@ public class IndexShardTests extends IndexShardTestCase {
         cancellingThread.join();
         if (shard.isRelocatedPrimary()) {
             logger.debug("shard was relocated successfully");
-            assertThat(cancellingException.get()).isExactlyInstanceOf(IllegalIndexShardStateException.class);
+            assertThat(cancellingException.get()).isInstanceOf(IllegalIndexShardStateException.class);
             assertThat(shard.routingEntry().relocating())
                 .as("current routing:" + shard.routingEntry())
                 .isEqualTo(true);
