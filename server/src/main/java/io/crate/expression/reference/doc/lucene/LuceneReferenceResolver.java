@@ -119,7 +119,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             }
 
             default: {
-                int partitionPos = partitionColumns.indexOf(ref);
+                int partitionPos = Reference.indexOf(partitionColumns, column);
                 if (partitionPos >= 0) {
                     return new LiteralValueExpression(
                         ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
@@ -202,7 +202,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
-    private static class LiteralValueExpression extends LuceneCollectorExpression<Object> {
+    static class LiteralValueExpression extends LuceneCollectorExpression<Object> {
 
         private final Object value;
 

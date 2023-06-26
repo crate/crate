@@ -59,7 +59,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -90,6 +89,7 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedOptimizerRules(0)
@@ -2418,5 +2418,20 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE p_t SET (\"number_of_replicas\" = '3')");
         execute("select number_of_replicas from information_schema.table_partitions");
         assertThat(printedTable(response.rows())).isEqualTo("3\n3\n");
+    }
+
+    @Test
+    public void test_can_select_casted_partitioned_column() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                ts TIMESTAMP,
+                year TIMESTAMP GENERATED ALWAYS AS date_trunc('year',ts)
+            ) PARTITIONED BY (year)
+            """
+        );
+        execute("INSERT INTO tbl (ts) SELECT now()");
+        execute("refresh table tbl");
+        execute("select year, year::TEXT from tbl LIMIT 10");
+        assertThat(response.rows()[0][0].toString()).isEqualTo(response.rows()[0][1]);
     }
 }

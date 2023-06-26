@@ -21,25 +21,32 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-public class LuceneReferenceResolverTest extends ESTestCase {
+public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTest {
 
     // just return any fieldType to get passt the null check
     private RelationName name = new RelationName("s", "t");
@@ -82,5 +89,48 @@ public class LuceneReferenceResolverTest extends ESTestCase {
 
         assertThat(luceneReferenceResolver.getImplementation(ignored),
                    instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
+    }
+
+    @Test
+    public void test_can_lookup_generated_partition_column_if_casted() throws Exception {
+        // See https://github.com/crate/crate/issues/14307
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("""
+                create table tbl (
+                    ts timestamp,
+                    year as date_trunc('year', ts)
+                ) partitioned by (year)
+                """
+            )
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        table.partitionedByColumns();
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));
+        LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
+            partitionName.asIndexName(),
+            i -> new KeywordFieldType("dummy", true, false),
+            table.partitionedByColumns()
+        );
+        Reference year = table.getReference(new ColumnIdent("year"));
+        LuceneCollectorExpression<?> impl1 = refResolver.getImplementation(year);
+        assertThat(impl1).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
+        assertThat(impl1.value()).isEqualTo(2023L);
+
+        Function cast = (Function) year.cast(DataTypes.STRING, CastMode.EXPLICIT);
+        Reference castYearRef = (Reference) cast.arguments().get(0);
+        LuceneCollectorExpression<?> impl2 = refResolver.getImplementation(castYearRef);
+        assertThat(impl2).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
+        assertThat(impl2.value()).isEqualTo(2023L);
+
+        SimpleReference yearSimpleRef = new SimpleReference(
+            year.ident(),
+            RowGranularity.PARTITION,
+            year.valueType(),
+            year.position(),
+            year.defaultExpression()
+        );
+        LuceneCollectorExpression<?> impl3 = refResolver.getImplementation(yearSimpleRef);
+        assertThat(impl3).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
+        assertThat(impl3.value()).isEqualTo(2023L);
     }
 }
