@@ -131,8 +131,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -171,9 +173,11 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
     private final int numProcessors;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
+    private final Schemas schemas;
 
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -188,6 +192,7 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
+        this.schemas = schemas;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
         this.nodeCtx = nodeCtx;
@@ -205,6 +210,7 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -216,6 +222,7 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -454,6 +461,7 @@ public class ProjectionToProjectorVisitor
         }
         return new IndexWriterProjector(
             clusterService,
+            schemas.getTableInfo(projection.tableIdent(), Operation.INSERT),
             nodeJobsCounter,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             context.ramAccounting,
@@ -491,8 +499,8 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbolsExclPartition().size());
-        for (Symbol symbol : projection.columnSymbolsExclPartition()) {
+        List<Input<?>> insertInputs = new ArrayList<>(projection.allTargetColumns().size());
+        for (Symbol symbol : projection.columnSymbols()) {
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
@@ -504,6 +512,7 @@ public class ProjectionToProjectorVisitor
 
         return new ColumnIndexWriterProjector(
             clusterService,
+            schemas.getTableInfo(projection.tableIdent(), Operation.INSERT),
             nodeJobsCounter,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             context.ramAccounting,
@@ -520,7 +529,7 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.columnReferencesExclPartition(),
+            projection.allTargetColumns(),
             insertInputs,
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),

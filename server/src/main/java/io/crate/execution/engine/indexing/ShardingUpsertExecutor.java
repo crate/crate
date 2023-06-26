@@ -36,6 +36,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -103,6 +105,8 @@ public class ShardingUpsertExecutor
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
+                           DocTableInfo tableInfo,
+                           @Nullable List<Reference> allTargetColumns,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -136,6 +140,8 @@ public class ShardingUpsertExecutor
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
             clusterService,
+            tableInfo,
+            allTargetColumns,
             rowShardResolver,
             indexNameResolver,
             expressions,

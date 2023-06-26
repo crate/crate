@@ -33,6 +33,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -65,11 +66,13 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 
+@Deprecated
 public class IndexWriterProjector implements Projector {
 
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
+                                DocTableInfo tableInfo,
                                 NodeLimits nodeJobsCounter,
                                 CircuitBreaker queryCircuitBreaker,
                                 RamAccounting ramAccounting,
@@ -132,6 +135,8 @@ public class IndexWriterProjector implements Projector {
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
+            tableInfo,
+            null,
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,

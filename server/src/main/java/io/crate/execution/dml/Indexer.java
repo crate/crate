@@ -175,7 +175,7 @@ public class Indexer {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
                 if (pIndex > -1) {
                     String val = partitionName.values().get(pIndex);
-                    return NestableCollectExpression.constant(val);
+                    return NestableCollectExpression.constant(ref.valueType().implicitCast(val));
                 } else {
                     return NestableCollectExpression.constant(null);
                 }
@@ -525,7 +525,6 @@ public class Indexer {
                                       Context<?> ctxForRefs,
                                       Reference ref) {
         if (ref instanceof GeneratedReference generated
-                && ref.granularity() == RowGranularity.DOC
                 && Symbols.isDeterministic(generated.generatedExpression())) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));

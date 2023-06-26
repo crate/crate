@@ -28,6 +28,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.client.ElasticsearchClient;
@@ -59,6 +60,7 @@ public class ColumnIndexWriterProjector implements Projector {
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
+                                      DocTableInfo tableInfo,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreaker queryCircuitBreaker,
                                       RamAccounting ramAccounting,
@@ -125,6 +127,8 @@ public class ColumnIndexWriterProjector implements Projector {
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
+            tableInfo,
+            columnReferences,
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,

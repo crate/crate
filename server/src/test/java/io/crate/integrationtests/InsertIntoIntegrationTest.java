@@ -38,6 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.UseRandomizedSchema;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -438,6 +442,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Clustered by value must not be NULL");
+
+        execute("insert into quotes (id, quote) select null, 'test'");
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -1845,5 +1852,64 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t (id, obj) (select 1, {\"a\" = {\"b\" = null}} from sys.cluster)");
         assertThat(response.rowCount()).isEqualTo(0L);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_constraints_of_the_partitioned_columns_are_validated() {
+        execute("""
+            CREATE TABLE t (a INT,
+            b INT CONSTRAINT check_1 CHECK (b>10),
+            c INT as a + 1,
+            d INT NOT NULL,
+            gen_from_parted INT as b+1) PARTITIONED BY (b,c,d)
+            """
+        );
+
+        // Failing CHECK, NOT NULL constraints or invalid generated expression for partitioned by columns
+        // should not leave invalid partitions behind.
+        // All failing scenarios followed by the "partition does not exist" assertion.
+
+        // Failing CHECK constraint.
+        execute("insert into t (a, b, d) select 1, 9, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Failing NOT NULL constraint.
+        execute("insert into t (a, b, d) select 1, 12, null");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Generated expression validation (https://github.com/crate/crate/issues/14304).
+        // insert from values used to fail as well because we used to explicitly skip that check for References with PARTITION granularity.
+        assertSQLError(() -> execute("insert into t (a, b, c, d) values (null, 12, 1, 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Given value 1 for generated column c does not match calculation (a + 1) = null");
+
+        execute("insert into t (a, b, c, d) select null, 12, 1, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+
+        // We need to ensure that check is done before partition creation.
+        // If check is done too late, INSERT statement might work as expected and reject invalid records but invalid partitions will left behind.
+        // At this point both insert-from-values and insert-from-subquery are done and didn't write anything.
+        // Checking that neither of them has created a partition.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "t");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
+
+        // Passing checks, check partition column casting.
+
+        // CHECK constraint, partitioned value 12 used to be provided as "12" internally, checking that it casted back to integer.
+        execute("insert into t (a, b, d) values (1, 12, 1)");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        refresh();
+
+        // Verify, that regular column generated from the partitioned column can be computed correctly.
+        // Similar to CHECK, used to fail because partitioned value 12 used to be provided as "12" internally.
+        execute("select a, b, c, d, gen_from_parted from t");
+        assertThat(response).hasRows("1| 12| 2| 1| 13");
     }
 }

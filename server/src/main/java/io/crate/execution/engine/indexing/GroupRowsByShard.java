@@ -21,15 +21,23 @@
 
 package io.crate.execution.engine.indexing;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -67,7 +75,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final UnsafeArrayRow spareRow = new UnsafeArrayRow();
     private Object[] spareCells;
 
+    private final DocTableInfo tableInfo;
+    private final List<Reference> allTargetColumns;
+
+
     public GroupRowsByShard(ClusterService clusterService,
+                            DocTableInfo tableInfo,
+                            @Nullable List<Reference> allTargetColumns,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
@@ -77,6 +91,8 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
+        this.tableInfo = tableInfo;
+        this.allTargetColumns = allTargetColumns;
         this.clusterService = clusterService;
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
@@ -91,12 +107,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     public GroupRowsByShard(ClusterService clusterService,
+                            DocTableInfo tableInfo,
+                            List<Reference> allTargetColumns,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
+             tableInfo,
+             allTargetColumns,
              rowShardResolver,
              indexNameResolver,
              expressions,
@@ -158,6 +178,23 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
+            // Validation is done before indexing on request preparation stage
+            // in order to enusre that no "bad partitions" will be left behind.
+            IndexItem indexItem = (IndexItem) item;
+            // PK and specified Clustered By should not be null, checked above in rowShardResolver.setNextRow(spareRow)
+            if (allTargetColumns != null) {
+                // allTargetColumns is null when deprecated IndexWriterProjector is used.
+                // TODO: Make allTargetColumns none-nullable once IndexWriterProjector is removed.
+                checkConstraintsOnGeneratedSource(
+                    indexItem,
+                    indexNameResolver.get(),
+                    tableInfo,
+                    rowShardResolver.txnCtx(),
+                    rowShardResolver.nodeCtx(),
+                    shardedRequests.validatorsCache(),
+                    allTargetColumns
+                );
+            }
             if (shardLocation == null) {
                 shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
@@ -227,5 +264,28 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 entryIt.remove();
             }
         }
+    }
+
+    private static void checkConstraintsOnGeneratedSource(@Nullable IndexItem indexItem,
+                                                          String indexName,
+                                                          DocTableInfo tableInfo,
+                                                          TransactionContext txnCtx,
+                                                          NodeContext nodeCtx,
+                                                          HashMap<String, Consumer<IndexItem>> validatorsCache,
+                                                          List<Reference> targetColumns) throws Throwable {
+        if (indexItem == null) {
+            return;
+        }
+        var validator = validatorsCache.computeIfAbsent(
+            indexName,
+            index -> Indexer.createConstraintCheck(
+                indexName,
+                tableInfo,
+                txnCtx,
+                nodeCtx,
+                targetColumns
+            )
+        );
+        validator.accept(indexItem);
     }
 }

@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.crate.execution.dml.IndexItem;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.ShardId;
@@ -43,8 +45,10 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
+
     private final Function<ShardId, TReq> requestFactory;
     private final RamAccounting ramAccounting;
+    private final HashMap<String, Consumer<IndexItem>> validatorsCache;
 
     private int location = -1;
     private long usedMemoryEstimate = 0L;
@@ -55,11 +59,13 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     public ShardedRequests(Function<ShardId, TReq> requestFactory, RamAccounting ramAccounting) {
         this.requestFactory = requestFactory;
         this.ramAccounting = ramAccounting;
+        this.validatorsCache = new HashMap<>();
     }
 
-    /**
-     * @param itemSizeInBytes an estimate of how many bytes the item occupies in memory
-     */
+    public HashMap<String, Consumer<IndexItem>> validatorsCache() {
+        return validatorsCache;
+    }
+
     public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
@@ -140,6 +146,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     public void close() {
         ramAccounting.addBytes(-usedMemoryEstimate);
         usedMemoryEstimate = 0L;
+        validatorsCache.clear();
     }
 
     @Override

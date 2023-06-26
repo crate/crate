@@ -210,7 +210,7 @@ Administration and Operations
   has been lowered from `HIGH` to `MEDIUM` as leaving these to default
   or suboptimal values does not translate into data corruption or loss.
 
-- Added the ability to set a 
+- Added the ability to set a
   :ref:`storage_class <sql-create-repo-s3-storage_class>` for S3 repositories.
 
 
@@ -243,3 +243,17 @@ Fixes
     UNION
     SELECT i, avg(k), j FROM t3 GROUP BY 1, 3
     LIMIT 10
+
+- Fixed an issue which prevented ``INSERT INTO ... SELECT ...`` from inserting
+  any records if the target table had a partitioned column with a ``CHECK``
+  constraint on a column of a none-string type.
+
+- Fixed an issue which prevented ``INSERT INTO ... SELECT ...`` from inserting
+  any records if the target table had a generated column referring to a
+  partitioned column of a none-string type.
+
+- Fixed an issue which caused ``INSERT INTO`` statements to skip generated
+  column validation for partitioned columns.
+
+- Fixed an issue which caused ``INSERT INTO`` statements to skip null check of
+  ``CLUSTERED BY`` columns.

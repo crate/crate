@@ -28,7 +28,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -78,13 +77,10 @@ import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -220,6 +216,7 @@ public class InsertFromValues implements LogicalPlan {
 
         GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
             createRowsByShardGrouper(
+                tableInfo,
                 onConflictAssignments,
                 insertInputs,
                 indexNameResolver,
@@ -254,25 +251,14 @@ public class InsertFromValues implements LogicalPlan {
             false);
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
-        HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         for (Row row : rows) {
-            Item item = grouper.apply(shardedRequests, row);
-
             try {
-                checkPrimaryKeyValuesNotNull(primaryKeyInputs);
-                checkClusterByValueNotNull(clusterByInput);
-                checkConstraintsOnGeneratedSource(
-                    item,
-                    indexNameResolver.get(),
-                    tableInfo,
-                    plannerContext,
-                    validatorsCache);
+                grouper.apply(shardedRequests, row);
             } catch (Throwable t) {
                 consumer.accept(null, t);
                 return;
             }
         }
-        validatorsCache.clear();
 
         createIndices(
             dependencies.client(),
@@ -343,11 +329,8 @@ public class InsertFromValues implements LogicalPlan {
         for (Symbol symbol : writerProjection.ids()) {
             primaryKeyInputs.add(context.add(symbol));
         }
-        Input<?> clusterByInput;
         if (writerProjection.clusteredBy() != null) {
-            clusterByInput = context.add(writerProjection.clusteredBy());
-        } else {
-            clusterByInput = null;
+            context.add(writerProjection.clusteredBy());
         }
 
         var indexNameResolver = IndexNameResolver.create(
@@ -369,7 +352,6 @@ public class InsertFromValues implements LogicalPlan {
             true);
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
-        HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList();
         List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
@@ -384,6 +366,7 @@ public class InsertFromValues implements LogicalPlan {
 
             GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
                 createRowsByShardGrouper(
+                    tableInfo,
                     assignmentSources,
                     insertInputs,
                     indexNameResolver,
@@ -403,16 +386,7 @@ public class InsertFromValues implements LogicalPlan {
 
                 while (rows.hasNext()) {
                     Row row = rows.next();
-                    Item item = grouper.apply(shardedRequests, row);
-
-                    checkPrimaryKeyValuesNotNull(primaryKeyInputs);
-                    checkClusterByValueNotNull(clusterByInput);
-                    checkConstraintsOnGeneratedSource(
-                        item,
-                        indexNameResolver.get(),
-                        tableInfo,
-                        plannerContext,
-                        validatorsCache);
+                    grouper.apply(shardedRequests, row);
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {
@@ -422,7 +396,6 @@ public class InsertFromValues implements LogicalPlan {
                 return results;
             }
         }
-        validatorsCache.clear();
 
         createIndices(
             dependencies.client(),
@@ -454,7 +427,8 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>
-        createRowsByShardGrouper(Symbol[] onConflictAssignments,
+        createRowsByShardGrouper(DocTableInfo tableInfo,
+                                 Symbol[] onConflictAssignments,
                                  ArrayList<Input<?>> insertInputs,
                                  Supplier<String> indexNameResolver,
                                  InputFactory.Context<CollectExpression<Row, ?>> collectContext,
@@ -480,6 +454,8 @@ public class InsertFromValues implements LogicalPlan {
 
         return new GroupRowsByShard<>(
             clusterService,
+            tableInfo,
+            writerProjection.allTargetColumns(),
             rowShardResolver,
             indexNameResolver,
             collectContext.expressions(),
@@ -488,40 +464,6 @@ public class InsertFromValues implements LogicalPlan {
         );
     }
 
-    private static void checkPrimaryKeyValuesNotNull(ArrayList<Input<?>> primaryKeyInputs) {
-        for (var primaryKey : primaryKeyInputs) {
-            if (primaryKey.value() == null) {
-                throw new IllegalArgumentException("Primary key value must not be NULL");
-            }
-        }
-    }
-
-    private static void checkClusterByValueNotNull(@Nullable Input<?> clusterByInput) {
-        if (clusterByInput != null && clusterByInput.value() == null) {
-            throw new IllegalArgumentException("Clustered by value must not be NULL");
-        }
-    }
-
-    private void checkConstraintsOnGeneratedSource(@Nullable IndexItem indexItem,
-                                                   String indexName,
-                                                   DocTableInfo tableInfo,
-                                                   PlannerContext plannerContext,
-                                                   HashMap<String, Consumer<IndexItem>> validatorsCache) throws Throwable {
-        if (indexItem == null) {
-            return;
-        }
-        var validator = validatorsCache.computeIfAbsent(
-            indexName,
-            index -> Indexer.createConstraintCheck(
-                indexName,
-                tableInfo,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext(),
-                writerProjection.allTargetColumns()
-            )
-        );
-        validator.accept(indexItem);
-    }
 
     @SuppressWarnings("unchecked")
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,

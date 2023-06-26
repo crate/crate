@@ -100,6 +100,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
 
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
+            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoopCircuitBreaker("dummy"),
             RamAccounting.NO_ACCOUNTING,
