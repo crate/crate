@@ -67,6 +67,10 @@ Fixes
 - Fixed a regression introduced in 4.7.0 which caused aggregations used in
   ``INSERT INTO`` statements returning null instead of the aggregation result.
 
+- Fixed a regression introduced in 5.3.0 which caused
+  ``CAST(<generated_partition_column> AS <targetType>)`` expressions to return
+  ``NULL`` instead of the cast result.
+
 - Fixed a regression introduced in 5.3.0 which caused ``INSERT INTO`` statements
   with a ``ON CONFLICT`` clause on tables with generated primary key columns to
   fail with an ``ArrayIndexOutOfBoundsException``.

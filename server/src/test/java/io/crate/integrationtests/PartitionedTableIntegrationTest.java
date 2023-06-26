@@ -32,7 +32,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -89,6 +88,7 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
@@ -2417,5 +2417,23 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE p_t SET (\"number_of_replicas\" = '3')");
         execute("select number_of_replicas from information_schema.table_partitions");
         assertThat(printedTable(response.rows())).isEqualTo("3\n3\n");
+    }
+
+    @Test
+    @UseJdbc(0) // Jdbc layer would convert timestamp
+    public void test_can_select_casted_partitioned_column() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+                ts TIMESTAMP,
+                year TIMESTAMP GENERATED ALWAYS AS date_trunc('year',ts)
+            ) PARTITIONED BY (year)
+            """
+        );
+        execute("INSERT INTO tbl (ts) SELECT now()");
+        execute("refresh table tbl");
+        execute("select year, year::TEXT, ts from tbl LIMIT 10");
+        assertThat(response.rows()[0][0].toString())
+            .as("Column values must match: " + Arrays.toString(response.rows()[0]))
+            .isEqualTo(response.rows()[0][1]);
     }
 }
