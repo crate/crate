@@ -22,15 +22,15 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
 
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -43,9 +43,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
@@ -262,6 +264,41 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThatThrownBy(() -> addColumnTask.execute(state, request))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
+        }
+    }
+
+    @Test
+    public void test_raises_error_on_nested_arrays() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            SimpleReference newColumn1 = new SimpleReference(
+                new ReferenceIdent(tbl.ident(), "y"),
+                RowGranularity.DOC,
+                new ArrayType<>(new ArrayType<>(DataTypes.LONG)),
+                2,
+                null
+            );
+            List<Reference> columns = List.of(newColumn1);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            assertThatThrownBy(() -> addColumnTask.execute(state, request))
+                .isExactlyInstanceOf(MapperParsingException.class)
+                .hasMessageContaining("nested arrays are not supported");
         }
     }
 }

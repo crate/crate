@@ -299,7 +299,8 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             contentPath.add(name);
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
             columnProperties = furtherColumnProperties(columnProperties);
-            assert columnProperties.containsKey("position") && columnProperties.get("position") != null : "Column position is missing: " + name;
+            assert columnProperties.containsKey("inner") || (columnProperties.containsKey("position") && columnProperties.get("position") != null)
+                : "Column position is missing: " + name;
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             Integer position = (Integer) columnProperties.get("position");
             if (position != null) {

@@ -201,4 +201,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Added validation to prevent creation of invalid nested array columns via
+  ``INSERT INTO`` and dynamic column policy.
