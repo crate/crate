@@ -21,16 +21,9 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
+import static io.crate.metadata.Reference.buildTree;
+import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -38,8 +31,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.crate.metadata.Reference.buildTree;
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 public class MappingUtil {
 
@@ -119,19 +122,20 @@ public class MappingUtil {
 
     private static Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
 
-        Map<String, Object> columnProperties = reference.toMapping();
-        if (reference.valueType().id() == ArrayType.ID) {
-            HashMap<String, Object> outerMapping = new HashMap<>();
-            outerMapping.put("type", "array");
-            if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
-                objectMapping(columnProperties, reference, tree);
-            }
-            outerMapping.put("inner", columnProperties);
-            return outerMapping;
-        } else if (reference.valueType().id() == ObjectType.ID) {
-            objectMapping(columnProperties, reference, tree);
+        Map<String, Object> leafProperties = reference.toMapping();
+        Map<String, Object> properties = leafProperties;
+        DataType<?> valueType = reference.valueType();
+        while (valueType instanceof ArrayType arrayType) {
+            HashMap<String, Object> arrayMapping = new HashMap<>();
+            arrayMapping.put("type", "array");
+            arrayMapping.put("inner", properties);
+            valueType = arrayType.innerType();
+            properties = arrayMapping;
         }
-        return columnProperties;
+        if (valueType.id() == ObjectType.ID) {
+            objectMapping(leafProperties, reference, tree);
+        }
+        return properties;
     }
 
     private static void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {

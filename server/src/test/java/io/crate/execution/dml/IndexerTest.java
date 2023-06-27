@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -976,5 +977,32 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
             }
         }
+    }
+
+    @Test
+    public void test_index_nested_array() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x, y),
+            null
+        );
+        ParsedDocument doc = indexer.index(item(10, List.of(List.of(1, 2), List.of(3, 4))));
+        List<Reference> newColumns = doc.newColumns();
+        assertThat(newColumns).satisfiesExactly(
+            column -> assertThat(column).isReference("y", new ArrayType<>(new ArrayType<>(DataTypes.LONG)))
+        );
+        assertThat(doc.source().utf8ToString()).isEqualTo("""
+            {"x":10,"y":[[1,2],[3,4]]}"""
+        );
     }
 }
