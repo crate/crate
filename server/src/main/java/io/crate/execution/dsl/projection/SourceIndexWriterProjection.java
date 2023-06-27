@@ -131,7 +131,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(failFast);
         }
         out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(rawSourceReference, out);
+        Reference.toStream(out, rawSourceReference);
         Symbols.toStream(rawSourceSymbol, out);
 
         if (out.getVersion().before(Version.V_5_3_0)) {

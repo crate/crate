@@ -53,7 +53,7 @@ public class GeoReferenceTest extends ESTestCase {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo, out);
+        Reference.toStream(out, geoReferenceInfo);
         StreamInput in = out.bytes().streamInput();
         GeoReference geoReferenceInfo2 = Reference.fromStream(in);
 
@@ -73,7 +73,7 @@ public class GeoReferenceTest extends ESTestCase {
             null
         );
         out = new BytesStreamOutput();
-        Reference.toStream(geoReferenceInfo3, out);
+        Reference.toStream(out, geoReferenceInfo3);
         in = out.bytes().streamInput();
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 

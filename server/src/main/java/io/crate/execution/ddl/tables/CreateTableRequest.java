@@ -189,7 +189,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
             relationName.writeTo(out);
             out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-            out.writeCollection(colsToAdd, (o, value) -> Reference.toStream(value, o));
+            out.writeCollection(colsToAdd, Reference::toStream);
             out.writeVInt(pKeyIndices.size());
             for (int i = 0; i < pKeyIndices.size(); i++) {
                 out.writeVInt(pKeyIndices.get(i));

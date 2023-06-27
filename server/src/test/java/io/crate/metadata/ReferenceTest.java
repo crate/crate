@@ -83,7 +83,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         Reference reference2 = Reference.fromStream(in);
@@ -110,7 +110,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);

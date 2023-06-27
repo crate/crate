@@ -82,7 +82,7 @@ public interface Reference extends Symbol {
      */
     Map<String, Object> toMapping();
 
-    static void toStream(Reference ref, StreamOutput out) throws IOException {
+    static void toStream(StreamOutput out, Reference ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());
         ref.writeTo(out);
     }

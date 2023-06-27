@@ -52,7 +52,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(indexReferenceInfo, out);
+        Reference.toStream(out, indexReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
         IndexReference indexReferenceInfo2 = Reference.fromStream(in);
