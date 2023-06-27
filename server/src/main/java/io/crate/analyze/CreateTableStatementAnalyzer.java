@@ -145,7 +145,7 @@ public final class CreateTableStatementAnalyzer {
                 analyzedTableElements.addCheckConstraint(relationName, (CheckConstraint<Symbol>) te);
             });
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            tableElementsWithExpressions, relationName, null, false, false);
+            tableElementsWithExpressions, relationName, null, false);
         if (analyzedTableElementsWithExpressions.hasGeneratedColumns()) {
             List<ColumnIdent> generatedColumns = analyzedTableElementsWithExpressions.columns().stream()
                 .filter(AnalyzedColumnDefinition::isGenerated)
