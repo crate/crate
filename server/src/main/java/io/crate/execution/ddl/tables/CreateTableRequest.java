@@ -21,12 +21,12 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.execution.ddl.tables.AddColumnRequest.writeReferencesAndConstraints;
 import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +44,6 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.ddl.tables.AddColumnRequest.ReferencesAndConstraints;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.ColumnPolicies;
@@ -149,10 +148,14 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         super(in);
         if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
             this.relationName = new RelationName(in);
-            ReferencesAndConstraints referencesAndConstraints = ReferencesAndConstraints.read(in);
-            this.colsToAdd = referencesAndConstraints.colsToAdd();
-            this.checkConstraints = referencesAndConstraints.checkConstraints();
-            this.pKeyIndices = referencesAndConstraints.pKeyIndices();
+            this.checkConstraints = in.readMap(
+                LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
+            this.colsToAdd = in.readList(Reference::fromStream);
+            int numPKIndices = in.readVInt();
+            this.pKeyIndices = new IntArrayList(numPKIndices);
+            for (int i = 0; i < numPKIndices; i++) {
+                pKeyIndices.add(in.readVInt());
+            }
 
             this.settings = readSettingsFromStream(in);
             this.routingColumn = in.readOptionalString();
@@ -185,7 +188,12 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         super.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
             relationName.writeTo(out);
-            writeReferencesAndConstraints(out, checkConstraints, colsToAdd, pKeyIndices);
+            out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
+            out.writeCollection(colsToAdd, (o, value) -> Reference.toStream(value, o));
+            out.writeVInt(pKeyIndices.size());
+            for (int i = 0; i < pKeyIndices.size(); i++) {
+                out.writeVInt(pKeyIndices.get(i));
+            }
             writeSettingsToStream(settings, out);
             out.writeOptionalString(routingColumn);
             out.writeVInt(tableColumnPolicy.ordinal());
