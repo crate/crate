@@ -64,6 +64,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
@@ -195,19 +196,20 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
      */
     private Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
 
-        Map<String, Object> columnProperties = reference.toMapping();
-        if (reference.valueType().id() == ArrayType.ID) {
-            HashMap<String, Object> outerMapping = new HashMap<>();
-            outerMapping.put("type", "array");
-            if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
-                objectMapping(columnProperties, reference, tree);
-            }
-            outerMapping.put("inner", columnProperties);
-            return outerMapping;
-        } else if (reference.valueType().id() == ObjectType.ID) {
-            objectMapping(columnProperties, reference, tree);
+        Map<String, Object> leafProperties = reference.toMapping();
+        Map<String, Object> properties = leafProperties;
+        DataType<?> valueType = reference.valueType();
+        while (valueType instanceof ArrayType arrayType) {
+            HashMap<String, Object> arrayMapping = new HashMap<>();
+            arrayMapping.put("type", "array");
+            arrayMapping.put("inner", properties);
+            valueType = arrayType.innerType();
+            properties = arrayMapping;
         }
-        return columnProperties;
+        if (valueType.id() == ObjectType.ID) {
+            objectMapping(leafProperties, reference, tree);
+        }
+        return properties;
     }
 
     private void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
