@@ -68,6 +68,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.common.collections.Sorted;
 import io.crate.data.Row;
+import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.operator.OperatorModule;
@@ -419,6 +420,7 @@ public class TestingHelpers {
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
 
         return createMapping(
+            MappingUtil.AllocPosition.forNewTable(),
             new ArrayList<>(references.values()),
             pKeysIndices,
             boundCreateTable.analyzedTableElements().getCheckConstraints(),

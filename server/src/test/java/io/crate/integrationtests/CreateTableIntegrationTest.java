@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
@@ -194,22 +195,21 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                     from information_schema.columns
                     where table_name = 't'
                     order by 2""");
-        assertThat(printedTable(response.rows())).isEqualTo(
-             """
-             ta| 1
-             tb| 2
-             tc| 3
-             tc['td']| 4
-             tc['te']| 5
-             tc['tf']| 6
-             tc['tf']['tg']| 7
-             ti| 9
-             ti['tj']| 10
-             ti['tk']| 11
-             ti['tk']['tl']| 12
-             tm| 13
-             tn| 14
-             """); // 'th' is a named index and is assigned column position 8
+        assertThat(response).hasRows(
+             "ta| 1",
+             "tb| 2",
+             "tc| 3",
+             "tc['td']| 4",
+             "tc['te']| 5",
+             "tc['tf']| 6",
+             "tc['tf']['tg']| 7",
+             "ti| 9",
+             "ti['tj']| 10",
+             "ti['tk']| 11",
+             "ti['tk']['tl']| 12",
+             "tm| 13",
+             "tn| 14"
+        ); // 'th' is a named index and is assigned column position 8
 
         execute("select * from t");
         assertThat(response.cols()).isEqualTo(new String[] {"ta", "tb", "tc", "ti", "tm", "tn"});
