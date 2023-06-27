@@ -269,7 +269,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        return ref.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        return ref.toMapping(position);
     }
 }

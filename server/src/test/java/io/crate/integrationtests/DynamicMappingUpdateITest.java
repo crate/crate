@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -249,8 +250,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             name| 2
             o| 3
             o['a']| 4
-            o['b']| 5
-            o['a']['b']| 6
+            o['a']['b']| 5
+            o['b']| 6
             o['q']| 7
             o['q']['r']| 8
             o['q']['r']['s']| 9
@@ -281,8 +282,8 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             name| 2
             o| 3
             o['a']| 4
-            o['b']| 5
-            o['a']['b']| 6
+            o['a']['b']| 5
+            o['b']| 6
             o['q']| 7
             o['q']['r']| 8
             o['q']['r']['s']| 9
@@ -321,21 +322,19 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("refresh table t");
         execute("select column_name, ordinal_position, data_type from information_schema.columns where table_name = 't' order by 2");
 
-        assertThat(printedTable(response.rows())).isEqualTo(
-            """
-            tb| 1| object_array
-            p| 2| integer
-            tb['t1']| 3| object_array
-            tb['t2']| 4| object
-            tb['t1']['t3']| 5| object
-            tb['t1']['t6']| 6| bigint_array
-            tb['t1']['t3']['t4']| 7| object
-            tb['t1']['t3']['t4']['t5']| 8| bigint
-            o| 9| object
-            o['a']| 10| object
-            o['b']| 11| bigint
-            o['a']['b']| 12| bigint
-            """
+        assertThat(response).hasRows(
+            "tb| 1| object_array",
+            "p| 2| integer",
+            "tb['t1']| 3| object_array",
+            "tb['t1']['t3']| 4| object",
+            "tb['t1']['t3']['t4']| 5| object",
+            "tb['t1']['t3']['t4']['t5']| 6| bigint",
+            "tb['t1']['t6']| 7| bigint_array",
+            "tb['t2']| 8| object",
+            "o| 9| object",
+            "o['a']| 10| object",
+            "o['a']['b']| 11| bigint",
+            "o['b']| 12| bigint"
         );
     }
 

@@ -323,7 +323,6 @@ public class AnalyzedTableElements<T> {
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
             buildDedicatedIndexReference(relationName, columnDefinition, target);
         }
-
     }
 
     private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
@@ -417,16 +416,33 @@ public class AnalyzedTableElements<T> {
                                           Set<String> primaryKeys,
                                           IntArrayList pKeysIndices,
                                           boolean bound) {
-
-        if (columnDefinition.sources().isEmpty() == false) {
-            // Skip dedicated index columns so that they are not added to references map here
-            return;
-        }
-
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
+
+        if (columnDefinition.sources().isEmpty() == false) {
+            // Add a dummy entry to preserve the order/position
+            // The real index reference (with correct properties) is created in a second pass
+            // after all references are present to ensure the index-reference can resolve its sources if there are forward references, e.g.:
+            // CREATE TABLE tbl (INDEX ft USING FULLTEXT (other_column), other_column text)
+            if (!references.containsKey(columnDefinition.ident())) {
+                var ref = new SimpleReference(
+                    new ReferenceIdent(relationName, columnDefinition.ident()),
+                    RowGranularity.DOC,
+                    realType,
+                    columnDefinition.columnPolicy(),
+                    IndexType.PLAIN,
+                    true,
+                    columnDefinition.docValues(),
+                    -1,
+                    (Symbol) columnDefinition.defaultExpression()
+                );
+                references.put(columnDefinition.ident(), ref);
+            }
+            return;
+        }
+
 
         Reference ref;
         boolean isNullable = !columnDefinition.hasNotNullConstraint();
@@ -436,14 +452,13 @@ public class AnalyzedTableElements<T> {
                 GeoSettingsApplier.applySettings(geoMap, columnDefinition.geoProperties(), columnDefinition.geoTree());
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
-            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new GeoReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 realType,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 IndexType.PLAIN,
                 isNullable,
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
@@ -453,7 +468,6 @@ public class AnalyzedTableElements<T> {
         } else if (bound && columnDefinition.analyzer() != null) {
             // If analyzer is not null, it's a column definition with inlined INDEX definition.
             // Dedicated indices are collected separately after regular references collection.
-            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new IndexReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
@@ -462,7 +476,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression(),
                 List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
@@ -472,11 +486,11 @@ public class AnalyzedTableElements<T> {
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 realType,
-                columnDefinition.objectType(),
+                columnDefinition.columnPolicy(),
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression()
             );
         }
@@ -526,7 +540,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN,
                 !columnDefinition.hasNotNullConstraint(),
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 null, // default expression is irrelevant for INDEX definition
                 sources,
                 columnDefinition.analyzer()

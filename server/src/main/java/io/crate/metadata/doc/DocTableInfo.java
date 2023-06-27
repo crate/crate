@@ -29,13 +29,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -199,7 +198,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
         this.supportedOperations = supportedOperations;
-        // scale the fetchrouting timeout by n# of partitions
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
         this.defaultExpressionColumns = references.values()
             .stream()
@@ -219,6 +217,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> columns() {
         return columns;
+    }
+
+    public int maxPosition() {
+        return Math.max(
+            references.values().stream()
+                .filter(ref -> !ref.column().isSystemColumn())
+                .mapToInt(Reference::position)
+                .max()
+                .orElse(0),
+            indexColumns.values().stream()
+                .mapToInt(IndexReference::position)
+                .max()
+                .orElse(0)
+        );
     }
 
     public List<Reference> defaultExpressionColumns() {

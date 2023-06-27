@@ -86,6 +86,7 @@ public class TableCreator {
         } else {
             // TODO: Remove BWC branch in 5.5.
             var mapping = createMapping(
+                MappingUtil.AllocPosition.forNewTable(),
                 new ArrayList<>(references.values()),
                 pKeysIndices,
                 createTable.analyzedTableElements().getCheckConstraints(),

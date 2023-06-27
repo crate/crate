@@ -49,6 +49,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
@@ -165,6 +166,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private static PutIndexTemplateRequest toPutIndexTemplateRequest(CreateTableRequest request) {
         var relationName = request.getTableName();
         var mapping = createMapping(
+            AllocPosition.forNewTable(),
             request.references(),
             request.pKeyIndices(),
             request.checkConstraints(),
@@ -182,6 +184,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     private static CreateIndexRequest toCreateIndexRequest(CreateTableRequest request) {
         var mapping = createMapping(
+            AllocPosition.forNewTable(),
             request.references(),
             request.pKeyIndices(),
             request.checkConstraints(),

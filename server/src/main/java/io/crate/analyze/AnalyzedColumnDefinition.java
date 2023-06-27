@@ -67,7 +67,6 @@ public class AnalyzedColumnDefinition<T> {
     public static final String COLUMN_STORE_PROPERTY = "columnstore";
 
     private final AnalyzedColumnDefinition<T> parent;
-    private int position;
     private ColumnIdent ident;
     private String name;
     private DataType<?> dataType;
@@ -84,7 +83,7 @@ public class AnalyzedColumnDefinition<T> {
     private Settings analyzerSettings = Settings.EMPTY;
 
     @VisibleForTesting
-    ColumnPolicy objectType = ColumnPolicy.DYNAMIC;
+    ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
@@ -111,13 +110,11 @@ public class AnalyzedColumnDefinition<T> {
     @Nullable
     private T defaultExpression;
 
-    public AnalyzedColumnDefinition(int position, @Nullable AnalyzedColumnDefinition<T> parent) {
-        this.position = position;
+    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition<T> parent) {
         this.parent = parent;
     }
 
     private AnalyzedColumnDefinition(AnalyzedColumnDefinition<T> parent,
-                                     int position,
                                      ColumnIdent ident,
                                      String name,
                                      DataType<?> dataType,
@@ -126,7 +123,7 @@ public class AnalyzedColumnDefinition<T> {
                                      String geoTree,
                                      T analyzer,
                                      String indexMethod,
-                                     ColumnPolicy objectType,
+                                     ColumnPolicy columnPolicy,
                                      boolean isPrimaryKey,
                                      boolean isNotNull,
                                      Settings analyzerSettings,
@@ -142,7 +139,6 @@ public class AnalyzedColumnDefinition<T> {
                                      @Nullable T defaultExpression,
                                      boolean generated) {
         this.parent = parent;
-        this.position = position;
         this.ident = ident;
         this.name = name;
         this.dataType = dataType;
@@ -151,7 +147,7 @@ public class AnalyzedColumnDefinition<T> {
         this.geoTree = geoTree;
         this.analyzer = analyzer;
         this.indexMethod = indexMethod;
-        this.objectType = objectType;
+        this.columnPolicy = columnPolicy;
         this.isPrimaryKey = isPrimaryKey;
         this.isNotNull = isNotNull;
         this.analyzerSettings = analyzerSettings;
@@ -172,7 +168,6 @@ public class AnalyzedColumnDefinition<T> {
     public <U> AnalyzedColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
         return new AnalyzedColumnDefinition<>(
             parent == null ? null : (AnalyzedColumnDefinition<U>) parent,   // parent is expected to be mapped already
-            position,
             ident,
             name,
             dataType,
@@ -181,7 +176,7 @@ public class AnalyzedColumnDefinition<T> {
             geoTree,
             analyzer == null ? null : mapper.apply(analyzer),
             indexMethod,
-            objectType,
+            columnPolicy,
             isPrimaryKey,
             isNotNull,
             analyzerSettings,
@@ -227,14 +222,6 @@ public class AnalyzedColumnDefinition<T> {
         } else {
             this.ident = ColumnIdent.fromNameSafe(name, List.of());
         }
-    }
-
-    public int position() {
-        return position;
-    }
-
-    public void position(int position) {
-        this.position = position;
     }
 
     public void analyzer(T analyzer) {
@@ -296,12 +283,12 @@ public class AnalyzedColumnDefinition<T> {
         return this.dataType;
     }
 
-    void objectType(ColumnPolicy objectType) {
-        this.objectType = objectType;
+    void columnPolicy(ColumnPolicy objectType) {
+        this.columnPolicy = objectType;
     }
 
-    public ColumnPolicy objectType() {
-        return this.objectType;
+    public ColumnPolicy columnPolicy() {
+        return this.columnPolicy;
     }
 
     void collectionType(String type) {
@@ -465,8 +452,7 @@ public class AnalyzedColumnDefinition<T> {
         addTypeOptions(mapping, definition.dataType, definition.geoProperties, definition.geoTree, analyzer);
         mapping.put("type", AnalyzedColumnDefinition.typeNameForESMapping(definition.dataType, analyzer, definition.isIndex));
 
-        assert definition.position != 0 : "position should not be 0";
-        mapping.put("position", definition.position);
+        mapping.put("position", -1);
 
         if (definition.indexType == IndexType.NONE) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
@@ -525,7 +511,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     private static void objectMapping(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
-        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(definition.objectType));
+        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(definition.columnPolicy));
         Map<String, Object> childProperties = new HashMap<>();
         for (AnalyzedColumnDefinition<Object> child : definition.children) {
             childProperties.put(child.name(), toMapping(child));
