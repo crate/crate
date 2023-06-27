@@ -121,7 +121,7 @@ public class SysUpdateProjection extends Projection {
         Symbols.toStream(uidSymbol, out);
         out.writeVInt(assignments.size());
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
-            Reference.toStream(e.getKey(), out);
+            Reference.toStream(out, e.getKey());
             Symbols.toStream(e.getValue(), out);
         }
 

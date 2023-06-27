@@ -60,7 +60,7 @@ public final class FetchSampleRequest extends TransportRequest {
         out.writeVInt(maxSamples);
         out.writeVInt(columns.size());
         for (Reference column : columns) {
-            Reference.toStream(column, out);
+            Reference.toStream(out, column);
         }
     }
 

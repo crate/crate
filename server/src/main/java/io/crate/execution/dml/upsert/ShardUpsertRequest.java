@@ -164,7 +164,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
-                Reference.toStream(reference, out);
+                Reference.toStream(out, reference);
             }
             insertValuesStreamer = Symbols.streamerArray(insertColumns);
         } else {

@@ -75,7 +75,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         super.writeTo(out);
         relationName.writeTo(out);
         out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeCollection(colsToAdd, (o, value) -> Reference.toStream(value, o));
+        out.writeCollection(colsToAdd, Reference::toStream);
         out.writeVInt(pKeyIndices.size());
         for (int i = 0; i < pKeyIndices.size(); i++) {
             out.writeVInt(pKeyIndices.get(i));

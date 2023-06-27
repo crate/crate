@@ -241,7 +241,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(true);
             out.writeVInt(targetColsExclPartitionCols.size());
             for (Reference columnIdent : targetColsExclPartitionCols) {
-                Reference.toStream(columnIdent, out);
+                Reference.toStream(out, columnIdent);
             }
         }
 
@@ -252,7 +252,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(true);
             out.writeVInt(onDuplicateKeyAssignments.size());
             for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                Reference.toStream(entry.getKey(), out);
+                Reference.toStream(out, entry.getKey());
                 Symbols.toStream(entry.getValue(), out);
             }
         }

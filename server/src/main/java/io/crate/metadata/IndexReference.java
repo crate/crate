@@ -193,7 +193,7 @@ public class IndexReference extends SimpleReference {
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
         for (Reference reference : columns) {
-            Reference.toStream(reference, out);
+            Reference.toStream(out, reference);
         }
     }
 
