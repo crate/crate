@@ -58,13 +58,6 @@ import io.crate.types.ObjectType;
 
 public class TableElementsAnalyzer {
 
-    public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
-                                                       RelationName relationName,
-                                                       @Nullable TableInfo tableInfo,
-                                                       boolean isAddColumn) {
-        return analyze(tableElements, relationName, tableInfo, true, isAddColumn);
-    }
-
     /**
      *
      * @param isAddColumn When set to true, column positions of the analyzed table elements will contain negative column estimates
@@ -74,7 +67,6 @@ public class TableElementsAnalyzer {
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
                                                        @Nullable TableInfo tableInfo,
-                                                       boolean logWarnings,
                                                        boolean isAddColumn) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
         int positionOffset = isAddColumn ? 0 : (tableInfo == null ? 0 : tableInfo.columns().size());
@@ -87,8 +79,8 @@ public class TableElementsAnalyzer {
                 null,
                 analyzedTableElements,
                 relationName,
-                tableInfo,
-                logWarnings);
+                tableInfo
+            );
 
             tableElement.accept(analyzer, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
@@ -106,20 +98,17 @@ public class TableElementsAnalyzer {
         final RelationName relationName;
         @Nullable
         final TableInfo tableInfo;
-        final boolean logWarnings;
         int currentColumnPosition;
 
         ColumnDefinitionContext(int position,
                                 @Nullable AnalyzedColumnDefinition<T> parent,
                                 AnalyzedTableElements<T> analyzedTableElements,
                                 RelationName relationName,
-                                @Nullable TableInfo tableInfo,
-                                boolean logWarnings) {
+                                @Nullable TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(position, parent);
             this.analyzedTableElements = analyzedTableElements;
             this.relationName = relationName;
             this.tableInfo = tableInfo;
-            this.logWarnings = logWarnings;
             this.currentColumnPosition = position;
         }
 
@@ -230,8 +219,7 @@ public class TableElementsAnalyzer {
                     context.analyzedColumnDefinition,
                     context.analyzedTableElements,
                     context.relationName,
-                    context.tableInfo,
-                    context.logWarnings
+                    context.tableInfo
                 );
                 columnDefinition.accept(this, childContext);
                 context.currentColumnPosition = childContext.currentColumnPosition;
