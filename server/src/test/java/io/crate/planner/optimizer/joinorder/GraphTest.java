@@ -37,7 +37,7 @@ import io.crate.planner.operators.HashJoin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-public class JoinGraphTest extends CrateDummyClusterServiceUnitTest {
+public class GraphTest extends CrateDummyClusterServiceUnitTest {
 
     /*
      *  This builds the following graph:

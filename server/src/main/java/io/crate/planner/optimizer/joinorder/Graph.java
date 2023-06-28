@@ -30,10 +30,13 @@ import java.util.function.Function;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.HashJoin;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
 public class Graph {
@@ -118,21 +121,35 @@ public class Graph {
         }
 
         @Override
+        public Graph visitNestedLoopJoin(NestedLoopJoin joinPlan, Map<Symbol, LogicalPlan> context) {
+            return visitJoin(joinPlan, context);
+        }
+
+        @Override
         public Graph visitHashJoin(HashJoin joinPlan, Map<Symbol, LogicalPlan> context) {
+            return visitJoin(joinPlan, context);
+        }
+
+        public Graph visitJoin(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
             Graph left = joinPlan.lhs().accept(this, context);
             Graph right = joinPlan.rhs().accept(this, context);
 
+            var joinCondition = joinPlan.joinCondition();
+            assert joinCondition != null : "Join condition cannot be null to build graph";
+
             // find equi-join conditions such as `a.x = b.y` and create edges
-            var split = QuerySplitter.split(joinPlan.joinCondition());
+            var split = QuerySplitter.split(joinCondition);
             var edges = new HashMap<Integer, Set<HyperEdge>>();
             for (var entry : split.entrySet()) {
                 if (entry.getKey().size() == 2) {
                     if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
                         var a = f.arguments().get(0);
                         var b = f.arguments().get(1);
-                        var from = context.get(a).id();
-                        var to = context.get(b).id();
-                        edges.put(context.get(a).id(), Set.of(new HyperEdge(Set.of(from), Set.of(to))));
+                        var from = context.get(a);
+                        var to = context.get(b);
+                        assert from != null & to != null :
+                            "Invalid join condition to build a graph " + joinCondition.toString(Style.QUALIFIED);
+                        edges.put(context.get(a).id(), Set.of(new HyperEdge(Set.of(from.id()), Set.of(to.id()))));
                     }
                 }
             }
