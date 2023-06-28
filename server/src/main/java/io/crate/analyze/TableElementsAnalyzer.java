@@ -53,8 +53,8 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.TableElement;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class TableElementsAnalyzer {
 
@@ -145,17 +145,13 @@ public class TableElementsAnalyzer {
                 AnalyzedColumnDefinition<T> parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition<T> leaf = parent;
                 for (String name : column.path()) {
-                    parent.dataType(ObjectType.NAME);
                     // Check if parent is already defined.
-                    // If it is an array, set the collection type to array, or if it's an object keep the object column
-                    // policy.
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
-                    if (parentRef != null) {
-                        if (parentRef.valueType().id() == ArrayType.ID) {
-                            parent.collectionType(ArrayType.NAME);
-                        } else {
-                            parent.columnPolicy(parentRef.columnPolicy());
-                        }
+                    if (parentRef == null) {
+                        parent.dataType(DataTypes.UNTYPED_OBJECT);
+                    } else {
+                        parent.dataType(parentRef.valueType());
+                        parent.columnPolicy(parentRef.columnPolicy());
                     }
                     parent.markAsParentColumn();
                     leaf = new AnalyzedColumnDefinition<>(parent);
@@ -184,7 +180,8 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnType(ColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.dataType(node.name(), node.parameters());
+            DataType<?> type = DataTypeAnalyzer.convert(node);
+            context.analyzedColumnDefinition.dataType(type);
             return null;
         }
 
@@ -192,7 +189,8 @@ public class TableElementsAnalyzer {
         @SuppressWarnings("unchecked")
         public Void visitObjectColumnType(ObjectColumnType<?> node, ColumnDefinitionContext<T> context) {
             ObjectColumnType<T> objectColumnType = (ObjectColumnType<T>) node;
-            context.analyzedColumnDefinition.dataType(objectColumnType.name());
+            DataType<?> type = DataTypeAnalyzer.convert(node);
+            context.analyzedColumnDefinition.dataType(type);
             context.analyzedColumnDefinition.columnPolicy(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
             for (int i = 0; i < objectColumnType.nestedColumns().size(); i++) {
                 ColumnDefinition<T> columnDefinition = objectColumnType.nestedColumns().get(i);
@@ -211,13 +209,9 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitCollectionColumnType(CollectionColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
-
-            if (node.innerType() instanceof CollectionColumnType) {
-                throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");
-            }
-
+            DataType<?> type = DataTypeAnalyzer.convert(node);
             node.innerType().accept(this, context);
+            context.analyzedColumnDefinition.dataType(type);
             return null;
         }
 
@@ -285,7 +279,7 @@ public class TableElementsAnalyzer {
         public Void visitIndexDefinition(IndexDefinition<?> node, ColumnDefinitionContext<T> context) {
             IndexDefinition<T> indexDefinition = (IndexDefinition<T>) node;
             context.analyzedColumnDefinition.setAsIndexColumn();
-            context.analyzedColumnDefinition.dataType("string");
+            context.analyzedColumnDefinition.dataType(DataTypes.STRING);
             context.analyzedColumnDefinition.name(indexDefinition.ident());
 
             setAnalyzer(indexDefinition.properties(), context, indexDefinition.method());
