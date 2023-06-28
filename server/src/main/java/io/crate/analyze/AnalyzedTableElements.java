@@ -34,11 +34,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -82,7 +80,6 @@ public class AnalyzedTableElements<T> {
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
     private Map<String, String> checkConstraints = new LinkedHashMap<>();
-    private Map<String, Object> indicesMap = new HashMap<>();
     private List<List<String>> partitionedBy;
     private int numGeneratedColumns = 0;
 
@@ -136,9 +133,6 @@ public class AnalyzedTableElements<T> {
 
         if (!elements.partitionedByColumns.isEmpty()) {
             meta.put("partitioned_by", elements.partitionedBy());
-        }
-        if (!elements.indicesMap.isEmpty()) {
-            meta.put("indices", elements.indicesMap());
         }
         if (!primaryKeys(elements).isEmpty()) {
             meta.put("primary_keys", primaryKeys(elements));
@@ -359,9 +353,6 @@ public class AnalyzedTableElements<T> {
 
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns()) {
             AnalyzedColumnDefinition.validateAndComputeDocValues(column);
-            if (column.isIndexColumn()) {
-                tableElementsEvaluated.indicesMap().put(column.name(), column.toMetaIndicesMapping());
-            }
         }
     }
 
@@ -811,11 +802,6 @@ public class AnalyzedTableElements<T> {
     @VisibleForTesting
     public Map<String, String> getCheckConstraints() {
         return checkConstraints;
-    }
-
-    @NotNull
-    public Map<String, Object> indicesMap() {
-        return indicesMap;
     }
 
     public boolean hasGeneratedColumns() {

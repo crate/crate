@@ -97,7 +97,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             request.references(),
             request.pKeyIndices(),
             request.checkConstraints(),
-            Map.of(),
             List.of(),
             null,
             null

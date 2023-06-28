@@ -27,6 +27,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -34,6 +35,7 @@ import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,6 +55,8 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.common.collections.Maps;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
@@ -66,6 +70,8 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
@@ -825,7 +831,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testEarlyIndexDefinition() {
         BoundCreateTable analysis = analyze(
             "create table my_table (" +
@@ -833,11 +838,17 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "title string," +
             "name string" +
             ")");
-        Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
-        assertThat(metaMap.get("indices").toString()).isEqualTo("{ft={}}");
-        assertThat((Map<String, Object>) Maps.getByPath(mapping, List.of("properties", "ft")))
-            .containsEntry("sources", List.of("title", "name"));
+        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        IntArrayList pKeysIndices = new IntArrayList();
+        analysis.analyzedTableElements().collectReferences(analysis.tableIdent(), references, pKeysIndices, true);
+        ColumnIdent ft = new ColumnIdent("ft");
+        assertThat(references).containsKey(ft);
+        Reference ftRef = references.get(ft);
+        assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
+        assertThat(((IndexReference) ftRef).columns()).satisfiesExactly(
+            x -> assertThat(x).isReference("title"),
+            x -> assertThat(x).isReference("name")
+        );
     }
 
     @Test

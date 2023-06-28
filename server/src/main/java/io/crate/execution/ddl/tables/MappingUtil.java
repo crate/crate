@@ -37,6 +37,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
@@ -54,7 +55,6 @@ public class MappingUtil {
     public static Map<String, Object> createMapping(List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
-                                                    Map<String, Object> indices,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable String routingColumn) {
@@ -75,6 +75,12 @@ public class MappingUtil {
             mapping.put(ES_MAPPING_NAME, ColumnPolicies.encodeMappingValue(tableColumnPolicy));
         }
 
+        Map<String, Object> indices = new HashMap<>();
+        for (Reference column : columns) {
+            if (column instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
+                indices.put(column.column().name(), Map.of());
+            }
+        }
         if (indices.isEmpty() == false) {
             meta.put("indices", indices);
         }

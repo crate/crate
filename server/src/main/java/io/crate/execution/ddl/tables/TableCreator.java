@@ -21,18 +21,13 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.ColumnPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -42,12 +37,17 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
-
-import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 
 @Singleton
 public class TableCreator {
@@ -81,8 +81,7 @@ public class TableCreator {
                 createTable.tableParameter().settings(),
                 createTable.routingColumn(),
                 tableColumnPolicy,
-                createTable.partitionedBy(),
-                createTable.analyzedTableElements().indicesMap()
+                createTable.partitionedBy()
             );
         } else {
             // TODO: Remove BWC branch in 5.5.
@@ -90,7 +89,6 @@ public class TableCreator {
                 new ArrayList<>(references.values()),
                 pKeysIndices,
                 createTable.analyzedTableElements().getCheckConstraints(),
-                createTable.analyzedTableElements().indicesMap(),
                 createTable.partitionedBy(),
                 tableColumnPolicy,
                 createTable.routingColumn()
