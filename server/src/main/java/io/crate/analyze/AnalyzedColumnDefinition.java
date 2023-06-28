@@ -39,6 +39,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexType;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -64,7 +65,6 @@ public class AnalyzedColumnDefinition<T> {
     private ColumnIdent ident;
     private String name;
     private DataType<?> dataType = DataTypes.UNDEFINED;
-    private String collectionType;
 
     private String geoTree;
     @Nullable
@@ -112,7 +112,6 @@ public class AnalyzedColumnDefinition<T> {
                                      ColumnIdent ident,
                                      String name,
                                      DataType<?> dataType,
-                                     String collectionType,
                                      IndexType indexType,
                                      String geoTree,
                                      T analyzer,
@@ -136,7 +135,6 @@ public class AnalyzedColumnDefinition<T> {
         this.ident = ident;
         this.name = name;
         this.dataType = dataType;
-        this.collectionType = collectionType;
         this.indexType = indexType;
         this.geoTree = geoTree;
         this.analyzer = analyzer;
@@ -165,7 +163,6 @@ public class AnalyzedColumnDefinition<T> {
             ident,
             name,
             dataType,
-            collectionType,
             indexType,
             geoTree,
             analyzer == null ? null : mapper.apply(analyzer),
@@ -264,14 +261,6 @@ public class AnalyzedColumnDefinition<T> {
         this.dataType = dataType;
     }
 
-    public void dataType(String dataType) {
-        dataType(dataType, List.of());
-    }
-
-    public void dataType(String typeName, List<Integer> parameters) {
-        this.dataType = DataTypes.of(typeName, parameters);
-    }
-
     public DataType<?> dataType() {
         return this.dataType;
     }
@@ -282,14 +271,6 @@ public class AnalyzedColumnDefinition<T> {
 
     public ColumnPolicy columnPolicy() {
         return this.columnPolicy;
-    }
-
-    void collectionType(String type) {
-        this.collectionType = type;
-    }
-
-    String collectionType() {
-        return collectionType;
     }
 
     public boolean isIndexColumn() {
@@ -392,7 +373,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void validate() {
-        if (indexType == IndexType.FULLTEXT && !DataTypes.STRING.equals(dataType)) {
+        if (indexType == IndexType.FULLTEXT && !DataTypes.STRING.equals(ArrayType.unnest(dataType))) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Can't use an Analyzer on column %s because analyzers are only allowed on " +
@@ -421,9 +402,9 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     private void ensureTypeCanBeUsedAsKey() {
-        if (collectionType != null) {
+        if (dataType instanceof ArrayType) {
             throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
+                String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType.getName()));
         }
         if (UNSUPPORTED_PK_TYPE_IDS.contains(dataType.id())) {
             throw new UnsupportedOperationException(
@@ -499,7 +480,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     boolean isArrayOrInArray() {
-        return collectionType != null || (parent != null && parent.isArrayOrInArray());
+        return dataType instanceof ArrayType || (parent != null && parent.isArrayOrInArray());
     }
 
     void markAsParentColumn() {

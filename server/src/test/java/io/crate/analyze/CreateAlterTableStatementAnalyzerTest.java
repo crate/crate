@@ -85,6 +85,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -891,7 +892,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithArrayPrimaryKeyUnsupported() {
         assertThatThrownBy(() -> analyze("create table t (id array(int) primary key)"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use columns of type \"array\" as primary key");
+            .hasMessage("Cannot use columns of type \"integer_array\" as primary key");
     }
 
     @Test
@@ -1722,5 +1723,17 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("ALTER TABLE users SET (refresh_interval = null)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot set NULL to property refresh_interval.");
+    }
+
+    @Test
+    public void test_create_nested_array_column() throws Exception {
+        BoundCreateTable createTable = analyze("create table tbl (x int[][])");
+        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        IntArrayList pKeysIndices = new IntArrayList();
+        createTable.analyzedTableElements().collectReferences(createTable.tableIdent(), references, pKeysIndices, true);
+        ColumnIdent x = new ColumnIdent("x");
+        assertThat(references).containsKeys(x);
+        Reference xRef = references.get(x);
+        assertThat(xRef).isReference("x", new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 }

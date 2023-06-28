@@ -22,15 +22,16 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTableAddColumnPlan.validate;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import org.junit.Test;
+
+import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.data.Row;
 import io.crate.planner.PlannerContext;
@@ -40,8 +41,6 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -131,7 +130,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         assertThatThrownBy(() -> analyze("alter table users add column newpk array(string) primary key"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use columns of type \"array\" as primary key");
+            .hasMessage("Cannot use columns of type \"text_array\" as primary key");
     }
 
     @Test

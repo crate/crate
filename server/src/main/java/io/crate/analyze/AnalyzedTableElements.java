@@ -375,29 +375,18 @@ public class AnalyzedTableElements<T> {
 
         // check for optional defined type and add `cast` to expression if possible
         if (!definedType.equals(DataTypes.UNDEFINED) && !definedType.equals(valueType)) {
-            final DataType<?> columnDataType;
-            if (ArrayType.NAME.equals(columnDefinitionWithExpressionSymbols.collectionType())) {
-                columnDataType = new ArrayType<>(definedType);
-            } else {
-                columnDataType = definedType;
-            }
-            if (!valueType.isConvertableTo(columnDataType, false)) {
+            if (!valueType.isConvertableTo((DataType<?>) definedType, false)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "expression value type '%s' not supported for conversion to '%s'",
-                    valueType, columnDataType.getName())
+                    valueType, definedType.getName())
                 );
             }
 
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType);
+            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType);
             function = castFunction;
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
-            if (valueType instanceof ArrayType) {
-                columnDefinitionEvaluated.collectionType(ArrayType.NAME);
-                columnDefinitionEvaluated.dataType(ArrayType.unnest(valueType));
-            } else {
-                columnDefinitionEvaluated.dataType(valueType);
-            }
+            columnDefinitionEvaluated.dataType(valueType);
             formattedExpression = function.toString(Style.UNQUALIFIED);
         }
         formattedExpressionConsumer.accept(formattedExpression);
@@ -417,9 +406,6 @@ public class AnalyzedTableElements<T> {
                                           IntArrayList pKeysIndices,
                                           boolean bound) {
         DataType<?> type = columnDefinition.dataType();
-        DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
-            ? new ArrayType<>(type)
-            : type;
 
         if (columnDefinition.sources().isEmpty() == false) {
             // Add a dummy entry to preserve the order/position
@@ -430,7 +416,7 @@ public class AnalyzedTableElements<T> {
                 var ref = new SimpleReference(
                     new ReferenceIdent(relationName, columnDefinition.ident()),
                     RowGranularity.DOC,
-                    realType,
+                    type,
                     columnDefinition.columnPolicy(),
                     IndexType.PLAIN,
                     true,
@@ -454,7 +440,7 @@ public class AnalyzedTableElements<T> {
             Float distError = (Float) geoMap.get("distance_error_pct");
             ref = new GeoReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                realType,
+                type,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 IndexType.PLAIN,
                 isNullable,
@@ -471,7 +457,7 @@ public class AnalyzedTableElements<T> {
             ref = new IndexReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
-                realType,
+                type,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
@@ -485,7 +471,7 @@ public class AnalyzedTableElements<T> {
             ref = new SimpleReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
-                realType,
+                type,
                 columnDefinition.columnPolicy(),
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
@@ -601,7 +587,7 @@ public class AnalyzedTableElements<T> {
                 if (!tableElements.columnIdents.contains(columnIdent)) {
                     throw new ColumnUnknownException(columnIdent, relationName);
                 }
-                if (!DataTypes.STRING.equals(tableElements.columnTypes.get(columnIdent))) {
+                if (!DataTypes.STRING.equals(ArrayType.unnest(tableElements.columnTypes.get(columnIdent)))) {
                     throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
                 }
             }
