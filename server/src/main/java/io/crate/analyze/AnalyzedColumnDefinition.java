@@ -33,9 +33,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.common.annotations.VisibleForTesting;
@@ -552,10 +551,6 @@ public class AnalyzedColumnDefinition<T> {
 
     boolean hasNotNullConstraint() {
         return isNotNull;
-    }
-
-    Map<String, Object> toMetaIndicesMapping() {
-        return Map.of();
     }
 
     @Override
