@@ -92,24 +92,23 @@ None
 Changes
 =======
 
-- Improved the partition filtering logic to also narrow partitions if the
-  partition is based on a generated column using the :ref:`date_bin <date-bin>`
-  scalar.
+SQL Statements
+--------------
 
 - Extended the :ref:`EXPLAIN <ref-explain>` statement output to include the
   estimated row count in the output of the execution plan. The statement also
   has now options for `ANALYZE` and `COSTS` to have better control on
   the generated output plan.
 
-- Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
-  :ref:`numeric data types <data-types-numeric>`,
-  :ref:`timestamp <type-timestamp>` and
-  :ref:`timestamp with timezone`<type-timestamp-with-tz>`.
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
 
-- Updated Lucene to 9.6.0
+- Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
+  deprecated.
 
-- Added support for :ref:`AVG() aggregation <aggregation-avg>` on
-  :ref:`INTERVAL data type <type-interval>`.
+- Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
+  compliance with the SQL2023 standard. Extended the aggregations to support any
+  type.
 
 - Changed literal :ref:`INTERVAL data type <type-interval>` to do normalization
   up to day units, and comply with PostgreSQL behavior, e.g.::
@@ -120,6 +119,44 @@ Changes
     +------------------------------+
     | 1 mon 47 days 16:30:43       |
     +------------------------------+
+
+- Added ``attgenerated`` column to ``pg_catalog.pg_attribute`` table which
+  returns ``''`` (empty string) for normal columns and ``'s'`` for
+  :ref:`generated columns <ddl-generated-columns>`.
+
+- Added the ``pg_catalog.pg_cursors`` table to expose open cursors.
+
+- Added the
+  :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
+  read-only session setting for improved compatibility with PostgreSQL clients.
+
+- Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
+  ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
+
+  e.g.::
+
+    SELECT * FROM test OFFSET CAST(? AS long) LIMIT '20'::int
+
+
+- Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
+  expressions of type ``INTERVAL``.
+
+- Added support for setting session settings via a ``"options"`` property in the
+  startup message for PostgreSQL wire protocol clients.
+
+  An example for JDBC::
+
+    Properties props = new Properties();
+    props.setProperty("options", "-c statement_timeout=90000");
+    Connection conn = DriverManager.getConnection(url, props);
+
+- Added support for underscores in numeric literals. Example::
+
+    SELECT 1_000_000;
+
+- Added support for updating arrays by elements, e.g.::
+
+    UPDATE t SET a[1] = 2 WHERE id = 1;
 
 - Array comparisons like ``= ANY`` will now automatically unnest the array
   argument to the required dimensions.
@@ -132,67 +169,47 @@ Changes
     cr> SELECT [1] = ANY([ [1, 2], [3, 4] ]); -- no unnesting
     False
 
+Scalar and Aggregation Functions
+--------------------------------
+
+- Added support for :ref:`AVG() aggregation <aggregation-avg>` on
+  :ref:`INTERVAL data type <type-interval>`.
 
 - Added a :ref:`array_unnest <scalar-array_unnest>` scalar function.
 
-- Updated the bundled JDK to 20.0.1+9
-
-- Added support for setting session settings via a ``"options"`` property in the
-  startup message for PostgreSQL wire protocol clients.
-
-  An example for JDBC::
-
-    Properties props = new Properties();
-    props.setProperty("options", "-c statement_timeout=90000");
-    Connection conn = DriverManager.getConnection(url, props);
-
 - Added a :ref:`btrim <scalar-btrim>` scalar function.
 
-- Added support for underscores in numeric literals. Example::
+- Added :ref:`array_set <scalar-array_set>` scalar function.
 
-    SELECT 1_000_000;
+Performance and Resilience Improvements
+---------------------------------------
+
+- Improved the partition filtering logic to also narrow partitions if the
+  partition is based on a generated column using the :ref:`date_bin <date-bin>`
+  scalar.
+
+- Improved ``COPY FROM`` retry logic to retry with a delay which increases
+  exponentially on temporary network timeout and general network errors.
+
+Data Types
+----------
+
+- Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
+  :ref:`numeric data types <data-types-numeric>`,
+  :ref:`timestamp <type-timestamp>` and
+  :ref:`timestamp with timezone`<type-timestamp-with-tz>`.
+
+Administration and Operations
+-----------------------------
 
 - Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
   setting and :ref:`cluster setting <statement_timeout>` that allows to set a
   timeout for queries.
 
-- Added ``any_value`` as an alias to the ``arbitrary`` aggregation function, for
-  compliance with the SQL2023 standard. Extended the aggregations to support any
-  type.
-
-- Added support for ``ORDER BY``, ``MAX``, ``MIN`` and comparison operators on
-  expressions of type ``INTERVAL``.
-
-- Improved ``COPY FROM`` retry logic to retry with a delay which increases
-  exponentially on temporary network timeout and general network errors.
-
-- Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
-  deprecated.
-
-- Added ``attgenerated`` column to ``pg_catalog.pg_attribute`` table which
-  returns ``''`` (empty string) for normal columns and ``'s'`` for
-  :ref:`generated columns <ddl-generated-columns>`.
-
-- Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
-  ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
-
-  e.g.::
-
-    SELECT * FROM test OFFSET CAST(? AS long) LIMIT '20'::int
-
-- Added the ``pg_catalog.pg_cursors`` table to expose open cursors.
-
-- Added the
-  :ref:`standard_conforming_strings <conf-session-standard_conforming_strings>`
-  read-only session setting for improved compatibility with PostgreSQL clients.
-
 - The severity of the node checks on the metadata gateway recovery settings
   has been lowered from `HIGH` to `MEDIUM` as leaving these to default
   or suboptimal values does not translate into data corruption or loss.
 
-- Added :ref:`array_set <scalar-array_set>` scalar function.
-
-- Added support for updating arrays by elements.
 
 Fixes
 =====
