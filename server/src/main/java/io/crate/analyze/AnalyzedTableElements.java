@@ -374,7 +374,7 @@ public class AnalyzedTableElements<T> {
         }
 
         // check for optional defined type and add `cast` to expression if possible
-        if (definedType != null && !definedType.equals(valueType)) {
+        if (!definedType.equals(DataTypes.UNDEFINED) && !definedType.equals(valueType)) {
             final DataType<?> columnDataType;
             if (ArrayType.NAME.equals(columnDefinitionWithExpressionSymbols.collectionType())) {
                 columnDataType = new ArrayType<>(definedType);
@@ -416,7 +416,7 @@ public class AnalyzedTableElements<T> {
                                           Set<String> primaryKeys,
                                           IntArrayList pKeysIndices,
                                           boolean bound) {
-        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
+        DataType<?> type = columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
