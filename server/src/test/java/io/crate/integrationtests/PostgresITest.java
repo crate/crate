@@ -1122,6 +1122,31 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_insert_array_in_simple_query_mode() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("preferQueryMode", "simple");
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                    "CREATE TABLE t (" +
+                    "   ints array(int)) " +
+                    "WITH (number_of_replicas = 0)");
+
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                    "INSERT INTO t (ints) VALUES (?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int", new Integer[]{1, 2}));
+            preparedStatement.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT ints FROM t");
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Integer[]{1, 2});
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
+
+    }
 
     private long getNumQueriesFromJobsLogs() {
         long result = 0;

@@ -99,21 +99,21 @@ public class TestStatementBuilder {
 
     @Test
     public void testMultipleStatements() {
-        List<Statement> statements = SqlParser.createStatements("BEGIN; END;");
+        List<Statement> statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END;", str -> str);
         assertThat(statements).hasSize(2);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
         assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
-        statements = SqlParser.createStatements("BEGIN; END");
+        statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END", str -> str);
         assertThat(statements).hasSize(2);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
         assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
-        statements = SqlParser.createStatements("BEGIN");
+        statements = SqlParser.createStatementsForSimpleQuery("BEGIN", str -> str);
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
 
-        statements = SqlParser.createStatements("SET extra_float_digits = 3");
+        statements = SqlParser.createStatementsForSimpleQuery("SET extra_float_digits = 3", str -> str);
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
     }

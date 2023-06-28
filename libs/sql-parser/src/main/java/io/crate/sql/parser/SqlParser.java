@@ -25,7 +25,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
@@ -74,16 +77,27 @@ public class SqlParser {
         return INSTANCE.generateStatement(sql);
     }
 
-    public static List<Statement> createStatements(String sql) {
-        return ((MultiStatement) INSTANCE.generateStatements(sql)).statements();
+
+    public static List<Statement> createStatementsForSimpleQuery(String sql, Function<String, Object> stringLiteralParser) {
+        return ((MultiStatement) INSTANCE.invokeParser(
+                "statements",
+                sql,
+                SqlBaseParser::statements,
+                str -> (Expression) INSTANCE.invokeParser(
+                        "parameterOrLiteral",
+                        String.format(Locale.ENGLISH, "%s", stringLiteralParser.apply(str)),
+                        SqlBaseParser::parameterOrLiteral,
+                        null
+                )
+        )).statements();
     }
 
     private Statement generateStatements(String sql) {
-        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements);
+        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements, null);
     }
 
     private Statement generateStatement(String sql) {
-        return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement);
+        return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement, null);
     }
 
     public static Expression createExpression(String expression) {
@@ -91,10 +105,13 @@ public class SqlParser {
     }
 
     private Expression generateExpression(String expression) {
-        return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression);
+        return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression, null);
     }
 
-    private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction) {
+    private Node invokeParser(String name,
+                              String sql,
+                              Function<SqlBaseParser, ParserRuleContext> parseFunction,
+                              @Nullable Function<String, Expression> parseStringLiteral) {
         try {
             SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql, name)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -123,7 +140,7 @@ public class SqlParser {
                 tree = parseFunction.apply(parser);
             }
 
-            return new AstBuilder().visit(tree);
+            return new AstBuilder(parseStringLiteral).visit(tree);
         } catch (StackOverflowError e) {
             throw new ParsingException(name + " is too large (stack overflow while parsing)");
         }
