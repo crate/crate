@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -118,55 +117,6 @@ public class AnalyzedTableElements<T> {
         this.ftSourcesMap = ftSourcesMap;
     }
 
-
-    public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
-        final Map<String, Object> mapping = new HashMap<>();
-        final Map<String, Object> meta = new HashMap<>();
-        final Map<String, Object> properties = new HashMap<>(elements.columns.size());
-
-        Map<String, String> generatedColumns = new HashMap<>();
-
-        for (AnalyzedColumnDefinition<Object> column : elements.columns) {
-            properties.put(column.name(), AnalyzedColumnDefinition.toMapping(column));
-            addToGeneratedColumns("", column, generatedColumns);
-        }
-
-        if (!elements.partitionedByColumns.isEmpty()) {
-            meta.put("partitioned_by", elements.partitionedBy());
-        }
-        if (!primaryKeys(elements).isEmpty()) {
-            meta.put("primary_keys", primaryKeys(elements));
-        }
-        if (!generatedColumns.isEmpty()) {
-            meta.put("generated_columns", generatedColumns);
-        }
-        if (!notNullColumns(elements).isEmpty()) {
-            Map<String, Object> constraints = new HashMap<>();
-            constraints.put("not_null", notNullColumns(elements));
-            meta.put("constraints", constraints);
-        }
-        if (!elements.checkConstraints.isEmpty()) {
-            meta.put("check_constraints", elements.checkConstraints);
-        }
-
-        mapping.put("_meta", meta);
-        mapping.put("properties", properties);
-
-        return mapping;
-    }
-
-    private static void addToGeneratedColumns(String columnPrefix,
-                                              AnalyzedColumnDefinition<Object> column,
-                                              Map<String, String> generatedColumns) {
-        String generatedExpression = column.formattedGeneratedExpression();
-        if (generatedExpression != null) {
-            generatedColumns.put(columnPrefix + column.name(), generatedExpression);
-        }
-        for (AnalyzedColumnDefinition<Object> child : column.children()) {
-            addToGeneratedColumns(columnPrefix + column.name() + '.', child, generatedColumns);
-        }
-    }
-
     public <U> AnalyzedTableElements<U> map(Function<? super T, ? extends U> mapper) {
         List<U> additionalPrimaryKeys = new ArrayList<>(this.additionalPrimaryKeys.size());
         for (T p : this.additionalPrimaryKeys) {
@@ -239,33 +189,6 @@ public class AnalyzedTableElements<T> {
         columnTypes.put(column.ident(), column.dataType());
         for (AnalyzedColumnDefinition<T> child : column.children()) {
             expandColumn(child);
-        }
-    }
-
-    static Set<String> notNullColumns(AnalyzedTableElements<Object> elements) {
-        if (elements.notNullColumns == null) {
-            elements.notNullColumns = new HashSet<>();
-            for (AnalyzedColumnDefinition<Object> column : elements.columns) {
-                addNotNullFromChildren(column, elements);
-            }
-        }
-        return elements.notNullColumns;
-    }
-
-    /**
-     * Recursively add all not null constraints from child columns (object columns)
-     */
-    private static void addNotNullFromChildren(AnalyzedColumnDefinition<Object> parentColumn, AnalyzedTableElements<Object> elements) {
-        LinkedList<AnalyzedColumnDefinition<Object>> childColumns = new LinkedList<>();
-        childColumns.add(parentColumn);
-
-        while (!childColumns.isEmpty()) {
-            AnalyzedColumnDefinition<Object> column = childColumns.remove();
-            String fqn = column.ident().fqn();
-            if (column.hasNotNullConstraint() && !primaryKeys(elements).contains(fqn)) { // Columns part of pk are implicitly not null
-                elements.notNullColumns.add(fqn);
-            }
-            childColumns.addAll(column.children());
         }
     }
 

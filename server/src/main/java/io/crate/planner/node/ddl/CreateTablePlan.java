@@ -21,6 +21,16 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Function;
+
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedTableElements;
@@ -53,15 +63,6 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.PartitionedBy;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.function.Function;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class CreateTablePlan implements Plan {
 
@@ -227,7 +228,7 @@ public class CreateTablePlan implements Plan {
         }
     }
 
-    private static boolean hasColumnDefinition(AnalyzedTableElements tableElements, ColumnIdent columnIdent) {
+    private static boolean hasColumnDefinition(AnalyzedTableElements<?> tableElements, ColumnIdent columnIdent) {
         return (tableElements.columnIdents().contains(columnIdent) ||
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
