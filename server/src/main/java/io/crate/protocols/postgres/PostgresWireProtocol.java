@@ -41,13 +41,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SSLSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
@@ -65,6 +65,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.SqlFormatter;
@@ -770,7 +771,13 @@ public class PostgresWireProtocol {
 
         List<Statement> statements;
         try {
-            statements = SqlParser.createStatements(queryString);
+            statements = SqlParser.createStatementsForSimpleQuery(
+                    queryString,
+                    str -> PgArrayParser.parse(
+                            str,
+                            bytes -> new String(bytes, StandardCharsets.UTF_8)
+                    )
+                );
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), ex);
             sendReadyForQuery(channel, TransactionState.IDLE);

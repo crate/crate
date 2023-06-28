@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.RandomAccess;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
@@ -250,6 +251,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     private static final String TABLE = "TABLE";
     private static final String VIEW = "VIEW";
 
+    @Nullable
+    private final Function<String, Expression> parseStringLiteral;
+
+    public AstBuilder(@Nullable Function<String, Expression> parseStringLiteral) {
+        this.parseStringLiteral = parseStringLiteral;
+    }
 
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
@@ -2079,7 +2086,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
         if (context.STRING() != null) {
-            return new StringLiteral(unquote(context.STRING().getText()));
+            var text = unquote(context.STRING().getText());
+            if (parseStringLiteral != null) {
+                try {
+                    return parseStringLiteral.apply(text);
+                } catch (Exception e) {
+                    return new StringLiteral(text);
+                }
+            }
+            return new StringLiteral(text);
         }
         return visitDollarQuotedStringLiteral(context.dollarQuotedStringLiteral());
     }
