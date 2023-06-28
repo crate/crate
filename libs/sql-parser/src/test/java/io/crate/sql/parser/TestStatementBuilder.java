@@ -49,6 +49,8 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
@@ -83,6 +85,8 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.sql.tree.SetStatement;
@@ -1988,12 +1992,17 @@ public class TestStatementBuilder {
             statement instanceof DropTable ||
             statement instanceof DropBlobTable ||
             statement instanceof DropView ||
+            statement instanceof CreateRepository ||
             statement instanceof DropRepository ||
+            statement instanceof CreateSnapshot ||
             statement instanceof DropSnapshot ||
+            statement instanceof RestoreSnapshot ||
             statement instanceof Update ||
             statement instanceof Insert ||
             statement instanceof Explain ||
             statement instanceof SetSessionAuthorizationStatement ||
+            statement instanceof SetStatement ||
+            statement instanceof ResetStatement ||
             statement instanceof Window ||
             statement instanceof CreatePublication ||
             statement instanceof DropPublication ||

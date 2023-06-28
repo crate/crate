@@ -57,6 +57,7 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
@@ -106,10 +107,13 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
+import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
@@ -580,10 +584,15 @@ public final class SqlFormatter {
             builder.append(formatQualifiedName(node.getName()));
             if (!node.partitionProperties().isEmpty()) {
                 builder.append(" PARTITION (");
-                for (Assignment assignment : node.partitionProperties()) {
+                var it = node.partitionProperties().iterator();
+                while (it.hasNext()) {
+                    Assignment<?> assignment = it.next();
                     builder.append(assignment.columnName().toString());
                     builder.append("=");
                     builder.append(assignment.expression().toString());
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
                 }
                 builder.append(")");
             }
@@ -969,6 +978,19 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitCreateRepository(CreateRepository<?> node, Integer indent) {
+            builder.append("CREATE REPOSITORY ")
+                    .append(quoteIdentifierIfNeeded(node.repository()))
+                    .append(" TYPE ")
+                    .append(node.type());
+            if (!node.properties().isEmpty()) {
+                builder.append(" ");
+                node.properties().accept(this, indent);
+            }
+            return null;
+        }
+
+        @Override
         public Void visitDropRepository(DropRepository node, Integer indent) {
             builder.append("DROP REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.name()));
@@ -982,7 +1004,7 @@ public final class SqlFormatter {
             if (!node.tables().isEmpty()) {
                 builder.append(" TABLE ");
                 int count = 0, max = node.tables().size();
-                for (Table table : node.tables()) {
+                for (Table<?> table : node.tables()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }
@@ -995,6 +1017,28 @@ public final class SqlFormatter {
             }
             return null;
         }
+
+        @Override
+        public Void visitRestoreSnapshot(RestoreSnapshot<?> node, Integer indent) {
+            builder.append("RESTORE SNAPSHOT ")
+                    .append(formatQualifiedName(node.name()));
+            if (!node.tables().isEmpty()) {
+                builder.append(" TABLE ");
+                int count = 0, max = node.tables().size();
+                for (Table<?> table : node.tables()) {
+                    table.accept(this, indent);
+                    if (++count < max) builder.append(",");
+                }
+            } else {
+                builder.append(" ALL");
+            }
+            if (!node.properties().isEmpty()) {
+                builder.append(' ');
+                node.properties().accept(this, indent);
+            }
+            return null;
+        }
+
 
         @Override
         public Void visitDropTable(DropTable<?> node, Integer indent) {
@@ -1242,6 +1286,55 @@ public final class SqlFormatter {
                 .append(node.scope())
                 .append(" SESSION AUTHORIZATION ")
                 .append(user != null ? quoteIdentifierIfNeeded(user) : "DEFAULT");
+            return null;
+        }
+
+        @Override
+        public Void visitSetStatement(SetStatement<?> node, Integer indent) {
+            builder
+                    .append("SET ")
+                    .append(node.scope())
+                    .append(" ");
+            if (node.scope() == SetStatement.Scope.GLOBAL) {
+                builder.append(node.settingType())
+                        .append(" ");
+            }
+            var it = node.assignments().iterator();
+            while (it.hasNext()) {
+                var assignment = (Assignment<Expression>) it.next();
+                assignment.columnName().accept(this, indent);
+                append(indent, "=");
+
+                if (assignment.expressions().size() > 0) {
+                    var expr_it = assignment.expressions().iterator();
+                    while (expr_it.hasNext()) {
+                        expr_it.next().accept(this, indent);
+                        if (expr_it.hasNext()) {
+                            append(indent, ", ");
+                        }
+                    }
+                } else {
+                    append(indent, "DEFAULT");
+                }
+
+                if (it.hasNext()) {
+                    builder.append(", ");
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitResetStatement(ResetStatement<?> node, Integer indent) {
+            builder.append("RESET GLOBAL ");
+            var it = node.columns().iterator();
+            while (it.hasNext()) {
+                var column = (Expression) it.next();
+                column.accept(this, indent);
+                if (it.hasNext()) {
+                    builder.append(", ");
+                }
+            }
             return null;
         }
 
