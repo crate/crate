@@ -220,3 +220,5 @@ Fixes
 
 - Added validation to prevent creation of invalid nested array columns via
   ``INSERT INTO`` and dynamic column policy.
+
+- Fixed parsing of ``ARRAY`` literals in PostgreSQL ``simple`` query mode.
