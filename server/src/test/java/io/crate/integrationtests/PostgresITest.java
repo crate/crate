@@ -1160,7 +1160,23 @@ public class PostgresITest extends IntegTestCase {
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
+    }
 
+    @Test
+    public void test_original_query_appears_in_jobs_log() throws Exception {
+        var properties = new Properties();
+        properties.setProperty("user", "crate");
+        properties.setProperty("preferQueryMode", "simple");
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            var stmt = "SET timezone = 'Europe/Berlin'";
+            conn.createStatement().execute(stmt);
+
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT stmt FROM sys.jobs_log ORDER BY ended DESC LIMIT 1");
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getString(1)).isEqualTo(stmt);
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
     }
 
     private long getNumQueriesFromJobsLogs() {
