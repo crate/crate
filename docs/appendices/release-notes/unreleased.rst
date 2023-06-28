@@ -226,3 +226,13 @@ Fixes
 - Fixed value of ``sys.jobs_log.stmt`` for various statements when issued via
   the PostgreSQL ``simple`` query mode by using the original query string
   instead of the statements string representation.
+
+- Fixed an issue that could cause errors for queries with aggregations,
+  ``UNION`` and ``LIMIT``, e.g. ::
+
+    SELECT a, avg(c), b FROM t1 GROUP BY 1, 3
+    UNION
+    SELECT x, avg(z), y FROM t2 GROUP BY 1, 3
+    UNION
+    SELECT i, avg(k), j FROM t3 GROUP BY 1, 3
+    LIMIT 10

@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -77,9 +76,9 @@ public class ProjectSet extends ForwardingLogicalPlan {
         while (true) {
             List<Function> childTableFunctions = tableFunctions.stream()
                 .flatMap(func -> func.arguments().stream())
-                .filter(arg -> arg instanceof Function && ((Function) arg).signature().getKind() == FunctionType.TABLE)
+                .filter(arg -> arg instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE)
                 .map(x -> (Function) x)
-                .collect(Collectors.toList());
+                .toList();
 
             if (childTableFunctions.isEmpty()) {
                 break;
@@ -90,8 +89,8 @@ public class ProjectSet extends ForwardingLogicalPlan {
         LogicalPlan result = source;
         for (int i = nestedFunctions.size() - 1; i >= 0; i--) {
             List<Symbol> standalone = result.outputs().stream()
-                .filter(x -> !(x instanceof Function && ((Function) x).signature().getKind() == FunctionType.TABLE))
-                .collect(Collectors.toList());
+                .filter(x -> !(x instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE))
+                .toList();
             result = new ProjectSet(result, nestedFunctions.get(i), standalone);
         }
         return result;
@@ -150,7 +149,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new HashSet<>();
+        HashSet<Symbol> toKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
