@@ -62,6 +62,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.SqlFormatter;
@@ -733,7 +734,13 @@ public class PostgresWireProtocol {
 
         List<Statement> statements;
         try {
-            statements = SqlParser.createStatements(queryString);
+            statements = SqlParser.createStatementsForSimpleQuery(
+                    queryString,
+                    str -> PgArrayParser.parse(
+                            str,
+                            bytes -> new String(bytes, StandardCharsets.UTF_8)
+                    )
+                );
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), ex);
             sendReadyForQuery(channel, TransactionState.IDLE);
