@@ -265,7 +265,8 @@ public class TableElementsAnalyzer {
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
                 context.analyzedColumnDefinition.indexConstraint(IndexType.NONE);
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
-                setGeoType((GenericProperties<T>) node.properties(), context, node.indexMethod());
+                context.analyzedColumnDefinition.geoTree(node.indexMethod());
+                context.analyzedColumnDefinition.geoProperties((GenericProperties<T>) node.properties());
             } else {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
@@ -308,11 +309,6 @@ public class TableElementsAnalyzer {
         public Void visitColumnStorageDefinition(ColumnStorageDefinition<?> node, ColumnDefinitionContext<T> context) {
             context.analyzedColumnDefinition.setStorageProperties((GenericProperties<T>) node.properties());
             return null;
-        }
-
-        private void setGeoType(GenericProperties<T> properties, ColumnDefinitionContext<T> context, String indexMethod) {
-            context.analyzedColumnDefinition.geoTree(indexMethod);
-            context.analyzedColumnDefinition.geoProperties(properties);
         }
 
         private void setAnalyzer(GenericProperties<T> properties,
