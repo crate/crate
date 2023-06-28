@@ -70,7 +70,7 @@ public class AnalyzedColumnDefinition<T> {
     @Nullable
     private GenericProperties<T> geoProperties;
 
-    private IndexType indexType;
+    private IndexType indexType = IndexType.PLAIN;
     @Nullable
     private T analyzer;
     private String indexMethod;
@@ -233,12 +233,12 @@ public class AnalyzedColumnDefinition<T> {
         this.indexMethod = indexMethod;
     }
 
-    public void indexConstraint(IndexType indexType) {
+    public void indexType(IndexType indexType) {
+        assert indexType != null : "IndexType must not be null";
         this.indexType = indexType;
     }
 
-    @Nullable
-    public IndexType indexConstraint() {
+    public IndexType indexType() {
         return indexType;
     }
 
@@ -382,7 +382,7 @@ public class AnalyzedColumnDefinition<T> {
                 DataTypes.STRING.getName()
             ));
         }
-        if (indexType != null && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
+        if (indexType != IndexType.PLAIN && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
