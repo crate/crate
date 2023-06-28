@@ -120,7 +120,8 @@ public interface LogicalPlan extends Plan {
      * <p>
      *  Note that `outputsToKeep` can contain scalars on top of the outputs that the "current" operator outputs.
      *  This doesn't mean that the operator has to pull-down the scalar as well, but it means it has to provide all outputs
-     *  that are required by the parent.
+     *  that are required by the parent. The new pruned outputs should be in the same original order, to avoid errors
+     *  regarding {@link Union} (which requires the order to be kept), or introduction of unnecessary {@link Eval} operators.
      *  Using {@link io.crate.expression.symbol.SymbolVisitors#intersection(Symbol, Collection, Consumer)} is an option
      *  To find the outputs required by the parent.
      * </p>
@@ -146,6 +147,10 @@ public interface LogicalPlan extends Plan {
      *  If there are no outputs to prune and if the source also didn't change, `this` must be returned.
      *  That allows implementations to do a cheap identity check to avoid LogicalPlan re-creations themselves.
      * </p>
+     *
+     * @param outputsToKeep The collection should provide those outputs in the same original order, to avoid errors
+     *                      regarding {@link Union} (which requires the order to be kept), or introduction of
+     *                      unnecessary {@link Eval} operators.
      */
     LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep);
 
