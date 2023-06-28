@@ -442,7 +442,7 @@ public class AnalyzedTableElements<T> {
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 type,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
-                IndexType.PLAIN,
+                columnDefinition.indexType(),
                 isNullable,
                 -1,
                 (Symbol) columnDefinition.defaultExpression(),
@@ -459,7 +459,7 @@ public class AnalyzedTableElements<T> {
                 RowGranularity.DOC,
                 type,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
-                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
+                columnDefinition.indexType(),
                 isNullable,
                 columnDefinition.docValues(),
                 -1,
@@ -473,7 +473,7 @@ public class AnalyzedTableElements<T> {
                 RowGranularity.DOC,
                 type,
                 columnDefinition.columnPolicy(),
-                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
+                columnDefinition.indexType(),
                 isNullable,
                 columnDefinition.docValues(),
                 -1,
@@ -523,7 +523,7 @@ public class AnalyzedTableElements<T> {
                 RowGranularity.DOC,
                 DataTypes.STRING,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
-                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN,
+                columnDefinition.indexType(),
                 !columnDefinition.hasNotNullConstraint(),
                 columnDefinition.docValues(),
                 -1,
@@ -674,13 +674,13 @@ public class AnalyzedTableElements<T> {
 
 
         }
-        if (columnDefinition.indexConstraint() == IndexType.FULLTEXT) {
+        if (columnDefinition.indexType() == IndexType.FULLTEXT) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                                                              columnDefinition.ident().sqlFqn()));
         }
         elements.columnIdents.remove(columnDefinition.ident());
-        columnDefinition.indexConstraint(IndexType.NONE);
+        columnDefinition.indexType(IndexType.NONE);
         elements.partitionedByColumns.add(columnDefinition);
     }
 

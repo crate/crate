@@ -255,9 +255,9 @@ public class TableElementsAnalyzer {
             if (node.indexMethod().equals("fulltext")) {
                 setAnalyzer((GenericProperties<T>) node.properties(), context, node.indexMethod());
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.indexConstraint(IndexType.PLAIN);
+                context.analyzedColumnDefinition.indexType(IndexType.PLAIN);
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.indexConstraint(IndexType.NONE);
+                context.analyzedColumnDefinition.indexType(IndexType.NONE);
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
                 context.analyzedColumnDefinition.geoTree(node.indexMethod());
                 context.analyzedColumnDefinition.geoProperties((GenericProperties<T>) node.properties());
@@ -308,7 +308,7 @@ public class TableElementsAnalyzer {
         private void setAnalyzer(GenericProperties<T> properties,
                                  ColumnDefinitionContext<T> context,
                                  String indexMethod) {
-            context.analyzedColumnDefinition.indexConstraint(IndexType.FULLTEXT);
+            context.analyzedColumnDefinition.indexType(IndexType.FULLTEXT);
 
             T analyzerName = properties.get("analyzer");
             if (analyzerName == null) {
