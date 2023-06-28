@@ -71,7 +71,7 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
 
         assertThat(objectColumnType.parameters()).isEmpty();
         assertThat(objectColumnType.nestedColumns()).isEmpty();
-        assertThat(objectColumnType.objectType()).isNotEmpty()
+        assertThat(objectColumnType.columnPolicy()).isNotEmpty()
             .get().as("columnPolicy").satisfies(columnPolicyMatcher);
         return this;
     }
@@ -85,7 +85,7 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
 
         assertThat(objectColumnType.parameters()).isEmpty();
         assertThat(objectColumnType.nestedColumns()).satisfies(nestedColumnsMatcher);
-        assertThat(objectColumnType.objectType()).isNotEmpty()
+        assertThat(objectColumnType.columnPolicy()).isNotEmpty()
             .get().as("columnPolicy").satisfies(columnPolicyMatcher);
         return this;
     }

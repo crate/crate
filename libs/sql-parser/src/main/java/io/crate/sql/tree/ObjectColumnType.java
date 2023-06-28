@@ -21,27 +21,28 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Lists2;
+
 public class ObjectColumnType<T> extends ColumnType<T> {
 
-    private final Optional<ColumnPolicy> objectType;
+    private final Optional<ColumnPolicy> columnPolicy;
     private final List<ColumnDefinition<T>> nestedColumns;
 
-    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition<T>> nestedColumns) {
+    public ObjectColumnType(@Nullable String columnPolicy, List<ColumnDefinition<T>> nestedColumns) {
         super("object");
-        this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
+        this.columnPolicy = columnPolicy == null ? Optional.empty() : Optional.of(ColumnPolicy.of(columnPolicy));
         this.nestedColumns = nestedColumns;
     }
 
-    public Optional<ColumnPolicy> objectType() {
-        return objectType;
+    public Optional<ColumnPolicy> columnPolicy() {
+        return columnPolicy;
     }
 
     public List<ColumnDefinition<T>> nestedColumns() {
@@ -56,8 +57,8 @@ public class ObjectColumnType<T> extends ColumnType<T> {
     @Override
     public <U> ObjectColumnType<U> map(Function<? super T, ? extends U> mapper) {
         String objectTypeString = null;
-        if (objectType.isPresent()) {
-            objectTypeString = objectType.get().lowerCaseName();
+        if (columnPolicy.isPresent()) {
+            objectTypeString = columnPolicy.get().lowerCaseName();
         }
         return new ObjectColumnType<>(
             objectTypeString,
@@ -70,8 +71,8 @@ public class ObjectColumnType<T> extends ColumnType<T> {
                                             Function<? super T, ? extends U> mapper) {
         ObjectColumnType<U> mappedObjectType = (ObjectColumnType<U>) mappedType;
         String objectTypeString = null;
-        if (objectType.isPresent()) {
-            objectTypeString = objectType.get().lowerCaseName();
+        if (columnPolicy.isPresent()) {
+            objectTypeString = columnPolicy.get().lowerCaseName();
         }
         ArrayList<ColumnDefinition<U>> nestedMappedColumns = new ArrayList<>(nestedColumns.size());
         for (int i = 0; i < nestedColumns.size(); i++) {
@@ -99,7 +100,7 @@ public class ObjectColumnType<T> extends ColumnType<T> {
 
         ObjectColumnType that = (ObjectColumnType) o;
 
-        if (!objectType.equals(that.objectType)) {
+        if (!columnPolicy.equals(that.columnPolicy)) {
             return false;
         }
         return nestedColumns.equals(that.nestedColumns);
@@ -108,7 +109,7 @@ public class ObjectColumnType<T> extends ColumnType<T> {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + objectType.hashCode();
+        result = 31 * result + columnPolicy.hashCode();
         result = 31 * result + nestedColumns.hashCode();
         return result;
     }

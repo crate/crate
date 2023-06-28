@@ -191,7 +191,7 @@ public class TableElementsAnalyzer {
             ObjectColumnType<T> objectColumnType = (ObjectColumnType<T>) node;
             DataType<?> type = DataTypeAnalyzer.convert(node);
             context.analyzedColumnDefinition.dataType(type);
-            context.analyzedColumnDefinition.columnPolicy(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
+            context.analyzedColumnDefinition.columnPolicy(objectColumnType.columnPolicy().orElse(ColumnPolicy.DYNAMIC));
             for (int i = 0; i < objectColumnType.nestedColumns().size(); i++) {
                 ColumnDefinition<T> columnDefinition = objectColumnType.nestedColumns().get(i);
                 ColumnDefinitionContext<T> childContext = new ColumnDefinitionContext<>(
