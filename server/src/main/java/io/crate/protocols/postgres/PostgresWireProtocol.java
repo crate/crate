@@ -68,7 +68,6 @@ import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -785,20 +784,14 @@ public class PostgresWireProtocol {
         }
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
-            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, channel));
+            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, queryString, channel));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
-    private CompletableFuture<?> handleSingleQuery(Statement statement, DelayableWriteChannel channel) {
+    private CompletableFuture<?> handleSingleQuery(Statement statement, String query, DelayableWriteChannel channel) {
         CompletableFuture<?> result = new CompletableFuture<>();
 
-        String query;
-        try {
-            query = SqlFormatter.formatSql(statement);
-        } catch (Exception e) {
-            query = statement.toString();
-        }
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
             session.analyze("", statement, Collections.emptyList(), query);
