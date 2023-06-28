@@ -106,6 +106,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
+import io.crate.planner.optimizer.rule.ReorderJoins;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
@@ -156,7 +157,8 @@ public class LogicalPlanner {
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
         new ReorderHashJoin(),
-        new ReorderNestedLoopJoin()
+        new ReorderNestedLoopJoin(),
+        new ReorderJoins()
     );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(

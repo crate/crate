@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.joinorder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,9 +105,12 @@ public class Graph {
         return nodesById.get(i);
     }
 
-    public Collection<Edge> getEdges(LogicalPlan node)
-    {
-        return List.copyOf(edges.get(node.id()));
+    public Collection<Edge> getEdges(LogicalPlan node) {
+        var result = edges.get(node.id());
+        if (result == null) {
+            return null;
+        }
+        return result;
     }
 
 
@@ -165,6 +169,8 @@ public class Graph {
             return resolved.accept(this, context);
         }
 
+        //TODO Handle filters
+
         @Override
         public Graph visitNestedLoopJoin(NestedLoopJoin joinPlan, Map<Symbol, LogicalPlan> context) {
             return visitJoin(joinPlan, context);
@@ -196,12 +202,25 @@ public class Graph {
                             var to = context.get(toSymbol);
                             assert from != null & to != null :
                                 "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
-                            edges.put(context.get(fromSymbol).id(), Set.of(new Edge(from, fromSymbol, to, toSymbol)));
+                            var edge = new Edge(from, fromSymbol, to, toSymbol);
+                            insertEdge(edges, from.id(), edge);
+                            insertEdge(edges, to.id(), edge);
                         }
                     }
                 }
             }
             return left.joinWith(joinPlan, right, edges);
+        }
+
+        private static void insertEdge(Map<Integer, Set<Edge>> edges, Integer id, Edge edge) {
+            var fromResult = edges.get(id);
+            if (fromResult == null) {
+                edges.put(id, Set.of(edge));
+            } else {
+                var update = new HashSet<>(fromResult);
+                update.add(edge);
+                edges.put(id, update);
+            }
         }
 
         @Override

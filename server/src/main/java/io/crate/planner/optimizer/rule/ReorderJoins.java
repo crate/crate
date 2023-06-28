@@ -83,10 +83,8 @@ public class ReorderJoins implements Rule<JoinPlan> {
                 priorities.put(graph.nodeByPosition(i).id(), i);
             }
 
-            PriorityQueue<LogicalPlan> nodesToVisit = new PriorityQueue<>(
-                graph.size(),
-                comparing(node -> priorities.get(node.id())));
-            Set<LogicalPlan> visited = new HashSet<>();
+            var nodesToVisit = new PriorityQueue<LogicalPlan>(graph.size(), comparing(node -> priorities.get(node.id())));
+            var visited = new HashSet<LogicalPlan>();
 
             nodesToVisit.add(graph.nodeByPosition(0));
 
@@ -110,7 +108,7 @@ public class ReorderJoins implements Rule<JoinPlan> {
                     }
                 }
             }
-            assert visited.size() == graph.size() : "Invalid state, every node has to be visited";
+            assert visited.size() == graph.size() : "Invalid state, each node needs to be visited";
             return joinOrder;
         }
 
@@ -131,6 +129,7 @@ public class ReorderJoins implements Rule<JoinPlan> {
                         if (alreadyJoinedNodes.contains(targetNode.id())) {
                             var fromVariable = edge.fromVariable();
                             var toVariable = edge.toVariable();
+                            System.out.println("toVariable = " + toVariable);
                             // TODO rebuld equi-joins
                         }
                     }
@@ -140,7 +139,7 @@ public class ReorderJoins implements Rule<JoinPlan> {
                         result,
                         rightNode,
                         JoinType.INNER,
-                        null, // JoinCondition goes here,
+                        null, //TODO JoinCondition goes here
                         false,
                         null,
                         false,
