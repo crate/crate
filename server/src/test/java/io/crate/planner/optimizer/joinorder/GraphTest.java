@@ -66,8 +66,8 @@ public class GraphTest extends CrateDummyClusterServiceUnitTest {
         var edges = joinGraph.edges().get(lhs.id());
         assertThat(edges).hasSize(1);
         var edge = getOnlyElement(edges);
-        assertThat(edge.from).containsExactly(lhs.id());
-        assertThat(edge.to).containsExactly(rhs.id());
+        assertThat(edge.from().id()).isEqualTo(lhs.id());
+        assertThat(edge.to().id()).isEqualTo(rhs.id());
     }
 
     /*
@@ -103,15 +103,15 @@ public class GraphTest extends CrateDummyClusterServiceUnitTest {
         assertThat(edges).hasSize(1);
         var edge = getOnlyElement(edges);
         // `a.x = b.y` creates a edge from a to b
-        assertThat(edge.from).containsExactly(a.id());
-        assertThat(edge.to).containsExactly(b.id());
+        assertThat(edge.from().id()).isEqualTo(a.id());
+        assertThat(edge.to().id()).isEqualTo(b.id());
 
         // `b.y = c.z` creates a edge from b to c
         edges = joinGraph.edges().get(b.id());
         assertThat(edges).hasSize(1);
         edge = getOnlyElement(edges);
-        assertThat(edge.from).containsExactly(b.id());
-        assertThat(edge.to).containsExactly(c.id());
+        assertThat(edge.from().id()).isEqualTo(b.id());
+        assertThat(edge.to().id()).isEqualTo(c.id());
 
     }
 }

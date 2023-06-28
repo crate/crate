@@ -22,13 +22,17 @@
 package io.crate.planner.optimizer.joinorder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.planner.operators.Collect;
@@ -43,15 +47,20 @@ public class Graph {
 
     private final LogicalPlan root;
     private final List<LogicalPlan> nodes;
-    private final Map<Integer, Set<HyperEdge>> edges;
+    private final Map<Integer, LogicalPlan> nodesById;
+    private final Map<Integer, Set<Edge>> edges;
 
-    public Graph(LogicalPlan root, List<LogicalPlan> nodes, Map<Integer, Set<HyperEdge>> edges) {
+    public Graph(LogicalPlan root, List<LogicalPlan> nodes, Map<Integer, Set<Edge>> edges) {
         this.root = root;
-        this.nodes = nodes;
         this.edges = edges;
+        this.nodes = nodes;
+        this.nodesById = new HashMap<>();
+        for (LogicalPlan node : nodes) {
+            this.nodesById.put(node.id(), node);
+        }
     }
 
-    public Graph joinWith(LogicalPlan root, Graph other, Map<Integer, Set<HyperEdge>> moreEdges) {
+    public Graph joinWith(LogicalPlan root, Graph other, Map<Integer, Set<Edge>> moreEdges) {
         for (LogicalPlan node : other.nodes) {
             assert !edges.containsKey(node) : "Nodes can not be in both graphs";
         }
@@ -60,7 +69,7 @@ public class Graph {
         newNodes.addAll(nodes);
         newNodes.addAll(other.nodes);
 
-        var newEdges = new HashMap<Integer, Set<HyperEdge>>();
+        var newEdges = new HashMap<Integer, Set<Edge>>();
         newEdges.putAll(edges);
         newEdges.putAll(other.edges);
         newEdges.putAll(moreEdges);
@@ -73,7 +82,7 @@ public class Graph {
         return nodes;
     }
 
-    public Map<Integer, Set<HyperEdge>> edges() {
+    public Map<Integer, Set<Edge>> edges() {
         return edges;
     }
 
@@ -81,17 +90,53 @@ public class Graph {
         return root;
     }
 
-    public static class HyperEdge {
-        public final Set<Integer> from;
-        public final Set<Integer> to;
+    public int size() {
+        return nodes.size();
+    }
 
-        public HyperEdge(Set<Integer> left, Set<Integer> right) {
-            this.from = left;
-            this.to = right;
+    @Nullable
+    public LogicalPlan nodeByPosition(int i) {
+        return nodes.get(i);
+    }
+
+    @Nullable
+    public LogicalPlan nodeById(int i) {
+        return nodesById.get(i);
+    }
+
+    public Collection<Edge> getEdges(LogicalPlan node)
+    {
+        return List.copyOf(edges.get(node.id()));
+    }
+
+
+    public static class Edge {
+        private final Symbol fromVariable;
+        private final Symbol toVariable;
+        private final LogicalPlan from;
+        private final LogicalPlan to;
+
+        public Edge(LogicalPlan from, Symbol fromVariable, LogicalPlan to, Symbol toVariable) {
+            this.from = from;
+            this.to = to;
+            this.fromVariable = fromVariable;
+            this.toVariable = toVariable;
         }
 
-        boolean isSimple() {
-            return from.size() == 1 && to.size() == 1;
+        public LogicalPlan from() {
+            return from;
+        }
+
+        public LogicalPlan to() {
+            return to;
+        }
+
+        public Symbol fromVariable() {
+            return fromVariable;
+        }
+
+        public Symbol toVariable() {
+            return toVariable;
         }
     }
 
@@ -138,18 +183,21 @@ public class Graph {
             assert joinCondition != null : "Join condition cannot be null to build graph";
 
             // find equi-join conditions such as `a.x = b.y` and create edges
+            // TODO deal with the rest of the filters such as `a.x >= 1`
             var split = QuerySplitter.split(joinCondition);
-            var edges = new HashMap<Integer, Set<HyperEdge>>();
+            var edges = new HashMap<Integer, Set<Edge>>();
             for (var entry : split.entrySet()) {
                 if (entry.getKey().size() == 2) {
                     if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
-                        var a = f.arguments().get(0);
-                        var b = f.arguments().get(1);
-                        var from = context.get(a);
-                        var to = context.get(b);
-                        assert from != null & to != null :
-                            "Invalid join condition to build a graph " + joinCondition.toString(Style.QUALIFIED);
-                        edges.put(context.get(a).id(), Set.of(new HyperEdge(Set.of(from.id()), Set.of(to.id()))));
+                        if (f.name().equals(EqOperator.NAME)) {
+                            var fromSymbol = f.arguments().get(0);
+                            var toSymbol = f.arguments().get(1);
+                            var from = context.get(fromSymbol);
+                            var to = context.get(toSymbol);
+                            assert from != null & to != null :
+                                "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
+                            edges.put(context.get(fromSymbol).id(), Set.of(new Edge(from, fromSymbol, to, toSymbol)));
+                        }
                     }
                 }
             }
