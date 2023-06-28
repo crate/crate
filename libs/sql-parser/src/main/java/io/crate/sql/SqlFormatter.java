@@ -78,6 +78,7 @@ import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Fetch;
+import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
@@ -125,7 +126,6 @@ import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
-import io.crate.sql.tree.Fetch.ScrollMode;
 
 public final class SqlFormatter {
 
@@ -794,9 +794,9 @@ public final class SqlFormatter {
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             ObjectColumnType<Expression> objectColumnType = node;
             builder.append("OBJECT");
-            if (objectColumnType.objectType().isPresent()) {
+            if (objectColumnType.columnPolicy().isPresent()) {
                 builder.append('(');
-                builder.append(objectColumnType.objectType().get().name());
+                builder.append(objectColumnType.columnPolicy().get().name());
                 builder.append(')');
             }
             if (!objectColumnType.nestedColumns().isEmpty()) {
