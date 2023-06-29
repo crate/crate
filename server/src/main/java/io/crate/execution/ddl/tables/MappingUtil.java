@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +38,9 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -46,25 +49,56 @@ import io.crate.types.ObjectType;
 
 public class MappingUtil {
 
+    public static class AllocPosition {
+
+        private final ToIntFunction<ColumnIdent> getExistingPosition;
+        private int nextPosition;
+
+        /**
+         * Important: The table must be based on the _latest_ cluster state, retrieved from within a clusterState update routine.
+         */
+        public static AllocPosition forTable(DocTableInfo table) {
+            return new AllocPosition(table.maxPosition(), column -> {
+                var reference = table.getReference(column);
+                return reference == null ? -1 : reference.position();
+            });
+        }
+
+        public static AllocPosition forNewTable() {
+            return new AllocPosition(0, column -> -1);
+        }
+
+        private AllocPosition(int maxPosition, ToIntFunction<ColumnIdent> getExistingPosition) {
+            this.getExistingPosition = getExistingPosition;
+            this.nextPosition = maxPosition + 1;
+        }
+
+        public int position(ColumnIdent column) {
+            int position = getExistingPosition.applyAsInt(column);
+            if (position < 0) {
+                return nextPosition++;
+            }
+            return position;
+        }
+    }
+
     /**
      * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
      */
-    public static Map<String, Object> createMapping(List<Reference> columns,
+    public static Map<String, Object> createMapping(AllocPosition allocPosition,
+                                                    List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
-                                                    Map<String, Object> indices,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable String routingColumn) {
-
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(null, tree);
+        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
-
         Map<String, Object> meta = new HashMap<>();
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
@@ -75,6 +109,12 @@ public class MappingUtil {
             mapping.put(ES_MAPPING_NAME, ColumnPolicies.encodeMappingValue(tableColumnPolicy));
         }
 
+        Map<String, Object> indices = new HashMap<>();
+        for (Reference column : columns) {
+            if (column instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
+                indices.put(column.column().name(), Map.of());
+            }
+        }
         if (indices.isEmpty() == false) {
             meta.put("indices", indices);
         }
@@ -108,21 +148,24 @@ public class MappingUtil {
 
      */
     @Nullable
-    private static Map<String, Map<String, Object>> createPropertiesMap(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
+                                                                        @Nullable ColumnIdent currentNode,
+                                                                        HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
+            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree));
         }
         return allColumnsMap;
     }
 
-    private static Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
-
-        Map<String, Object> leafProperties = reference.toMapping();
+    private static Map<String, Object> addColumnProperties(AllocPosition position,
+                                                           Reference reference,
+                                                           HashMap<ColumnIdent, List<Reference>> tree) {
+        Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()));
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
         while (valueType instanceof ArrayType arrayType) {
@@ -133,14 +176,17 @@ public class MappingUtil {
             properties = arrayMapping;
         }
         if (valueType.id() == ObjectType.ID) {
-            objectMapping(leafProperties, reference, tree);
+            objectMapping(position, leafProperties, reference, tree);
         }
         return properties;
     }
 
-    private static void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
+    private static void objectMapping(AllocPosition position,
+                                      Map<String, Object> propertiesMap,
+                                      Reference reference,
+                                      HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

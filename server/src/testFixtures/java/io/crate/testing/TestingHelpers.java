@@ -39,8 +39,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -49,12 +49,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.BoundCreateTable;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -66,11 +60,15 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.jetbrains.annotations.Nullable;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
+import io.crate.analyze.BoundCreateTable;
 import io.crate.common.collections.Sorted;
 import io.crate.data.Row;
+import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.operator.OperatorModule;
@@ -87,6 +85,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
@@ -420,10 +420,10 @@ public class TestingHelpers {
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
 
         return createMapping(
+            MappingUtil.AllocPosition.forNewTable(),
             new ArrayList<>(references.values()),
             pKeysIndices,
             boundCreateTable.analyzedTableElements().getCheckConstraints(),
-            boundCreateTable.analyzedTableElements().indicesMap(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
             boundCreateTable.routingColumn()

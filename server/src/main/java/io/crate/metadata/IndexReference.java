@@ -30,16 +30,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 
@@ -117,11 +116,11 @@ public class IndexReference extends SimpleReference {
         }
     }
 
-    public IndexReference(int position,
-                          ReferenceIdent ident,
-                          IndexType indexType,
-                          List<Reference> columns,
-                          @Nullable String analyzer) {
+    IndexReference(int position,
+                   ReferenceIdent ident,
+                   IndexType indexType,
+                   List<Reference> columns,
+                   @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, false, position, null);
         this.columns = columns;
         this.analyzer = analyzer;
@@ -193,7 +192,7 @@ public class IndexReference extends SimpleReference {
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
         for (Reference reference : columns) {
-            Reference.toStream(reference, out);
+            Reference.toStream(out, reference);
         }
     }
 
@@ -215,8 +214,8 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
         }

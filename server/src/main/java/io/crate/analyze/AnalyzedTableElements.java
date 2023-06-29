@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,11 +33,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -82,7 +79,6 @@ public class AnalyzedTableElements<T> {
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
     private Map<String, String> checkConstraints = new LinkedHashMap<>();
-    private Map<String, Object> indicesMap = new HashMap<>();
     private List<List<String>> partitionedBy;
     private int numGeneratedColumns = 0;
 
@@ -119,58 +115,6 @@ public class AnalyzedTableElements<T> {
         this.numGeneratedColumns = numGeneratedColumns;
         this.additionalPrimaryKeys = additionalPrimaryKeys;
         this.ftSourcesMap = ftSourcesMap;
-    }
-
-
-    public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
-        final Map<String, Object> mapping = new HashMap<>();
-        final Map<String, Object> meta = new HashMap<>();
-        final Map<String, Object> properties = new HashMap<>(elements.columns.size());
-
-        Map<String, String> generatedColumns = new HashMap<>();
-
-        for (AnalyzedColumnDefinition<Object> column : elements.columns) {
-            properties.put(column.name(), AnalyzedColumnDefinition.toMapping(column));
-            addToGeneratedColumns("", column, generatedColumns);
-        }
-
-        if (!elements.partitionedByColumns.isEmpty()) {
-            meta.put("partitioned_by", elements.partitionedBy());
-        }
-        if (!elements.indicesMap.isEmpty()) {
-            meta.put("indices", elements.indicesMap());
-        }
-        if (!primaryKeys(elements).isEmpty()) {
-            meta.put("primary_keys", primaryKeys(elements));
-        }
-        if (!generatedColumns.isEmpty()) {
-            meta.put("generated_columns", generatedColumns);
-        }
-        if (!notNullColumns(elements).isEmpty()) {
-            Map<String, Object> constraints = new HashMap<>();
-            constraints.put("not_null", notNullColumns(elements));
-            meta.put("constraints", constraints);
-        }
-        if (!elements.checkConstraints.isEmpty()) {
-            meta.put("check_constraints", elements.checkConstraints);
-        }
-
-        mapping.put("_meta", meta);
-        mapping.put("properties", properties);
-
-        return mapping;
-    }
-
-    private static void addToGeneratedColumns(String columnPrefix,
-                                              AnalyzedColumnDefinition<Object> column,
-                                              Map<String, String> generatedColumns) {
-        String generatedExpression = column.formattedGeneratedExpression();
-        if (generatedExpression != null) {
-            generatedColumns.put(columnPrefix + column.name(), generatedExpression);
-        }
-        for (AnalyzedColumnDefinition<Object> child : column.children()) {
-            addToGeneratedColumns(columnPrefix + column.name() + '.', child, generatedColumns);
-        }
     }
 
     public <U> AnalyzedTableElements<U> map(Function<? super T, ? extends U> mapper) {
@@ -245,33 +189,6 @@ public class AnalyzedTableElements<T> {
         columnTypes.put(column.ident(), column.dataType());
         for (AnalyzedColumnDefinition<T> child : column.children()) {
             expandColumn(child);
-        }
-    }
-
-    static Set<String> notNullColumns(AnalyzedTableElements<Object> elements) {
-        if (elements.notNullColumns == null) {
-            elements.notNullColumns = new HashSet<>();
-            for (AnalyzedColumnDefinition<Object> column : elements.columns) {
-                addNotNullFromChildren(column, elements);
-            }
-        }
-        return elements.notNullColumns;
-    }
-
-    /**
-     * Recursively add all not null constraints from child columns (object columns)
-     */
-    private static void addNotNullFromChildren(AnalyzedColumnDefinition<Object> parentColumn, AnalyzedTableElements<Object> elements) {
-        LinkedList<AnalyzedColumnDefinition<Object>> childColumns = new LinkedList<>();
-        childColumns.add(parentColumn);
-
-        while (!childColumns.isEmpty()) {
-            AnalyzedColumnDefinition<Object> column = childColumns.remove();
-            String fqn = column.ident().fqn();
-            if (column.hasNotNullConstraint() && !primaryKeys(elements).contains(fqn)) { // Columns part of pk are implicitly not null
-                elements.notNullColumns.add(fqn);
-            }
-            childColumns.addAll(column.children());
         }
     }
 
@@ -359,9 +276,6 @@ public class AnalyzedTableElements<T> {
 
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns()) {
             AnalyzedColumnDefinition.validateAndComputeDocValues(column);
-            if (column.isIndexColumn()) {
-                tableElementsEvaluated.indicesMap().put(column.name(), column.toMetaIndicesMapping());
-            }
         }
     }
 
@@ -409,7 +323,6 @@ public class AnalyzedTableElements<T> {
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
             buildDedicatedIndexReference(relationName, columnDefinition, target);
         }
-
     }
 
     private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
@@ -461,7 +374,7 @@ public class AnalyzedTableElements<T> {
         }
 
         // check for optional defined type and add `cast` to expression if possible
-        if (definedType != null && !definedType.equals(valueType)) {
+        if (!definedType.equals(DataTypes.UNDEFINED) && !definedType.equals(valueType)) {
             final DataType<?> columnDataType;
             if (ArrayType.NAME.equals(columnDefinitionWithExpressionSymbols.collectionType())) {
                 columnDataType = new ArrayType<>(definedType);
@@ -503,16 +416,33 @@ public class AnalyzedTableElements<T> {
                                           Set<String> primaryKeys,
                                           IntArrayList pKeysIndices,
                                           boolean bound) {
-
-        if (columnDefinition.sources().isEmpty() == false) {
-            // Skip dedicated index columns so that they are not added to references map here
-            return;
-        }
-
-        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
+        DataType<?> type = columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
+
+        if (columnDefinition.sources().isEmpty() == false) {
+            // Add a dummy entry to preserve the order/position
+            // The real index reference (with correct properties) is created in a second pass
+            // after all references are present to ensure the index-reference can resolve its sources if there are forward references, e.g.:
+            // CREATE TABLE tbl (INDEX ft USING FULLTEXT (other_column), other_column text)
+            if (!references.containsKey(columnDefinition.ident())) {
+                var ref = new SimpleReference(
+                    new ReferenceIdent(relationName, columnDefinition.ident()),
+                    RowGranularity.DOC,
+                    realType,
+                    columnDefinition.columnPolicy(),
+                    IndexType.PLAIN,
+                    true,
+                    columnDefinition.docValues(),
+                    -1,
+                    (Symbol) columnDefinition.defaultExpression()
+                );
+                references.put(columnDefinition.ident(), ref);
+            }
+            return;
+        }
+
 
         Reference ref;
         boolean isNullable = !columnDefinition.hasNotNullConstraint();
@@ -522,14 +452,13 @@ public class AnalyzedTableElements<T> {
                 GeoSettingsApplier.applySettings(geoMap, columnDefinition.geoProperties(), columnDefinition.geoTree());
             }
             Float distError = (Float) geoMap.get("distance_error_pct");
-            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new GeoReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 realType,
                 ColumnPolicy.STRICT, // Irrelevant for non-object field value, non-null to not break streaming.
                 IndexType.PLAIN,
                 isNullable,
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression(),
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
@@ -539,7 +468,6 @@ public class AnalyzedTableElements<T> {
         } else if (bound && columnDefinition.analyzer() != null) {
             // If analyzer is not null, it's a column definition with inlined INDEX definition.
             // Dedicated indices are collected separately after regular references collection.
-            // We need to use "all fields" constructor to make sure we cover all possible options when used in CREATE TABLE
             ref = new IndexReference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
@@ -548,7 +476,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression(),
                 List.of(), // Regular columns with inlined INDEX don't have sources
                 columnDefinition.analyzer()
@@ -558,11 +486,11 @@ public class AnalyzedTableElements<T> {
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 realType,
-                columnDefinition.objectType(),
+                columnDefinition.columnPolicy(),
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
                 isNullable,
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 (Symbol) columnDefinition.defaultExpression()
             );
         }
@@ -612,7 +540,7 @@ public class AnalyzedTableElements<T> {
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN,
                 !columnDefinition.hasNotNullConstraint(),
                 columnDefinition.docValues(),
-                columnDefinition.position(),
+                -1,
                 null, // default expression is irrelevant for INDEX definition
                 sources,
                 columnDefinition.analyzer()
@@ -811,11 +739,6 @@ public class AnalyzedTableElements<T> {
     @VisibleForTesting
     public Map<String, String> getCheckConstraints() {
         return checkConstraints;
-    }
-
-    @NotNull
-    public Map<String, Object> indicesMap() {
-        return indicesMap;
     }
 
     public boolean hasGeneratedColumns() {

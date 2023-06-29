@@ -24,7 +24,17 @@ package io.crate.execution.ddl.tables;
 import static io.crate.analyze.AnalyzedColumnDefinition.typeNameForESMapping;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -34,14 +44,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
 
 public class CreateTableRequestTest {
 
@@ -90,8 +92,7 @@ public class CreateTableRequestTest {
             Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_0).build(),
             "some_routing_col",
             ColumnPolicy.DYNAMIC,
-            partitionedBy,
-            Map.of("fulltext_index_name", Map.of())
+            partitionedBy
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -107,7 +108,6 @@ public class CreateTableRequestTest {
         assertThat(fromStream.routingColumn()).isEqualTo(request.routingColumn());
         assertThat(fromStream.tableColumnPolicy()).isEqualTo(request.tableColumnPolicy());
         assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
-        assertThat(fromStream.indices()).isEqualTo(request.indices());
     }
 
 }

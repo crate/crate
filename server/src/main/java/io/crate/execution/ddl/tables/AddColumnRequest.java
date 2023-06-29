@@ -22,16 +22,14 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -62,58 +60,13 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
-        ReferencesAndConstraints referencesAndConstraints = ReferencesAndConstraints.read(in);
-        this.colsToAdd = referencesAndConstraints.colsToAdd();
-        this.checkConstraints = referencesAndConstraints.checkConstraints();
-        this.pKeyIndices = referencesAndConstraints.pKeyIndices();
-    }
-
-    public record ReferencesAndConstraints(ArrayList<Reference> colsToAdd,
-                                    Map<String, String> checkConstraints,
-                                    IntArrayList pKeyIndices) {
-
-        public static ReferencesAndConstraints read(StreamInput in) throws IOException {
-            int numConstraints = in.readVInt();
-            Map<String, String> checkConstraints = new LinkedHashMap<>();
-            for (int i = 0; i < numConstraints; i++) {
-                String name = in.readString();
-                String expression = in.readString();
-                checkConstraints.put(name, expression);
-            }
-
-            int numColumns = in.readVInt();
-            ArrayList<Reference> colsToAdd = new ArrayList<>(numColumns);
-            for (int i = 0; i < numColumns; i++) {
-                colsToAdd.add(Reference.fromStream(in));
-            }
-
-            int numPKIndices = in.readVInt();
-            IntArrayList pKeyIndices = new IntArrayList(numPKIndices);
-            for (int i = 0; i < numPKIndices; i++) {
-                pKeyIndices.add(in.readVInt());
-            }
-            return new ReferencesAndConstraints(colsToAdd, checkConstraints, pKeyIndices);
-        }
-    }
-
-    public static void writeReferencesAndConstraints(StreamOutput out,
-                                                     Map<String, String> checkConstraints,
-                                                     List<Reference> colsToAdd,
-                                                     IntArrayList pKeyIndices) throws IOException {
-        out.writeVInt(checkConstraints.size());
-        for (var entry : checkConstraints.entrySet()) {
-            out.writeString(entry.getKey());
-            out.writeString(entry.getValue());
-        }
-
-        out.writeVInt(colsToAdd.size());
-        for (int i = 0; i < colsToAdd.size(); i++) {
-            Reference.toStream(colsToAdd.get(i), out);
-        }
-
-        out.writeVInt(pKeyIndices.size());
-        for (int i = 0; i < pKeyIndices.size(); i++) {
-            out.writeVInt(pKeyIndices.get(i));
+        this.checkConstraints = in.readMap(
+            LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
+        this.colsToAdd = in.readList(Reference::fromStream);
+        int numPKIndices = in.readVInt();
+        this.pKeyIndices = new IntArrayList(numPKIndices);
+        for (int i = 0; i < numPKIndices; i++) {
+            pKeyIndices.add(in.readVInt());
         }
     }
 
@@ -121,7 +74,12 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        writeReferencesAndConstraints(out, checkConstraints, colsToAdd, pKeyIndices);
+        out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
+        out.writeCollection(colsToAdd, Reference::toStream);
+        out.writeVInt(pKeyIndices.size());
+        for (int i = 0; i < pKeyIndices.size(); i++) {
+            out.writeVInt(pKeyIndices.get(i));
+        }
     }
 
     @NotNull

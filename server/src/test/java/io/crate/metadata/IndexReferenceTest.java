@@ -22,19 +22,20 @@
 package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import io.crate.common.collections.Maps;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import io.crate.common.collections.Maps;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.StringType;
 
 public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -52,7 +53,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(indexReferenceInfo, out);
+        Reference.toStream(out, indexReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
         IndexReference indexReferenceInfo2 = Reference.fromStream(in);
@@ -70,7 +71,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("sources", List.of("title", "description"))
             .containsEntry("analyzer", "stop");

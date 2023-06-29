@@ -71,7 +71,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         generatedReferenceInfo.referencedReferences(List.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(generatedReferenceInfo, out);
+        Reference.toStream(out, generatedReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
         GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
@@ -87,7 +87,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         GeneratedReference generatedReference = new GeneratedReference(simpleRef, formattedGeneratedExpression, null);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(generatedReference, out);
+        Reference.toStream(out, generatedReference);
 
         StreamInput in = out.bytes().streamInput();
         GeneratedReference generatedReference2 = Reference.fromStream(in);

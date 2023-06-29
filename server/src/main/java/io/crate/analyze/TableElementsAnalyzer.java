@@ -69,13 +69,10 @@ public class TableElementsAnalyzer {
                                                        @Nullable TableInfo tableInfo,
                                                        boolean isAddColumn) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = isAddColumn ? 0 : (tableInfo == null ? 0 : tableInfo.columns().size());
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
         for (int i = 0; i < tableElements.size(); i++) {
             TableElement<T> tableElement = tableElements.get(i);
-            int position = positionOffset + (isAddColumn ? -1 : 1);
             ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
-                position,
                 null,
                 analyzedTableElements,
                 relationName,
@@ -86,7 +83,6 @@ public class TableElementsAnalyzer {
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition, isAddColumn);
             }
-            positionOffset = ctx.currentColumnPosition;
         }
         return analyzedTableElements;
     }
@@ -98,26 +94,15 @@ public class TableElementsAnalyzer {
         final RelationName relationName;
         @Nullable
         final TableInfo tableInfo;
-        int currentColumnPosition;
 
-        ColumnDefinitionContext(int position,
-                                @Nullable AnalyzedColumnDefinition<T> parent,
+        ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition<T> parent,
                                 AnalyzedTableElements<T> analyzedTableElements,
                                 RelationName relationName,
                                 @Nullable TableInfo tableInfo) {
-            this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(position, parent);
+            this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(parent);
             this.analyzedTableElements = analyzedTableElements;
             this.relationName = relationName;
             this.tableInfo = tableInfo;
-            this.currentColumnPosition = position;
-        }
-
-        public void increaseCurrentPosition() {
-            if (currentColumnPosition > 0) {
-                currentColumnPosition++;
-            } else {
-                currentColumnPosition--;
-            }
         }
     }
 
@@ -166,16 +151,14 @@ public class TableElementsAnalyzer {
                     // policy.
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
                     if (parentRef != null) {
-                        parent.position(parentRef.position());
                         if (parentRef.valueType().id() == ArrayType.ID) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
-                            parent.objectType(parentRef.columnPolicy());
+                            parent.columnPolicy(parentRef.columnPolicy());
                         }
                     }
                     parent.markAsParentColumn();
-                    assert context.currentColumnPosition < 0 : "ADD COLUMN's column positions should be negative, representing column ordering";
-                    leaf = new AnalyzedColumnDefinition<>(context.currentColumnPosition, parent);
+                    leaf = new AnalyzedColumnDefinition<>(parent);
                     leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
@@ -210,19 +193,16 @@ public class TableElementsAnalyzer {
         public Void visitObjectColumnType(ObjectColumnType<?> node, ColumnDefinitionContext<T> context) {
             ObjectColumnType<T> objectColumnType = (ObjectColumnType<T>) node;
             context.analyzedColumnDefinition.dataType(objectColumnType.name());
-            context.analyzedColumnDefinition.objectType(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
+            context.analyzedColumnDefinition.columnPolicy(objectColumnType.objectType().orElse(ColumnPolicy.DYNAMIC));
             for (int i = 0; i < objectColumnType.nestedColumns().size(); i++) {
                 ColumnDefinition<T> columnDefinition = objectColumnType.nestedColumns().get(i);
-                context.increaseCurrentPosition();
                 ColumnDefinitionContext<T> childContext = new ColumnDefinitionContext<>(
-                    context.currentColumnPosition,
                     context.analyzedColumnDefinition,
                     context.analyzedTableElements,
                     context.relationName,
                     context.tableInfo
                 );
                 columnDefinition.accept(this, childContext);
-                context.currentColumnPosition = childContext.currentColumnPosition;
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
             }
 
@@ -285,7 +265,8 @@ public class TableElementsAnalyzer {
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
                 context.analyzedColumnDefinition.indexConstraint(IndexType.NONE);
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
-                setGeoType((GenericProperties<T>) node.properties(), context, node.indexMethod());
+                context.analyzedColumnDefinition.geoTree(node.indexMethod());
+                context.analyzedColumnDefinition.geoProperties((GenericProperties<T>) node.properties());
             } else {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
@@ -328,11 +309,6 @@ public class TableElementsAnalyzer {
         public Void visitColumnStorageDefinition(ColumnStorageDefinition<?> node, ColumnDefinitionContext<T> context) {
             context.analyzedColumnDefinition.setStorageProperties((GenericProperties<T>) node.properties());
             return null;
-        }
-
-        private void setGeoType(GenericProperties<T> properties, ColumnDefinitionContext<T> context, String indexMethod) {
-            context.analyzedColumnDefinition.geoTree(indexMethod);
-            context.analyzedColumnDefinition.geoProperties(properties);
         }
 
         private void setAnalyzer(GenericProperties<T> properties,

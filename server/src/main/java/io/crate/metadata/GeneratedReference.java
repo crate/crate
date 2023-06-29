@@ -82,7 +82,7 @@ public class GeneratedReference implements Reference {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
-            Reference.toStream(ref, out);
+            Reference.toStream(out, ref);
         } else {
             if (ref instanceof SimpleReference simpleRef) {
                 simpleRef.writeTo(out);
@@ -110,7 +110,7 @@ public class GeneratedReference implements Reference {
 
         out.writeVInt(referencedReferences.size());
         for (Reference reference : referencedReferences) {
-            Reference.toStream(reference, out);
+            Reference.toStream(out, reference);
         }
     }
 
@@ -269,7 +269,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        return ref.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        return ref.toMapping(position);
     }
 }

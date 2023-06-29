@@ -83,7 +83,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         Reference reference2 = Reference.fromStream(in);
@@ -110,7 +110,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        Reference.toStream(reference, out);
+        Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);
@@ -126,7 +126,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
@@ -144,7 +144,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
@@ -162,7 +162,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                 .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
                 .containsEntry("position", 1)
                 .containsEntry("type", "float")
@@ -180,7 +180,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping();
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")

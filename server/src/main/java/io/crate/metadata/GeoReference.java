@@ -25,9 +25,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.expression.symbol.Symbol;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
@@ -38,8 +35,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -175,8 +174,8 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = super.toMapping();
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         Maps.putNonNull(mapping, "tree", geoTree);
         Maps.putNonNull(mapping, "precision", precision);
         Maps.putNonNull(mapping, "tree_levels", treeLevels);

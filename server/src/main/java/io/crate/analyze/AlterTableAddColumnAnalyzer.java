@@ -182,7 +182,7 @@ class AlterTableAddColumnAnalyzer {
                             new ReferenceIdent(relationName, colIdent),
                             RowGranularity.DOC,
                             matchingNode.dataType(),
-                            matchingNode.position(),
+                            -1,
                             matchingNode.defaultExpression()
                         );
                     }

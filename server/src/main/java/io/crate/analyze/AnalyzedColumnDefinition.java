@@ -21,29 +21,22 @@
 
 package io.crate.analyze;
 
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.common.settings.Settings;
-
-import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataType;
@@ -68,10 +61,9 @@ public class AnalyzedColumnDefinition<T> {
     public static final String COLUMN_STORE_PROPERTY = "columnstore";
 
     private final AnalyzedColumnDefinition<T> parent;
-    private int position;
     private ColumnIdent ident;
     private String name;
-    private DataType<?> dataType;
+    private DataType<?> dataType = DataTypes.UNDEFINED;
     private String collectionType;
 
     private String geoTree;
@@ -85,7 +77,7 @@ public class AnalyzedColumnDefinition<T> {
     private Settings analyzerSettings = Settings.EMPTY;
 
     @VisibleForTesting
-    ColumnPolicy objectType = ColumnPolicy.DYNAMIC;
+    ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
@@ -112,13 +104,11 @@ public class AnalyzedColumnDefinition<T> {
     @Nullable
     private T defaultExpression;
 
-    public AnalyzedColumnDefinition(int position, @Nullable AnalyzedColumnDefinition<T> parent) {
-        this.position = position;
+    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition<T> parent) {
         this.parent = parent;
     }
 
     private AnalyzedColumnDefinition(AnalyzedColumnDefinition<T> parent,
-                                     int position,
                                      ColumnIdent ident,
                                      String name,
                                      DataType<?> dataType,
@@ -127,7 +117,7 @@ public class AnalyzedColumnDefinition<T> {
                                      String geoTree,
                                      T analyzer,
                                      String indexMethod,
-                                     ColumnPolicy objectType,
+                                     ColumnPolicy columnPolicy,
                                      boolean isPrimaryKey,
                                      boolean isNotNull,
                                      Settings analyzerSettings,
@@ -143,7 +133,6 @@ public class AnalyzedColumnDefinition<T> {
                                      @Nullable T defaultExpression,
                                      boolean generated) {
         this.parent = parent;
-        this.position = position;
         this.ident = ident;
         this.name = name;
         this.dataType = dataType;
@@ -152,7 +141,7 @@ public class AnalyzedColumnDefinition<T> {
         this.geoTree = geoTree;
         this.analyzer = analyzer;
         this.indexMethod = indexMethod;
-        this.objectType = objectType;
+        this.columnPolicy = columnPolicy;
         this.isPrimaryKey = isPrimaryKey;
         this.isNotNull = isNotNull;
         this.analyzerSettings = analyzerSettings;
@@ -173,7 +162,6 @@ public class AnalyzedColumnDefinition<T> {
     public <U> AnalyzedColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
         return new AnalyzedColumnDefinition<>(
             parent == null ? null : (AnalyzedColumnDefinition<U>) parent,   // parent is expected to be mapped already
-            position,
             ident,
             name,
             dataType,
@@ -182,7 +170,7 @@ public class AnalyzedColumnDefinition<T> {
             geoTree,
             analyzer == null ? null : mapper.apply(analyzer),
             indexMethod,
-            objectType,
+            columnPolicy,
             isPrimaryKey,
             isNotNull,
             analyzerSettings,
@@ -228,14 +216,6 @@ public class AnalyzedColumnDefinition<T> {
         } else {
             this.ident = ColumnIdent.fromNameSafe(name, List.of());
         }
-    }
-
-    public int position() {
-        return position;
-    }
-
-    public void position(int position) {
-        this.position = position;
     }
 
     public void analyzer(T analyzer) {
@@ -292,17 +272,16 @@ public class AnalyzedColumnDefinition<T> {
         this.dataType = DataTypes.of(typeName, parameters);
     }
 
-    @SuppressWarnings("rawtypes")
-    public DataType dataType() {
+    public DataType<?> dataType() {
         return this.dataType;
     }
 
-    void objectType(ColumnPolicy objectType) {
-        this.objectType = objectType;
+    void columnPolicy(ColumnPolicy objectType) {
+        this.columnPolicy = objectType;
     }
 
-    public ColumnPolicy objectType() {
-        return this.objectType;
+    public ColumnPolicy columnPolicy() {
+        return this.columnPolicy;
     }
 
     void collectionType(String type) {
@@ -460,78 +439,11 @@ public class AnalyzedColumnDefinition<T> {
         return name;
     }
 
-    static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
-        Map<String, Object> mapping = new HashMap<>();
-        String analyzer = definition.analyzer();
-        addTypeOptions(mapping, definition.dataType, definition.geoProperties, definition.geoTree, analyzer);
-        mapping.put("type", AnalyzedColumnDefinition.typeNameForESMapping(definition.dataType, analyzer, definition.isIndex));
-
-        assert definition.position != 0 : "position should not be 0";
-        mapping.put("position", definition.position);
-
-        if (definition.indexType == IndexType.NONE) {
-            // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
-            mapping.put("index", false);
-        }
-
-
-        if (definition.sources.isEmpty() == false) {
-            mapping.put("sources", definition.sources);
-        }
-
-        if (definition.docValues() != definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType)) {
-            // definition.docValues falls back to default if not specified.
-            // If computed value is non-default it means doc values are supported but disabled.
-            mapping.put(DOC_VALUES, "false");
-        }
-
-        if (definition.formattedDefaultExpression != null) {
-            mapping.put("default_expr", definition.formattedDefaultExpression);
-        }
-
-        if ("array".equals(definition.collectionType)) {
-            Map<String, Object> outerMapping = new HashMap<>();
-            outerMapping.put("type", "array");
-            if (definition.dataType().id() == ObjectType.ID) {
-                objectMapping(mapping, definition);
-            }
-            outerMapping.put("inner", mapping);
-            return outerMapping;
-        } else if (definition.dataType().id() == ObjectType.ID) {
-            objectMapping(mapping, definition);
-        }
-
-        return mapping;
-    }
-
     public static String typeNameForESMapping(DataType<?> dataType, @Nullable String analyzer, boolean isIndex) {
         if (StringType.ID == dataType.id()) {
             return analyzer == null && !isIndex ? "keyword" : "text";
         }
         return DataTypes.esMappingNameFrom(dataType.id());
-    }
-
-    public static void addTypeOptions(Map<String, Object> mapping,
-                                      DataType<?> dataType,
-                                      @Nullable GenericProperties<?> geoProperties,
-                                      @Nullable String geoTree,
-                                      @Nullable String analyzer) {
-        dataType.addMappingOptions(mapping);
-        if (analyzer != null) {
-            mapping.put("analyzer", analyzer);
-        }
-        if (geoProperties != null) {
-            GeoSettingsApplier.applySettings(mapping, geoProperties, geoTree);
-        }
-    }
-
-    private static void objectMapping(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
-        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(definition.objectType));
-        Map<String, Object> childProperties = new HashMap<>();
-        for (AnalyzedColumnDefinition<Object> child : definition.children) {
-            childProperties.put(child.name(), toMapping(child));
-        }
-        mapping.put("properties", childProperties);
     }
 
     public ColumnIdent ident() {
@@ -552,10 +464,6 @@ public class AnalyzedColumnDefinition<T> {
 
     boolean hasNotNullConstraint() {
         return isNotNull;
-    }
-
-    Map<String, Object> toMetaIndicesMapping() {
-        return Map.of();
     }
 
     @Override
@@ -588,12 +496,6 @@ public class AnalyzedColumnDefinition<T> {
 
     void sources(List<String> sources) {
         this.sources = sources;
-    }
-
-    public void ident(ColumnIdent ident) {
-        assert this.ident == null : "ident must be null";
-        this.ident = ident;
-        this.name = ident.leafName();
     }
 
     boolean isArrayOrInArray() {

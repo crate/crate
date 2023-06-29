@@ -25,10 +25,9 @@ import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
+import java.io.IOException;
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -49,8 +48,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Collections;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -164,10 +166,10 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private static PutIndexTemplateRequest toPutIndexTemplateRequest(CreateTableRequest request) {
         var relationName = request.getTableName();
         var mapping = createMapping(
+            AllocPosition.forNewTable(),
             request.references(),
             request.pKeyIndices(),
             request.checkConstraints(),
-            request.indices(),
             request.partitionedBy(),
             request.tableColumnPolicy(),
             request.routingColumn()
@@ -182,10 +184,10 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
     private static CreateIndexRequest toCreateIndexRequest(CreateTableRequest request) {
         var mapping = createMapping(
+            AllocPosition.forNewTable(),
             request.references(),
             request.pKeyIndices(),
             request.checkConstraints(),
-            request.indices(),
             request.partitionedBy(),
             request.tableColumnPolicy(),
             request.routingColumn()

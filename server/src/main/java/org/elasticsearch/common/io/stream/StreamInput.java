@@ -57,8 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
@@ -77,6 +76,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
@@ -580,6 +580,19 @@ public abstract class StreamInput extends InputStream {
             return readStringArray();
         }
         return null;
+    }
+
+    public <K, V> Map<K, V> readMap(Supplier<Map<K, V>> mapFactory,
+                                    Writeable.Reader<K> keyReader,
+                                    Writeable.Reader<V> valueReader) throws IOException {
+        int size = readArraySize();
+        Map<K, V> map = mapFactory.get();
+        for (int i = 0; i < size; i++) {
+            K key = keyReader.read(this);
+            V value = valueReader.read(this);
+            map.put(key, value);
+        }
+        return map;
     }
 
     public <K, V> Map<K, V> readMap(Writeable.Reader<K> keyReader, Writeable.Reader<V> valueReader) throws IOException {

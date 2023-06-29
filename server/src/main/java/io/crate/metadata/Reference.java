@@ -28,11 +28,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -79,10 +78,12 @@ public interface Reference extends Symbol {
      * <p>
      * Note that for object types it does _NOT_ include the inner columns.
      * </p>
+     *
+     * @param position position to use in the mapping
      */
-    Map<String, Object> toMapping();
+    Map<String, Object> toMapping(int position);
 
-    static void toStream(Reference ref, StreamOutput out) throws IOException {
+    static void toStream(StreamOutput out, Reference ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());
         ref.writeTo(out);
     }
