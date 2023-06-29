@@ -49,6 +49,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
@@ -217,7 +218,7 @@ class InsertAnalyzer {
             }
         });
         for (Symbol conflictTarget : conflictTargets) {
-            if (!pkColumnIdents.contains(Symbols.pathFromSymbol(conflictTarget))) {
+            if (!pkColumnIdents.contains(Symbols.pathFromSymbol(conflictTarget, Style.UNQUALIFIED))) {
                 throw new IllegalArgumentException(
                     String.format(
                         Locale.ENGLISH,

@@ -241,7 +241,7 @@ public class CastFunctionTest extends ScalarTestCase {
             DataType<?> randomType = randomType();
             Literal<?> val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
             assertEvaluate(
-                "try_cast(" + val.toString(Style.QUALIFIED) + " as " + dataType.getName() + ")",
+                    "try_cast(" + val.toString(Style.QUALIFIED) + " as " + dataType.getName() + ")",
                 f -> {});
         }
     }

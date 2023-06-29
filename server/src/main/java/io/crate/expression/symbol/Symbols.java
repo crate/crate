@@ -176,7 +176,7 @@ public class Symbols {
         return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 
-    public static ColumnIdent pathFromSymbol(Symbol symbol) {
+    public static ColumnIdent pathFromSymbol(Symbol symbol, Style style) {
         if (symbol instanceof AliasSymbol) {
             return new ColumnIdent(((AliasSymbol) symbol).alias());
         } else if (symbol instanceof ScopedSymbol) {
@@ -184,7 +184,7 @@ public class Symbols {
         } else if (symbol instanceof Reference ref) {
             return ref.column();
         }
-        return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
+        return new ColumnIdent(symbol.toString(style));
     }
 
     public static boolean isDeterministic(Symbol symbol) {
@@ -267,7 +267,7 @@ public class Symbols {
 
     public static ColumnDefinition<Expression> toColumnDefinition(Symbol symbol) {
         return new ColumnDefinition<>(
-            pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            pathFromSymbol(symbol, Style.UNQUALIFIED).sqlFqn(),// allow ObjectTypes to return col name in subscript notation
             null,
             null,
             symbol.valueType().toColumnType(ColumnPolicy.STRICT, null),

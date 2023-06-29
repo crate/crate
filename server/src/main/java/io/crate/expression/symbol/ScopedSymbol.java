@@ -100,6 +100,8 @@ public final class ScopedSymbol implements Symbol {
     public String toString(Style style) {
         if (style == Style.QUALIFIED) {
             return relation.sqlFqn() + '.' + column.quotedOutputName();
+        } else if (style == Style.DISPLAY_COLUMN_NAME) {
+            return column.sqlFqn();
         }
         return column.quotedOutputName();
     }

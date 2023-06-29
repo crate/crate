@@ -37,6 +37,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -435,7 +436,8 @@ public class Messages {
         }
         int idx = 0;
         for (Symbol column : columns) {
-            byte[] nameBytes = Symbols.pathFromSymbol(column).sqlFqn().getBytes(StandardCharsets.UTF_8);
+            byte[] nameBytes = Symbols.pathFromSymbol(column,
+                                                      Style.UNQUALIFIED).sqlFqn().getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 

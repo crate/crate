@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,7 +75,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  idx int," +
             "  s_arr array(text)," +
             "  a array(object as (b object as (c int)))," +
-            "  \"OBJ\" object as (intarray int[])" +
+            "  \"OBJ\" object as (intarray int[])," +
+            "  \"arr\"\"\" int[]" +
             ")";
         RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
@@ -314,6 +316,15 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         ref = sqlExpressions.asSymbol("formatter.\"1a\"");
         assertThat(ref.toString(Style.QUALIFIED)).isEqualTo("doc.formatter.\"1a\"");
         assertThat(ref.toString(Style.UNQUALIFIED)).isEqualTo("\"1a\"");
+    }
+
+    @Test
+    public void test_display_column_name_format() {
+        Symbol ref = sqlExpressions.asSymbol("\"arr\"\"[1]\"");
+        Assertions.assertThat(ref.toString(Style.DISPLAY_COLUMN_NAME)).isEqualTo("arr\"[1]");
+
+        ref = sqlExpressions.asSymbol("formatter.\"arr\"\"[1]\"");
+        Assertions.assertThat(ref.toString(Style.DISPLAY_COLUMN_NAME)).isEqualTo("arr\"[1]");
     }
 
     @Test

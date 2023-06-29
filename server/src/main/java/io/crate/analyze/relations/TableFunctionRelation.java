@@ -89,14 +89,14 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     @Override
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         for (Symbol output : outputs) {
-            ColumnIdent outputColumn = Symbols.pathFromSymbol(output);
+            ColumnIdent outputColumn = Symbols.pathFromSymbol(output, Style.UNQUALIFIED);
             if (column.equals(outputColumn)) {
                 return output;
             }
         }
         ColumnIdent rootColumn = column.getRoot();
         for (Symbol output : outputs) {
-            ColumnIdent outputRoot = Symbols.pathFromSymbol(output).getRoot();
+            ColumnIdent outputRoot = Symbols.pathFromSymbol(output, Style.UNQUALIFIED).getRoot();
             if (output.valueType().id() == ObjectType.ID && rootColumn.equals(outputRoot)) {
                 return SubscriptFunctions.makeObjectSubscript(output, column);
             }

@@ -27,6 +27,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -65,7 +66,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         this.scopedSymbols = new ArrayList<>(relation.outputs().size());
         for (int i = 0; i < relation.outputs().size(); i++) {
             Symbol childOutput = relation.outputs().get(i);
-            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
+            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput, Style.UNQUALIFIED);
             ColumnIdent columnAlias = childColumn;
             if (i < columnAliases.size()) {
                 columnAlias = new ColumnIdent(columnAliases.get(i));
@@ -77,7 +78,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         }
         for (int i = 0; i < relation.hiddenOutputs().size(); i++) {
             Symbol childOutput = relation.hiddenOutputs().get(i);
-            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
+            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput, Style.UNQUALIFIED);
             ColumnIdent columnAlias = childColumn;
             if (i + relation.outputs().size() < columnAliases.size()) {
                 columnAlias = new ColumnIdent(columnAliases.get(i));

@@ -83,6 +83,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.PartitionName;
@@ -178,7 +179,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     private List<String> outputNames(AnalyzedRelation relation) {
-        return Lists2.map(relation.outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn());
+        return Lists2.map(relation.outputs(), x -> Symbols.pathFromSymbol(x, Style.UNQUALIFIED).sqlFqn());
     }
 
     @Test

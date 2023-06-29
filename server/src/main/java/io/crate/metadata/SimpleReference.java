@@ -164,8 +164,11 @@ public class SimpleReference implements Reference {
     public String toString(Style style) {
         if (style == Style.QUALIFIED) {
             return ident.tableIdent().sqlFqn() + '.' + column().quotedOutputName();
+        } else if (style == Style.DISPLAY_COLUMN_NAME) {
+            return column().sqlFqn();
+        } else {
+            return column().quotedOutputName();
         }
-        return column().quotedOutputName();
     }
 
     @Override

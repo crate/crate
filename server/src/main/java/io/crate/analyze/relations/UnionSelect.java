@@ -33,6 +33,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -61,7 +62,7 @@ public class UnionSelect implements AnalyzedRelation {
             DataType<?> type = field.valueType().precedes(rightField.valueType())
                 ? field.valueType()
                 : rightField.valueType();
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
+            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field, Style.UNQUALIFIED), type));
         }
         this.outputs = List.copyOf(outputs);
         this.isDistinct = isDistinct;

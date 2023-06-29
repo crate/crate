@@ -27,6 +27,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -58,7 +59,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         ArrayList<Symbol> outputs = new ArrayList<>(childOutputs.size());
         for (int i = 0; i < childOutputs.size(); i++) {
             var output = childOutputs.get(i);
-            var column = Symbols.pathFromSymbol(output);
+            var column = Symbols.pathFromSymbol(output, Style.UNQUALIFIED);
             outputs.add(new ScopedSymbol(name, column, output.valueType()));
         }
         this.outputSymbols = List.copyOf(outputs);

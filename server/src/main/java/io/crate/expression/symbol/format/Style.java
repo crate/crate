@@ -23,5 +23,6 @@ package io.crate.expression.symbol.format;
 
 public enum Style {
     UNQUALIFIED,
-    QUALIFIED
+    QUALIFIED,
+    DISPLAY_COLUMN_NAME
 }

@@ -226,3 +226,5 @@ Fixes
 - Fixed value of ``sys.jobs_log.stmt`` for various statements when issued via
   the PostgreSQL ``simple`` query mode by using the original query string
   instead of the statements string representation.
+
+- Fixed inconsistent quoting of output column names.

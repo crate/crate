@@ -38,6 +38,7 @@ import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -89,7 +90,8 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
                                                      "from information_schema.tables");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0),
+                                          Style.UNQUALIFIED).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
     @Test
@@ -106,15 +108,15 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         relation = executor.analyze("select crate.doc.t1.a from crate.doc.t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0), Style.UNQUALIFIED).fqn()).isEqualTo("a");
 
         relation = executor.analyze("select crate.doc.t1.a from t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0), Style.UNQUALIFIED).fqn()).isEqualTo("a");
 
         relation = executor.analyze("select t.a from crate.doc.t1 as t");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0), Style.UNQUALIFIED).fqn()).isEqualTo("a");
     }
 
     @Test

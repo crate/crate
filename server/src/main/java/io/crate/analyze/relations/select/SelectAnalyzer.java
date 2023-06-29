@@ -29,6 +29,7 @@ import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.AllColumns;
@@ -115,9 +116,9 @@ public class SelectAnalyzer {
 
         private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             for (Symbol field : relation.outputs()) {
-                var columnIdent = Symbols.pathFromSymbol(field);
+                var columnIdent = Symbols.pathFromSymbol(field, Style.UNQUALIFIED);
                 if (!columnIdent.isSystemColumn()) {
-                    context.add(Symbols.pathFromSymbol(field), field);
+                    context.add(Symbols.pathFromSymbol(field, Style.UNQUALIFIED), field);
                 }
             }
         }

@@ -64,6 +64,7 @@ import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -181,7 +182,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
         for (Symbol field : childRelationFields) {
-            selectAnalysis.add(Symbols.pathFromSymbol(field), field);
+            selectAnalysis.add(Symbols.pathFromSymbol(field, Style.UNQUALIFIED), field);
         }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
@@ -348,7 +349,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (var joinColumn : joinUsing.getColumns()) {
 
             for (var leftOutput : leftOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(leftOutput);
+                var columnIdent = Symbols.pathFromSymbol(leftOutput, Style.UNQUALIFIED);
                 if (columnIdent.name().equals(joinColumn)) {
                     if (lhsOutputs.put(joinColumn, leftOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -363,7 +364,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
 
             for (Symbol rightOutput : rightOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(rightOutput);
+                var columnIdent = Symbols.pathFromSymbol(rightOutput, Style.UNQUALIFIED);
                 if (columnIdent.name().equals(joinColumn)) {
                     if (rhsOutputs.put(joinColumn, rightOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,

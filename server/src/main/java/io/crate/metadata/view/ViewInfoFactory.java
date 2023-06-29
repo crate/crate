@@ -34,6 +34,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -71,7 +72,8 @@ public class ViewInfoFactory {
             int position = 1;
             for (var field : relation.outputs()) {
                 collectedColumns.add(
-                    new SimpleReference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field).sqlFqn()),
+                    new SimpleReference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field,
+                                                                                         Style.UNQUALIFIED).sqlFqn()),
                                   RowGranularity.DOC,
                                   field.valueType(),
                                   position++,

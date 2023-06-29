@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -58,18 +59,21 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testValidGroupByWithScalarAndMultipleColumns() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * other_id from users group by id, other_id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * other_id)");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0),
+                                          Style.UNQUALIFIED).sqlFqn()).isEqualTo("(id * other_id)");
     }
 
     @Test
     public void testValidGroupByWithScalar() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * 2 from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * 2::bigint)");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0),
+                                          Style.UNQUALIFIED).sqlFqn()).isEqualTo("(id * 2::bigint)");
     }
 
     @Test
     public void testValidGroupByWithMultipleScalarFunctions() throws Exception {
         AnalyzedRelation relation = executor.analyze("select abs(id * 2) from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("abs((id * 2::bigint))");
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0),
+                                          Style.UNQUALIFIED).sqlFqn()).isEqualTo("abs((id * 2::bigint))");
     }
 }
