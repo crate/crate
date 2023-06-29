@@ -210,6 +210,9 @@ Administration and Operations
   has been lowered from `HIGH` to `MEDIUM` as leaving these to default
   or suboptimal values does not translate into data corruption or loss.
 
+- Added the ability to set a 
+  :ref:`storage_class <sql-create-repo-s3-storage_class>` for S3 repositories.
+
 
 Fixes
 =====

@@ -378,6 +378,15 @@ Parameters
   When CrateDB creates new buckets and objects, the specified `Canned ACL`_ is
   added.
 
+.. _sql-create-repo-s3-storage_class:
+
+**storage_class**
+  | *Type:*    ``text``
+  | *Values:*  ``standard``, ``reduced_redundancy`` or ``standard_ia``
+  | *Default:* ``standard``
+
+  The S3 storage class used for objects stored in the repository. This only 
+  affects the S3 storage class used for newly created objects in the repository.
 
 .. _sql-create-repo-azure:
 
