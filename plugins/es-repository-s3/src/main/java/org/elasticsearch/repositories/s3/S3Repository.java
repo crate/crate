@@ -84,7 +84,8 @@ public class S3Repository extends BlobStoreRepository {
                        PROTOCOL_SETTING,
                        MAX_RETRIES_SETTING,
                        USE_THROTTLE_RETRIES_SETTING,
-                       READONLY_SETTING);
+                       READONLY_SETTING,
+                       STORAGE_CLASS_SETTING);
     }
 
     private final S3Service service;
