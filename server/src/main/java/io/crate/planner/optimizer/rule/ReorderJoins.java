@@ -70,87 +70,97 @@ public class ReorderJoins implements Rule<JoinPlan> {
             return null;
         }
         var joinOrder = eliminateCrossJoins(joinGraph);
+        if (isOriginalOrder(joinOrder)) {
+            return null;
+        }
         var newPlan = buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
         return newPlan;
     }
 
-
     public static List<Integer> eliminateCrossJoins(Graph graph) {
-            List<Integer> joinOrder = new ArrayList<>();
+        List<Integer> joinOrder = new ArrayList<>();
 
-            Map<Integer, Integer> priorities = new HashMap<>();
-            for (int i = 0; i < graph.size(); i++) {
-                priorities.put(graph.nodeByPosition(i).id(), i);
-            }
-
-            var nodesToVisit = new PriorityQueue<LogicalPlan>(graph.size(), comparing(node -> priorities.get(node.id())));
-            var visited = new HashSet<LogicalPlan>();
-
-            nodesToVisit.add(graph.nodeByPosition(0));
-
-            while (!nodesToVisit.isEmpty()) {
-                LogicalPlan node = nodesToVisit.poll();
-                if (!visited.contains(node)) {
-                    visited.add(node);
-                    joinOrder.add(node.id());
-                    for (Graph.Edge edge : graph.getEdges(node)) {
-                        nodesToVisit.add(edge.to());
-                    }
-                }
-
-                if (nodesToVisit.isEmpty() && visited.size() < graph.size()) {
-                    // disconnected graph, find new starting point
-                    Optional<LogicalPlan> firstNotVisitedNode = graph.nodes().stream()
-                        .filter(graphNode -> !visited.contains(graphNode))
-                        .findFirst();
-                    if (firstNotVisitedNode.isPresent()) {
-                        nodesToVisit.add(firstNotVisitedNode.get());
-                    }
-                }
-            }
-            assert visited.size() == graph.size() : "Invalid state, each node needs to be visited";
-            return joinOrder;
+        Map<Integer, Integer> priorities = new HashMap<>();
+        for (int i = 0; i < graph.size(); i++) {
+            priorities.put(graph.nodeByPosition(i).id(), i);
         }
 
-        public static LogicalPlan buildJoinPlan(List<Symbol> outputs, Graph graph, List<Integer> joinOrder, IntSupplier ids) {
-                LogicalPlan result = graph.nodeById(joinOrder.get(0));
-                Set<Integer> alreadyJoinedNodes = new HashSet<>();
-                alreadyJoinedNodes.add(result.id());
+        var nodesToVisit = new PriorityQueue<LogicalPlan>(graph.size(), comparing(node -> priorities.get(node.id())));
+        var visited = new HashSet<LogicalPlan>();
 
-                for (int i = 1; i < joinOrder.size(); i++) {
-                    LogicalPlan rightNode = graph.nodeById(joinOrder.get(i));
-                    alreadyJoinedNodes.add(rightNode.id());
+        nodesToVisit.add(graph.nodeByPosition(0));
 
-                    var criteria = new ArrayList<Symbol>();
-
-                    for (var edge : graph.getEdges(rightNode)) {
-                        // rebuild join conditions
-                        LogicalPlan targetNode = edge.to();
-                        if (alreadyJoinedNodes.contains(targetNode.id())) {
-                            var fromVariable = edge.fromVariable();
-                            var toVariable = edge.toVariable();
-                            System.out.println("toVariable = " + toVariable);
-                            // TODO rebuld equi-joins
-                        }
-                    }
-                    // rebuild joins
-                    result = new NestedLoopJoin(
-                        ids.getAsInt(),
-                        result,
-                        rightNode,
-                        JoinType.INNER,
-                        null, //TODO JoinCondition goes here
-                        false,
-                        null,
-                        false,
-                        false,
-                        false,
-                        false
-                        );
+        while (!nodesToVisit.isEmpty()) {
+            LogicalPlan node = nodesToVisit.poll();
+            if (!visited.contains(node)) {
+                visited.add(node);
+                joinOrder.add(node.id());
+                for (Graph.Edge edge : graph.getEdges(node)) {
+                    nodesToVisit.add(edge.to());
                 }
-
-                //TODO handle filters
-
-                return result;
             }
+
+            if (nodesToVisit.isEmpty() && visited.size() < graph.size()) {
+                // disconnected graph, find new starting point
+                Optional<LogicalPlan> firstNotVisitedNode = graph.nodes().stream()
+                    .filter(graphNode -> !visited.contains(graphNode))
+                    .findFirst();
+                firstNotVisitedNode.ifPresent(nodesToVisit::add);
+            }
+        }
+        assert visited.size() == graph.size() : "Invalid state, each node needs to be visited";
+        return joinOrder;
     }
+
+    public static LogicalPlan buildJoinPlan(List<Symbol> outputs,
+                                            Graph graph,
+                                            List<Integer> joinOrder,
+                                            IntSupplier ids) {
+        LogicalPlan result = graph.nodeById(joinOrder.get(0));
+        Set<Integer> alreadyJoinedNodes = new HashSet<>();
+        alreadyJoinedNodes.add(result.id());
+
+        for (int i = 1; i < joinOrder.size(); i++) {
+            LogicalPlan rightNode = graph.nodeById(joinOrder.get(i));
+            alreadyJoinedNodes.add(rightNode.id());
+
+            var criteria = new ArrayList<Symbol>();
+
+            for (var edge : graph.getEdges(rightNode)) {
+                // rebuild join conditions
+                LogicalPlan targetNode = edge.to();
+                if (alreadyJoinedNodes.contains(targetNode.id())) {
+                    var fromVariable = edge.fromVariable();
+                    var toVariable = edge.toVariable();
+                    // TODO rebuild equi-joins
+                }
+            }
+            // rebuild joins
+            result = new NestedLoopJoin(
+                ids.getAsInt(),
+                result,
+                rightNode,
+                JoinType.INNER,
+                null, //TODO JoinCondition goes here
+                false,
+                null,
+                false,
+                false,
+                false,
+                false
+            );
+        }
+
+        //TODO handle filters
+        return result;
+    }
+
+    private static boolean isOriginalOrder(List<Integer> joinOrder) {
+        for (int i = 0; i < joinOrder.size(); i++) {
+            if (joinOrder.get(i) != i) {
+                return false;
+            }
+        }
+        return true;
+    }
+}

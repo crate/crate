@@ -113,36 +113,20 @@ public class Graph {
         return result;
     }
 
+    public record Edge(LogicalPlan from, Symbol fromVariable, LogicalPlan to, Symbol toVariable) {
 
-    public static class Edge {
-        private final Symbol fromVariable;
-        private final Symbol toVariable;
-        private final LogicalPlan from;
-        private final LogicalPlan to;
-
-        public Edge(LogicalPlan from, Symbol fromVariable, LogicalPlan to, Symbol toVariable) {
-            this.from = from;
-            this.to = to;
-            this.fromVariable = fromVariable;
-            this.toVariable = toVariable;
+        public Set<Integer> ids() {
+            return Set.of(from.id(), to.id());
         }
 
-        public LogicalPlan from() {
-            return from;
+        @Override
+            public String toString() {
+                return "Edge{" +
+                       "from=" + fromVariable.toString(Style.QUALIFIED) +
+                       ", to=" + toVariable.toString(Style.QUALIFIED) +
+                       '}';
+            }
         }
-
-        public LogicalPlan to() {
-            return to;
-        }
-
-        public Symbol fromVariable() {
-            return fromVariable;
-        }
-
-        public Symbol toVariable() {
-            return toVariable;
-        }
-    }
 
     public static Graph create(LogicalPlan plan, Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var visitor = new Visitor(resolvePlan);
@@ -182,16 +166,16 @@ public class Graph {
         }
 
         public Graph visitJoin(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
-            Graph left = joinPlan.lhs().accept(this, context);
-            Graph right = joinPlan.rhs().accept(this, context);
+            var left = joinPlan.lhs().accept(this, context);
+            var right = joinPlan.rhs().accept(this, context);
 
             var joinCondition = joinPlan.joinCondition();
             assert joinCondition != null : "Join condition cannot be null to build graph";
 
+            var edges = new HashMap<Integer, Set<Edge>>();
             // find equi-join conditions such as `a.x = b.y` and create edges
             // TODO deal with the rest of the filters such as `a.x >= 1`
             var split = QuerySplitter.split(joinCondition);
-            var edges = new HashMap<Integer, Set<Edge>>();
             for (var entry : split.entrySet()) {
                 if (entry.getKey().size() == 2) {
                     if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
@@ -203,8 +187,7 @@ public class Graph {
                             assert from != null & to != null :
                                 "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
                             var edge = new Edge(from, fromSymbol, to, toSymbol);
-                            insertEdge(edges, from.id(), edge);
-                            insertEdge(edges, to.id(), edge);
+                            insertEdge(edges, edge);
                         }
                     }
                 }
@@ -212,14 +195,16 @@ public class Graph {
             return left.joinWith(joinPlan, right, edges);
         }
 
-        private static void insertEdge(Map<Integer, Set<Edge>> edges, Integer id, Edge edge) {
-            var fromResult = edges.get(id);
-            if (fromResult == null) {
-                edges.put(id, Set.of(edge));
-            } else {
-                var update = new HashSet<>(fromResult);
-                update.add(edge);
-                edges.put(id, update);
+        private static void insertEdge(Map<Integer, Set<Edge>> edges, Edge edge) {
+            for (var id : edge.ids()) {
+                var result = edges.get(id);
+                if (result == null) {
+                    result = Set.of(edge);
+                } else {
+                    result = new HashSet<>(result);
+                    result.add(edge);
+                }
+                edges.put(id, result);
             }
         }
 
