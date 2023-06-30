@@ -39,6 +39,16 @@ See the :ref:`version_5.3.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes,
+  broken replica shards, or even un-recoverable tables on tables using a
+  column definition with a number data type and an explicit ``INDEX OFF``.
+  Any table that was created with ``INDEX OFF`` on a number column and already
+  written to with CrateDB version >= ``5.3.0`` should be recreated using e.g.
+  :ref:`INSERT INTO new_table SELECT * FROM old_table<dml-inserting-by-query>`
+  (followed by swap table
+  :ref:`ALTER CLUSTER SWAP TABLE new_table TO old_table<alter_cluster_swap_table>`)
+  or :ref:`restored from a backup<sql-restore-snapshot>`.
+
 - Fixed a regression introduced in 4.7.0 which caused aggregations used in
   ``INSERT INTO`` statements returning null instead of the aggregation result.
 
@@ -77,7 +87,3 @@ Fixes
 - Fixed an issue which caused ``INSERT INTO`` statements
   to skip generated column validation for sub-columns if provided value is
   ``NULL``.
-
-- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes
-  and/or broken replica shards when ingesting into a table using a number type
-  column with explicit turned off indexing by declaring ``INDEX OFF``.
