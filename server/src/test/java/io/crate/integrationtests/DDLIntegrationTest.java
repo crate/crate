@@ -30,6 +30,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -206,9 +207,9 @@ public class DDLIntegrationTest extends IntegTestCase {
             "\"_meta\":{}," +
             "\"properties\":{" +
             "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\"}," +
-            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"_cast([1, 2], 'array(integer)')\"}}," +
+            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\"}}," +
             "\"id\":{\"type\":\"integer\",\"position\":1}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         execute("insert into test(id) values(1)");
         execute("refresh table test");
         execute("select id, col1, col2 from test");

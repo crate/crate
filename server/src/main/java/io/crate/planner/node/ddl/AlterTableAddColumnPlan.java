@@ -90,14 +90,13 @@ public class AlterTableAddColumnPlan implements Plan {
      * collectReferences is called with bound = true meaning that it expects analyzer, geo properties to be resolved at this point.
      */
     public static AddColumnRequest createRequest(AnalyzedTableElements<Object> tableElements, RelationName relationName) {
-
         LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
         IntArrayList pKeysIndices = new IntArrayList();
         tableElements.collectReferences(relationName, references, pKeysIndices, true);
 
         return new AddColumnRequest(
             relationName,
-            new ArrayList<>(references.values()), // We don't use Map in the request itself since we need directly indexed structure referred by pKeysIndices.
+            new ArrayList<>(references.values()),
             tableElements.getCheckConstraints(),
             pKeysIndices
         );
