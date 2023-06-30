@@ -1171,9 +1171,14 @@ public class PostgresITest extends IntegTestCase {
             var stmt = "SET timezone = 'Europe/Berlin'";
             conn.createStatement().execute(stmt);
 
-            ResultSet resultSet = conn.createStatement().executeQuery("SELECT stmt FROM sys.jobs_log ORDER BY ended DESC LIMIT 1");
+            // Check that the statement is logged with a WHERE filter to avoid flakiness because of
+            // other statements logged like:  "SET extra_float_digits = 3"
+            var prepStmt = conn.prepareStatement("SELECT stmt FROM sys.jobs_log WHERE stmt = ?");
+            prepStmt.setString(1, stmt);
+            var resultSet = prepStmt.executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getString(1)).isEqualTo(stmt);
+            assertThat(resultSet.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
