@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -86,7 +85,7 @@ class AlterTableAddColumnAnalyzer {
             x -> x.map(expression -> expressionAnalyzer.convert(expression, exprCtx))
         );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
-            List.copyOf(columnDefinitions),
+            columnDefinitions,
             tableInfo.ident(),
             tableInfo,
             true
@@ -115,13 +114,7 @@ class AlterTableAddColumnAnalyzer {
                                       Operation operation,
                                       boolean errorOnUnknownObjectKey) {
             try {
-                // SQL Semantics: CHECK expressions cannot refer to other
-                // columns to not invalidate existing data inadvertently.
-                Reference ref = referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH,
-                    "CHECK expressions defined in this context cannot refer to other columns: %s",
-                    ref));
+                return referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
             } catch (ColumnUnknownException cue) {
                 Reference resolvedColumn = unknownColumnFallback.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
                 if (resolvedColumn == null) {

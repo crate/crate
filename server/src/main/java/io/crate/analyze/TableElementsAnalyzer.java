@@ -65,7 +65,7 @@ public class TableElementsAnalyzer {
      *                    representing the ordering of the columns to be added dynamically. The estimates will be assigned by {@link ColumnDefinitionContext#increaseCurrentPosition()}
      *                    then re-calculated to be the exact column positions by {@link org.elasticsearch.cluster.metadata.ColumnPositionResolver}
      */
-    public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
+    public static <T> AnalyzedTableElements<T> analyze(List<? extends TableElement<T>> tableElements,
                                                        RelationName relationName,
                                                        @Nullable TableInfo tableInfo,
                                                        boolean isAddColumn) {
