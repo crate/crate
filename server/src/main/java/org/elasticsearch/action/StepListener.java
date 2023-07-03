@@ -19,13 +19,12 @@
 
 package org.elasticsearch.action;
 
-import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.util.concurrent.ListenableFuture;
-
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 
 /**
  * A {@link StepListener} provides a simple way to write a flow consisting of
@@ -51,20 +50,20 @@ import java.util.function.Consumer;
  */
 
 public final class StepListener<Response> extends NotifyOnceListener<Response> {
-    private final ListenableFuture<Response> delegate;
+    private final CompletableFuture<Response> delegate;
 
     public StepListener() {
-        this.delegate = new ListenableFuture<>();
+        this.delegate = new CompletableFuture<>();
     }
 
     @Override
     protected void innerOnResponse(Response response) {
-        delegate.onResponse(response);
+        delegate.complete(response);
     }
 
     @Override
     protected void innerOnFailure(Exception e) {
-        delegate.onFailure(e);
+        delegate.completeExceptionally(e);
     }
 
     /**
@@ -75,16 +74,16 @@ public final class StepListener<Response> extends NotifyOnceListener<Response> {
      * @param onFailure  is called when this step is completed with a failure
      */
     public void whenComplete(CheckedConsumer<Response, Exception> onResponse, Consumer<Exception> onFailure) {
-        delegate.addListener(ActionListener.wrap(onResponse, onFailure), EsExecutors.directExecutor());
+        delegate.whenComplete(ActionListener.wrap(onResponse, onFailure));
     }
 
     /**
      * Gets the result of this step. This method will throw {@link IllegalStateException} if this step is not completed yet.
      */
     public Response result() {
-        if (delegate.isDone() == false) {
-            throw new IllegalStateException("step is not completed yet");
+        if (delegate.isDone() || delegate.isCompletedExceptionally()) {
+            return FutureUtils.get(delegate, 0L, TimeUnit.NANOSECONDS); // this future is done already - use a non-blocking method.
         }
-        return FutureUtils.get(delegate, 0L, TimeUnit.NANOSECONDS); // this future is done already - use a non-blocking method.
+        throw new IllegalStateException("step is not completed yet");
     }
 }

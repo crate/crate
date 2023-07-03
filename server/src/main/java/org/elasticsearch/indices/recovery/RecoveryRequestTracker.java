@@ -25,16 +25,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ListenableFuture;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.action.FutureActionListener;
 
 public class RecoveryRequestTracker {
 
-    private final Map<Long, ListenableFuture<Void>> ongoingRequests = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Long, FutureActionListener<Void, Void>> ongoingRequests = Collections.synchronizedMap(new HashMap<>());
     private final LocalCheckpointTracker checkpointTracker = new LocalCheckpointTracker(NO_OPS_PERFORMED, NO_OPS_PERFORMED);
 
     /**
@@ -51,18 +51,18 @@ public class RecoveryRequestTracker {
     @Nullable
     public synchronized ActionListener<Void> markReceivedAndCreateListener(long requestSeqNo, ActionListener<Void> listener) {
         if (checkpointTracker.hasProcessed(requestSeqNo)) {
-            final ListenableFuture<Void> existingFuture = ongoingRequests.get(requestSeqNo);
+            final FutureActionListener<Void, Void> existingFuture = ongoingRequests.get(requestSeqNo);
             if (existingFuture != null) {
-                existingFuture.addListener(listener, EsExecutors.directExecutor());
+                existingFuture.whenCompleteAsync(listener, EsExecutors.directExecutor());
             } else {
                 listener.onResponse(null);
             }
             return null;
         } else {
             checkpointTracker.markSeqNoAsProcessed(requestSeqNo);
-            final ListenableFuture<Void> future = new ListenableFuture<>();
+            final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
             ongoingRequests.put(requestSeqNo, future);
-            future.addListener(new ActionListener<Void>() {
+            future.whenCompleteAsync(new ActionListener<Void>() {
                 @Override
                 public void onResponse(Void v) {
                     ongoingRequests.remove(requestSeqNo);
