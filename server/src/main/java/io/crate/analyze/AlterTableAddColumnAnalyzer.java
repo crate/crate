@@ -30,6 +30,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.NewColumnFieldProvider;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
@@ -37,11 +38,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -66,23 +64,26 @@ class AlterTableAddColumnAnalyzer {
         if (!alterTable.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
+        List<AddColumnDefinition<Expression>> tableElements = alterTable.tableElements();
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             alterTable.table().getName(),
             Operation.ALTER,
             txnCtx.sessionSettings().sessionUser(),
             txnCtx.sessionSettings().searchPath());
-        TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
+        var tableReferenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
+        SelfReferenceFieldProvider selfReferenceFieldProvider = new SelfReferenceFieldProvider(
+            tableInfo.ident(),
+            tableReferenceResolver,
+            new NewColumnFieldProvider(tableInfo.ident(), tableElements)
+        );
 
         var expressionAnalyzer = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, referenceResolver, null);
+            txnCtx, nodeCtx, paramTypeHints, selfReferenceFieldProvider, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
-        List<AddColumnDefinition<Expression>> tableElements = alterTable.tableElements();
-
-        // 1st phase, exclude check constraints (their expressions contain column references) and generated expressions
         List<AddColumnDefinition<Symbol>> columnDefinitions = Lists2.map(
             tableElements,
-            te -> te.map(expression -> expressionAnalyzer.convert(expression, exprCtx))
+            x -> x.map(expression -> expressionAnalyzer.convert(expression, exprCtx))
         );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
             List.copyOf(columnDefinitions),
@@ -98,14 +99,14 @@ class AlterTableAddColumnAnalyzer {
 
         private final RelationName relationName;
         private final TableReferenceResolver referenceResolver;
-        private final List<AnalyzedColumnDefinition<Symbol>> columnDefinitions;
+        private final FieldProvider<Reference> unknownColumnFallback;
 
         SelfReferenceFieldProvider(RelationName relationName,
                                    TableReferenceResolver referenceResolver,
-                                   List<AnalyzedColumnDefinition<Symbol>> columnDefinitions) {
+                                   FieldProvider<Reference> unknownColumnFallback) {
             this.relationName = relationName;
             this.referenceResolver = referenceResolver;
-            this.columnDefinitions = columnDefinitions;
+            this.unknownColumnFallback = unknownColumnFallback;
         }
 
         @Override
@@ -122,38 +123,13 @@ class AlterTableAddColumnAnalyzer {
                     "CHECK expressions defined in this context cannot refer to other columns: %s",
                     ref));
             } catch (ColumnUnknownException cue) {
-                ColumnIdent colIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
-                for (int i = 0; i < columnDefinitions.size(); i++) {
-                    AnalyzedColumnDefinition<Symbol> matchingNode = resolveColumn(columnDefinitions.get(i), colIdent);
-                    if (matchingNode != null) {
-                        return new SimpleReference(
-                            new ReferenceIdent(relationName, colIdent),
-                            RowGranularity.DOC,
-                            matchingNode.dataType(),
-                            -1,
-                            matchingNode.defaultExpression()
-                        );
-                    }
+                Reference resolvedColumn = unknownColumnFallback.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
+                if (resolvedColumn == null) {
+                    ColumnIdent column = ColumnIdent.fromNameSafe(qualifiedName, path);
+                    throw new ColumnUnknownException(column, relationName);
                 }
-                throw new ColumnUnknownException(colIdent, relationName);
+                return resolvedColumn;
             }
-        }
-
-        @Nullable
-        private static AnalyzedColumnDefinition<Symbol> resolveColumn(AnalyzedColumnDefinition<Symbol> column, ColumnIdent colToCompare) {
-            if (column.ident().equals(colToCompare)) {
-                return column;
-            }
-            if (column.children().isEmpty()) {
-                return null;
-            }
-            for (AnalyzedColumnDefinition<Symbol> child: column.children()) {
-                var matchingNode = resolveColumn(child, colToCompare);
-                if (matchingNode != null) {
-                    return matchingNode;
-                }
-            }
-            return null;
         }
     }
 }

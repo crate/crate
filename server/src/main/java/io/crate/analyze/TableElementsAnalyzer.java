@@ -28,7 +28,8 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -134,8 +135,8 @@ public class TableElementsAnalyzer {
         @SuppressWarnings("unchecked")
         public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
             AddColumnDefinition<T> addColumnDefinition = (AddColumnDefinition<T>) node;
-            assert addColumnDefinition.name() instanceof Literal : "column name is expected to be a literal already";
-            ColumnIdent column = ColumnIdent.fromPath(((Literal<?>) addColumnDefinition.name()).value().toString());
+            assert addColumnDefinition.name() instanceof Symbol : "column name is expected to be a symbol already";
+            ColumnIdent column = Symbols.pathFromSymbol((Symbol) addColumnDefinition.name());
             context.analyzedColumnDefinition.name(column.name());
 
             assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";

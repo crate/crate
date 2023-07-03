@@ -50,7 +50,7 @@ public final class CreateTableStatementAnalyzer {
         relationName.ensureValidForRelationCreation();
 
         var expressionAnalyzer = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, new NewColumnFieldProvider(relationName), null);
+            txnCtx, nodeCtx, paramTypeHints, new NewColumnFieldProvider(relationName, createTable.tableElements()), null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         Function<Expression, Symbol> exprMapper = y -> expressionAnalyzer.convert(y, exprCtx);
 
