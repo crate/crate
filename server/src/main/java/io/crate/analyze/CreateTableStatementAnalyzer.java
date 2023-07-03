@@ -62,7 +62,7 @@ public final class CreateTableStatementAnalyzer {
             createTable.properties().map(x -> expressionAnalyzer.convert(x, exprCtx)),
             createTable.ifNotExists()
         );
-        AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
+        AnalyzedTableElements analyzedTableElements = TableElementsAnalyzer.analyze(
             analyzedCreateTable.tableElements(),
             relationName,
             null,

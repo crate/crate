@@ -70,10 +70,10 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 
-public class AnalyzedTableElements<T> {
+public class AnalyzedTableElements {
 
-    public List<AnalyzedColumnDefinition<T>> partitionedByColumns = new ArrayList<>();
-    private List<AnalyzedColumnDefinition<T>> columns = new ArrayList<>();
+    public List<AnalyzedColumnDefinition> partitionedByColumns = new ArrayList<>();
+    private List<AnalyzedColumnDefinition> columns = new ArrayList<>();
     private Set<ColumnIdent> columnIdents = new HashSet<>();
     private Map<ColumnIdent, DataType<?>> columnTypes = new HashMap<>();
     private Set<String> primaryKeys;
@@ -86,15 +86,15 @@ public class AnalyzedTableElements<T> {
     /**
      * additional primary keys that are not inline with a column definition
      */
-    private List<T> additionalPrimaryKeys = new ArrayList<>();
+    private List<Symbol> additionalPrimaryKeys = new ArrayList<>();
 
-    private Map<String, List<T>> ftSourcesMap = new HashMap<>();
+    private Map<String, List<Symbol>> ftSourcesMap = new HashMap<>();
 
     public AnalyzedTableElements() {
     }
 
-    private AnalyzedTableElements(List<AnalyzedColumnDefinition<T>> partitionedByColumns,
-                                  List<AnalyzedColumnDefinition<T>> columns,
+    private AnalyzedTableElements(List<AnalyzedColumnDefinition> partitionedByColumns,
+                                  List<AnalyzedColumnDefinition> columns,
                                   Set<ColumnIdent> columnIdents,
                                   Map<ColumnIdent, DataType<?>> columnTypes,
                                   Set<String> primaryKeys,
@@ -102,8 +102,8 @@ public class AnalyzedTableElements<T> {
                                   Map<String, String> checkConstraints,
                                   List<List<String>> partitionedBy,
                                   int numGeneratedColumns,
-                                  List<T> additionalPrimaryKeys,
-                                  Map<String, List<T>> ftSourcesMap) {
+                                  List<Symbol> additionalPrimaryKeys,
+                                  Map<String, List<Symbol>> ftSourcesMap) {
         this.partitionedByColumns = partitionedByColumns;
         this.columns = columns;
         this.columnIdents = columnIdents;
@@ -117,27 +117,27 @@ public class AnalyzedTableElements<T> {
         this.ftSourcesMap = ftSourcesMap;
     }
 
-    public <U> AnalyzedTableElements<U> map(Function<? super T, ? extends U> mapper) {
-        List<U> additionalPrimaryKeys = new ArrayList<>(this.additionalPrimaryKeys.size());
-        for (T p : this.additionalPrimaryKeys) {
+    public AnalyzedTableElements map(Function<? super Symbol, ? extends Symbol> mapper) {
+        List<Symbol> additionalPrimaryKeys = new ArrayList<>(this.additionalPrimaryKeys.size());
+        for (Symbol p : this.additionalPrimaryKeys) {
             additionalPrimaryKeys.add(mapper.apply(p));
         }
 
-        Map<String, List<U>> ftSourcesMap = new HashMap<>(this.ftSourcesMap.size());
-        for (Map.Entry<String, List<T>> entry: this.ftSourcesMap.entrySet()) {
-            List<U> evaluatedSources = Lists2.map(entry.getValue(), mapper::apply);
+        Map<String, List<Symbol>> ftSourcesMap = new HashMap<>(this.ftSourcesMap.size());
+        for (Map.Entry<String, List<Symbol>> entry: this.ftSourcesMap.entrySet()) {
+            List<Symbol> evaluatedSources = Lists2.map(entry.getValue(), mapper::apply);
             ftSourcesMap.put(entry.getKey(), evaluatedSources);
         }
 
-        List<AnalyzedColumnDefinition<U>> partitionedByColumns = new ArrayList<>(this.partitionedByColumns.size());
-        for (AnalyzedColumnDefinition<T> d : this.partitionedByColumns) {
+        List<AnalyzedColumnDefinition> partitionedByColumns = new ArrayList<>(this.partitionedByColumns.size());
+        for (AnalyzedColumnDefinition d : this.partitionedByColumns) {
             partitionedByColumns.add(d.map(mapper));
         }
-        List<AnalyzedColumnDefinition<U>> columns = new ArrayList<>(this.columns.size());
-        for (AnalyzedColumnDefinition<T> d : this.columns) {
+        List<AnalyzedColumnDefinition> columns = new ArrayList<>(this.columns.size());
+        for (AnalyzedColumnDefinition d : this.columns) {
             columns.add(d.map(mapper));
         }
-        return new AnalyzedTableElements<>(
+        return new AnalyzedTableElements(
             partitionedByColumns,
             columns,
             columnIdents,
@@ -156,7 +156,7 @@ public class AnalyzedTableElements<T> {
     public List<List<String>> partitionedBy() {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
-            for (AnalyzedColumnDefinition<T> partitionedByColumn : partitionedByColumns) {
+            for (AnalyzedColumnDefinition partitionedByColumn : partitionedByColumns) {
                 partitionedBy.add(
                     List.of(
                         partitionedByColumn.ident().fqn(),
@@ -174,12 +174,12 @@ public class AnalyzedTableElements<T> {
     }
 
     private void expandColumnIdents() {
-        for (AnalyzedColumnDefinition<T> column : columns) {
+        for (AnalyzedColumnDefinition column : columns) {
             expandColumn(column);
         }
     }
 
-    private void expandColumn(AnalyzedColumnDefinition<T> column) {
+    private void expandColumn(AnalyzedColumnDefinition column) {
         if (column.isIndexColumn()) {
             columnIdents.remove(column.ident());
             return;
@@ -187,12 +187,12 @@ public class AnalyzedTableElements<T> {
 
         columnIdents.add(column.ident());
         columnTypes.put(column.ident(), column.dataType());
-        for (AnalyzedColumnDefinition<T> child : column.children()) {
+        for (AnalyzedColumnDefinition child : column.children()) {
             expandColumn(child);
         }
     }
 
-    public static Set<String> primaryKeys(AnalyzedTableElements<Symbol> elements) {
+    public static Set<String> primaryKeys(AnalyzedTableElements elements) {
         if (elements.primaryKeys == null) {
             elements.primaryKeys = new LinkedHashSet<>(); // To preserve order
             for (Symbol pk : elements.additionalPrimaryKeys) {
@@ -207,13 +207,13 @@ public class AnalyzedTableElements<T> {
         return elements.primaryKeys;
     }
 
-    private void addPrimaryKeys(Set<String> primaryKeys, AnalyzedColumnDefinition<T> column) {
+    private void addPrimaryKeys(Set<String> primaryKeys, AnalyzedColumnDefinition column) {
         if (column.hasPrimaryKeyConstraint()) {
             String fqn = column.ident().fqn();
             checkPrimaryKeyAlreadyDefined(primaryKeys, fqn);
             primaryKeys.add(fqn);
         }
-        for (AnalyzedColumnDefinition<T> analyzedColumnDefinition : column.children()) {
+        for (AnalyzedColumnDefinition analyzedColumnDefinition : column.children()) {
             addPrimaryKeys(primaryKeys, analyzedColumnDefinition);
         }
     }
@@ -225,11 +225,11 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    void addPrimaryKey(T fqColumnName) {
+    void addPrimaryKey(Symbol fqColumnName) {
         additionalPrimaryKeys.add(fqColumnName);
     }
 
-    public void add(AnalyzedColumnDefinition<T> analyzedColumnDefinition, boolean isAddColumn) {
+    public void add(AnalyzedColumnDefinition analyzedColumnDefinition, boolean isAddColumn) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
             // We can add multiple object columns via ALTER TABLE ADD COLUMN.
             // Those columns can have overlapping paths, for example we can add columns o['a']['b'] and o['a']['c'].
@@ -248,10 +248,10 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    public static Settings validateAndBuildSettings(AnalyzedTableElements<Symbol> tableElements,
+    public static Settings validateAndBuildSettings(AnalyzedTableElements tableElements,
                                                     FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Settings.Builder builder = Settings.builder();
-        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns) {
+        for (AnalyzedColumnDefinition column : tableElements.columns) {
             AnalyzedColumnDefinition.applyAndValidateAnalyzerSettings(column, fulltextAnalyzerResolver);
             builder.put(column.builtAnalyzerSettings());
         }
@@ -263,9 +263,9 @@ public class AnalyzedTableElements<T> {
      * Enriches AnalyzedColumnDefinition with resolved generated and default expressions.
      */
     public static void finalizeAndValidate(RelationName relationName,
-                                           AnalyzedTableElements<Symbol> tableElements) {
+                                           AnalyzedTableElements tableElements) {
         tableElements.expandColumnIdents();
-        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns) {
+        for (AnalyzedColumnDefinition column : tableElements.columns) {
             processExpressions(column);
             column.validate();
             tableElements.addFtIndexSources(column);
@@ -273,7 +273,7 @@ public class AnalyzedTableElements<T> {
         validateIndexDefinitions(relationName, tableElements);
         validatePrimaryKeys(relationName, tableElements);
 
-        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns()) {
+        for (AnalyzedColumnDefinition column : tableElements.columns()) {
             AnalyzedColumnDefinition.validateAndComputeDocValues(column);
         }
     }
@@ -304,17 +304,17 @@ public class AnalyzedTableElements<T> {
                                   IntArrayList pKeysIndices,
                                   boolean bound) {
         // Collect references for regular columns
-        for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(relationName, columnDefinition, target, this.primaryKeys, pKeysIndices, bound);
         }
 
         // Collect references for dedicated index definitions
-        for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildDedicatedIndexReference(relationName, columnDefinition, target);
         }
     }
 
-    private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinition) {
+    private static void processExpressions(AnalyzedColumnDefinition columnDefinition) {
         Symbol generatedExpression = columnDefinition.generatedExpression();
         if (generatedExpression != null) {
             validateAndFormatExpression(
@@ -344,7 +344,7 @@ public class AnalyzedTableElements<T> {
     }
 
     private static void validateAndFormatExpression(Symbol function,
-                                                    AnalyzedColumnDefinition<Symbol> columnDefinition,
+                                                    AnalyzedColumnDefinition columnDefinition,
                                                     Consumer<String> formattedExpressionConsumer,
                                                     @Nullable Consumer<Symbol> expressionConsumer) {
         String formattedExpression;
@@ -382,7 +382,7 @@ public class AnalyzedTableElements<T> {
      * Dedicated index columns are handled by {@link #buildDedicatedIndexReference}.
      */
     public static <T> void buildReference(RelationName relationName,
-                                          AnalyzedColumnDefinition<T> columnDefinition,
+                                          AnalyzedColumnDefinition columnDefinition,
                                           LinkedHashMap<ColumnIdent, Reference> references,
                                           Set<String> primaryKeys,
                                           IntArrayList pKeysIndices,
@@ -475,7 +475,7 @@ public class AnalyzedTableElements<T> {
             pKeysIndices.add(references.size() - 1);
         }
 
-        for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
+        for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
             buildReference(relationName, childDefinition, references, primaryKeys, pKeysIndices, bound);
         }
     }
@@ -488,9 +488,9 @@ public class AnalyzedTableElements<T> {
      * since we resolve source columns by name from regular references
      * and index can be defined before regular columns.
      */
-    private static <T> void buildDedicatedIndexReference(RelationName relationName,
-                                                         AnalyzedColumnDefinition<T> columnDefinition,
-                                                         LinkedHashMap<ColumnIdent, Reference> references) {
+    private static  void buildDedicatedIndexReference(RelationName relationName,
+                                                      AnalyzedColumnDefinition columnDefinition,
+                                                      LinkedHashMap<ColumnIdent, Reference> references) {
 
         if (columnDefinition.sources().isEmpty() == false) {
 
@@ -517,7 +517,7 @@ public class AnalyzedTableElements<T> {
 
             references.put(columnDefinition.ident(), ref);
 
-            for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
+            for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
                 buildDedicatedIndexReference(relationName, childDefinition, references);
             }
 
@@ -538,20 +538,20 @@ public class AnalyzedTableElements<T> {
      *  some_fulltext_index:{sources:[col1, col2], analyzer: 'stop'}
      *
      */
-    private void addFtIndexSources(AnalyzedColumnDefinition<T> column) {
+    private void addFtIndexSources(AnalyzedColumnDefinition column) {
         if (column.isIndexColumn()) {
-            List<T> sources = ftSourcesMap.get(column.ident().fqn());
+            List<Symbol> sources = ftSourcesMap.get(column.ident().fqn());
             if (sources != null) {
                 // src.toString is in FQN form here.
-                column.sources(Lists2.map(sources, x -> Symbols.pathFromSymbol((Symbol) x).fqn()));
+                column.sources(Lists2.map(sources, x -> Symbols.pathFromSymbol(x).fqn()));
             }
         }
-        for (AnalyzedColumnDefinition<T> child : column.children()) {
+        for (AnalyzedColumnDefinition child : column.children()) {
             addFtIndexSources(child);
         }
     }
 
-    private static void validatePrimaryKeys(RelationName relationName, AnalyzedTableElements<Symbol> elements) {
+    private static void validatePrimaryKeys(RelationName relationName, AnalyzedTableElements elements) {
         for (Symbol additionalPrimaryKey : elements.additionalPrimaryKeys) {
             ColumnIdent columnIdent = Symbols.pathFromSymbol(additionalPrimaryKey);
             if (!elements.columnIdents.contains(columnIdent)) {
@@ -562,7 +562,7 @@ public class AnalyzedTableElements<T> {
         primaryKeys(elements);
     }
 
-    private static void validateIndexDefinitions(RelationName relationName, AnalyzedTableElements<Symbol> tableElements) {
+    private static void validateIndexDefinitions(RelationName relationName, AnalyzedTableElements tableElements) {
         for (List<Symbol> sources : tableElements.ftSourcesMap.values()) {
             for (Symbol source : sources) {
                 ColumnIdent columnIdent = Symbols.pathFromSymbol(source);
@@ -576,8 +576,8 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    void addFTSource(T sourceColumn, String targetIndex) {
-        List<T> sources = ftSourcesMap.computeIfAbsent(targetIndex, k -> new ArrayList<>());
+    void addFTSource(Symbol sourceColumn, String targetIndex) {
+        List<Symbol> sources = ftSourcesMap.computeIfAbsent(targetIndex, k -> new ArrayList<>());
         sources.add(sourceColumn);
     }
 
@@ -586,10 +586,10 @@ public class AnalyzedTableElements<T> {
     }
 
     @Nullable
-    private static <T> AnalyzedColumnDefinition<T> columnDefinitionByIdent(AnalyzedTableElements<T> elements, ColumnIdent ident) {
-        AnalyzedColumnDefinition<T> result = null;
+    private static  AnalyzedColumnDefinition columnDefinitionByIdent(AnalyzedTableElements elements, ColumnIdent ident) {
+        AnalyzedColumnDefinition result = null;
         ColumnIdent root = ident.getRoot();
-        for (AnalyzedColumnDefinition<T> column : elements.columns) {
+        for (AnalyzedColumnDefinition column : elements.columns) {
             if (column.ident().equals(root)) {
                 result = column;
                 break;
@@ -606,14 +606,14 @@ public class AnalyzedTableElements<T> {
         return findInChildren(result, ident);
     }
 
-    private static <T> AnalyzedColumnDefinition<T> findInChildren(AnalyzedColumnDefinition<T> column, ColumnIdent ident) {
-        AnalyzedColumnDefinition<T> result = null;
+    private static AnalyzedColumnDefinition findInChildren(AnalyzedColumnDefinition column, ColumnIdent ident) {
+        AnalyzedColumnDefinition result = null;
         for (var child : column.children()) {
             if (child.ident().equals(ident)) {
                 result = child;
                 break;
             }
-            AnalyzedColumnDefinition<T> inChildren = findInChildren(child, ident);
+            AnalyzedColumnDefinition inChildren = findInChildren(child, ident);
             if (inChildren != null) {
                 return inChildren;
             }
@@ -621,7 +621,7 @@ public class AnalyzedTableElements<T> {
         return result;
     }
 
-    public static void changeToPartitionedByColumn(AnalyzedTableElements<Symbol> elements,
+    public static void changeToPartitionedByColumn(AnalyzedTableElements elements,
                                                    ColumnIdent partitionedByIdent,
                                                    boolean skipIfNotFound,
                                                    RelationName relationName) {
@@ -636,7 +636,7 @@ public class AnalyzedTableElements<T> {
                                                              partitionedByIdent.sqlFqn()));
         }
 
-        AnalyzedColumnDefinition<Symbol> columnDefinition = columnDefinitionByIdent(elements, partitionedByIdent);
+        AnalyzedColumnDefinition columnDefinition = columnDefinitionByIdent(elements, partitionedByIdent);
         if (columnDefinition == null) {
             if (skipIfNotFound) {
                 return;
@@ -665,7 +665,7 @@ public class AnalyzedTableElements<T> {
         elements.partitionedByColumns.add(columnDefinition);
     }
 
-    public List<AnalyzedColumnDefinition<T>> columns() {
+    public List<AnalyzedColumnDefinition> columns() {
         return columns;
     }
 

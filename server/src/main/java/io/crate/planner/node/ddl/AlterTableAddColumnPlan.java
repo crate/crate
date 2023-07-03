@@ -36,7 +36,6 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -88,7 +87,7 @@ public class AlterTableAddColumnPlan implements Plan {
      * @param tableElements has to be finalized and validated before passing to this method.
      * collectReferences is called with bound = true meaning that it expects analyzer, geo properties to be resolved at this point.
      */
-    public static AddColumnRequest createRequest(AnalyzedTableElements<Symbol> tableElements, RelationName relationName) {
+    public static AddColumnRequest createRequest(AnalyzedTableElements tableElements, RelationName relationName) {
         LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
         IntArrayList pKeysIndices = new IntArrayList();
         tableElements.collectReferences(relationName, references, pKeysIndices, true);
@@ -105,7 +104,7 @@ public class AlterTableAddColumnPlan implements Plan {
     /**
      * Validates statement, resolves generated and default expressions.
      */
-    public static AnalyzedTableElements<Symbol> validate(AnalyzedAlterTableAddColumn alterTable,
+    public static AnalyzedTableElements validate(AnalyzedAlterTableAddColumn alterTable,
                                                          CoordinatorTxnCtx txnCtx,
                                                          NodeContext nodeCtx,
                                                          Row params,
@@ -113,9 +112,9 @@ public class AlterTableAddColumnPlan implements Plan {
                                                          FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         DocTableInfo tableInfo = alterTable.tableInfo();
-        AnalyzedTableElements<Symbol> tableElements = alterTable.analyzedTableElements().map(paramBinder);
+        AnalyzedTableElements tableElements = alterTable.analyzedTableElements().map(paramBinder);
 
-        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns()) {
+        for (AnalyzedColumnDefinition column : tableElements.columns()) {
             ensureColumnLeafsAreNew(column, tableInfo);
         }
 
@@ -128,20 +127,20 @@ public class AlterTableAddColumnPlan implements Plan {
 
 
 
-    private static <T> void ensureColumnLeafsAreNew(AnalyzedColumnDefinition<T> column, TableInfo tableInfo) {
+    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "The table %s already has a column named %s",
                                                              tableInfo.ident().sqlFqn(),
                                                              column.ident().sqlFqn()));
         }
-        for (AnalyzedColumnDefinition<T> child : column.children()) {
+        for (AnalyzedColumnDefinition child : column.children()) {
             ensureColumnLeafsAreNew(child, tableInfo);
         }
     }
 
-    private static <T> void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition<T>> columns) {
-        for (AnalyzedColumnDefinition<T> column : columns) {
+    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
+        for (AnalyzedColumnDefinition column : columns) {
             if (column.isIndexColumn()) {
                 throw new UnsupportedOperationException(
                     "Adding an index using ALTER TABLE ADD COLUMN is not supported");

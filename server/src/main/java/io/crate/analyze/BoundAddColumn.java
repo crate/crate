@@ -21,22 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.doc.DocTableInfo;
+import java.util.Map;
+
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Map;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class BoundAddColumn {
 
     private final DocTableInfo tableInfo;
-    private final AnalyzedTableElements<Object> analyzedTableElements;
+    private final AnalyzedTableElements analyzedTableElements;
     private final Settings settings;
     private final Map<String, Object> mapping;
     private final boolean newPrimaryKeys;
     private final boolean hasNewGeneratedColumns;
 
     public BoundAddColumn(DocTableInfo tableInfo,
-                          AnalyzedTableElements<Object> analyzedTableElements,
+                          AnalyzedTableElements analyzedTableElements,
                           Settings settings,
                           Map<String, Object> mapping,
                           boolean newPrimaryKeys,
@@ -53,7 +54,7 @@ public class BoundAddColumn {
         return this.tableInfo;
     }
 
-    public AnalyzedTableElements<Object> analyzedTableElements() {
+    public AnalyzedTableElements analyzedTableElements() {
         return analyzedTableElements;
     }
 

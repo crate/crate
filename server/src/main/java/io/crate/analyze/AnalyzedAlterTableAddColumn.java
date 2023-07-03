@@ -29,10 +29,10 @@ import io.crate.metadata.doc.DocTableInfo;
 public class AnalyzedAlterTableAddColumn implements DDLStatement {
 
     private final DocTableInfo tableInfo;
-    private final AnalyzedTableElements<Symbol> analyzedTableElements;
+    private final AnalyzedTableElements analyzedTableElements;
 
     public AnalyzedAlterTableAddColumn(DocTableInfo tableInfo,
-                                       AnalyzedTableElements<Symbol> analyzedTableElements) {
+                                       AnalyzedTableElements analyzedTableElements) {
         this.tableInfo = tableInfo;
         this.analyzedTableElements = analyzedTableElements;
     }
@@ -46,7 +46,7 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
      * evaluated to values. See {@link #analyzedTableElementsWithExpressions()} to get table elements including
      * expressions.
      */
-    public AnalyzedTableElements<Symbol> analyzedTableElements() {
+    public AnalyzedTableElements analyzedTableElements() {
         return analyzedTableElements;
     }
 

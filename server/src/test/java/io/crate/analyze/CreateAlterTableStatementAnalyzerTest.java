@@ -68,7 +68,6 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexReference;
@@ -678,10 +677,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze("create table test (o object as (_id integer), name string)");
 
         assertThat(analysis.analyzedTableElements().columns()).hasSize(2); // id pk column is also added
-        AnalyzedColumnDefinition<Symbol> column = analysis.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
         assertThat(new ColumnIdent("o")).isEqualTo(column.ident());
         assertThat(column.children()).hasSize(1);
-        AnalyzedColumnDefinition<Symbol> xColumn = column.children().get(0);
+        AnalyzedColumnDefinition xColumn = column.children().get(0);
         assertThat(xColumn.ident()).isEqualTo(new ColumnIdent("o", Collections.singletonList("_id")));
     }
 
@@ -1467,8 +1466,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
-        AnalyzedColumnDefinition<Symbol> obj = stmt.analyzedTableElements().columns().get(0);
-        AnalyzedColumnDefinition<?> c = obj.children().get(0);
+        AnalyzedColumnDefinition obj = stmt.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition c = obj.children().get(0);
 
         assertThat(c.dataType()).isEqualTo(DataTypes.INTEGER);
         assertThat(c.formattedGeneratedExpression()).isEqualTo("2");

@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -36,14 +35,14 @@ import io.crate.metadata.Schemas;
 public class BoundCreateTable {
 
     private final RelationName relationName;
-    private final AnalyzedTableElements<Symbol> analyzedTableElements;
+    private final AnalyzedTableElements analyzedTableElements;
     private final TableParameter tableParameter;
     private final ColumnIdent routingColumn;
     private final boolean noOp;
     private final boolean ifNotExists;
 
     public BoundCreateTable(RelationName relationName,
-                            AnalyzedTableElements<Symbol> tableElements,
+                            AnalyzedTableElements tableElements,
                             TableParameter tableParameter,
                             @Nullable ColumnIdent routingColumn,
                             boolean ifNotExists,
@@ -126,7 +125,7 @@ public class BoundCreateTable {
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    public AnalyzedTableElements<Symbol> analyzedTableElements() {
+    public AnalyzedTableElements analyzedTableElements() {
         return analyzedTableElements;
     }
 

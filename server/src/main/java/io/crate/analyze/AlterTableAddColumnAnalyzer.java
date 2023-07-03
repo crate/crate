@@ -84,7 +84,7 @@ class AlterTableAddColumnAnalyzer {
             tableElements,
             x -> x.map(expression -> expressionAnalyzer.convert(expression, exprCtx))
         );
-        AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
+        AnalyzedTableElements analyzedTableElements = TableElementsAnalyzer.analyze(
             columnDefinitions,
             tableInfo.ident(),
             tableInfo,

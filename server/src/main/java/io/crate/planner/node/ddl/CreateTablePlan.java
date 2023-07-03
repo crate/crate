@@ -134,7 +134,7 @@ public class CreateTablePlan implements Plan {
         CreateTable<Symbol> table = createTable.createTable();
         RelationName relationName = createTable.relationName();
         GenericProperties<Symbol> properties = table.properties().map(paramBinder);
-        AnalyzedTableElements<Symbol> tableElements = createTable.analyzedTableElements().map(paramBinder);
+        AnalyzedTableElements tableElements = createTable.analyzedTableElements(); // TODO: .map(paramBinder);
         TableParameter tableParameter = new TableParameter();
         Optional<ClusteredBy<Symbol>> mappedClusteredBy = table.clusteredBy().map(x -> x.map(paramBinder));
         Integer numShards = mappedClusteredBy
@@ -180,12 +180,12 @@ public class CreateTablePlan implements Plan {
     }
 
     private static ColumnIdent resolveRoutingFromClusteredBy(ClusteredBy<Symbol> clusteredBy,
-                                                             AnalyzedTableElements<Symbol> tableElements) {
+                                                             AnalyzedTableElements tableElements) {
         if (clusteredBy.column().isPresent()) {
             Symbol routingColumnValue = clusteredBy.column().get();
             ColumnIdent routingColumn = Symbols.pathFromSymbol(routingColumnValue);;
 
-            for (AnalyzedColumnDefinition<Symbol> column : tableElements.partitionedByColumns) {
+            for (AnalyzedColumnDefinition column : tableElements.partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {
                     throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
                 }
@@ -208,7 +208,7 @@ public class CreateTablePlan implements Plan {
     }
 
     private static void processPartitionedBy(PartitionedBy<Symbol> node,
-                                             AnalyzedTableElements<Symbol> tableElements,
+                                             AnalyzedTableElements tableElements,
                                              RelationName relationName,
                                              @Nullable ColumnIdent routing) {
         for (Symbol partitionByColumn : node.columns()) {
@@ -221,7 +221,7 @@ public class CreateTablePlan implements Plan {
         }
     }
 
-    private static boolean hasColumnDefinition(AnalyzedTableElements<?> tableElements, ColumnIdent columnIdent) {
+    private static boolean hasColumnDefinition(AnalyzedTableElements tableElements, ColumnIdent columnIdent) {
         return (tableElements.columnIdents().contains(columnIdent) ||
                 columnIdent.name().equalsIgnoreCase("_id"));
     }

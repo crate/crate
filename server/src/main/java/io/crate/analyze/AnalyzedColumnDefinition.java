@@ -48,7 +48,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 
-public class AnalyzedColumnDefinition<T> {
+public class AnalyzedColumnDefinition {
 
     private static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Set.of(
         ObjectType.ID,
@@ -64,18 +64,18 @@ public class AnalyzedColumnDefinition<T> {
 
     public static final String COLUMN_STORE_PROPERTY = "columnstore";
 
-    private final AnalyzedColumnDefinition<T> parent;
+    private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
     private DataType<?> dataType = DataTypes.UNDEFINED;
 
     private String geoTree;
     @Nullable
-    private GenericProperties<T> geoProperties;
+    private GenericProperties<Symbol> geoProperties;
 
     private IndexType indexType = IndexType.PLAIN;
     @Nullable
-    private T analyzer;
+    private Symbol analyzer;
     private String indexMethod;
     private Settings analyzerSettings = Settings.EMPTY;
 
@@ -87,52 +87,52 @@ public class AnalyzedColumnDefinition<T> {
     private boolean docValues;
 
 
-    private List<AnalyzedColumnDefinition<T>> children = new ArrayList<>();
+    private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
     private List<String> sources = new ArrayList<>();
     private boolean isParentColumn;
     @Nullable
-    private GenericProperties<T> storageProperties;
+    private GenericProperties<Symbol> storageProperties;
 
     private boolean generated;
 
     @Nullable
     private String formattedGeneratedExpression;
     @Nullable
-    private T generatedExpression;
+    private Symbol generatedExpression;
 
     @Nullable
     private String formattedDefaultExpression;
 
     @Nullable
-    private T defaultExpression;
+    private Symbol defaultExpression;
 
-    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition<T> parent) {
+    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
     }
 
-    private AnalyzedColumnDefinition(AnalyzedColumnDefinition<T> parent,
+    private AnalyzedColumnDefinition(AnalyzedColumnDefinition parent,
                                      ColumnIdent ident,
                                      String name,
                                      DataType<?> dataType,
                                      IndexType indexType,
                                      String geoTree,
-                                     T analyzer,
+                                     Symbol analyzer,
                                      String indexMethod,
                                      ColumnPolicy columnPolicy,
                                      boolean isPrimaryKey,
                                      boolean isNotNull,
                                      Settings analyzerSettings,
-                                     GenericProperties<T> geoProperties,
-                                     List<AnalyzedColumnDefinition<T>> children,
+                                     GenericProperties<Symbol> geoProperties,
+                                     List<AnalyzedColumnDefinition> children,
                                      boolean isIndex,
                                      List<String> sources,
                                      boolean isParentColumn,
-                                     GenericProperties<T> storageProperties,
+                                     GenericProperties<Symbol> storageProperties,
                                      @Nullable String formattedGeneratedExpression,
-                                     @Nullable T generatedExpression,
+                                     @Nullable Symbol generatedExpression,
                                      @Nullable String formattedDefaultExpression,
-                                     @Nullable T defaultExpression,
+                                     @Nullable Symbol defaultExpression,
                                      boolean generated) {
         this.parent = parent;
         this.ident = ident;
@@ -159,10 +159,9 @@ public class AnalyzedColumnDefinition<T> {
         this.generated = generated;
     }
 
-    @SuppressWarnings("unchecked")
-    public <U> AnalyzedColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
-        return new AnalyzedColumnDefinition<>(
-            parent == null ? null : (AnalyzedColumnDefinition<U>) parent,   // parent is expected to be mapped already
+    public AnalyzedColumnDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
+        return new AnalyzedColumnDefinition(
+            parent == null ? null : parent,   // parent is expected to be mapped already
             ident,
             name,
             dataType,
@@ -188,7 +187,7 @@ public class AnalyzedColumnDefinition<T> {
         );
     }
 
-    public void visitSymbols(Consumer<? super T> consumer) {
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
         if (analyzer != null) {
             consumer.accept(analyzer);
         }
@@ -218,7 +217,7 @@ public class AnalyzedColumnDefinition<T> {
         }
     }
 
-    public void analyzer(T analyzer) {
+    public void analyzer(Symbol analyzer) {
         this.analyzer = analyzer;
     }
 
@@ -253,7 +252,7 @@ public class AnalyzedColumnDefinition<T> {
         this.geoTree = geoTree;
     }
 
-    void geoProperties(GenericProperties<T> properties) {
+    void geoProperties(GenericProperties<Symbol> properties) {
         this.geoProperties = properties;
     }
 
@@ -284,7 +283,7 @@ public class AnalyzedColumnDefinition<T> {
         return this.geoTree;
     }
 
-    public GenericProperties<T> geoProperties() {
+    public GenericProperties<Symbol> geoProperties() {
         return this.geoProperties;
     }
 
@@ -292,7 +291,7 @@ public class AnalyzedColumnDefinition<T> {
         this.isIndex = true;
     }
 
-    public void addChild(AnalyzedColumnDefinition<T> analyzedColumnDefinition) {
+    public void addChild(AnalyzedColumnDefinition analyzedColumnDefinition) {
         children.add(analyzedColumnDefinition);
     }
 
@@ -304,7 +303,7 @@ public class AnalyzedColumnDefinition<T> {
         if (!children().isEmpty()) {
             Settings.Builder builder = Settings.builder();
             builder.put(analyzerSettings);
-            for (AnalyzedColumnDefinition<T> child : children()) {
+            for (AnalyzedColumnDefinition child : children()) {
                 builder.put(child.builtAnalyzerSettings());
             }
             return builder.build();
@@ -316,7 +315,7 @@ public class AnalyzedColumnDefinition<T> {
      * Validates and sets either specified or default docValues for the given column definition.
      * If column definition represents an object with sub-column, computes docValues for all sub-columns.
      */
-    public static void validateAndComputeDocValues(AnalyzedColumnDefinition<Symbol> definition) {
+    public static void validateAndComputeDocValues(AnalyzedColumnDefinition definition) {
         if (definition.storageProperties == null) {
             // Take default if not specified
             definition.docValues = definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType);
@@ -354,7 +353,7 @@ public class AnalyzedColumnDefinition<T> {
         }
     }
 
-    static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition<Symbol> definition,
+    static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition definition,
                                                  FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         if (definition.analyzer == null) {
             if (definition.indexMethod != null) {
@@ -376,7 +375,7 @@ public class AnalyzedColumnDefinition<T> {
             }
         }
 
-        for (AnalyzedColumnDefinition<Symbol> child : definition.children()) {
+        for (AnalyzedColumnDefinition child : definition.children()) {
             applyAndValidateAnalyzerSettings(child, fulltextAnalyzerResolver);
         }
     }
@@ -402,7 +401,7 @@ public class AnalyzedColumnDefinition<T> {
         if (hasPrimaryKeyConstraint()) {
             ensureTypeCanBeUsedAsKey();
         }
-        for (AnalyzedColumnDefinition<T> child : children) {
+        for (AnalyzedColumnDefinition child : children) {
             child.validate();
         }
         if (dataType.id() == ObjectType.ID && defaultExpression != null) {
@@ -461,7 +460,7 @@ public class AnalyzedColumnDefinition<T> {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof AnalyzedColumnDefinition<?> that)) {
+        if (!(o instanceof AnalyzedColumnDefinition that)) {
             return false;
         }
 
@@ -480,7 +479,7 @@ public class AnalyzedColumnDefinition<T> {
                '}';
     }
 
-    public List<AnalyzedColumnDefinition<T>> children() {
+    public List<AnalyzedColumnDefinition> children() {
         return children;
     }
 
@@ -521,12 +520,12 @@ public class AnalyzedColumnDefinition<T> {
         return formattedGeneratedExpression;
     }
 
-    public void generatedExpression(T generatedExpression) {
+    public void generatedExpression(Symbol generatedExpression) {
         this.generatedExpression = generatedExpression;
     }
 
     @Nullable
-    public T generatedExpression() {
+    public Symbol generatedExpression() {
         return generatedExpression;
     }
 
@@ -535,15 +534,15 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     @Nullable
-    public T defaultExpression() {
+    public Symbol defaultExpression() {
         return defaultExpression;
     }
 
-    public void defaultExpression(T defaultExpression) {
+    public void defaultExpression(Symbol defaultExpression) {
         this.defaultExpression = defaultExpression;
     }
 
-    void setStorageProperties(GenericProperties<T> storageProperties) {
+    void setStorageProperties(GenericProperties<Symbol> storageProperties) {
         this.storageProperties = storageProperties;
     }
 

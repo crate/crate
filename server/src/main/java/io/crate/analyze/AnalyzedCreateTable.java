@@ -33,11 +33,11 @@ public class AnalyzedCreateTable implements DDLStatement {
 
     private final RelationName relationName;
     private final CreateTable<Symbol> createTable;
-    private final AnalyzedTableElements<Symbol> analyzedTableElements;
+    private final AnalyzedTableElements analyzedTableElements;
 
     public AnalyzedCreateTable(RelationName relationName,
                                CreateTable<Symbol> createTable,
-                               AnalyzedTableElements<Symbol> analyzedTableElements) {
+                               AnalyzedTableElements analyzedTableElements) {
         this.relationName = relationName;
         this.createTable = createTable;
         this.analyzedTableElements = analyzedTableElements;
@@ -51,7 +51,7 @@ public class AnalyzedCreateTable implements DDLStatement {
         return relationName;
     }
 
-    public AnalyzedTableElements<Symbol> analyzedTableElements() {
+    public AnalyzedTableElements analyzedTableElements() {
         return analyzedTableElements;
     }
 
