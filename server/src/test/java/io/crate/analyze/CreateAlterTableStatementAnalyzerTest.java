@@ -1327,6 +1327,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column() {
+        assertThatThrownBy(
+            () -> analyze("create table t (i int, o1 object as (o2 object as (b int check (b > 100))))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Constraints on nested columns are not allowed");
+        // Since the issue comes from converting `b` to a string literal, which would be successful
+        // if that column is of type string/text, test explicitly this case
+        assertThatThrownBy(
+            () -> analyze("create table t (i int, o1 object as (o2 object as (b text check (b != 'foo'))))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Constraints on nested columns are not allowed");
+    }
+
+    @Test
     public void testCreateTableWithColumnStoreDisabledOnInvalidDataType() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid storage option \"columnstore\" for data type \"integer\"");
