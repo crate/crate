@@ -165,7 +165,7 @@ import io.crate.metadata.doc.DocSysColumns;
 public class IndexShardTests extends IndexShardTestCase {
 
     @Test
-    public void testRecordsForceMerges() throws IOException {
+    public void testRecordsForceMerges() throws Exception {
         IndexShard shard = newStartedShard(true);
         final String initialForceMergeUUID = ((InternalEngine) shard.getEngine()).getForceMergeUUID();
         assertThat(initialForceMergeUUID).isNull();
@@ -316,7 +316,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRunUnderPrimaryPermitRunsUnderPrimaryPermit() throws IOException {
+    public void testRunUnderPrimaryPermitRunsUnderPrimaryPermit() throws Exception {
         final IndexShard indexShard = newStartedShard(true);
         try {
             assertThat(indexShard.getActiveOperationsCount()).isEqualTo(0);
@@ -332,7 +332,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRunUnderPrimaryPermitOnFailure() throws IOException {
+    public void testRunUnderPrimaryPermitOnFailure() throws Exception {
         final IndexShard indexShard = newStartedShard(true);
         final AtomicBoolean invoked = new AtomicBoolean();
         try {
@@ -487,7 +487,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testShardStats() throws IOException {
+    public void testShardStats() throws Exception {
         IndexShard shard = newStartedShard();
         ShardStats stats = new ShardStats(
             shard.routingEntry(),
@@ -517,7 +517,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testIndexingOperationListenersIsInvokedOnRecovery() throws IOException {
+    public void testIndexingOperationListenersIsInvokedOnRecovery() throws Exception {
         IndexShard shard = newStartedShard(true);
         updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
             .putMapping("{ \"properties\": { \"foo\":  { \"type\": \"text\", \"position\": 1}}}").build());
@@ -565,7 +565,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testTranslogRecoverySyncsTranslog() throws IOException {
+    public void testTranslogRecoverySyncsTranslog() throws Exception {
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
@@ -611,7 +611,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRecoverFromTranslog() throws IOException {
+    public void testRecoverFromTranslog() throws Exception {
         Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
@@ -670,7 +670,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testShardActiveDuringInternalRecovery() throws IOException {
+    public void testShardActiveDuringInternalRecovery() throws Exception {
         IndexShard shard = newStartedShard(true);
         indexDoc(shard, "0");
         shard = reinitShard(shard);
@@ -694,7 +694,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testShardActiveDuringPeerRecovery() throws IOException {
+    public void testShardActiveDuringPeerRecovery() throws Exception {
         Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
@@ -750,7 +750,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRefreshListenersDuringPeerRecovery() throws IOException {
+    public void testRefreshListenersDuringPeerRecovery() throws Exception {
         Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
@@ -838,7 +838,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRecoverFromLocalShard() throws IOException {
+    public void testRecoverFromLocalShard() throws Exception {
         Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
@@ -880,19 +880,16 @@ public class IndexShardTests extends IndexShardTestCase {
 
         final IndexShard differentIndex = newShard(new ShardId("index_2", "index_2", 0), true);
         recoverShardFromStore(differentIndex);
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> {
-                final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
-                targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard, differentIndex), future);
-                future.actionGet();
-            }
-        );
+        assertThatThrownBy(() -> {
+            final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+            targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard, differentIndex), future);
+            future.get();
+        }).isExactlyInstanceOf(IllegalArgumentException.class);
         closeShards(differentIndex);
 
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         targetShard.recoverFromLocalShards(mappingConsumer, Arrays.asList(sourceShard), future);
-        assertThat(future.actionGet()).isTrue();
+        assertThat(future.get()).isTrue();
         RecoveryState recoveryState = targetShard.recoveryState();
         assertThat(RecoveryState.Stage.DONE).isEqualTo(recoveryState.getStage());
         assertThat(recoveryState.getIndex().fileDetails().size() > 0).isTrue();
@@ -1132,7 +1129,7 @@ public class IndexShardTests extends IndexShardTestCase {
      * for metadata reads
      */
     @Test
-    public void testReadSnapshotConcurrently() throws IOException, InterruptedException {
+    public void testReadSnapshotConcurrently() throws Exception, InterruptedException {
         IndexShard indexShard = newStartedShard();
         indexDoc(indexShard, "0", "{}");
         if (randomBoolean()) {
@@ -1526,7 +1523,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRefreshIsNeededWithRefreshListeners() throws IOException, InterruptedException {
+    public void testRefreshIsNeededWithRefreshListeners() throws Exception, InterruptedException {
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
@@ -1563,7 +1560,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRecoveryFailsAfterMovingToRelocatedState() throws InterruptedException, IOException {
+    public void testRecoveryFailsAfterMovingToRelocatedState() throws Exception {
         IndexShard shard = newStartedShard(true);
         ShardRouting origRouting = shard.routingEntry();
         assertThat(shard.state()).isEqualTo(IndexShardState.STARTED);
@@ -1584,7 +1581,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRejectOperationPermitWithHigherTermWhenNotStarted() throws IOException {
+    public void testRejectOperationPermitWithHigherTermWhenNotStarted() throws Exception {
         IndexShard indexShard = newShard(false);
         expectThrows(IndexShardNotStartedException.class, () ->
             randomReplicaOperationPermitAcquisition(
@@ -3404,7 +3401,7 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testRestoreShard() throws IOException {
+    public void testRestoreShard() throws Exception {
         IndexShard source = newStartedShard(true);
         IndexShard target = newStartedShard(
             true,
@@ -3447,7 +3444,7 @@ public class IndexShardTests extends IndexShardTestCase {
             Set.of(),
             Version.CURRENT);
         target.markAsRecovering("store", new RecoveryState(routing, localNode, null));
-        final PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         target.restoreFromRepository(new RestoreOnlyRepository("test") {
 
                 @Override
@@ -3480,7 +3477,7 @@ public class IndexShardTests extends IndexShardTestCase {
                                                      String source,
                                                      Consumer<Exception> onFailure) {}
         }, future);
-        assertThat(future.actionGet(5, TimeUnit.SECONDS)).isEqualTo(true);
+        assertThat(future.get(5, TimeUnit.SECONDS)).isEqualTo(true);
         assertThat(target.getLocalCheckpoint()).isEqualTo(2L);
         assertThat(target.seqNoStats().getMaxSeqNo()).isEqualTo(2L);
         assertThat(target.seqNoStats().getGlobalCheckpoint()).isEqualTo(0L);
@@ -3969,7 +3966,7 @@ public class IndexShardTests extends IndexShardTestCase {
      * @param operations the number of operations
      * @param offset     the starting sequence number
      * @return a pair of the maximum sequence number and whether or not a gap was introduced
-     * @throws IOException if an I/O exception occurs while indexing on the shard
+     * @throws Exception if an I/O exception occurs while indexing on the shard
      */
     private Result indexOnReplicaWithGaps(
             final IndexShard indexShard,

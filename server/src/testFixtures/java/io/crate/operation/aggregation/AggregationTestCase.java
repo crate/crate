@@ -42,10 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
@@ -86,7 +83,9 @@ import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
@@ -453,7 +452,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws IOException {
+    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws Exception {
         IndexShard shard = newPrimaryShard(mapping);
         shard.markAsRecovering(
             "store",
@@ -469,9 +468,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                 null)
         );
 
-        PlainActionFuture<Boolean> future = PlainActionFuture.newFuture();
+        FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
         shard.recoverFromStore(future);
-        future.actionGet(5, TimeUnit.SECONDS);
+        future.get(5, TimeUnit.SECONDS);
 
         var newRouting = ShardRoutingHelper.moveToStarted(shard.routingEntry());
         var newRoutingTable = new IndexShardRoutingTable.Builder(newRouting.shardId())

@@ -50,9 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -62,8 +59,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
-import org.elasticsearch.action.support.AdapterActionFuture;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
@@ -72,6 +67,8 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
@@ -585,12 +582,13 @@ public class SQLTransportExecutor {
      */
     private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            AdapterActionFuture<long[], long[]> actionFuture = new PlainActionFuture<>();
-            var listener = ActionListener.delegateResponse(actionFuture, (delegate, failure) -> {
-                delegate.onFailure(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, failure));
-            });
+            FutureActionListener<long[], long[]> listener = FutureActionListener.newInstance();
             execute(stmt, bulkArgs, listener);
-            return actionFuture.actionGet(timeout);
+            var future = listener.exceptionally(err -> {
+                Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
+                return null;
+            });
+            return FutureUtils.get(future, timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, stmt);
             throw e;
