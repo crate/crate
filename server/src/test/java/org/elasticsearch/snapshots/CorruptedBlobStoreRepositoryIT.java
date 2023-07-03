@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -62,6 +61,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
@@ -154,7 +154,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Files.move(repo.resolve("index-" + beforeMoveGen), repo.resolve("index-" + (beforeMoveGen + 1)));
 
         logger.info("--> set next generation as pending in the cluster state");
-        final PlainActionFuture<Void> csUpdateFuture = PlainActionFuture.newFuture();
+        final FutureActionListener<Void, Void> csUpdateFuture = FutureActionListener.newInstance();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).submitStateUpdateTask("set pending generation",
             new ClusterStateUpdateTask() {
                 @Override

@@ -25,14 +25,15 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 
 public class PendingReplicationActionsTests extends ESTestCase {
@@ -55,45 +56,49 @@ public class PendingReplicationActionsTests extends ESTestCase {
         super.tearDown();
     }
 
-    public void testAllocationIdActionCanBeRun() {
+    @Test
+    public void testAllocationIdActionCanBeRun() throws Exception {
         String allocationId = UUIDs.randomBase64UUID();
-        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         pendingReplication.acceptNewTrackedAllocationIds(Collections.singleton(allocationId));
         TestAction action = new TestAction(future);
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
-        future.actionGet();
+        future.get();
         assertTrue(future.isDone());
     }
 
+    @Test
     public void testMissingAllocationIdActionWillBeCancelled() {
         String allocationId = UUIDs.randomBase64UUID();
-        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         TestAction action = new TestAction(future);
         pendingReplication.addPendingAction(allocationId, action);
-        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(IndexShardClosedException.class);
     }
 
+    @Test
     public void testAllocationIdActionWillBeCancelledIfTrackedAllocationChanges() {
         String allocationId = UUIDs.randomBase64UUID();
-        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         pendingReplication.acceptNewTrackedAllocationIds(Collections.singleton(allocationId));
         TestAction action = new TestAction(future, false);
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         pendingReplication.acceptNewTrackedAllocationIds(Collections.emptySet());
-        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(IndexShardClosedException.class);
     }
 
+    @Test
     public void testAllocationIdActionWillBeCancelledOnClose() {
         String allocationId = UUIDs.randomBase64UUID();
-        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
         pendingReplication.acceptNewTrackedAllocationIds(Collections.singleton(allocationId));
         TestAction action = new TestAction(future, false);
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         pendingReplication.close();
-        assertThatThrownBy(future::actionGet).isExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(IndexShardClosedException.class);
     }
 
     private class TestAction extends RetryableAction<Void> {
