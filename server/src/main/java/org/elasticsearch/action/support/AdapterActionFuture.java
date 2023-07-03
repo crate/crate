@@ -19,32 +19,24 @@
 
 package org.elasticsearch.action.support;
 
-import org.elasticsearch.action.ActionFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.action.ActionListener;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
-public abstract class AdapterActionFuture<T, L> extends BaseFuture<T> implements ActionFuture<T>, ActionListener<L> {
+public abstract class AdapterActionFuture<T, L> extends BaseFuture<T> implements ActionListener<L> {
 
-    @Override
     public T actionGet() {
         return FutureUtils.get(this);
     }
 
-    @Override
-    public T actionGet(long timeoutMillis) {
-        return actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    @Override
     public T actionGet(TimeValue timeout) {
-        return actionGet(timeout.millis(), TimeUnit.MILLISECONDS);
+        return FutureUtils.get(this, timeout);
     }
 
-    @Override
     public T actionGet(long timeout, TimeUnit unit) {
         return FutureUtils.get(this, timeout, unit);
     }
