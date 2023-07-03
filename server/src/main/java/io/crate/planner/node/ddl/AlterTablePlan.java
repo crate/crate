@@ -23,13 +23,20 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.metadata.table.Operation.isReplicated;
 
-import io.crate.analyze.BoundAlterTable;
+import java.util.function.Function;
+
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TablePropertiesAnalyzer;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -44,14 +51,10 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.function.Function;
 
 public class AlterTablePlan implements Plan {
 
@@ -89,6 +92,7 @@ public class AlterTablePlan implements Plan {
                                        NodeContext nodeCtx,
                                        Row params,
                                        SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -97,12 +101,15 @@ public class AlterTablePlan implements Plan {
             subQueryResults
         );
         DocTableInfo docTableInfo = analyzedAlterTable.tableInfo();
-        AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
-        Table<Object> table = alterTable.table();
+        AlterTable<Symbol> alterTable = analyzedAlterTable.alterTable().map(paramBinder);
+        Table<Symbol> table = alterTable.table();
 
-        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
+        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(
+            Lists2.map(table.partitionProperties(), assignment -> assignment.map(eval)),
+            docTableInfo
+        );
         TableParameters tableParameters = getTableParameterInfo(table, docTableInfo, partitionName);
-        TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
+        TableParameter tableParameter = getTableParameter(alterTable, eval, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
         return new BoundAlterTable(
             docTableInfo,
@@ -123,10 +130,12 @@ public class AlterTablePlan implements Plan {
         return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
+    public static TableParameter getTableParameter(AlterTable<Symbol> node,
+                                                   Function<? super Symbol, Object> eval,
+                                                   TableParameters tableParameters) {
         TableParameter tableParameter = new TableParameter();
         if (!node.genericProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeWithBoundValues(tableParameter, tableParameters, node.genericProperties(), false);
+            TablePropertiesAnalyzer.analyzeWithBoundValues(tableParameter, tableParameters, node.genericProperties(), eval, false);
         } else if (!node.resetProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
         }

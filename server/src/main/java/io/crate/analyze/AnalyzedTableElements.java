@@ -192,15 +192,15 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    public static Set<String> primaryKeys(AnalyzedTableElements<Object> elements) {
+    public static Set<String> primaryKeys(AnalyzedTableElements<Symbol> elements) {
         if (elements.primaryKeys == null) {
             elements.primaryKeys = new LinkedHashSet<>(); // To preserve order
-            for (Object pk : elements.additionalPrimaryKeys) {
-                String pkAsString = pk.toString();
+            for (Symbol pk : elements.additionalPrimaryKeys) {
+                String pkAsString = Symbols.pathFromSymbol(pk).fqn();
                 checkPrimaryKeyAlreadyDefined(elements.primaryKeys, pkAsString);
                 elements.primaryKeys.add(pkAsString);
             }
-            for (AnalyzedColumnDefinition<Object> column : elements.columns) {
+            for (var column : elements.columns) {
                 elements.addPrimaryKeys(elements.primaryKeys, column);
             }
         }
@@ -248,10 +248,10 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    public static Settings validateAndBuildSettings(AnalyzedTableElements<Object> tableElementsEvaluated,
+    public static Settings validateAndBuildSettings(AnalyzedTableElements<Symbol> tableElements,
                                                     FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Settings.Builder builder = Settings.builder();
-        for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
+        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns) {
             AnalyzedColumnDefinition.applyAndValidateAnalyzerSettings(column, fulltextAnalyzerResolver);
             builder.put(column.builtAnalyzerSettings());
         }
@@ -263,29 +263,18 @@ public class AnalyzedTableElements<T> {
      * Enriches AnalyzedColumnDefinition with resolved generated and default expressions.
      */
     public static void finalizeAndValidate(RelationName relationName,
-                                           AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                           AnalyzedTableElements<Object> tableElementsEvaluated) {
-        tableElementsEvaluated.expandColumnIdents();
-        validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated);
-        for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
+                                           AnalyzedTableElements<Symbol> tableElements) {
+        tableElements.expandColumnIdents();
+        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns) {
+            processExpressions(column);
             column.validate();
-            tableElementsEvaluated.addFtIndexSources(column, tableElementsEvaluated);
+            tableElements.addFtIndexSources(column);
         }
-        validateIndexDefinitions(relationName, tableElementsEvaluated);
-        validatePrimaryKeys(relationName, tableElementsEvaluated);
+        validateIndexDefinitions(relationName, tableElements);
+        validatePrimaryKeys(relationName, tableElements);
 
-        for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns()) {
+        for (AnalyzedColumnDefinition<Symbol> column : tableElements.columns()) {
             AnalyzedColumnDefinition.validateAndComputeDocValues(column);
-        }
-    }
-
-    private static void validateExpressions(AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                            AnalyzedTableElements<Object> tableElementsEvaluated) {
-        for (int i = 0; i < tableElementsWithExpressionSymbols.columns.size(); i++) {
-            processExpressions(
-                tableElementsWithExpressionSymbols.columns.get(i),
-                tableElementsEvaluated.columns.get(i)
-            );
         }
     }
 
@@ -325,19 +314,17 @@ public class AnalyzedTableElements<T> {
         }
     }
 
-    private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
-                                           AnalyzedColumnDefinition<Object> columnDefinitionEvaluated) {
-        Symbol generatedExpression = columnDefinitionWithExpressionSymbols.generatedExpression();
+    private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinition) {
+        Symbol generatedExpression = columnDefinition.generatedExpression();
         if (generatedExpression != null) {
             validateAndFormatExpression(
                 generatedExpression,
-                columnDefinitionWithExpressionSymbols,
-                columnDefinitionEvaluated,
-                columnDefinitionEvaluated::formattedGeneratedExpression,
+                columnDefinition,
+                columnDefinition::formattedGeneratedExpression,
                 null
             );
         }
-        Symbol defaultExpression = columnDefinitionWithExpressionSymbols.defaultExpression();
+        Symbol defaultExpression = columnDefinition.defaultExpression();
         if (defaultExpression != null) {
             RefVisitor.visitRefs(defaultExpression, r -> {
                 throw new UnsupportedOperationException(
@@ -346,28 +333,23 @@ public class AnalyzedTableElements<T> {
             });
             validateAndFormatExpression(
                 defaultExpression,
-                columnDefinitionWithExpressionSymbols,
-                columnDefinitionEvaluated,
-                columnDefinitionEvaluated::formattedDefaultExpression,
-                columnDefinitionEvaluated::defaultExpression
+                columnDefinition,
+                columnDefinition::formattedDefaultExpression,
+                columnDefinition::defaultExpression
             );
         }
-        for (int i = 0; i < columnDefinitionWithExpressionSymbols.children().size(); i++) {
-            processExpressions(
-                columnDefinitionWithExpressionSymbols.children().get(i),
-                columnDefinitionEvaluated.children().get(i)
-            );
+        for (int i = 0; i < columnDefinition.children().size(); i++) {
+            processExpressions(columnDefinition.children().get(i));
         }
     }
 
     private static void validateAndFormatExpression(Symbol function,
-                                                    AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
-                                                    AnalyzedColumnDefinition<Object> columnDefinitionEvaluated,
+                                                    AnalyzedColumnDefinition<Symbol> columnDefinition,
                                                     Consumer<String> formattedExpressionConsumer,
                                                     @Nullable Consumer<Symbol> expressionConsumer) {
         String formattedExpression;
         DataType<?> valueType = function.valueType();
-        DataType<?> definedType = columnDefinitionWithExpressionSymbols.dataType();
+        DataType<?> definedType = columnDefinition.dataType();
 
         if (SymbolVisitors.any(Symbols::isAggregate, function)) {
             throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + function);
@@ -386,7 +368,7 @@ public class AnalyzedTableElements<T> {
             function = castFunction;
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
-            columnDefinitionEvaluated.dataType(valueType);
+            columnDefinition.dataType(valueType);
             formattedExpression = function.toString(Style.UNQUALIFIED);
         }
         formattedExpressionConsumer.accept(formattedExpression);
@@ -556,22 +538,22 @@ public class AnalyzedTableElements<T> {
      *  some_fulltext_index:{sources:[col1, col2], analyzer: 'stop'}
      *
      */
-    private void addFtIndexSources(AnalyzedColumnDefinition<T> column, AnalyzedTableElements<Object> elements) {
+    private void addFtIndexSources(AnalyzedColumnDefinition<T> column) {
         if (column.isIndexColumn()) {
-            List<Object> sources = elements.ftSourcesMap.get(column.ident().fqn());
+            List<T> sources = ftSourcesMap.get(column.ident().fqn());
             if (sources != null) {
                 // src.toString is in FQN form here.
-                column.sources(Lists2.map(sources, Object::toString));
+                column.sources(Lists2.map(sources, x -> Symbols.pathFromSymbol((Symbol) x).fqn()));
             }
         }
         for (AnalyzedColumnDefinition<T> child : column.children()) {
-            addFtIndexSources(child, elements);
+            addFtIndexSources(child);
         }
     }
 
-    private static void validatePrimaryKeys(RelationName relationName, AnalyzedTableElements<Object> elements) {
-        for (Object additionalPrimaryKey : elements.additionalPrimaryKeys) {
-            ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey.toString());
+    private static void validatePrimaryKeys(RelationName relationName, AnalyzedTableElements<Symbol> elements) {
+        for (Symbol additionalPrimaryKey : elements.additionalPrimaryKeys) {
+            ColumnIdent columnIdent = Symbols.pathFromSymbol(additionalPrimaryKey);
             if (!elements.columnIdents.contains(columnIdent)) {
                 throw new ColumnUnknownException(columnIdent, relationName);
             }
@@ -580,10 +562,10 @@ public class AnalyzedTableElements<T> {
         primaryKeys(elements);
     }
 
-    private static void validateIndexDefinitions(RelationName relationName, AnalyzedTableElements<Object> tableElements) {
-        for (List<Object> sources : tableElements.ftSourcesMap.values()) {
-            for (Object source: sources) {
-                ColumnIdent columnIdent = ColumnIdent.fromPath(source.toString());
+    private static void validateIndexDefinitions(RelationName relationName, AnalyzedTableElements<Symbol> tableElements) {
+        for (List<Symbol> sources : tableElements.ftSourcesMap.values()) {
+            for (Symbol source : sources) {
+                ColumnIdent columnIdent = Symbols.pathFromSymbol(source);
                 if (!tableElements.columnIdents.contains(columnIdent)) {
                     throw new ColumnUnknownException(columnIdent, relationName);
                 }
@@ -604,10 +586,10 @@ public class AnalyzedTableElements<T> {
     }
 
     @Nullable
-    private static AnalyzedColumnDefinition<Object> columnDefinitionByIdent(AnalyzedTableElements<Object> elements, ColumnIdent ident) {
-        AnalyzedColumnDefinition<Object> result = null;
+    private static <T> AnalyzedColumnDefinition<T> columnDefinitionByIdent(AnalyzedTableElements<T> elements, ColumnIdent ident) {
+        AnalyzedColumnDefinition<T> result = null;
         ColumnIdent root = ident.getRoot();
-        for (AnalyzedColumnDefinition<Object> column : elements.columns) {
+        for (AnalyzedColumnDefinition<T> column : elements.columns) {
             if (column.ident().equals(root)) {
                 result = column;
                 break;
@@ -624,15 +606,14 @@ public class AnalyzedTableElements<T> {
         return findInChildren(result, ident);
     }
 
-    private static AnalyzedColumnDefinition<Object> findInChildren(AnalyzedColumnDefinition<Object> column,
-                                                                   ColumnIdent ident) {
-        AnalyzedColumnDefinition<Object> result = null;
-        for (AnalyzedColumnDefinition<Object> child : column.children()) {
+    private static <T> AnalyzedColumnDefinition<T> findInChildren(AnalyzedColumnDefinition<T> column, ColumnIdent ident) {
+        AnalyzedColumnDefinition<T> result = null;
+        for (var child : column.children()) {
             if (child.ident().equals(ident)) {
                 result = child;
                 break;
             }
-            AnalyzedColumnDefinition<Object> inChildren = findInChildren(child, ident);
+            AnalyzedColumnDefinition<T> inChildren = findInChildren(child, ident);
             if (inChildren != null) {
                 return inChildren;
             }
@@ -640,7 +621,7 @@ public class AnalyzedTableElements<T> {
         return result;
     }
 
-    public static void changeToPartitionedByColumn(AnalyzedTableElements<Object> elements,
+    public static void changeToPartitionedByColumn(AnalyzedTableElements<Symbol> elements,
                                                    ColumnIdent partitionedByIdent,
                                                    boolean skipIfNotFound,
                                                    RelationName relationName) {
@@ -655,7 +636,7 @@ public class AnalyzedTableElements<T> {
                                                              partitionedByIdent.sqlFqn()));
         }
 
-        AnalyzedColumnDefinition<Object> columnDefinition = columnDefinitionByIdent(elements, partitionedByIdent);
+        AnalyzedColumnDefinition<Symbol> columnDefinition = columnDefinitionByIdent(elements, partitionedByIdent);
         if (columnDefinition == null) {
             if (skipIfNotFound) {
                 return;

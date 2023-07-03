@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -214,16 +214,16 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
-        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        AlterTable<Symbol> alterTable = analysis.alterTable();
+        getTableParameter(alterTable, EVAL, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
     }
 
     @Test
     public void testAlterBlobTableWithReplicas() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
-        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        AlterTable<Symbol> alterTable = analysis.alterTable();
+        TableParameter parameter = getTableParameter(alterTable, EVAL, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
         assertThat(parameter.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)).isEqualTo(2);
     }
 
@@ -231,16 +231,16 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_alter_setting_block_read_only() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
-        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        AlterTable<Symbol> alterTable = analysis.alterTable();
+        TableParameter parameter = getTableParameter(alterTable, EVAL, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
         assertThat(parameter.settings().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false)).isTrue();
     }
 
     @Test
     public void testAlterBlobTableWithPath() {
         AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
-        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        assertThatThrownBy(() -> getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
+        AlterTable<Symbol> alterTable = analysis.alterTable();
+        assertThatThrownBy(() -> getTableParameter(alterTable, EVAL, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
     }

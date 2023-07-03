@@ -34,6 +34,9 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexType;
@@ -223,8 +226,8 @@ public class AnalyzedColumnDefinition<T> {
         if (analyzer == null) {
             return null;
         }
-        if (analyzer instanceof String str) {
-            return str;
+        if (analyzer instanceof Literal<?> literal) {
+            return literal.value().toString();
         }
         throw new IllegalStateException("Trying to access not evaluated analyzer");
     }
@@ -313,12 +316,18 @@ public class AnalyzedColumnDefinition<T> {
      * Validates and sets either specified or default docValues for the given column definition.
      * If column definition represents an object with sub-column, computes docValues for all sub-columns.
      */
-    public static void validateAndComputeDocValues(AnalyzedColumnDefinition<Object> definition) {
+    public static void validateAndComputeDocValues(AnalyzedColumnDefinition<Symbol> definition) {
         if (definition.storageProperties == null) {
             // Take default if not specified
             definition.docValues = definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType);
         } else {
-            Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
+            Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties.map(symbol -> {
+                if (symbol instanceof Input<?> input) {
+                    return input.value();
+                } else {
+                    throw new IllegalStateException("Parameters and subqueries must have been bound to finalize AnalyzedColumnDefinition");
+                }
+            }));
             for (String property : storageSettings.names()) {
                 if (property.equals(COLUMN_STORE_PROPERTY)) {
                     DataType<?> dataType = definition.dataType();
@@ -345,29 +354,29 @@ public class AnalyzedColumnDefinition<T> {
         }
     }
 
-    static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition<Object> definition,
+    static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition<Symbol> definition,
                                                  FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         if (definition.analyzer == null) {
             if (definition.indexMethod != null) {
                 if (definition.indexMethod.equals("plain")) {
-                    definition.analyzer("keyword");
+                    definition.analyzer(Literal.of("keyword"));
                 } else {
-                    definition.analyzer("standard");
+                    definition.analyzer(Literal.of("standard"));
                 }
             }
-        } else {
-            if (definition.analyzer instanceof Object[]) {
+        } else if (definition.analyzer instanceof Literal<?> literal) {
+            if (literal.value() instanceof Object[]) {
                 throw new IllegalArgumentException("array literal not allowed for the analyzer property");
             }
 
-            String analyzerName = DataTypes.STRING.sanitizeValue(definition.analyzer);
+            String analyzerName = DataTypes.STRING.sanitizeValue(literal.value());
             if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzerName)) {
                 Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzerName);
                 definition.analyzerSettings(settings);
             }
         }
 
-        for (AnalyzedColumnDefinition<Object> child : definition.children()) {
+        for (AnalyzedColumnDefinition<Symbol> child : definition.children()) {
             applyAndValidateAnalyzerSettings(child, fulltextAnalyzerResolver);
         }
     }

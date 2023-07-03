@@ -48,6 +48,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -129,14 +130,16 @@ public class CreateTablePlan implements Plan {
             params,
             subQueryResults
         );
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         CreateTable<Symbol> table = createTable.createTable();
         RelationName relationName = createTable.relationName();
-        GenericProperties<Object> properties = table.properties().map(eval);
-        AnalyzedTableElements<Object> tableElements = createTable.analyzedTableElements().map(eval);
+        GenericProperties<Symbol> properties = table.properties().map(paramBinder);
+        AnalyzedTableElements<Symbol> tableElements = createTable.analyzedTableElements().map(paramBinder);
         TableParameter tableParameter = new TableParameter();
-        Optional<ClusteredBy<Object>> mappedClusteredBy = table.clusteredBy().map(x -> x.map(eval));
+        Optional<ClusteredBy<Symbol>> mappedClusteredBy = table.clusteredBy().map(x -> x.map(paramBinder));
         Integer numShards = mappedClusteredBy
             .flatMap(ClusteredBy::numberOfShards)
+            .map(eval)
             .map(numberOfShards::fromNumberOfShards)
             .orElseGet(numberOfShards::defaultNumberOfShards);
         tableParameter.settingsBuilder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
@@ -147,20 +150,12 @@ public class CreateTablePlan implements Plan {
             tableParameter,
             TableParameters.TABLE_CREATE_PARAMETER_INFO,
             properties,
+            eval,
             true
         );
 
-        AnalyzedTableElements<Symbol> tableElementsWithExpressions =
-            createTable.analyzedTableElementsWithExpressions().map(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
+        AnalyzedTableElements.finalizeAndValidate(relationName, tableElements);
 
-        // validate table elements
-        AnalyzedTableElements.finalizeAndValidate(
-            relationName,
-            tableElementsWithExpressions,
-            tableElements
-        );
-
-        // update table settings
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
             tableElements, fulltextAnalyzerResolver);
         tableParameter.settingsBuilder().put(tableSettings);
@@ -168,7 +163,7 @@ public class CreateTablePlan implements Plan {
         ColumnIdent routingColumn = mappedClusteredBy
             .map(clusteredBy -> resolveRoutingFromClusteredBy(clusteredBy, tableElements))
             .orElse(null);
-        Optional<PartitionedBy<Object>> partitionedByOptional = table.partitionedBy().map(x -> x.map(eval));
+        Optional<PartitionedBy<Symbol>> partitionedByOptional = table.partitionedBy().map(x -> x.map(paramBinder));
         partitionedByOptional.ifPresent(partitionedBy -> processPartitionedBy(
             partitionedByOptional.get(),
             tableElements,
@@ -184,14 +179,13 @@ public class CreateTablePlan implements Plan {
             schemas);
     }
 
-    private static ColumnIdent resolveRoutingFromClusteredBy(ClusteredBy<Object> clusteredBy,
-                                                             AnalyzedTableElements<Object> tableElements) {
+    private static ColumnIdent resolveRoutingFromClusteredBy(ClusteredBy<Symbol> clusteredBy,
+                                                             AnalyzedTableElements<Symbol> tableElements) {
         if (clusteredBy.column().isPresent()) {
-            Object routingColumnValue = clusteredBy.column().get();
-            assert routingColumnValue instanceof String;
-            ColumnIdent routingColumn = ColumnIdent.fromPath((String) routingColumnValue);
+            Symbol routingColumnValue = clusteredBy.column().get();
+            ColumnIdent routingColumn = Symbols.pathFromSymbol(routingColumnValue);;
 
-            for (AnalyzedColumnDefinition<Object> column : tableElements.partitionedByColumns) {
+            for (AnalyzedColumnDefinition<Symbol> column : tableElements.partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {
                     throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
                 }
@@ -213,13 +207,12 @@ public class CreateTablePlan implements Plan {
         return null;
     }
 
-    private static void processPartitionedBy(PartitionedBy<Object> node,
-                                             AnalyzedTableElements<Object> tableElements,
+    private static void processPartitionedBy(PartitionedBy<Symbol> node,
+                                             AnalyzedTableElements<Symbol> tableElements,
                                              RelationName relationName,
                                              @Nullable ColumnIdent routing) {
-        for (Object partitionByColumn : node.columns()) {
-            assert partitionByColumn instanceof String;
-            ColumnIdent partitionedByIdent = ColumnIdent.fromPath((String) partitionByColumn);
+        for (Symbol partitionByColumn : node.columns()) {
+            ColumnIdent partitionedByIdent = Symbols.pathFromSymbol(partitionByColumn);
 
             AnalyzedTableElements.changeToPartitionedByColumn(tableElements, partitionedByIdent, false, relationName);
             if (routing != null && routing.equals(partitionedByIdent)) {

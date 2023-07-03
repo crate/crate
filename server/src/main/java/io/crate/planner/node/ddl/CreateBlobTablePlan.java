@@ -21,6 +21,16 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.blob.v2.BlobIndex.fullIndexName;
+import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
+
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
@@ -39,19 +49,11 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.function.Function;
-
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
-import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 
 public class CreateBlobTablePlan implements Plan {
 
@@ -97,6 +99,7 @@ public class CreateBlobTablePlan implements Plan {
                                          Row params,
                                          SubQueryResults subQueryResults,
                                          NumberOfShards numberOfShards) {
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -104,8 +107,8 @@ public class CreateBlobTablePlan implements Plan {
             params,
             subQueryResults
         );
-        CreateBlobTable<Object> blobTable = createBlobTable.map(eval);
-        GenericProperties<Object> properties = blobTable.genericProperties();
+        CreateBlobTable<Symbol> blobTable = createBlobTable.map(paramBinder);
+        GenericProperties<Symbol> properties = blobTable.genericProperties();
 
         // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
@@ -114,6 +117,7 @@ public class CreateBlobTablePlan implements Plan {
             tableParameter,
             TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
             properties,
+            eval,
             true
         );
         Settings.Builder builder = Settings.builder();
@@ -121,9 +125,9 @@ public class CreateBlobTablePlan implements Plan {
         builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 
         int numShards;
-        ClusteredBy<Object> clusteredBy = blobTable.clusteredBy();
+        ClusteredBy<Symbol> clusteredBy = blobTable.clusteredBy();
         if (clusteredBy != null) {
-            numShards = numberOfShards.fromClusteredByClause(clusteredBy);
+            numShards = numberOfShards.fromClusteredByClause(clusteredBy.map(eval));
         } else {
             numShards = numberOfShards.defaultNumberOfShards();
         }

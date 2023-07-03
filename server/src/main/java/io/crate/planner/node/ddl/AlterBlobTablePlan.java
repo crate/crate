@@ -21,8 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.BoundAlterTable;
+import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
+import static io.crate.planner.node.ddl.AlterTablePlan.maybeRaiseBlockedException;
+
+import java.util.function.Function;
+
 import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
@@ -35,13 +40,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
-
-import java.util.function.Function;
-
-import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static io.crate.planner.node.ddl.AlterTablePlan.maybeRaiseBlockedException;
 
 public class AlterBlobTablePlan implements Plan {
 
@@ -61,6 +62,7 @@ public class AlterBlobTablePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
@@ -70,9 +72,9 @@ public class AlterBlobTablePlan implements Plan {
         );
 
         TableInfo tableInfo = analyzedAlterTable.tableInfo();
-        AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
+        AlterTable<Symbol> alterTable = analyzedAlterTable.alterTable().map(paramBinder);
 
-        TableParameter tableParameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        TableParameter tableParameter = getTableParameter(alterTable, eval, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
         maybeRaiseBlockedException(tableInfo, tableParameter.settings());
 
         BoundAlterTable stmt = new BoundAlterTable(

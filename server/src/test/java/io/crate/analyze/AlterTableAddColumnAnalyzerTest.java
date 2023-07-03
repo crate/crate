@@ -22,20 +22,15 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTableAddColumnPlan.validate;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Test;
 
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import io.crate.data.Row;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -163,17 +158,19 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             e.fulltextAnalyzerResolver()
         );
 
-        var request = AlterTableAddColumnPlan.createRequest(tableElements, analyzedAlterTableAddColumn.tableInfo().ident());
+        fail("todo");
 
-        assertThat(request.pKeyIndices()).hasSize(2);
-        assertThat(request.references()).hasSize(4); // 2 leaves (b, c) and their common parents (o, a).
+        // var request = AlterTableAddColumnPlan.createRequest(tableElements, analyzedAlterTableAddColumn.tableInfo().ident());
 
-        List<String> pKeyColNames = new ArrayList<>();
-        for (IntCursor cursor: request.pKeyIndices()) {
-            var ref = request.references().get(cursor.value);
-            pKeyColNames.add(ref.column().leafName());
-        }
-        assertThat(pKeyColNames).containsExactlyInAnyOrder("b", "c");
+        // assertThat(request.pKeyIndices()).hasSize(2);
+        // assertThat(request.references()).hasSize(4); // 2 leaves (b, c) and their common parents (o, a).
+
+        // List<String> pKeyColNames = new ArrayList<>();
+        // for (IntCursor cursor: request.pKeyIndices()) {
+        //     var ref = request.references().get(cursor.value);
+        //     pKeyColNames.add(ref.column().leafName());
+        // }
+        // assertThat(pKeyColNames).containsExactlyInAnyOrder("b", "c");
     }
 
     @Test

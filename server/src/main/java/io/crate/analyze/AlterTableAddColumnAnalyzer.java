@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,11 +30,11 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -47,7 +46,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AlterTableAddColumn;
-import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
@@ -75,75 +73,25 @@ class AlterTableAddColumnAnalyzer {
             txnCtx.sessionSettings().searchPath());
         TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 
-        var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(
+        var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, referenceResolver, null);
-        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         List<AddColumnDefinition<Expression>> tableElements = alterTable.tableElements();
 
         // 1st phase, exclude check constraints (their expressions contain column references) and generated expressions
-        List<AddColumnDefinition<Symbol>> addColumnDefinitions = tableElements.stream().map(tableElement -> new AddColumnDefinition<>(
-            exprAnalyzerWithFieldsAsString.convert(tableElement.name(), exprCtx),
-            null,   // expression must be mapped later on using mapExpressions()
-            tableElement.type() == null ? null : tableElement.type().map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)),
-            tableElement.constraints()
-                .stream()
-                .filter(c -> false == c instanceof CheckColumnConstraint)
-                .map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)))
-                .toList(),
-            false,
-            tableElement.generatedExpression() != null
-        )).toList();
-
+        List<AddColumnDefinition<Symbol>> columnDefinitions = Lists2.map(
+            tableElements,
+            te -> te.map(expression -> expressionAnalyzer.convert(expression, exprCtx))
+        );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
-            List.copyOf(addColumnDefinitions), tableInfo.ident(), tableInfo, true);
-
-
-        // 2nd phase, analyze possible generated expressions
-        List<AddColumnDefinition<Symbol>> addColumnDefinitionsWithExpression = new ArrayList<>();
-        for (int i = 0; i < tableElements.size(); i++) {
-            addColumnDefinitionsWithExpression.add((AddColumnDefinition<Symbol>) tableElements.get(i).mapExpressions(
-                addColumnDefinitions.get(i),
-                x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx)));
-        }
-
-        AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            List.copyOf(addColumnDefinitionsWithExpression), tableInfo.ident(), tableInfo, true);
-
-        // now analyze possible check expressions
-        var checkColumnConstraintsAnalyzer = new ExpressionAnalyzer(
-            txnCtx,
-            nodeCtx,
-            paramTypeHints,
-            new SelfReferenceFieldProvider(
-                tableInfo.ident(), referenceResolver, analyzedTableElements.columns()),
-            null);
-
-        tableElements.forEach(tableElement ->
-            tableElement.constraints()
-                .stream()
-                .filter(CheckColumnConstraint.class::isInstance)
-                .map(x -> x.map(y -> checkColumnConstraintsAnalyzer.convert(y, exprCtx)))
-                .forEach(c -> {
-                    CheckColumnConstraint<Symbol> check = (CheckColumnConstraint<Symbol>) c;
-                    analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
-                    analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
-                })
+            List.copyOf(columnDefinitions),
+            tableInfo.ident(),
+            tableInfo,
+            true
         );
 
-        addColumnDefinitionsWithExpression.forEach(addColumnDefinitionWithExpression -> {
-            if (addColumnDefinitionWithExpression.generatedExpression() != null) {
-                GeneratedColumnValidator.validate(
-                    addColumnDefinitionWithExpression.generatedExpression(),
-                    tableInfo.ident(),
-                    analyzedTableElements.columnIdents().iterator().next().name(),
-                    tableInfo.generatedColumns().stream().map(GeneratedReference::column).toList());
-            }
-        });
-
-        return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
+        return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements);
     }
 
     private static class SelfReferenceFieldProvider implements FieldProvider<Reference> {

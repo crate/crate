@@ -27,13 +27,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
 public class GenericPropertiesConverter {
@@ -78,12 +80,19 @@ public class GenericPropertiesConverter {
                                                         Consumer<String> settingKeyValidator) {
         for (Map.Entry<String, T> entry : genericProperties.properties().entrySet()) {
             settingKeyValidator.accept(entry.getKey());
-            builder.put(entry.getKey(), entry.getValue().toString());
+            T value = entry.getValue();
+            if (value instanceof Input<?> input) {
+                builder.put(entry.getKey(), input.value().toString());
+            } else {
+                assert !(value instanceof Symbol) : "Value must either be a Literal or a evaluated value";
+                builder.put(entry.getKey(), value.toString());
+            }
         }
     }
 
     static void settingsFromProperties(Settings.Builder builder,
-                                       GenericProperties<Object> properties,
+                                       GenericProperties<Symbol> properties,
+                                       Function<? super Symbol, Object> eval,
                                        Map<String, Setting<?>> supportedSettings,
                                        boolean setDefaults,
                                        Predicate<String> ignoreProperty,
@@ -91,7 +100,7 @@ public class GenericPropertiesConverter {
         if (setDefaults) {
             setDefaults(builder, supportedSettings);
         }
-        for (Map.Entry<String, Object> entry : properties.properties().entrySet()) {
+        for (Map.Entry<String, Symbol> entry : properties.properties().entrySet()) {
             String settingName = entry.getKey();
             if (ignoreProperty.test(settingName)) {
                 continue;
@@ -104,7 +113,8 @@ public class GenericPropertiesConverter {
             if (settingHolder == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
             }
-            Object value = entry.getValue();
+            Symbol symbol = entry.getValue();
+            Object value = eval.apply(symbol);
             if (value == null) {
                 throw new IllegalArgumentException(
                     String.format(
@@ -114,7 +124,7 @@ public class GenericPropertiesConverter {
                     )
                 );
             }
-            settingHolder.apply(builder, entry.getValue());
+            settingHolder.apply(builder, value);
         }
     }
 

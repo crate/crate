@@ -21,27 +21,29 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
 public class BoundCreateTable {
 
     private final RelationName relationName;
-    private final AnalyzedTableElements<Object> analyzedTableElements;
+    private final AnalyzedTableElements<Symbol> analyzedTableElements;
     private final TableParameter tableParameter;
     private final ColumnIdent routingColumn;
     private final boolean noOp;
     private final boolean ifNotExists;
 
     public BoundCreateTable(RelationName relationName,
-                            AnalyzedTableElements<Object> tableElements,
+                            AnalyzedTableElements<Symbol> tableElements,
                             TableParameter tableParameter,
                             @Nullable ColumnIdent routingColumn,
                             boolean ifNotExists,
@@ -124,7 +126,7 @@ public class BoundCreateTable {
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    public AnalyzedTableElements<Object> analyzedTableElements() {
+    public AnalyzedTableElements<Symbol> analyzedTableElements() {
         return analyzedTableElements;
     }
 

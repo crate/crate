@@ -21,11 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
-
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Setting;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
 public final class TablePropertiesAnalyzer {
 
@@ -36,7 +39,8 @@ public final class TablePropertiesAnalyzer {
 
     public static void analyzeWithBoundValues(TableParameter tableParameter,
                                               TableParameters tableParameters,
-                                              GenericProperties<Object> properties,
+                                              GenericProperties<Symbol> properties,
+                                              Function<? super Symbol, Object> eval,
                                               boolean withDefaults) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
         Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
@@ -44,6 +48,7 @@ public final class TablePropertiesAnalyzer {
         GenericPropertiesConverter.settingsFromProperties(
             tableParameter.settingsBuilder(),
             properties,
+            eval,
             settingMap,
             withDefaults,
             mappingsMap::containsKey,
@@ -52,6 +57,7 @@ public final class TablePropertiesAnalyzer {
         GenericPropertiesConverter.settingsFromProperties(
             tableParameter.mappingsBuilder(),
             properties,
+            eval,
             mappingsMap,
             withDefaults,
             settingMap::containsKey,

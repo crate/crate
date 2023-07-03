@@ -39,9 +39,9 @@ import io.crate.types.DataTypes;
 
 public class PartitionPropertiesAnalyzer {
 
-    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment<Object>> assignments) {
-        Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
-        for (Assignment<Object> assignment : assignments) {
+    private static <T> Map<ColumnIdent, T> assignmentsToMap(List<Assignment<T>> assignments) {
+        Map<ColumnIdent, T> map = new HashMap<>(assignments.size());
+        for (Assignment<T> assignment : assignments) {
             map.put(
                 ColumnIdent.fromPath(assignment.columnName().toString()),
                 assignment.expression()

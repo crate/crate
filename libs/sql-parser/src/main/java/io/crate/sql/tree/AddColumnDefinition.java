@@ -21,13 +21,14 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Lists2;
 
 public class AddColumnDefinition<T> extends TableElement<T> {
 
@@ -132,23 +133,11 @@ public class AddColumnDefinition<T> extends TableElement<T> {
     public <U> AddColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
         return new AddColumnDefinition<>(
             mapper.apply(name),
-            null,   // expression must be mapped later on using mapExpressions()
+            generatedExpression == null ? null : mapper.apply(generatedExpression),
             type == null ? null : type.map(mapper),
             Lists2.map(constraints, x -> x.map(mapper)),
             false,
             generatedExpression != null
-        );
-    }
-
-    @Override
-    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
-                                              Function<? super T, ? extends U> mapper) {
-        AddColumnDefinition<U> mappedAddDefinition = (AddColumnDefinition<U>) mappedElement;
-        return new AddColumnDefinition<>(
-            mappedAddDefinition.name,
-            generatedExpression == null ? null : mapper.apply(generatedExpression),
-            type == null ? null : type.mapExpressions(mappedAddDefinition.type, mapper),
-            mappedAddDefinition.constraints
         );
     }
 

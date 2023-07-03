@@ -21,24 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-
 import java.util.function.Consumer;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class AnalyzedAlterTableAddColumn implements DDLStatement {
 
     private final DocTableInfo tableInfo;
     private final AnalyzedTableElements<Symbol> analyzedTableElements;
-    private final AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions;
 
     public AnalyzedAlterTableAddColumn(DocTableInfo tableInfo,
-                                       AnalyzedTableElements<Symbol> analyzedTableElements,
-                                       AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions) {
+                                       AnalyzedTableElements<Symbol> analyzedTableElements) {
         this.tableInfo = tableInfo;
         this.analyzedTableElements = analyzedTableElements;
-        this.analyzedTableElementsWithExpressions = analyzedTableElementsWithExpressions;
     }
 
     public DocTableInfo tableInfo() {
@@ -54,20 +50,6 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
         return analyzedTableElements;
     }
 
-    /**
-     * List of table elements where every possible generated and default expression is evaluated to symbols.
-     * These elements (or in concrete the expressions inside) MUST NOT be evaluated, only bound with parameters or
-     * subquery result. Evaluating them would destroy the Symbol tree we want to serialize and store inside the table's
-     * metadata in order to evaluate it on every write (generated expression) or read (default expression).
-     * <p>
-     * Putting all together is done by the
-     * {@link AnalyzedTableElements#finalizeAndValidate(RelationName, AnalyzedTableElements, AnalyzedTableElements)}
-     * method which adds the serialized (printed) symbol tree of these expressions to the evaluated table elements.
-     */
-    public AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions() {
-        return analyzedTableElementsWithExpressions;
-    }
-
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitAlterTableAddColumn(this, context);
@@ -76,9 +58,6 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         for (var col : analyzedTableElements.columns()) {
-            col.visitSymbols(consumer);
-        }
-        for (var col : analyzedTableElementsWithExpressions.columns()) {
             col.visitSymbols(consumer);
         }
     }

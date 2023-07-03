@@ -21,29 +21,26 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.TableElement;
 
-import java.util.function.Consumer;
-
 public class AnalyzedCreateTable implements DDLStatement {
 
     private final RelationName relationName;
     private final CreateTable<Symbol> createTable;
     private final AnalyzedTableElements<Symbol> analyzedTableElements;
-    private final AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions;
 
     public AnalyzedCreateTable(RelationName relationName,
                                CreateTable<Symbol> createTable,
-                               AnalyzedTableElements<Symbol> analyzedTableElements,
-                               AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions) {
+                               AnalyzedTableElements<Symbol> analyzedTableElements) {
         this.relationName = relationName;
         this.createTable = createTable;
         this.analyzedTableElements = analyzedTableElements;
-        this.analyzedTableElementsWithExpressions = analyzedTableElementsWithExpressions;
     }
 
     public CreateTable<Symbol> createTable() {
@@ -56,10 +53,6 @@ public class AnalyzedCreateTable implements DDLStatement {
 
     public AnalyzedTableElements<Symbol> analyzedTableElements() {
         return analyzedTableElements;
-    }
-
-    public AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions() {
-        return analyzedTableElementsWithExpressions;
     }
 
     @Override

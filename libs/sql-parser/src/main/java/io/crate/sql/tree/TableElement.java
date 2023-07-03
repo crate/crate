@@ -39,18 +39,5 @@ public abstract class TableElement<T> extends Node {
      */
     public abstract <U> TableElement<U> map(Function<? super T, ? extends U> mapper);
 
-    /**
-     * Map any expressions which were NOT processed by the {@link #map(Function)} function in general
-     * like e.g. generated or default expressions.
-     *
-     * @param mappedElement     An already mapped table element were some expressions were left out.
-     * @param mapper            The mapper function
-     * @return                  The mapped table element including possible newly mapped expressions.
-     */
-    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
-                                              Function<? super T, ? extends U> mapper) {
-        return mappedElement;
-    }
-
     public abstract void visit(Consumer<? super T> consumer);
 }
