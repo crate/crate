@@ -218,6 +218,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Improved error message to be user-friendly, for definition of
+  :ref:`CHECK <check_constraint>` at column level for object sub-columns,
+  instead of a ``ConversionException``.
+
 - Added validation to prevent creation of invalid nested array columns via
   ``INSERT INTO`` and dynamic column policy.
 

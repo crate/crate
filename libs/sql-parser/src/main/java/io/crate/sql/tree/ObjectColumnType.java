@@ -56,6 +56,8 @@ public class ObjectColumnType<T> extends ColumnType<T> {
 
     @Override
     public <U> ObjectColumnType<U> map(Function<? super T, ? extends U> mapper) {
+        checkNestedColumnConstraints(nestedColumns);
+
         String objectTypeString = null;
         if (columnPolicy.isPresent()) {
             objectTypeString = columnPolicy.get().lowerCaseName();
@@ -64,6 +66,16 @@ public class ObjectColumnType<T> extends ColumnType<T> {
             objectTypeString,
             Lists2.map(nestedColumns, x -> x.map(mapper))
         );
+    }
+
+    private void checkNestedColumnConstraints(List<ColumnDefinition<T>> nestedColumns) {
+        for (var nestedColumn : nestedColumns) {
+            for (var constraint : nestedColumn.constraints()) {
+                if (constraint instanceof CheckColumnConstraint<T>) {
+                    throw new UnsupportedOperationException("Constraints on nested columns are not allowed");
+                }
+            }
+        }
     }
 
     @Override

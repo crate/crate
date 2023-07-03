@@ -133,6 +133,22 @@ Multiple columns can be referenced::
    the ``CHECK`` constraint. That would cause a subsequent database dump and
    reload to fail.
 
+.. NOTE::
+
+   ``CHECK`` constraints cannot be added at "sub-column level" for object
+   sub-columns, e.g.::
+
+     CREATE TABLE t(o OBJECT AS (oi INTEGER CHECK (oi > 10)))
+
+   but they can be added at "table level", e.g.::
+
+     CREATE TABLE t(o OBJECT AS (oi INTEGER), CHECK (o['oi'] > 100))
+
+   or at the "root level" of the object column, e.g.::
+
+     CREATE TABLE t(o OBJECT AS (oi INTEGER) CHECK (o['oi'] > 100))
+
+
 .. hide:
 
    cr> drop table metrics1;
