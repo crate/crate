@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -38,7 +37,6 @@ import java.util.stream.Collectors;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.TestUtil;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -48,6 +46,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -67,6 +66,7 @@ import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
 
@@ -81,7 +81,8 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
      * Restoring a snapshot that contains multiple files must succeed even when
      * some files already exist in the shard's store.
      */
-    public void testRestoreSnapshotWithExistingFiles() throws IOException {
+    @Test
+    public void testRestoreSnapshotWithExistingFiles() throws Exception {
         final IndexId indexId = new IndexId(randomAlphaOfLength(10), UUIDs.randomBase64UUID());
         final ShardId shardId = new ShardId(indexId.getName(), indexId.getId(), 0);
 
@@ -181,7 +182,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             final Snapshot snapshotWithSameName = new Snapshot(repository.getMetadata().name(), new SnapshotId(
                 snapshot.getSnapshotId().getName(), "_uuid2"));
             final ShardGenerations shardGenerations = ShardGenerations.builder().put(indexId, 0, shardGen).build();
-            PlainActionFuture.<RepositoryData, Exception>get(f ->
+            TestFutureUtils.<RepositoryData, Exception>get(f ->
                 repository.finalizeSnapshot(
                     shardGenerations,
                     RepositoryData.EMPTY_REPO_GEN,

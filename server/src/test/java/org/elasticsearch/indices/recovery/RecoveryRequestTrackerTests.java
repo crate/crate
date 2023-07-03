@@ -30,10 +30,12 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Test;
+
+import io.crate.action.FutureActionListener;
 
 public class RecoveryRequestTrackerTests extends ESTestCase {
 
@@ -52,9 +54,10 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
         super.tearDown();
     }
 
-    public void testIdempotencyIsEnforced() {
+    @Test
+    public void testIdempotencyIsEnforced() throws Exception {
         Set<Long> seqNosReturned = ConcurrentCollections.newConcurrentSet();
-        ConcurrentMap<Long, Set<PlainActionFuture<Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
+        ConcurrentMap<Long, Set<FutureActionListener<Void, Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
 
         RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
 
@@ -63,8 +66,8 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
             final long seqNo = j;
             int iterations = randomIntBetween(2, 5);
             for (int i = 0; i < iterations; ++i) {
-                PlainActionFuture<Void> future = PlainActionFuture.newFuture();
-                Set<PlainActionFuture<Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
+                FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+                Set<FutureActionListener<Void, Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
                 set.add(future);
                 threadPool.generic().execute(() -> {
                     ActionListener<Void> listener = requestTracker.markReceivedAndCreateListener(seqNo, future);
@@ -84,28 +87,28 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
 
         seqToResult.values().stream().flatMap(Collection::stream).forEach(f -> {
             try {
-                f.actionGet();
+                f.get();
             } catch (Exception e) {
                 // Ignore for now. We will assert later.
             }
         });
 
-        for (Set<PlainActionFuture<Void>> value : seqToResult.values()) {
-            Optional<PlainActionFuture<Void>> first = value.stream().findFirst();
+        for (var value : seqToResult.values()) {
+            Optional<FutureActionListener<Void, Void>> first = value.stream().findFirst();
             assertTrue(first.isPresent());
             Exception expectedException = null;
             try {
-                first.get().actionGet();
+                first.get().get();
             } catch (Exception e) {
                 expectedException = e;
             }
-            for (PlainActionFuture<Void> future : value) {
+            for (var future : value) {
                 assertTrue(future.isDone());
                 if (expectedException == null) {
-                    future.actionGet();
+                    future.get();
                 } else {
                     try {
-                        future.actionGet();
+                        future.get();
                         fail("expected exception");
                     } catch (Exception e) {
                         assertEquals(expectedException.getMessage(), e.getMessage());

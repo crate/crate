@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
@@ -199,7 +200,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         }
         closeShards(shard);
         try {
-            fut.actionGet();
+            FutureUtils.get(fut);
             assertTrue("Sync action was not called", syncActionCalled.get());
         } catch (AlreadyClosedException | IndexShardClosedException ignored) {
             // ignore
@@ -228,7 +229,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
         PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
         syncer.resync(shard, fut);
-        fut.actionGet();
+        FutureUtils.get(fut);
         assertThat(sentOperations, equalTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList())));
         closeShards(shard);
     }

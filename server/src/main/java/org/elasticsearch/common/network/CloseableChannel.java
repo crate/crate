@@ -29,10 +29,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
@@ -141,13 +140,13 @@ public class CloseableChannel implements Closeable {
             throw new AssertionError(e);
         }
         if (blocking) {
-            ArrayList<ActionFuture<Void>> futures = new ArrayList<>(channels.size());
+            ArrayList<CompletableFuture<Void>> futures = new ArrayList<>(channels.size());
             for (var channel : channels) {
-                PlainActionFuture<Void> closeFuture = PlainActionFuture.newFuture();
+                FutureActionListener<Void, Void> closeFuture = FutureActionListener.newInstance();
                 channel.addCloseListener(closeFuture);
                 futures.add(closeFuture);
             }
-            for (ActionFuture<Void> future : futures) {
+            for (var future : futures) {
                 try {
                     future.get();
                 } catch (ExecutionException e) {
