@@ -66,6 +66,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.IndexShardNotStartedException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ReplicationGroup;
@@ -168,7 +169,7 @@ public class ReplicationOperationTests extends ESTestCase {
         assertThat(replicasProxy.markedAsStaleCopies, equalTo(staleAllocationIds));
         assertThat("post replication operations not run on primary", request.runPostReplicationActionsOnPrimary.get(), equalTo(true));
         assertTrue("listener is not marked as done", listener.isDone());
-        ShardInfo shardInfo = listener.actionGet().getShardInfo();
+        ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed(), equalTo(reportedFailures.size()));
         assertThat(shardInfo.getFailures(), arrayWithSize(reportedFailures.size()));
         assertThat(shardInfo.getSuccessful(), equalTo(1 + expectedReplicas.size() - simulatedFailures.size()));
@@ -246,7 +247,7 @@ public class ReplicationOperationTests extends ESTestCase {
         assertThat(replicasProxy.failedReplicas.size(), equalTo(0));
         assertThat(replicasProxy.markedAsStaleCopies, equalTo(staleAllocationIds));
         assertThat("post replication operations not run on primary", request.runPostReplicationActionsOnPrimary.get(), equalTo(true));
-        ShardInfo shardInfo = listener.actionGet().getShardInfo();
+        ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getSuccessful(), equalTo(1 + expectedReplicas.size()));
         final List<ShardRouting> unassignedShards = indexShardRoutingTable.shardsWithState(ShardRoutingState.UNASSIGNED);
         final int totalShards = 1 + expectedReplicas.size() + unassignedShards.size() + untrackedShards.size();
@@ -540,7 +541,7 @@ public class ReplicationOperationTests extends ESTestCase {
         operation.execute();
 
         assertThat(primaryFailed.get(), equalTo(fatal));
-        final ShardInfo shardInfo = listener.actionGet().getShardInfo();
+        final ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed(), equalTo(0));
         assertThat(shardInfo.getFailures(), arrayWithSize(0));
         assertThat(shardInfo.getSuccessful(), equalTo(1 + getExpectedReplicas(shardId, state, trackedShards).size()));

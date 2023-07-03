@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
@@ -175,7 +176,7 @@ public class BlobTransferTarget {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(listener, BlobTransferInfoResponse::new)
         );
-        BlobTransferInfoResponse transferInfoResponse = listener.actionGet();
+        BlobTransferInfoResponse transferInfoResponse = FutureUtils.get(listener);
 
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
 
@@ -200,7 +201,7 @@ public class BlobTransferTarget {
             TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(getBlobHeadListener, in -> TransportResponse.Empty.INSTANCE)
         );
-        getBlobHeadListener.actionGet();
+        FutureUtils.get(getBlobHeadListener);
         return status;
     }
 

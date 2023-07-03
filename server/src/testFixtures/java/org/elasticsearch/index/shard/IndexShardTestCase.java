@@ -824,7 +824,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         try {
             PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
             recovery.recoverToTarget(future);
-            future.actionGet();
+            FutureUtils.get(future);
             recoveryTarget.markAsDone();
         } catch (Exception e) {
             recoveryTarget.fail(new RecoveryFailedException(request, e), false);
