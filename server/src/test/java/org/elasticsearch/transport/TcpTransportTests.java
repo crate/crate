@@ -52,6 +52,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
@@ -402,7 +403,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.handleException(logger, channel, exception, lifecycle, outputHandler);
 
             assertThat(listener.isDone()).isTrue();
-            assertThat(listener.actionGet()).isNull();
+            assertThat(FutureUtils.get(listener)).isNull();
 
             appender.assertAllExpectationsMatched();
 

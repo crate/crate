@@ -105,6 +105,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -359,7 +360,7 @@ public class IndexShardTests extends IndexShardTestCase {
         try {
             final PlainActionFuture<Releasable> onAcquired = new PlainActionFuture<>();
             indexShard.acquireAllPrimaryOperationsPermits(onAcquired, new TimeValue(Long.MAX_VALUE, TimeUnit.NANOSECONDS));
-            final Releasable permit = onAcquired.actionGet();
+            final Releasable permit = FutureUtils.get(onAcquired);
             final CountDownLatch latch = new CountDownLatch(1);
             final String executorOnDelay =
                     randomFrom(ThreadPool.Names.FLUSH, ThreadPool.Names.GENERIC, ThreadPool.Names.MANAGEMENT, ThreadPool.Names.SAME);
@@ -1723,7 +1724,7 @@ public class IndexShardTests extends IndexShardTestCase {
                     assertThat(indexShard.getPendingPrimaryTerm()).isEqualTo(promotedTerm);
                     final PlainActionFuture<Releasable> permitAcquiredFuture = new PlainActionFuture<>();
                     indexShard.acquirePrimaryOperationPermit(permitAcquiredFuture, ThreadPool.Names.SAME, "bla");
-                    try (Releasable ignored = permitAcquiredFuture.actionGet()) {
+                    try (Releasable ignored = FutureUtils.get(permitAcquiredFuture)) {
                         assertThat(indexShard.getReplicationGroup()).isNotNull();
                     }
                 }
@@ -2308,7 +2309,7 @@ public class IndexShardTests extends IndexShardTestCase {
             newMaxSeqNoOfUpdates,
             fut,
             "");
-        try (Releasable ignored = fut.actionGet()) {
+        try (Releasable ignored = FutureUtils.get(fut)) {
             assertThat(replica.getMaxSeqNoOfUpdatesOrDeletes())
                 .isEqualTo(Math.max(currentMaxSeqNoOfUpdates, newMaxSeqNoOfUpdates));
         }

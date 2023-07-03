@@ -33,6 +33,7 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -150,7 +151,7 @@ public class ESIndexInputTestCase extends ESTestCase {
                                 final int maxStart = Math.max(mainThreadReadStart, readStart);
                                 final int minEnd = Math.min(mainThreadReadEnd, readEnd);
                                 if (maxStart < minEnd) {
-                                    final byte[] mainThreadResult = mainThreadResultFuture.actionGet();
+                                    final byte[] mainThreadResult = FutureUtils.get(mainThreadResultFuture);
                                     final int overlapLen = minEnd - maxStart;
                                     final byte[] fromMainThread = new byte[overlapLen];
                                     final byte[] fromClone = new byte[overlapLen];
@@ -177,7 +178,7 @@ public class ESIndexInputTestCase extends ESTestCase {
                         startLatch.countDown();
                         startLatch.await();
                         ActionListener.completeWith(mainThreadResultFuture, () -> randomReadAndSlice(indexInput, mainThreadReadEnd));
-                        System.arraycopy(mainThreadResultFuture.actionGet(), readPos, output, readPos, mainThreadReadEnd - readPos);
+                        System.arraycopy(FutureUtils.get(mainThreadResultFuture), readPos, output, readPos, mainThreadReadEnd - readPos);
                         readPos = mainThreadReadEnd;
                         finishLatch.await();
                     } catch (InterruptedException e) {

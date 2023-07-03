@@ -58,6 +58,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
@@ -107,7 +108,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
             while (stopReconnecting.get() == false) {
                 final PlainActionFuture<Void> future = new PlainActionFuture<>();
                 service.ensureConnections(() -> future.onResponse(null));
-                future.actionGet();
+                FutureUtils.get(future);
             }
         }, "reconnection thread");
         reconnectionThread.start();
@@ -134,7 +135,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
                 final DiscoveryNodes nodes = discoveryNodesFromList(randomSubsetOf(allNodes));
                 final PlainActionFuture<Void> future = new PlainActionFuture<>();
                 service.connectToNodes(nodes, () -> future.onResponse(null));
-                future.actionGet();
+                FutureUtils.get(future);
                 if (isDisrupting == false) {
                     assertConnected(transportService, nodes);
                 }
@@ -232,7 +233,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         final DiscoveryNodes nodes0 = DiscoveryNodes.builder().add(node0).build();
         final PlainActionFuture<Void> future0 = new PlainActionFuture<>();
         service.connectToNodes(nodes0, () -> future0.onResponse(null));
-        future0.actionGet();
+        FutureUtils.get(future0);
         assertConnectedExactlyToNodes(nodes0);
 
         // connection attempts to node0 block indefinitely
@@ -247,26 +248,26 @@ public class NodeConnectionsServiceTests extends ESTestCase {
             final DiscoveryNodes nodes01 = DiscoveryNodes.builder(nodes0).add(node1).build();
             final PlainActionFuture<Void> future1 = new PlainActionFuture<>();
             service.connectToNodes(nodes01, () -> future1.onResponse(null));
-            future1.actionGet();
+            FutureUtils.get(future1);
             assertConnectedExactlyToNodes(nodes1);
 
             // can also disconnect from node0 without blocking
             final PlainActionFuture<Void> future2 = new PlainActionFuture<>();
             service.connectToNodes(nodes1, () -> future2.onResponse(null));
-            future2.actionGet();
+            FutureUtils.get(future2);
             service.disconnectFromNodesExcept(nodes1);
             assertConnectedExactlyToNodes(nodes1);
 
             // however, now node0 is considered to be a new node so we will block on a subsequent attempt to connect to it
             final PlainActionFuture<Void> future3 = new PlainActionFuture<>();
             service.connectToNodes(nodes01, () -> future3.onResponse(null));
-            assertThatThrownBy(() -> future3.actionGet(timeValueMillis(scaledRandomIntBetween(1, 1000))))
+            assertThatThrownBy(() -> FutureUtils.get(future3, timeValueMillis(scaledRandomIntBetween(1, 1000))))
                 .isExactlyInstanceOf(ElasticsearchTimeoutException.class);
 
             // once the connection is unblocked we successfully connect to it.
             connectionBarrier.await(10, TimeUnit.SECONDS);
             nodeConnectionBlocks.clear();
-            future3.actionGet();
+            FutureUtils.get(future3);
             assertConnectedExactlyToNodes(nodes01);
 
             // if we disconnect from a node while blocked trying to connect to it then we do eventually disconnect from it
@@ -274,7 +275,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
             transportService.disconnectFromNode(node0);
             final PlainActionFuture<Void> future4 = new PlainActionFuture<>();
             service.connectToNodes(nodes01, () -> future4.onResponse(null));
-            future4.actionGet();
+            FutureUtils.get(future4);
             assertConnectedExactlyToNodes(nodes1);
 
             service.disconnectFromNodesExcept(nodes1);
@@ -291,11 +292,11 @@ public class NodeConnectionsServiceTests extends ESTestCase {
             // if we disconnect from a node while blocked trying to connect to it then the listener is notified
             final PlainActionFuture<Void> future6 = new PlainActionFuture<>();
             service.connectToNodes(nodes01, () -> future6.onResponse(null));
-            assertThatThrownBy(() -> future6.actionGet(timeValueMillis(scaledRandomIntBetween(1, 1000))))
+            assertThatThrownBy(() -> FutureUtils.get(future6, timeValueMillis(scaledRandomIntBetween(1, 1000))))
                 .isExactlyInstanceOf(ElasticsearchTimeoutException.class);
 
             service.disconnectFromNodesExcept(nodes1);
-            future6.actionGet(); // completed even though the connection attempt is still blocked
+            FutureUtils.get(future6); // completed even though the connection attempt is still blocked
             assertConnectedExactlyToNodes(nodes1);
 
             connectionBarrier.await(10, TimeUnit.SECONDS);
@@ -432,7 +433,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
     private void ensureConnections(NodeConnectionsService service) {
         final PlainActionFuture<Void> future = new PlainActionFuture<>();
         service.ensureConnections(() -> future.onResponse(null));
-        future.actionGet();
+        FutureUtils.get(future);
     }
 
     private void assertConnectedExactlyToNodes(DiscoveryNodes discoveryNodes) {

@@ -51,6 +51,7 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.IndexSettings;
@@ -255,7 +256,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final long minimumRetainingSequenceNumber = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
         final PlainActionFuture<ReplicationResponse> addFuture = new PlainActionFuture<>();
         replicationTracker.addRetentionLease("source", minimumRetainingSequenceNumber, "test-source", addFuture);
-        addFuture.actionGet();
+        FutureUtils.get(addFuture);
         assertTrue(synced.get());
         synced.set(false);
 
@@ -263,7 +264,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         timeReference.set(cloneTime);
         final PlainActionFuture<ReplicationResponse> cloneFuture = new PlainActionFuture<>();
         final RetentionLease clonedLease = replicationTracker.cloneRetentionLease("source", "target", cloneFuture);
-        cloneFuture.actionGet();
+        FutureUtils.get(cloneFuture);
         assertTrue(synced.get());
         synced.set(false);
 

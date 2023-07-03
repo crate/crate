@@ -19,10 +19,18 @@
 
 package org.elasticsearch.action.support;
 
-public class PlainActionFuture<T> extends AdapterActionFuture<T, T> {
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.util.concurrent.BaseFuture;
+
+public class PlainActionFuture<T> extends BaseFuture<T> implements ActionListener<T> {
 
     @Override
-    protected T convert(T listenerResponse) {
-        return listenerResponse;
+    public void onResponse(T result) {
+        set(result);
+    }
+
+    @Override
+    public void onFailure(Exception e) {
+        setException(e);
     }
 }
