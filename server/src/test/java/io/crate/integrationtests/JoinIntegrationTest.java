@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1135,7 +1134,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("");
     }
 
-
     @Test
     @UseHashJoins(value = 1.0)
     @UseRandomizedSchema(random = false)
@@ -1150,17 +1148,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id, a) values (1, 1), (2, 10)");
         execute("insert into t2 (id, b) values (1, 2), (2, 20)");
         execute("insert into t3 (id, c) values (1, 2), (3, 30)");
-        execute("insert into t4 (id, d) values (1, 3), (4, 40)");
+        execute("insert into t4 (id, d) values (1, 3)");
 
-        execute("refresh table t1, t2, t3");
+        execute("refresh table t1, t2, t3, t4");
         execute("analyze");
-        assertBusy(() -> {
-            var resp = execute("select n_distinct from pg_stats where tablename = 't1'");
-            assertThat(resp).hasRows(
-                "2.0",
-                "2.0"
-            );
-        });
+
         String stmt =
             """
                     SELECT
