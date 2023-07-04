@@ -27,7 +27,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -1428,6 +1427,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("create table test (obj object index off)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("INDEX constraint cannot be used on columns of type \"object\"");
+    }
+
+    @Test
+    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column() {
+        assertThatThrownBy(
+            () -> analyze("create table t (i int, o1 object as (o2 object as (b int check (b > 100))))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Constraints on nested columns are not allowed");
+        // Since the issue comes from converting `b` to a string literal, which would be successful
+        // if that column is of type string/text, test explicitly this case
+        assertThatThrownBy(
+            () -> analyze("create table t (i int, o1 object as (o2 object as (b text check (b != 'foo'))))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Constraints on nested columns are not allowed");
     }
 
     @Test

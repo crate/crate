@@ -24,11 +24,9 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +233,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(6L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+        rows.sort(OrderingByPosition.arrayOrdering(
             List.of(DataTypes.STRING, DataTypes.STRING),
             new int[]{0, 1},
             new boolean[]{false, false},
@@ -324,7 +322,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(9L);
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(
+        rows.sort(OrderingByPosition.arrayOrdering(
             List.of(DataTypes.INTEGER, DataTypes.INTEGER),
             new int[]{0, 1},
             new boolean[]{false, true},
@@ -869,11 +867,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into orders(id, customer_id, price) values (1,1,20.0), (2,1,10.0), (3,1,30.0), (4,1,40.0), (5,1,50.0)");
         execute("refresh table orders");
 
-        String stmt = "SELECT t1.company_id, t1.country, t1.id, t1.name, t2.customer_id, t2.id, t2.price FROM" +
-                      "  customers t1, " +
-                      "  (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2 " +
-                      "WHERE t2.customer_id = t1.id " +
-                      "order by price limit 3 offset 1";
+        String stmt = """
+            SELECT t1.company_id, t1.country, t1.id, t1.name, t2.customer_id, t2.id, t2.price
+            FROM customers t1,
+                 (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2
+            WHERE t2.customer_id = t1.id order by price limit 3 offset 1""";
 
         execute(stmt);
         assertThat(response).hasRows(
@@ -883,15 +881,16 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @Test
     public void testJoinOnVirtualTableWithSingleRowSubselect() throws Exception {
-        execute("SELECT\n" +
-                "        (select min(t1.x) from\n" +
-                "            (select unnest as x from unnest([1, 2, 3])) t1,\n" +
-                "            (select * from unnest([1, 2, 3])) t2\n" +
-                "        ) as min_col1,\n" +
-                "        *\n" +
-                "    FROM\n" +
-                "        unnest([1]) tt1," +
-                "        unnest([2]) tt2");
+        execute(
+            """
+                SELECT
+                  (select min(t1.x) from
+                    (select unnest as x from unnest([1, 2, 3])) t1,
+                    (select * from unnest([1, 2, 3])) t2
+                  ) as min_col1,
+                  *
+                FROM
+                  unnest([1]) tt1,        unnest([2]) tt2""");
         assertThat(response).hasRows("1| 1| 2");
     }
 
@@ -1088,53 +1087,54 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     public void test_many_table_join_with_filter_pushdown() throws Exception {
         // regression this; optimization rule resulted in a endless loop
-        String stmt = ""
-            + "SELECT\n"
-            + "   *\n"
-            + "FROM\n"
-            + "    pg_catalog.pg_namespace pkn,\n"
-            + "    pg_catalog.pg_class pkc,\n"
-            + "    pg_catalog.pg_attribute pka,\n"
-            + "    pg_catalog.pg_namespace fkn,\n"
-            + "    pg_catalog.pg_class fkc,\n"
-            + "    pg_catalog.pg_attribute fka,\n"
-            + "    pg_catalog.pg_constraint con,\n"
-            + "    pg_catalog.generate_series(1, 32) pos (n),\n"
-            + "    pg_catalog.pg_class pkic\n"
-            + "WHERE\n"
-            + "    pkn.oid = pkc.relnamespace\n"
-            + "    AND pkc.oid = pka.attrelid\n"
-            + "    AND pka.attnum = con.confkey[pos.n]\n"
-            + "    AND con.confrelid = pkc.oid\n"
-            + "    AND fkn.oid = fkc.relnamespace\n"
-            + "    AND fkc.oid = fka.attrelid\n"
-            + "    AND fka.attnum = con.conkey[pos.n]\n"
-            + "    AND con.conrelid = fkc.oid\n"
-            + "    AND con.contype = 'f'\n"
-            + "    AND pkic.relkind = 'i'\n"
-            + "    AND pkic.oid = con.conindid\n"
-            + "    AND pkn.nspname = E'sys'\n"
-            + "    AND fkn.nspname = E'sys'\n"
-            + "    AND pkc.relname = E'jobs'\n"
-            + "    AND fkc.relname = E'jobs_log'\n"
-            + "ORDER BY\n"
-            + "    fkn.nspname,\n"
-            + "    fkc.relname,\n"
-            + "    con.conname,\n"
-            + "    pos.n\n";
+        String stmt = """
+            SELECT
+               *
+            FROM
+                pg_catalog.pg_namespace pkn,
+                pg_catalog.pg_class pkc,
+                pg_catalog.pg_attribute pka,
+                pg_catalog.pg_namespace fkn,
+                pg_catalog.pg_class fkc,
+                pg_catalog.pg_attribute fka,
+                pg_catalog.pg_constraint con,
+                pg_catalog.generate_series(1, 32) pos (n),
+                pg_catalog.pg_class pkic
+            WHERE
+                pkn.oid = pkc.relnamespace
+                AND pkc.oid = pka.attrelid
+                AND pka.attnum = con.confkey[pos.n]
+                AND con.confrelid = pkc.oid
+                AND fkn.oid = fkc.relnamespace
+                AND fkc.oid = fka.attrelid
+                AND fka.attnum = con.conkey[pos.n]
+                AND con.conrelid = fkc.oid
+                AND con.contype = 'f'
+                AND pkic.relkind = 'i'
+                AND pkic.oid = con.conindid
+                AND pkn.nspname = E'sys'
+                AND fkn.nspname = E'sys'
+                AND pkc.relname = E'jobs'
+                AND fkc.relname = E'jobs_log'
+            ORDER BY
+                fkn.nspname,
+                fkc.relname,
+                con.conname,
+                pos.n
+            """;
         execute(stmt);
         assertThat(response).hasRowCount(0L);
     }
 
     @Test
     public void test_group_by_on_cross_join_on_system_tables() throws Exception {
-        String stmt = "SELECT c.name as name, max(h.severity) as severity " +
-            "FROM sys.health h, sys.cluster c " +
-            "GROUP BY 1";
+        String stmt = """
+            SELECT c.name as name, max(h.severity) as severity
+            FROM sys.health h, sys.cluster c
+            GROUP BY 1""";
         execute(stmt);
         assertThat(response).hasRows("");
     }
-
 
     @Test
     @UseHashJoins(value = 1.0)
@@ -1150,17 +1150,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t1 (id, a) values (1, 1), (2, 10)");
         execute("insert into t2 (id, b) values (1, 2), (2, 20)");
         execute("insert into t3 (id, c) values (1, 2), (3, 30)");
-        execute("insert into t4 (id, d) values (1, 3), (4, 40)");
+        execute("insert into t4 (id, d) values (1, 3)");
 
-        execute("refresh table t1, t2, t3");
+        execute("refresh table t1, t2, t3, t4");
         execute("analyze");
-        assertBusy(() -> {
-            var resp = execute("select n_distinct from pg_stats where tablename = 't1'");
-            assertThat(resp).hasRows(
-                "2.0",
-                "2.0"
-            );
-        });
+
         String stmt =
             """
                     SELECT
