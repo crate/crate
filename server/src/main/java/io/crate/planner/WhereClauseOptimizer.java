@@ -38,6 +38,7 @@ import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -69,15 +70,18 @@ public final class WhereClauseOptimizer {
         private final DocKeys docKeys;
         private final List<List<Symbol>> partitions;
         private final Set<Symbol> clusteredByValues;
+        private final boolean queryHasPkSymbolsOnly;
 
         DetailedQuery(Symbol query,
                       DocKeys docKeys,
                       List<List<Symbol>> partitionValues,
-                      Set<Symbol> clusteredByValues) {
+                      Set<Symbol> clusteredByValues,
+                      DocTableInfo table) {
             this.query = query;
             this.docKeys = docKeys;
             this.partitions = Objects.requireNonNullElse(partitionValues, Collections.emptyList());
             this.clusteredByValues = clusteredByValues;
+            this.queryHasPkSymbolsOnly = WhereClauseOptimizer.queryHasPkSymbolsOnly(query, table);
         }
 
         public Optional<DocKeys> docKeys() {
@@ -108,10 +112,6 @@ public final class WhereClauseOptimizer {
                                               SubQueryResults subQueryResults,
                                               CoordinatorTxnCtx txnCtx,
                                               NodeContext nodeCtx) {
-            if (docKeys != null) {
-                throw new IllegalStateException(getClass().getSimpleName()
-                                                + " must not be converted to a WhereClause if docKeys are present");
-            }
             SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol boundQuery = binder.apply(query);
             HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
@@ -136,6 +136,10 @@ public final class WhereClauseOptimizer {
                     clusteredBy
                 );
             }
+        }
+
+        public boolean queryHasPkSymbolsOnly() {
+            return queryHasPkSymbolsOnly;
         }
     }
 
@@ -201,10 +205,10 @@ public final class WhereClauseOptimizer {
         }
 
         WhereClauseValidator.validate(query);
-        return new DetailedQuery(query, docKeys, partitionValues, clusteredBy);
+        return new DetailedQuery(query, docKeys, partitionValues, clusteredBy, table);
     }
 
-    public static List<Integer> getPartitionIndices(List<ColumnIdent> pkCols, List<ColumnIdent> partitionCols) {
+    private static List<Integer> getPartitionIndices(List<ColumnIdent> pkCols, List<ColumnIdent> partitionCols) {
         ArrayList<Integer> result = new ArrayList<>(partitionCols.size());
         for (int i = 0; i < partitionCols.size(); i++) {
             ColumnIdent partitionCol = partitionCols.get(i);
@@ -214,6 +218,26 @@ public final class WhereClauseOptimizer {
             }
         }
         return result;
+    }
+
+    private static boolean queryHasPkSymbolsOnly(Symbol query, DocTableInfo table) {
+        var docKeyColumns = new ArrayList<>(table.primaryKey());
+        docKeyColumns.addAll(table.partitionedBy());
+        docKeyColumns.add(table.clusteredBy());
+        docKeyColumns.add(DocSysColumns.VERSION);
+        docKeyColumns.add(DocSysColumns.SEQ_NO);
+        docKeyColumns.add(DocSysColumns.PRIMARY_TERM);
+
+        boolean[] hasPkSymbolsOnly = new boolean[]{true};
+        RefVisitor.visitRefs(
+            query,
+            ref -> {
+                if (docKeyColumns.contains(ref.column()) == false) {
+                    hasPkSymbolsOnly[0] = false;
+                }
+            }
+        );
+        return hasPkSymbolsOnly[0];
     }
 
     private static List<ColumnIdent> pkColsInclVersioning(DocTableInfo table,

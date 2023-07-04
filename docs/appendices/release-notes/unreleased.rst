@@ -253,6 +253,12 @@ Fixes
   the PostgreSQL ``simple`` query mode by using the original query string
   instead of the statements string representation.
 
+- Fixed an issue that caused ``UPDATE`` and ``DELETE`` on tables with
+  ``PRIMARY KEYs`` from ignoring non ``primary key`` symbols in ``WHERE``
+  clauses if the ``WHERE`` clauses contain ``PRIMARY KEYS``, e.g. ::
+
+    UPDATE test SET x = 10 WHERE pk_col = 1 AND x = 2; -- executed update with 'pk_col = 1' only, ignoring 'x = 2'
+
 - Fixed an issue that could cause errors for queries with aggregations,
   ``UNION`` and ``LIMIT``, e.g. ::
 

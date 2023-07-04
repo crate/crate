@@ -129,12 +129,12 @@ public final class UpdatePlanner {
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(plannerCtx.nodeContext());
         DocTableInfo tableInfo = docTable.tableInfo();
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(plannerCtx.nodeContext());
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, query, tableInfo, plannerCtx.transactionContext(), plannerCtx.nodeContext());
 
-        if (detailedQuery.docKeys().isPresent()) {
+        if (detailedQuery.docKeys().isPresent() && detailedQuery.queryHasPkSymbolsOnly()) {
             return new UpdateById(
                 tableInfo,
                 assignmentByTargetCol,

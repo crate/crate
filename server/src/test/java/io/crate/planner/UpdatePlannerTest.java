@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -142,6 +143,15 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
         UpdateById update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
         assertThat(update.docKeys().size(), is(3));
+    }
+
+    // bug: https://github.com/crate/crate/issues/14347
+    @Test
+    public void test_update_plan_with_where_clause_involving_pk_and_non_pk() throws Exception {
+        Plan update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3) and name='dummy'");
+        assertThat(update).isExactlyInstanceOf(UpdatePlanner.Update.class);
+        update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3) or name='dummy'");
+        assertThat(update).isExactlyInstanceOf(UpdatePlanner.Update.class);
     }
 
     @Test
