@@ -24,6 +24,7 @@ package io.crate.planner.statement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -89,21 +90,21 @@ public final class DeletePlanner {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(context.nodeContext());
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, delete.query(), table, context.transactionContext(), context.nodeContext());
-
+        Symbol query = detailedQuery.query();
         if (!detailedQuery.partitions().isEmpty()) {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols
             var hasNonPartitionReferences = SymbolVisitors.any(
                 s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false,
-                detailedQuery.query()
+                query
             );
             if (hasNonPartitionReferences == false) {
                 return new DeletePartitions(table.ident(), detailedQuery.partitions());
             }
         }
-        if (detailedQuery.docKeys().isPresent()) {
+
+        if (detailedQuery.docKeys().isPresent() && detailedQuery.queryHasPkSymbolsOnly()) {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
-        Symbol query = detailedQuery.query();
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
             return new DeleteAllPartitions(Lists2.map(table.partitions(), IndexParts::toIndexName));
         }
@@ -111,7 +112,8 @@ public final class DeletePlanner {
         return new Delete(tableRel, detailedQuery);
     }
 
-    static class Delete implements Plan {
+    @VisibleForTesting
+    public static class Delete implements Plan {
 
         private final DocTableRelation table;
         private final WhereClauseOptimizer.DetailedQuery detailedQuery;
