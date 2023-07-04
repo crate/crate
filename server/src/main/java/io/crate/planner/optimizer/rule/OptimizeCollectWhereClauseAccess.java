@@ -86,7 +86,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                 relation,
                 docKeys.get(),
                 detailedQuery.query(),
-                collect.outputs()
+                collect.outputs(),
+                detailedQuery.queryHasPkSymbolsOnly()
             );
         } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
             return new Collect(collect, detailedQuery);
