@@ -27,14 +27,13 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -54,21 +53,20 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.common.collections.Maps;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -76,7 +74,6 @@ import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.ColumnPolicy;
@@ -126,16 +123,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     private <S> S analyze(SQLExecutor e, String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
-        if (analyzedStatement instanceof AnalyzedCreateTable) {
-            return (S) CreateTablePlan.bind(
-                (AnalyzedCreateTable) analyzedStatement,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext(),
-                new RowN(arguments),
-                SubQueryResults.EMPTY,
+        if (analyzedStatement instanceof AnalyzedCreateTable analyzedCreateTable) {
+            return (S) analyzedCreateTable.bind(
                 new NumberOfShards(clusterService),
-                e.schemas(),
-                e.fulltextAnalyzerResolver()
+                e.fulltextAnalyzerResolver(),
+                plannerContext.nodeContext(),
+                plannerContext.transactionContext(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY
             );
         } else if (analyzedStatement instanceof AnalyzedAlterTable) {
             return (S) AlterTablePlan.bind(
@@ -153,8 +148,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_cannot_create_table_that_contains_a_column_definition_of_type_time() {
         assertThatThrownBy(() -> analyze("create table t (ts time with time zone)"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot use the type `time with time zone` for column: ts");
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Type `time with time zone` does not support storage");
     }
 
     @Test
@@ -350,7 +345,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze(
             "create table foo (id integer, name string) clustered by(id)");
 
-        assertThat(analysis.routingColumn()).isEqualTo("id");
+        assertThat(analysis.routingColumn().name()).isEqualTo("id");
     }
 
     @Test
@@ -358,7 +353,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(
             () -> analyze("create table foo (id integer primary key, name string) clustered by(name)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Clustered by column must be part of primary keys");
+            .hasMessage("Clustered by column `name` must be part of primary keys: [id]");
     }
 
     @Test
@@ -437,7 +432,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                    name string, INDEX test_ft using fulltext(title, title)
                 )"""))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Index test_ft contains duplicate columns.");
+            .hasMessageContaining("Index test_ft contains duplicate columns");
 
         // sub-column
         assertThatThrownBy(() -> analyze(
@@ -448,7 +443,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                    INDEX nested_ft using fulltext(author['name'], author['name'])
                 )"""))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Index nested_ft contains duplicate columns.");
+            .hasMessageContaining("Index nested_ft contains duplicate columns");
     }
 
     @Test
@@ -551,7 +546,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithSchemaName() {
         BoundCreateTable analysis =
             analyze("create table something.foo (id integer primary key)");
-        RelationName relationName = analysis.tableIdent();
+        RelationName relationName = analysis.tableName();
         assertThat(relationName.schema()).isEqualTo("something");
         assertThat(relationName.name()).isEqualTo("foo");
     }
@@ -668,19 +663,18 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(primaryKeys.get(0)).isEqualTo("id");
         assertThat(primaryKeys.get(1)).isEqualTo("name");
 
-        assertThat(analysis.routingColumn()).isEqualTo("name");
+        assertThat(analysis.routingColumn().fqn()).isEqualTo("name");
     }
 
     @Test
     public void testCreateTableWithObjectAndUnderscoreColumnPrefix() {
         BoundCreateTable analysis = analyze("create table test (o object as (_id integer), name string)");
-
-        assertThat(analysis.analyzedTableElements().columns()).hasSize(2); // id pk column is also added
-        AnalyzedColumnDefinition<Object> column = analysis.analyzedTableElements().columns().get(0);
-        assertThat(new ColumnIdent("o")).isEqualTo(column.ident());
-        assertThat(column.children()).hasSize(1);
-        AnalyzedColumnDefinition<Object> xColumn = column.children().get(0);
-        assertThat(xColumn.ident()).isEqualTo(new ColumnIdent("o", Collections.singletonList("_id")));
+        Map<ColumnIdent, Reference> columns = analysis.columns();
+        assertThat(columns).containsOnlyKeys(
+            new ColumnIdent("o"),
+            new ColumnIdent("o", "_id"),
+            new ColumnIdent("name")
+        );
     }
 
     @Test
@@ -718,18 +712,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "  obj object as ( content string )," +
             "  index ft using fulltext(name, obj['content']) with (analyzer='standard')" +
             ")");
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("id"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("name"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("indexed"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested_object.id"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj"))).isTrue();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.content"))).isTrue();
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("id"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("name"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("indexed"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("arr"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("arr.nested"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("arr.nested_object.id"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("obj"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("obj.content"));
+        assertThat(analysis.columns()).containsKey(ColumnIdent.fromPath("ft"));
+        assertThat(analysis.columns().get(ColumnIdent.fromPath("ft"))).isExactlyInstanceOf(IndexReference.class);
 
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("arr.nested.wrong"))).isFalse();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("ft"))).isFalse();
-        assertThat(analysis.hasColumnDefinition(ColumnIdent.fromPath("obj.content.ft"))).isFalse();
+        assertThat(analysis.columns()).doesNotContainKey(ColumnIdent.fromPath("arr.nested.wrong"));
+        assertThat(analysis.columns()).doesNotContainKey(ColumnIdent.fromPath("obj.content.ft"));
     }
 
     @Test
@@ -838,12 +833,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "title string," +
             "name string" +
             ")");
-        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        IntArrayList pKeysIndices = new IntArrayList();
-        analysis.analyzedTableElements().collectReferences(analysis.tableIdent(), references, pKeysIndices, true);
+        Map<ColumnIdent, Reference> columns = analysis.columns();
         ColumnIdent ft = new ColumnIdent("ft");
-        assertThat(references).containsKey(ft);
-        Reference ftRef = references.get(ft);
+        assertThat(columns).containsKey(ft);
+        Reference ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) ftRef).columns()).satisfiesExactly(
             x -> assertThat(x).isReference("title"),
@@ -891,7 +884,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithArrayPrimaryKeyUnsupported() {
         assertThatThrownBy(() -> analyze("create table t (id array(int) primary key)"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use columns of type \"integer_array\" as primary key");
+            .hasMessage("Cannot use column \"id\" with type \"integer_array\" as primary key");
     }
 
     @Test
@@ -929,7 +922,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .build();
 
         BoundCreateTable analysis = analyze(sqlExecutor, "create table t (id int)");
-        assertThat(analysis.tableIdent().schema()).isEqualTo(sqlExecutor.getSessionSettings().searchPath().currentSchema());
+        assertThat(analysis.tableName().schema()).isEqualTo(sqlExecutor.getSessionSettings().searchPath().currentSchema());
     }
 
     @Test
@@ -954,19 +947,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testCreateTableShouldRaiseErrorIfItExists() {
-        assertThatThrownBy(() -> analyze("create table users (\"'test\" string)"))
-            .isExactlyInstanceOf(RelationAlreadyExists.class)
-            .hasMessage("Relation 'doc.users' already exists.");
-    }
-
-    @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() {
         SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
         BoundCreateTable statement = analyze(e, "create table foo.bar (x string)");
 
         // schema from statement must take precedence
-        assertThat(statement.tableIdent().schema()).isEqualTo("foo");
+        assertThat(statement.tableName().schema()).isEqualTo("foo");
     }
 
     @Test
@@ -974,7 +960,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
         BoundCreateTable statement = analyze(e, "create table bar (x string)");
 
-        assertThat(statement.tableIdent().schema()).isEqualTo("hoschi");
+        assertThat(statement.tableName().schema()).isEqualTo("hoschi");
     }
 
     @Test
@@ -1202,8 +1188,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("create table foo (" +
                                          "   ts timestamp with time zone," +
                                          "   day ip GENERATED ALWAYS as date_trunc('day', ts))"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("expression value type 'timestamp with time zone' not supported for conversion to 'ip'");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `timestamp with time zone` to type `ip`");
     }
 
     @Test
@@ -1400,7 +1386,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                     col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT check_col2_ge_zero CHECK (col2 > 0))
             """);
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, String> checkConstraints = analysis.analyzedTableElements().getCheckConstraints();
+        Map<String, String> checkConstraints = analysis.getCheckConstraints();
         assertThat(checkConstraints).hasSize(1);
         assertThat(checkConstraints.get("check_col2_ge_zero")).isEqualTo(
                      Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_col2_ge_zero")));
@@ -1430,17 +1416,18 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column() {
-        assertThatThrownBy(
-            () -> analyze("create table t (i int, o1 object as (o2 object as (b int check (b > 100))))"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Constraints on nested columns are not allowed");
-        // Since the issue comes from converting `b` to a string literal, which would be successful
-        // if that column is of type string/text, test explicitly this case
-        assertThatThrownBy(
-            () -> analyze("create table t (i int, o1 object as (o2 object as (b text check (b != 'foo'))))"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Constraints on nested columns are not allowed");
+    public void test_check_constraint_on_nested_object_sub_column_has_correct_type_and_expression() {
+        BoundCreateTable createTable = analyze(
+            "create table t (i int, o1 object as (o2 object as (b int check (o1['o2']['b'] > 100))))");
+
+        ColumnIdent o2b = new ColumnIdent("o1", List.of("o2", "b"));
+        Map<ColumnIdent, Reference> columns = createTable.columns();
+        assertThat(columns).containsKey(o2b);
+        assertThat(columns.get(o2b)).isReference("o1['o2']['b']", DataTypes.INTEGER);
+        assertThat(createTable.checks()).hasSize(1);
+        AnalyzedCheck check = createTable.checks().values().iterator().next();
+        assertThat(check.check()).isSQL("(doc.t.o1['o2']['b'] > 100)");
+        assertThat(check.check()).isFunction("op_>", List.of(DataTypes.INTEGER, DataTypes.INTEGER));
     }
 
     @Test
@@ -1466,24 +1453,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testCreateTableFailsIfNameConflictsWithView() {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
-            .addView(RelationName.fromIndexName("v1"), "Select * from t1")
-            .build();
-        assertThatThrownBy(
-            () -> analyze(executor, "create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)"))
-            .isExactlyInstanceOf(RelationAlreadyExists.class)
-            .hasMessage("Relation 'doc.v1' already exists.");
-    }
-
-    @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
-        AnalyzedColumnDefinition<Object> obj = stmt.analyzedTableElements().columns().get(0);
-        AnalyzedColumnDefinition<?> c = obj.children().get(0);
+        Reference reference = stmt.columns().get(new ColumnIdent("obj", "c"));
 
-        assertThat(c.dataType()).isEqualTo(DataTypes.INTEGER);
-        assertThat(c.formattedGeneratedExpression()).isEqualTo("2");
+        assertThat(reference.valueType()).isEqualTo(DataTypes.INTEGER);
+        assertThat(((GeneratedReference) reference).formattedGeneratedExpression()).isEqualTo("2");
         assertThat(TestingHelpers.toMapping(stmt).toString())
             .isEqualTo("{_meta={generated_columns={obj.c=2}}, dynamic=strict, " +
                        "properties={obj={dynamic=true, position=1, type=object, properties={c={position=2, type=integer}}}}}");
@@ -1558,8 +1533,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithIntervalFails() {
         assertThatThrownBy(() -> analyze("create table test (i interval)"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot use the type `interval` for column: i");
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Type `interval` does not support storage");
     }
 
     @Test
@@ -1600,8 +1575,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_oidvector_cannot_be_used_in_create_table() throws Exception {
         assertThatThrownBy(() -> analyze("CREATE TABLE tbl (x oidvector)"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot use the type `oidvector` for column: x");
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Type `oidvector` does not support storage");
     }
 
     @Test
@@ -1741,12 +1716,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_create_nested_array_column() throws Exception {
         BoundCreateTable createTable = analyze("create table tbl (x int[][])");
-        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        IntArrayList pKeysIndices = new IntArrayList();
-        createTable.analyzedTableElements().collectReferences(createTable.tableIdent(), references, pKeysIndices, true);
         ColumnIdent x = new ColumnIdent("x");
-        assertThat(references).containsKeys(x);
-        Reference xRef = references.get(x);
+        Map<ColumnIdent, Reference> columns = createTable.columns();
+        assertThat(columns).containsKeys(x);
+        Reference xRef = columns.get(x);
         assertThat(xRef).isReference("x", new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 }

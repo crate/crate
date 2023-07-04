@@ -25,7 +25,7 @@ import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,9 +43,12 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 
@@ -55,31 +58,47 @@ public class TableCreator {
     protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
 
     private final TransportCreateTableAction transportCreateTableAction;
+    private final Schemas schemas;
 
     @Inject
-    public TableCreator(TransportCreateTableAction transportCreateIndexAction) {
+    public TableCreator(Schemas schemas, TransportCreateTableAction transportCreateIndexAction) {
+        this.schemas = schemas;
         this.transportCreateTableAction = transportCreateIndexAction;
     }
 
     public CompletableFuture<Long> create(BoundCreateTable createTable, Version minNodeVersion) {
         var templateName = createTable.templateName();
-        var relationName = createTable.tableIdent();
+        var relationName = createTable.tableName();
         CreateTableRequest createTableRequest;
 
-        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        IntArrayList pKeysIndices = new IntArrayList();
-        createTable.analyzedTableElements().collectReferences(relationName, references, pKeysIndices, true);
+        boolean tableExists = schemas.tableExists(relationName);
+        boolean viewExists = schemas.viewExists(relationName);
+        boolean noOp = false;
+        if (createTable.ifNotExists() && !viewExists) {
+            noOp = tableExists;
+        } else if (tableExists || viewExists) {
+            throw new RelationAlreadyExists(relationName);
+        } else {
+            noOp = false;
+        }
+        if (noOp) {
+            return CompletableFuture.completedFuture(1L);
+        }
+
+        Map<ColumnIdent, Reference> references = createTable.columns();
+        IntArrayList pKeysIndices = createTable.primaryKeysIndices();
         var policy = (String) createTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
 
+        String routingColumn = createTable.routingColumn().equals(DocSysColumns.ID) ? null : createTable.routingColumn().fqn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
                 relationName,
                 new ArrayList<>(references.values()),
                 pKeysIndices,
-                createTable.analyzedTableElements().getCheckConstraints(),
+                createTable.getCheckConstraints(),
                 createTable.tableParameter().settings(),
-                createTable.routingColumn(),
+                routingColumn,
                 tableColumnPolicy,
                 createTable.partitionedBy()
             );
@@ -89,10 +108,10 @@ public class TableCreator {
                 MappingUtil.AllocPosition.forNewTable(),
                 new ArrayList<>(references.values()),
                 pKeysIndices,
-                createTable.analyzedTableElements().getCheckConstraints(),
+                createTable.getCheckConstraints(),
                 createTable.partitionedBy(),
                 tableColumnPolicy,
-                createTable.routingColumn()
+                routingColumn
             );
             createTableRequest = templateName == null
                 ? new CreateTableRequest(

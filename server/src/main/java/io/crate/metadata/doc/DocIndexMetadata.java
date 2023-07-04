@@ -37,8 +37,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -46,6 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.BitStringFieldMapper;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
@@ -455,9 +454,7 @@ public class DocIndexMetadata {
                     new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
             }
             IndexType columnIndexType = getColumnIndexType(columnProperties);
-            StorageSupport<?> storageSupport = columnDataType.storageSupport();
-            assert storageSupport != null
-                : "DataType used in table definition must have storage support: " + columnDataType;
+            StorageSupport<?> storageSupport = columnDataType.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
             DataType<?> elementType = ArrayType.unnest(columnDataType);

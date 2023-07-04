@@ -60,7 +60,17 @@ Changes
 SQL Statements
 --------------
 
-None
+- Changed the ``CREATE TABLE`` analysis to be more strict. Before it was
+  possible to use unqualified names in place of string literals to define values
+  within ``WITH`` clauses. Now string literals are required.
+
+  For example, instead of::
+
+    my_column text index using fulltext with (analyzer = myanalyzer)
+
+  It is necessary to use::
+
+    my_column text index using fulltext with (analyzer = 'myanalyzer')
 
 
 SQL Standard and PostgreSQL Compatibility

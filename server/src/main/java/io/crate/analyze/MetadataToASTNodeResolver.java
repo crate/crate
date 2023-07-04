@@ -199,8 +199,7 @@ public class MetadataToASTNodeResolver {
                     defaultExpression = SqlParser.createExpression(symbol);
                 }
 
-                StorageSupport<?> storageSupport = ref.valueType().storageSupport();
-                assert storageSupport != null : "Column without storage support must not appear in table meta data";
+                StorageSupport<?> storageSupport = ref.valueType().storageSupportSafe();
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
                     GenericProperties<Expression> properties = new GenericProperties<>(Map.of(

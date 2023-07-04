@@ -21,6 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import java.util.function.Supplier;
+
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.BoundCreateTable;
@@ -32,12 +34,9 @@ import io.crate.metadata.Schemas;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
-
-import java.util.function.Supplier;
 
 public final class CreateTableAsPlanner {
 
@@ -55,8 +54,7 @@ public final class CreateTableAsPlanner {
         return new CreateTableAsPlan(analyzedCreateTableAs.analyzedCreateTable(),
                                      postponedInsertPlan,
                                      tableCreator,
-                                     numberOfShards,
-                                     schemas);
+                                     numberOfShards);
     }
 
     public static final class CreateTableAsPlan implements Plan {
@@ -65,18 +63,15 @@ public final class CreateTableAsPlanner {
         private final Supplier<LogicalPlan> postponedInsertPlan;
         private final TableCreator tableCreator;
         private final NumberOfShards numberOfShards;
-        private final Schemas schemas;
 
         public CreateTableAsPlan(AnalyzedCreateTable analyzedCreateTable,
                                  Supplier<LogicalPlan> postponedInsertPlan,
                                  TableCreator tableCreator,
-                                 NumberOfShards numberOfShards,
-                                 Schemas schemas) {
+                                 NumberOfShards numberOfShards) {
             this.analyzedCreateTable = analyzedCreateTable;
             this.postponedInsertPlan = postponedInsertPlan;
             this.tableCreator = tableCreator;
             this.numberOfShards = numberOfShards;
-            this.schemas = schemas;
         }
 
         @Override
@@ -90,16 +85,14 @@ public final class CreateTableAsPlanner {
                                   RowConsumer consumer,
                                   Row params,
                                   SubQueryResults subQueryResults) {
-            BoundCreateTable boundCreateTable = CreateTablePlan.bind(
-                analyzedCreateTable,
-                plannerContext.transactionContext(),
-                dependencies.nodeContext(),
-                params,
-                subQueryResults,
+            BoundCreateTable boundCreateTable = analyzedCreateTable.bind(
                 numberOfShards,
-                schemas,
-                dependencies.fulltextAnalyzerResolver());
-
+                dependencies.fulltextAnalyzerResolver(),
+                dependencies.nodeContext(),
+                plannerContext.transactionContext(),
+                params,
+                subQueryResults
+            );
             tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
                 .thenRun(() -> postponedInsertPlan.get().execute(dependencies,
                                                                  plannerContext,

@@ -216,7 +216,7 @@ Here is a simple Example::
 .. hide: Test table creation with custom analyzer::
 
     cr> create table hidden_test_table (
-    ...     fc text index using fulltext with(analyzer=myanalyzer)
+    ...     fc text index using fulltext with (analyzer = 'myanalyzer')
     ... );
     CREATE OK...
 

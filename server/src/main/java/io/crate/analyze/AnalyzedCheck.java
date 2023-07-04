@@ -21,28 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.Expression;
+import org.jetbrains.annotations.Nullable;
 
-public final class CreateTableStatementAnalyzer {
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 
-    private final NodeContext nodeCtx;
-
-    public CreateTableStatementAnalyzer(NodeContext nodeCtx) {
-        this.nodeCtx = nodeCtx;
-    }
-
-    public AnalyzedCreateTable analyze(CreateTable<Expression> createTable,
-                                       ParamTypeHints paramTypeHints,
-                                       CoordinatorTxnCtx txnCtx) {
-        RelationName relationName = RelationName
-            .of(createTable.name().getName(), txnCtx.sessionSettings().searchPath().currentSchema());
-        relationName.ensureValidForRelationCreation();
-
-        var tableElementsAnalyzer = new TableElementsAnalyzer2(relationName, txnCtx, nodeCtx, paramTypeHints);
-        return tableElementsAnalyzer.analyze(createTable);
-    }
+public record AnalyzedCheck(String expression, Symbol check, @Nullable ColumnIdent column) {
 }
