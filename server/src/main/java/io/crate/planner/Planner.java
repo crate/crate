@@ -330,7 +330,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
-        return new CreateTablePlan(createTable, numberOfShards, tableCreator, schemas);
+        return new CreateTablePlan(createTable, numberOfShards, tableCreator);
     }
 
     @Override

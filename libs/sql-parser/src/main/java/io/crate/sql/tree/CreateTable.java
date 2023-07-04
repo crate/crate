@@ -85,7 +85,7 @@ public final class CreateTable<T> extends Statement {
             return false;
         }
 
-        CreateTable that = (CreateTable) o;
+        CreateTable<?> that = (CreateTable<?>) o;
 
         if (ifNotExists != that.ifNotExists) {
             return false;

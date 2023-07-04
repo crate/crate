@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -74,7 +75,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.view.ViewInfoFactory;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.parser.SqlParser;
@@ -1160,29 +1160,27 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             (CreateTable<Expression>) statement,
             analysis.paramTypeHints(),
             analysis.transactionContext());
-        BoundCreateTable analyzedStatement = CreateTablePlan.bind(
-            analyzedCreateTable,
-            txnCtx,
-            nodeCtx,
-            Row.EMPTY,
-            SubQueryResults.EMPTY,
+        BoundCreateTable boundCreateTable = analyzedCreateTable.bind(
             new NumberOfShards(clusterService),
-            schemas,
-            fulltextAnalyzerResolver
+            fulltextAnalyzerResolver,
+            nodeCtx,
+            txnCtx,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
         );
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
             .put("index.version.created", org.elasticsearch.Version.CURRENT)
-            .put(analyzedStatement.tableParameter().settings());
+            .put(boundCreateTable.tableParameter().settings());
 
-        IndexMetadata indexMetadata = IndexMetadata.builder(analyzedStatement.tableIdent().name())
+        IndexMetadata indexMetadata = IndexMetadata.builder(boundCreateTable.tableName().name())
             .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(TestingHelpers.toMapping(analyzedStatement)))
+            .putMapping(new MappingMetadata(TestingHelpers.toMapping(boundCreateTable)))
             .build();
 
-        return newMeta(indexMetadata, analyzedStatement.tableIdent().name());
+        return newMeta(indexMetadata, boundCreateTable.tableName().name());
     }
 
     @Test

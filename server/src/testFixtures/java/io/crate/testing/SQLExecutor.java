@@ -50,8 +50,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -97,6 +95,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
+import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.action.sql.Cursors;
@@ -158,7 +157,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
@@ -455,30 +453,28 @@ public class SQLExecutor {
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParamTypeHints.EMPTY, txnCtx);
 
-            BoundCreateTable analyzedStmt = CreateTablePlan.bind(
-                analyzedCreateTable,
-                txnCtx,
-                nodeCtx,
-                Row.EMPTY,
-                SubQueryResults.EMPTY,
+            BoundCreateTable boundCreateTable = analyzedCreateTable.bind(
                 new NumberOfShards(clusterService),
-                schemas,
-                fulltextAnalyzerResolver
+                fulltextAnalyzerResolver,
+                nodeCtx,
+                txnCtx,
+                Row.EMPTY,
+                SubQueryResults.EMPTY
             );
-            if (!analyzedStmt.isPartitioned()) {
+            if (!boundCreateTable.isPartitioned()) {
                 throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
             }
             ClusterState prevState = clusterService.state();
             var combinedSettings = Settings.builder()
-                .put(analyzedStmt.tableParameter().settings())
+                .put(boundCreateTable.tableParameter().settings())
                 .put(customSettings)
                 .build();
 
-            XContentBuilder mappingBuilder = JsonXContent.builder().map(TestingHelpers.toMapping(analyzedStmt));
+            XContentBuilder mappingBuilder = JsonXContent.builder().map(TestingHelpers.toMapping(boundCreateTable));
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
-            AliasMetadata alias = new AliasMetadata(analyzedStmt.tableIdent().indexNameOrAlias());
-            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
-                .patterns(singletonList(analyzedStmt.templatePrefix()))
+            AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
+            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
+                .patterns(singletonList(boundCreateTable.templatePrefix()))
                 .putMapping(mapping)
                 .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);
@@ -491,7 +487,7 @@ public class SQLExecutor {
                 IndexMetadata indexMetadata = getIndexMetadata(
                     partition,
                     combinedSettings,
-                    TestingHelpers.toMapping(analyzedStmt),
+                    TestingHelpers.toMapping(boundCreateTable),
                     prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
                     .build();
@@ -519,32 +515,29 @@ public class SQLExecutor {
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParamTypeHints.EMPTY, txnCtx);
-            BoundCreateTable analyzedStmt = CreateTablePlan.bind(
-                analyzedCreateTable,
-                txnCtx,
-                nodeCtx,
-                Row.EMPTY,
-                SubQueryResults.EMPTY,
+            var boundCreateTable = analyzedCreateTable.bind(
                 new NumberOfShards(clusterService),
-                schemas,
-                fulltextAnalyzerResolver
+                fulltextAnalyzerResolver,
+                nodeCtx,
+                txnCtx,
+                Row.EMPTY,
+                SubQueryResults.EMPTY
             );
-
-            if (analyzedStmt.isPartitioned()) {
+            if (boundCreateTable.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
             }
 
             var combinedSettings = Settings.builder()
-                .put(analyzedStmt.tableParameter().settings())
+                .put(boundCreateTable.tableParameter().settings())
                 .put(settings)
                 .build();
 
             ClusterState prevState = clusterService.state();
-            RelationName relationName = analyzedStmt.tableIdent();
+            RelationName relationName = boundCreateTable.tableName();
             IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
                 combinedSettings,
-                TestingHelpers.toMapping(analyzedStmt),
+                TestingHelpers.toMapping(boundCreateTable),
                 prevState.nodes().getSmallestNonClientNodeVersion()
             ).build();
 

@@ -640,50 +640,6 @@ public class AnalyzedTableElements<T> {
         return result;
     }
 
-    public static void changeToPartitionedByColumn(AnalyzedTableElements<Object> elements,
-                                                   ColumnIdent partitionedByIdent,
-                                                   boolean skipIfNotFound,
-                                                   RelationName relationName) {
-        if (partitionedByIdent.name().startsWith("_")) {
-            throw new IllegalArgumentException("Cannot use system columns in PARTITIONED BY clause");
-        }
-
-        // need to call primaryKeys() before the partition column is removed from the columns list
-        if (!primaryKeys(elements).isEmpty() && !primaryKeys(elements).contains(partitionedByIdent.fqn())) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
-                                                             partitionedByIdent.sqlFqn()));
-        }
-
-        AnalyzedColumnDefinition<Object> columnDefinition = columnDefinitionByIdent(elements, partitionedByIdent);
-        if (columnDefinition == null) {
-            if (skipIfNotFound) {
-                return;
-            }
-            throw new ColumnUnknownException(partitionedByIdent, relationName);
-        }
-        DataType<?> columnType = columnDefinition.dataType();
-        if (!DataTypes.isPrimitive(columnType)) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "Cannot use column %s of type %s in PARTITIONED BY clause",
-                                                             columnDefinition.ident().sqlFqn(), columnDefinition.dataType()));
-        }
-        if (columnDefinition.isArrayOrInArray()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "Cannot use array column %s in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
-
-
-        }
-        if (columnDefinition.indexType() == IndexType.FULLTEXT) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "Cannot use column %s with fulltext index in PARTITIONED BY clause",
-                                                             columnDefinition.ident().sqlFqn()));
-        }
-        elements.columnIdents.remove(columnDefinition.ident());
-        columnDefinition.indexType(IndexType.NONE);
-        elements.partitionedByColumns.add(columnDefinition);
-    }
-
     public List<AnalyzedColumnDefinition<T>> columns() {
         return columns;
     }

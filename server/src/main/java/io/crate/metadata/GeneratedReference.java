@@ -37,6 +37,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
@@ -57,7 +58,7 @@ public class GeneratedReference implements Reference {
                               @Nullable Symbol generatedExpression) {
         this.ref = ref;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        this.generatedExpression = generatedExpression;
+        generatedExpression(generatedExpression);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
@@ -124,6 +125,9 @@ public class GeneratedReference implements Reference {
 
     public void generatedExpression(Symbol generatedExpression) {
         this.generatedExpression = generatedExpression;
+        if (generatedExpression != null && SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+            throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + generatedExpression);
+        }
     }
 
     public Symbol generatedExpression() {

@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.exceptions.ConversionException;
@@ -86,5 +88,9 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
         DataType type = selectSymbol.valueType();
         return Literal.of(type, type.sanitizeValue(subQueryResults.getSafe(selectSymbol)));
+    }
+
+    public Function<Symbol, Object> bind(Row params) {
+        return x -> x.accept(this, params).value();
     }
 }

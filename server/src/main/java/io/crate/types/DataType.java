@@ -30,13 +30,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.ValueIndexer;
@@ -234,17 +233,25 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return null;
     }
 
+    /**
+     * Like {@link #storageSupport()} but throws an exception if the type doesn't support storage
+     */
+    public final StorageSupport<? super T> storageSupportSafe() {
+        StorageSupport<? super T> storageSupport = storageSupport();
+        if (storageSupport == null) {
+            throw new UnsupportedOperationException(
+                "Type `" + getName() + "` does not support storage");
+        }
+        return storageSupport;
+    }
+
 
     @Nullable
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
                                                       Function<ColumnIdent, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {
-        StorageSupport<? super T> storageSupport = storageSupport();
-        if (storageSupport == null) {
-            throw new IllegalArgumentException(
-                this + " has no storage support. Cannot index " + ref.column());
-        }
+        StorageSupport<? super T> storageSupport = storageSupportSafe();
         return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
     }
 

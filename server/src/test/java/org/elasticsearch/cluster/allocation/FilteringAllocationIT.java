@@ -63,6 +63,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         return plugins;
     }
 
+    @Test
     public void testDecommissionNodeNoReplicas() throws Exception {
         logger.info("--> starting 2 nodes");
         List<String> nodesIds = cluster().startNodes(2);

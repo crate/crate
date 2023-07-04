@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -84,6 +83,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
@@ -413,20 +413,19 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
-        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        IntArrayList pKeysIndices = new IntArrayList();
-        boundCreateTable.analyzedTableElements().collectReferences(boundCreateTable.tableIdent(), references, pKeysIndices, true);
+        IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
+
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
 
         return createMapping(
             MappingUtil.AllocPosition.forNewTable(),
-            new ArrayList<>(references.values()),
+            new ArrayList<>(boundCreateTable.columns().values()),
             pKeysIndices,
-            boundCreateTable.analyzedTableElements().getCheckConstraints(),
+            boundCreateTable.getCheckConstraints(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn()
+            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
         );
 
     }

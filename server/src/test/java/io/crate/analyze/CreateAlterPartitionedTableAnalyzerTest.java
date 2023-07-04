@@ -52,7 +52,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -112,16 +111,14 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     @SuppressWarnings("unchecked")
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
-        if (analyzedStatement instanceof AnalyzedCreateTable) {
-            return (S) CreateTablePlan.bind(
-                (AnalyzedCreateTable) analyzedStatement,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext(),
-                new RowN(arguments),
-                SubQueryResults.EMPTY,
+        if (analyzedStatement instanceof AnalyzedCreateTable analyzedCreateTable) {
+            return (S) analyzedCreateTable.bind(
                 new NumberOfShards(clusterService),
-                e.schemas(),
-                e.fulltextAnalyzerResolver()
+                e.fulltextAnalyzerResolver(),
+                plannerContext.nodeContext(),
+                plannerContext.transactionContext(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY
             );
         } else if (analyzedStatement instanceof AnalyzedAlterTable) {
             return (S) AlterTablePlan.bind(
