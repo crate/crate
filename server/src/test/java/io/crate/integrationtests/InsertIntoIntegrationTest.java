@@ -1342,7 +1342,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertSQLError(() -> execute("insert into test (col1) values ('a')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Primary key value must not be NULL");
+            .hasMessageContaining("A primary key value must not be NULL");
     }
 
     @Test

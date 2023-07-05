@@ -195,8 +195,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
 
-        assertThat(projection.allTargetColumns().size(), is(1));
+        assertThat(projection.allTargetColumns().size(), is(2));
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("id"));
+        assertThat(projection.allTargetColumns().get(1).column().fqn(), is("date"));
 
         assertThat(projection.partitionedBySymbols().size(), is(1));
         assertThat(((InputColumn) projection.partitionedBySymbols().get(0)).index(), is(1));
@@ -230,8 +231,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("id"));
 
         assertThat(projection.allTargetColumns().size(), is(2));
-        assertThat(((InputColumn) projection.allTargetColumns().get(0)).index(), is(0));
-        assertThat(((InputColumn) projection.allTargetColumns().get(1)).index(), is(1));
+        assertThat(((InputColumn) projection.columnSymbols().get(0)).index(), is(0));
+        assertThat(((InputColumn) projection.columnSymbols().get(1)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
