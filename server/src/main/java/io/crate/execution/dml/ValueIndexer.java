@@ -55,7 +55,6 @@ public interface ValueIndexer<T> {
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
         Consumer<? super Reference> onDynamicColumn,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
+        Map<ColumnIdent, Indexer.Synthetic> synthetics
     ) throws IOException;
 }

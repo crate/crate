@@ -62,8 +62,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {

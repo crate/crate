@@ -45,8 +45,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         xContentBuilder.startArray();
         if (values != null) {
             for (T value : values) {
@@ -58,8 +57,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         xContentBuilder,
                         addField,
                         onDynamicColumn,
-                        synthetics,
-                        toValidate
+                        synthetics
                     );
                 }
             }

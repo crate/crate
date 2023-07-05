@@ -101,8 +101,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         xContentBuilder.startObject();
         for (var entry : innerTypes.entrySet()) {
             String innerName = entry.getKey();
@@ -117,10 +116,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             } else {
                 innerValue = value.get(innerName);
             }
-            ColumnConstraint check = checks.get(innerColumn);
-            if (check != null) {
-                check.verify(innerValue);
-            }
+
             if (innerValue == null) {
                 continue;
             }
@@ -133,13 +129,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
-                    synthetics,
-                    checks
+                    synthetics
                 );
             }
         }
         if (value != null) {
-            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
+            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics);
         }
         xContentBuilder.endObject();
     }
@@ -149,8 +144,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                                XContentBuilder xContentBuilder,
                                Consumer<? super IndexableField> addField,
                                Consumer<? super Reference> onDynamicColumn,
-                               Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                               Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+                               Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -216,8 +210,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 xContentBuilder,
                 addField,
                 onDynamicColumn,
-                synthetics,
-                checks
+                synthetics
             );
         }
     }

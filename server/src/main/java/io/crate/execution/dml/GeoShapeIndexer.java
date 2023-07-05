@@ -63,8 +63,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         xcontentBuilder.map(value);
         Shape shape = GeoJSONUtils.map2Shape(value);
         Field[] fields = strategy.createIndexableFields(shape);

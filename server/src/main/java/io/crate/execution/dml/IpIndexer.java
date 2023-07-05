@@ -59,8 +59,7 @@ public class IpIndexer implements ValueIndexer<String> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         xContentBuilder.value(value);
         InetAddress address = InetAddresses.forString(value);
         addField.accept(new InetAddressPoint(name, address));

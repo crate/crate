@@ -104,8 +104,6 @@ public class Indexer {
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<IndexItem, Object>> expressions;
-    private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
-    private final List<TableConstraint> tableConstraints;
     private final List<IndexColumn> indexColumns;
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
@@ -388,20 +386,6 @@ public class Indexer {
                 );
             }
             this.valueIndexers.add(valueIndexer);
-            addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
-        }
-        this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
-        addNotNullConstraints(
-            tableConstraints,
-            columnConstraints,
-            table,
-            targetColumns,
-            ctxForRefs
-        );
-        for (var constraint : table.checkConstraints()) {
-            Symbol expression = constraint.expression();
-            Input<?> input = ctxForRefs.add(expression);
-            tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
@@ -565,11 +549,9 @@ public class Indexer {
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
                 Object value = reference.valueType().valueForInsert(values[i]);
-                ColumnConstraint check = columnConstraints.get(reference.column());
-                if (check != null) {
-                    check.verify(value);
-                }
                 if (reference.granularity() == RowGranularity.PARTITION) {
+                    // Since 5.3.4, insert-from-subquery includes PARTITIONED BY column to targets in order to validate them
+                    // but they are still not written to the source.
                     continue;
                 }
                 if (value == null) {
@@ -582,8 +564,7 @@ public class Indexer {
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
-                    synthetics,
-                    columnConstraints
+                    synthetics
                 );
             }
             for (var entry : synthetics.entrySet()) {
@@ -603,8 +584,7 @@ public class Indexer {
                     xContentBuilder,
                     addField,
                     onDynamicColumn,
-                    synthetics,
-                    columnConstraints
+                    synthetics
                 );
             }
             xContentBuilder.endObject();
@@ -629,10 +609,6 @@ public class Indexer {
                         doc.add(field);
                     }
                 }
-            }
-
-            for (var constraint : tableConstraints) {
-                constraint.verify(item.insertValues());
             }
 
             NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);

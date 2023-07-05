@@ -76,8 +76,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
             StorageSupport<?> storageSupport = type.storageSupport();
@@ -117,8 +116,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             xcontentBuilder,
             addField,
             onDynamicColumn,
-            synthetics,
-            toValidate
+            synthetics
         );
     }
 

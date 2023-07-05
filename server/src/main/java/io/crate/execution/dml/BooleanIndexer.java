@@ -55,8 +55,7 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         xContentBuilder.value(value);
         addField.accept(new Field(name, value ? "T" : "F", fieldType));
         if (ref.hasDocValues()) {
