@@ -38,6 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.UseRandomizedSchema;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -438,6 +442,25 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Clustered by value must not be NULL");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_insert_from_subquery_clustered_by_null_rejected() throws Exception {
+        execute("create table quotes (id integer, parted int, quote string) partitioned by (parted) clustered by(id) " +
+            "with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into quotes (id, parted, quote) select null, 1, 'test'");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // We need to ensure that partition is not left behind if row validation failed.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "quotes");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
     }
 
     @Test
@@ -1335,7 +1358,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertSQLError(() -> execute("insert into test (col1) values ('a')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Primary key value must not be NULL");
+            .hasMessageContaining("A primary key value must not be NULL");
     }
 
     @Test
