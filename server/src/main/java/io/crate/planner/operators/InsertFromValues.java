@@ -257,11 +257,10 @@ public class InsertFromValues implements LogicalPlan {
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
         HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         for (Row row : rows) {
-            Item item = grouper.apply(shardedRequests, row);
+            Item item = grouper.apply(shardedRequests, row, true);
 
             try {
-                checkPrimaryKeyValuesNotNull(primaryKeyInputs);
-                checkClusterByValueNotNull(clusterByInput);
+                // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                 checkConstraintsOnGeneratedSource(
                     item,
                     indexNameResolver.get(),
@@ -404,10 +403,9 @@ public class InsertFromValues implements LogicalPlan {
 
                 while (rows.hasNext()) {
                     Row row = rows.next();
-                    Item item = grouper.apply(shardedRequests, row);
+                    Item item = grouper.apply(shardedRequests, row, true);
 
-                    checkPrimaryKeyValuesNotNull(primaryKeyInputs);
-                    checkClusterByValueNotNull(clusterByInput);
+                    // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                     checkConstraintsOnGeneratedSource(
                         item,
                         indexNameResolver.get(),
@@ -487,20 +485,6 @@ public class InsertFromValues implements LogicalPlan {
             itemFactory,
             true
         );
-    }
-
-    private static void checkPrimaryKeyValuesNotNull(ArrayList<Input<?>> primaryKeyInputs) {
-        for (var primaryKey : primaryKeyInputs) {
-            if (primaryKey.value() == null) {
-                throw new IllegalArgumentException("Primary key value must not be NULL");
-            }
-        }
-    }
-
-    private static void checkClusterByValueNotNull(@Nullable Input<?> clusterByInput) {
-        if (clusterByInput != null && clusterByInput.value() == null) {
-            throw new IllegalArgumentException("Clustered by value must not be NULL");
-        }
     }
 
     private void checkConstraintsOnGeneratedSource(@Nullable IndexItem indexItem,
