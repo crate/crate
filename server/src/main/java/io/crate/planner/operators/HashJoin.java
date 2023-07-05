@@ -37,9 +37,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Sets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -50,7 +48,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -62,27 +59,15 @@ import io.crate.sql.tree.JoinType;
 
 public class HashJoin extends JoinPlan {
 
-    private final int id;
-    private final List<Symbol> outputs;
 
     public HashJoin(int id,
                     LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
-        super(lhs, rhs, joinCondition, JoinType.INNER);
-        this.id = id;
-        this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+        super(id, Lists2.concat(lhs.outputs(), rhs.outputs()), lhs, rhs, joinCondition, JoinType.INNER, false);
     }
 
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
-        Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
-        deps.putAll(leftDeps);
-        deps.putAll(rightDeps);
-        return deps;
-    }
+
 
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
@@ -197,26 +182,6 @@ public class HashJoin extends JoinPlan {
     }
 
     @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
-    public Set<RelationName> getRelationNames() {
-        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(lhs, rhs);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashJoin(
             id,
@@ -226,28 +191,6 @@ public class HashJoin extends JoinPlan {
         );
     }
 
-    @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
-        }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
-            return this;
-        }
-        return new HashJoin(
-            id,
-            newLhs,
-            newRhs,
-            joinCondition
-        );
-    }
 
     @Nullable
     @Override
@@ -281,11 +224,6 @@ public class HashJoin extends JoinPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashJoin(this, context);
-    }
-
-    @Override
-    public int id() {
-        return id;
     }
 
     @Override

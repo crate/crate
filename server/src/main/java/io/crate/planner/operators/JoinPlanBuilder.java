@@ -123,15 +123,15 @@ public class JoinPlanBuilder {
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
-        LogicalPlan joinPlan = new NestedLoopJoin(
+        LogicalPlan joinPlan = new JoinPlan(
             ids.getAsInt(),
+            Lists2.concat(lhs.outputs(), rhs.outputs()),
             plan.apply(lhs),
             plan.apply(rhs),
-            joinType,
             validJoinConditions,
-            isFiltered,
-            lhs,
-            false);
+            joinType,
+            false
+            );
 
         joinPlan = Filter.create(ids.getAsInt(), joinPlan, validWhereConditions);
         while (it.hasNext()) {
@@ -243,15 +243,15 @@ public class JoinPlanBuilder {
                 .filter(Objects::nonNull).iterator()
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
-        var joinPlan = new NestedLoopJoin(
+        var joinPlan = new JoinPlan(
             ids.getAsInt(),
+            Lists2.concat(source.outputs(), nextPlan.outputs()),
             source,
             nextPlan,
-            type,
             AndOperator.join(conditions, null),
-            isFiltered,
-            leftRelation,
-            false);
+            type,
+            false
+            );
         return Filter.create(ids.getAsInt(), joinPlan, query);
     }
 

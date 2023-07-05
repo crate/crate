@@ -41,6 +41,7 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Insert;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
@@ -131,6 +132,33 @@ public class PlanStats {
             var lhsStats = union.lhs().accept(this, context);
             var rhsStats = union.rhs().accept(this, context);
             return lhsStats.add(rhsStats);
+        }
+
+        @Override
+        public Stats visitJoinPlan(JoinPlan join, Void context) {
+            var lhsStats = join.lhs().accept(this, context);
+            var rhsStats = join.rhs().accept(this, context);
+            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
+            if (lhsStats.numDocs() == -1
+                || lhsStats.sizeInBytes() == -1
+                || rhsStats.numDocs() == -1
+                || rhsStats.sizeInBytes() == -1) {
+                return new Stats(-1, -1, statsByColumn);
+            }
+            long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
+            long sizeInBytes =
+                (numRows * lhsStats.averageSizePerRowInBytes())
+                + (numRows * rhsStats.averageSizePerRowInBytes());
+
+            Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
+            long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                nodeContext,
+                txnCtx,
+                joinStats,
+                join.joinCondition(),
+                null
+            );
+            return joinStats.withNumDocs(estimatedNumRows);
         }
 
         @Override

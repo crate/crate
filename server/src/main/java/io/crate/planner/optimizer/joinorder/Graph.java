@@ -156,16 +156,7 @@ public class Graph {
         //TODO Handle filters
 
         @Override
-        public Graph visitNestedLoopJoin(NestedLoopJoin joinPlan, Map<Symbol, LogicalPlan> context) {
-            return visitJoin(joinPlan, context);
-        }
-
-        @Override
-        public Graph visitHashJoin(HashJoin joinPlan, Map<Symbol, LogicalPlan> context) {
-            return visitJoin(joinPlan, context);
-        }
-
-        public Graph visitJoin(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
+        public Graph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
             var left = joinPlan.lhs().accept(this, context);
             var right = joinPlan.rhs().accept(this, context);
 

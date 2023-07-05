@@ -257,6 +257,10 @@ public final class EqOperator extends Operator<Object> {
         return ((EqQuery<Object>) eqQuery).termQuery(column, value);
     }
 
+    public static Function of(Symbol first, Symbol second) {
+        return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
+    }
+
     /**
      * Query for object columns that tries to utilize efficient termQueries for the objects children.
      * <pre>

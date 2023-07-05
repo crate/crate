@@ -35,12 +35,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.joinorder.Graph;
@@ -50,7 +51,7 @@ import io.crate.sql.tree.JoinType;
 
 public class ReorderJoins implements Rule<JoinPlan> {
 
-    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class);
+    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class).with(j -> j.isReordered() == false);
 
     @Override
     public Pattern<JoinPlan> pattern() {
@@ -73,10 +74,12 @@ public class ReorderJoins implements Rule<JoinPlan> {
         if (isOriginalOrder(joinOrder)) {
             return null;
         }
-        var newPlan = buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
-        return newPlan;
+        return buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
     }
 
+    /**
+     * Basic cross-join elimination without cost model.
+     */
     public static List<Integer> eliminateCrossJoins(Graph graph) {
         List<Integer> joinOrder = new ArrayList<>();
 
@@ -132,25 +135,21 @@ public class ReorderJoins implements Rule<JoinPlan> {
                 if (alreadyJoinedNodes.contains(targetNode.id())) {
                     var fromVariable = edge.fromVariable();
                     var toVariable = edge.toVariable();
-                    // TODO rebuild equi-joins
+                    var condition = EqOperator.of(fromVariable, toVariable);
+                    criteria.add(condition);
                 }
             }
             // rebuild joins
-            result = new NestedLoopJoin(
+            result = new JoinPlan(
                 ids.getAsInt(),
+                outputs,
                 result,
                 rightNode,
+                AndOperator.join(criteria, null),
                 JoinType.INNER,
-                null, //TODO JoinCondition goes here
-                false,
-                null,
-                false,
-                false,
-                false,
-                false
+                true
             );
         }
-
         //TODO handle filters
         return result;
     }
