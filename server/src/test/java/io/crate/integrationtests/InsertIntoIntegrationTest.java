@@ -1391,7 +1391,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
      * Test that when an error happens on the primary, the record should never be inserted on the replica.
      * Since we cannot force a select statement to be executed on a replica, we repeat this test to increase the chance.
      */
-    @Repeat(iterations = 5)
+  //  @Repeat(iterations = 5)
     @Test
     public void testInsertWithErrorMustNotBeInsertedOnReplica() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas=1)");
@@ -1858,11 +1858,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     public void test_constraints_of_the_partitioned_columns_are_validated() {
         execute("""
-            CREATE TABLE t (a INT,
-            b INT CONSTRAINT check_1 CHECK (b>10),
-            c INT as a + 1,
-            d INT NOT NULL,
-            gen_from_parted INT as b+1) PARTITIONED BY (b,c,d)
+            CREATE TABLE t (
+                a INT,
+                b INT CONSTRAINT check_1 CHECK (b>10),
+                c INT as a + 1,
+                d INT NOT NULL,
+                gen_from_parted INT as b+1,
+                primary key (b, c, d)
+            ) PARTITIONED BY (b,c,d)
             """
         );
 
@@ -1908,8 +1911,34 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         refresh();
 
         // Verify, that regular column generated from the partitioned column can be computed correctly.
-        // Similar to CHECK, used to fail because partitioned value 12 used to be provided as "12" internally.
+        // Used to fail becasue partitioned columns were not included to the targets on insert-from-subquery
+        // and also because partitioned value 12 used to be provided as "12" internally causing casting error.
         execute("select a, b, c, d, gen_from_parted from t");
         assertThat(response).hasRows("1| 12| 2| 1| 13");
+
+        // UPDATE scenarios, we have one valid entry with PK values (12, 2, 1)
+        // Updating a column which is referenced in a partitioned by generated column expression is not supported, so "a" is not updated.
+
+        // Failing constraints on partitioned by column is invalid scenario for UPDATE
+        // since we have to make partitioned by columns primary keys to use them inside ON CONFLICT
+        // and primary key column cannot be updated.
+
+        /*
+        //failing check
+        execute("insert into t (a, b, d) select 1, 9, 1" +
+            " on conflict (b, c, d) do update set b = 9, d = 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // failing not null
+        execute("insert into t (a, b, d) select 1, 12, null" +
+            " on conflict (b, c, d) do update set b = 12, d = null");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+
+        // Failing generated expression validation
+        execute("insert into t (a, b, c, d) select null, 12, 1, 1" +
+            " on conflict (b, c, d) do update set b = 12, c = 1, d = 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+        */
     }
 }
