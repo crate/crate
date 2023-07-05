@@ -42,6 +42,7 @@ import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.NestedLoopJoin;
+import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
@@ -145,10 +146,11 @@ public class Graph {
 
         @Override
         public Graph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
-            for (LogicalPlan source : logicalPlan.sources()) {
-                source.accept(this, context);
+            List<LogicalPlan> sources = logicalPlan.sources();
+            if (sources.size() == 1) {
+                return sources.get(0).accept(this, context);
             }
-            return new Graph(logicalPlan, List.of(logicalPlan), Map.of());
+            throw new UnsupportedOperationException("Graph not available for " + logicalPlan.getClass().getSimpleName());
         }
 
         @Override
@@ -188,7 +190,7 @@ public class Graph {
                                 var toSymbol = f.arguments().get(1);
                                 var from = context.get(fromSymbol);
                                 var to = context.get(toSymbol);
-                                assert from != null & to != null :
+                                assert from != null && to != null :
                                     "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
                                 var edge = new Edge(from, fromSymbol, to, toSymbol);
                                 insertEdge(edges, edge);
