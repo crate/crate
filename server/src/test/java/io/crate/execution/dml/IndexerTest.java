@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -1003,6 +1002,44 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(doc.source().utf8ToString()).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
+        );
+    }
+
+    @Test
+    public void test_generated_column_can_refer_to_a_non_string_partitioned_by_column() throws Exception {
+        String partition = new PartitionName(new RelationName("doc", "t"), List.of("2")).asIndexName();
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("""
+             CREATE TABLE t (
+                 a INT,
+                 parted INT CHECK (parted > 1),
+                 gen_from_parted INT as parted + 1
+             ) PARTITIONED BY (parted)
+             """
+            ).build();
+        DocTableInfo table = executor.resolveTableInfo("t");
+        Indexer indexer = new Indexer(
+            partition,
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("a"))
+                // 'Parted' is not in targets to imitate insert-from-subquery behavior
+                //  which excludes partitioned columns from targets
+            ),
+            null
+        );
+
+        // Imitating problematic query
+        // insert into t (a, parted) select 1, 2
+        // We are inserting into partition 2, so b = 2.
+        ParsedDocument parsedDoc = indexer.index(item(1));
+        assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"a":1, "gen_from_parted": 3}
+            """
         );
     }
 }
