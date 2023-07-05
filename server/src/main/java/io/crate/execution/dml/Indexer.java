@@ -175,7 +175,7 @@ public class Indexer {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
                 if (pIndex > -1) {
                     String val = partitionName.values().get(pIndex);
-                    return NestableCollectExpression.constant(val);
+                    return NestableCollectExpression.constant(ref.valueType().implicitCast(val));
                 } else {
                     return NestableCollectExpression.constant(null);
                 }
