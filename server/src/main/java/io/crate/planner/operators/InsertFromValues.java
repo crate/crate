@@ -253,7 +253,7 @@ public class InsertFromValues implements LogicalPlan {
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
         for (Row row : rows) {
             try {
-                grouper.apply(shardedRequests, row);
+                grouper.accept(shardedRequests, row, true);
             } catch (Throwable t) {
                 consumer.accept(null, t);
                 return;
@@ -386,7 +386,7 @@ public class InsertFromValues implements LogicalPlan {
 
                 while (rows.hasNext()) {
                     Row row = rows.next();
-                    grouper.apply(shardedRequests, row);
+                    grouper.accept(shardedRequests, row, true);
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {

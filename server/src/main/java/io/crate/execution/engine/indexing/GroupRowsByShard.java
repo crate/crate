@@ -27,11 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.common.TriConsumer;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.metadata.NodeContext;
@@ -56,7 +57,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements BiFunction<ShardedRequests<TReq, TItem>, Row, TItem>,
+    implements TriConsumer<ShardedRequests<TReq, TItem>, Row, Boolean>,
                BiConsumer<ShardedRequests<TReq, TItem>, Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
@@ -125,13 +126,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
              UpsertResultContext.forRowCount());
     }
 
+    /**
+     * BiConsumer is needed for compatibility of the grouper with BatchIterators.partition
+     */
     @Override
     public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
-        apply(shardedRequests, row);
+        accept(shardedRequests, row, false);
     }
 
     @Override
-    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
+    public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row, Boolean propagateError) {
         // `Row` can be a `InputRow` which may be backed by expressions which have expensive `.value()` implementations
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
@@ -158,11 +162,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         }
         if (hasSourceFailure.test(shardedRequests)) {
             // source uri failed processing (reading)
-            return null;
+            return;
         }
         if (err != null) {
             itemFailureRecorder.accept(shardedRequests, err.getMessage());
-            return null;
+            return;
         }
         try {
             rowShardResolver.setNextRow(spareRow);
@@ -200,12 +204,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             } else {
                 shardedRequests.add(item, shardLocation, rowSourceInfo);
             }
-            return item;
         } catch (CircuitBreakingException e) {
             throw e;
         } catch (Throwable t) {
+            if (propagateError) {
+                throw Exceptions.toRuntimeException(t);
+            }
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
-            return null;
         }
     }
 
