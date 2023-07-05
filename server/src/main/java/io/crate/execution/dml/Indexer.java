@@ -23,14 +23,7 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -687,10 +680,8 @@ public class Indexer {
             for (int i = 0; i < values.length; i++) {
                 Reference reference = targetColumns.get(i);
                 Object value = reference.valueType().valueForInsert(values[i]);
-                ColumnConstraint check = columnConstraints.get(reference.column());
-                if (check != null) {
-                    check.verify(value);
-                }
+                checkParentAndChildren(table, reference, value, columnConstraints);
+
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
@@ -702,6 +693,28 @@ public class Indexer {
                 constraint.verify(values);
             }
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void checkParentAndChildren(DocTableInfo table, Reference reference, Object value, Map<ColumnIdent, ColumnConstraint> columnConstraints) {
+        ColumnConstraint check = columnConstraints.get(reference.column());
+        if (check != null) {
+            check.verify(value);
+        }
+        if (reference.valueType() instanceof ObjectType objectType) {
+            for (var entry : objectType.innerTypes().entrySet()) {
+                String innerName = entry.getKey();
+                ColumnIdent innerColumn = reference.column().getChild(innerName);
+                Reference innerRef = table.getReference(innerColumn);
+                if (innerRef == null) {
+                    continue;
+                }
+                Map<String, Object> objectValue = (Map<String, Object>) value;
+                if (objectValue != null) {
+                    checkParentAndChildren(table, innerRef, objectValue.get(innerName), columnConstraints);
+                }
+            }
+        }
     }
 
     public boolean hasUndeterministicSynthetics() {
