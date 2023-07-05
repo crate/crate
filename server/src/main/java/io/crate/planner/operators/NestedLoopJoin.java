@@ -62,7 +62,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 
-public class NestedLoopJoin extends JoinPlan {
+public class NestedLoopJoin extends AbstractJoinPlan {
 
     @Nullable
     private final AnalyzedRelation topMostLeftRelation;
@@ -80,7 +80,7 @@ public class NestedLoopJoin extends JoinPlan {
                    boolean isFiltered,
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised) {
-        super(id, List.of(), lhs, rhs, joinCondition, joinType, false);
+        super(id, List.of(), lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered || joinCondition != null;
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinConditionOptimised = joinConditionOptimised;

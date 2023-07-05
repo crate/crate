@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.operators.Filter;
@@ -42,14 +43,14 @@ import java.util.function.IntSupplier;
 
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
-    private final Capture<JoinPlan> joinCapture;
+    private final Capture<AbstractJoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
 
     public MoveFilterBeneathJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(),
-                  typeOf(JoinPlan.class)
+                  typeOf(AbstractJoinPlan.class)
                       .capturedAs(joinCapture)
                       // Can't apply this on OUTER JOINs as outer join actively produce new null rows
                       // We need to run the filter on top of these null rows to produce the correct results
@@ -70,7 +71,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
                              NodeContext nodeCtx,
                              IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        JoinPlan join = captures.get(joinCapture);
+        AbstractJoinPlan join = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), join, ids);
     }
 }

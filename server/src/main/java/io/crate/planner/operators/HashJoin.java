@@ -27,11 +27,9 @@ import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -56,17 +54,14 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 
-public class HashJoin extends JoinPlan {
-
+public class HashJoin extends AbstractJoinPlan {
 
     public HashJoin(int id,
                     LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
-        super(id, Lists2.concat(lhs.outputs(), rhs.outputs()), lhs, rhs, joinCondition, JoinType.INNER, false);
+        super(id, Lists2.concat(lhs.outputs(), rhs.outputs()), lhs, rhs, joinCondition, JoinType.INNER);
     }
-
-
 
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
@@ -186,6 +181,30 @@ public class HashJoin extends JoinPlan {
             id,
             sources.get(0),
             sources.get(1),
+            joinCondition
+        );
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
+        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+        }
+        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+        if (newLhs == lhs && newRhs == rhs) {
+            return this;
+        }
+        return new HashJoin(
+            id,
+            newLhs,
+            newRhs,
             joinCondition
         );
     }

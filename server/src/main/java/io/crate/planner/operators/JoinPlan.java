@@ -21,46 +21,26 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Sets;
 import io.crate.data.Row;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.ResultDescription;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.JoinType;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+public class JoinPlan extends AbstractJoinPlan {
 
-public class JoinPlan implements LogicalPlan {
-
-    protected final int id;
-    protected final List<Symbol> outputs;
-    protected final LogicalPlan lhs;
-    protected final LogicalPlan rhs;
-    @Nullable
-    protected final Symbol joinCondition;
-    protected final JoinType joinType;
-    private boolean isReordered;
-
+    private final boolean isReordered;
 
     public JoinPlan(int id,
                     List<Symbol> outputs,
@@ -69,30 +49,8 @@ public class JoinPlan implements LogicalPlan {
                     @Nullable Symbol joinCondition,
                     JoinType joinType,
                     boolean isReordered) {
-        this.id = id;
-        this.outputs = outputs;
-        this.lhs = lhs;
-        this.rhs = rhs;
-        this.joinCondition = joinCondition;
-        this.joinType = joinType;
+        super(id, outputs, lhs, rhs, joinCondition, joinType);
         this.isReordered = isReordered;
-    }
-
-    public LogicalPlan lhs() {
-        return lhs;
-    }
-
-    public LogicalPlan rhs() {
-        return rhs;
-    }
-
-    public boolean isReordered() {
-        return isReordered;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
     }
 
     @Override
@@ -106,11 +64,16 @@ public class JoinPlan implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("JoinPlan can not be build, convert to Hash-join/NestedLoop Join instead");
     }
 
-    public int id() {
-        return id;
+    public boolean isReordered() {
+        return isReordered;
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitJoinPlan(this, context);
     }
 
     @Override
@@ -142,45 +105,6 @@ public class JoinPlan implements LogicalPlan {
     }
 
     @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
-        Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
-        deps.putAll(leftDeps);
-        deps.putAll(rightDeps);
-        return deps;
-    }
-
-    @Override
-    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitJoinPlan(this, context);
-    }
-
-    @Nullable
-    public Symbol joinCondition() {
-        return joinCondition;
-    }
-
-    public JoinType joinType() {
-        return joinType;
-    }
-
-    @Override
-    public Set<RelationName> getRelationNames() {
-        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(lhs, rhs);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new JoinPlan(
             id,
@@ -190,34 +114,6 @@ public class JoinPlan implements LogicalPlan {
             joinCondition,
             joinType,
             isReordered
-        );
-    }
-
-
-    protected static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
-                                             ResultDescription resultDescription,
-                                             Collection<String> executionNodes) {
-        List<Projection> projections = Collections.emptyList();
-        if (resultDescription.hasRemainingLimitOrOffset()) {
-            projections = Collections.singletonList(ProjectionBuilder.limitAndOffsetOrEvalIfNeeded(
-                resultDescription.limit(),
-                resultDescription.offset(),
-                resultDescription.numOutputs(),
-                resultDescription.streamOutputs()
-            ));
-        }
-
-        return new MergePhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            "join-merge",
-            resultDescription.nodeIds().size(),
-            1,
-            executionNodes,
-            resultDescription.streamOutputs(),
-            projections,
-            DistributionInfo.DEFAULT_SAME_NODE,
-            resultDescription.orderBy()
         );
     }
 }
