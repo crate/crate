@@ -90,3 +90,7 @@ Fixes
 - Fixed an issue which prevented ``INSERT INTO ... SELECT ...`` from inserting
   any records if the target table had a partitioned column of a non-string
   type, used in any expressions of ``GENERATED`` or ``CHECK`` definitions.
+
+- Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
+  skip ``NULL`` checks of ``CLUSTERED BY`` column values.
+

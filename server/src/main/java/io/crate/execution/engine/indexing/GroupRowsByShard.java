@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
+import org.elasticsearch.common.TriFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,7 +48,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements BiFunction<ShardedRequests<TReq, TItem>, Row, TItem>,
+    implements TriFunction<ShardedRequests<TReq, TItem>, Row, Boolean, TItem>,
                BiConsumer<ShardedRequests<TReq, TItem>, Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
@@ -105,13 +105,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
              UpsertResultContext.forRowCount());
     }
 
+    /**
+     * BiConsumer is needed for compatibility of the grouper with BatchIterators.partition
+     */
     @Override
     public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
-        apply(shardedRequests, row);
+        apply(shardedRequests, row, false);
     }
 
     @Override
-    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
+    public TItem apply(ShardedRequests<TReq, TItem> shardedRequests, Row row, Boolean propagateError) {
         // `Row` can be a `InputRow` which may be backed by expressions which have expensive `.value()` implementations
         // The code below (RowShardResolver.setNextRow, and estimateRowSize)
         // would lead to multiple `.value()` calls on the same underlying instance
@@ -167,6 +170,9 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         } catch (CircuitBreakingException e) {
             throw e;
         } catch (Throwable t) {
+            if (propagateError) {
+                throw t;
+            }
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
             return null;
         }
