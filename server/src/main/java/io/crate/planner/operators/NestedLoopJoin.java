@@ -64,6 +64,7 @@ import io.crate.sql.tree.JoinType;
 
 public class NestedLoopJoin extends JoinPlan {
 
+    @Nullable
     private final AnalyzedRelation topMostLeftRelation;
     private final boolean isFiltered;
     private boolean orderByWasPushedDown = false;
@@ -129,6 +130,7 @@ public class NestedLoopJoin extends JoinPlan {
         return isFiltered;
     }
 
+    @Nullable
     public AnalyzedRelation topMostLeftRelation() {
         return topMostLeftRelation;
     }

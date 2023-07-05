@@ -39,6 +39,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Test;
 
@@ -1071,6 +1072,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1| 1");
     }
 
+    @TestLogging("io.crate.planner.optimizer.iterative:TRACE")
     @Test
     public void test_join_with_and_false_in_where_clause_returns_empty_result() {
         String stmt = "SELECT n.* " +

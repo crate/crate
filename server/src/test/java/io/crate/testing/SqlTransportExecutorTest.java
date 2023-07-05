@@ -38,7 +38,7 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
-import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
+import io.crate.planner.optimizer.rule.RewriteJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 
 public class SqlTransportExecutorTest {
@@ -52,7 +52,7 @@ public class SqlTransportExecutorTest {
             MoveLimitBeneathEval.class,
             MergeFilterAndCollect.class,
             RewriteToQueryThenFetch.class,
-            RewriteNestedLoopJoinToHashJoin.class,
+            RewriteJoinToHashJoin.class,
             RewriteFilterOnOuterJoinToInnerJoin.class,
             MoveOrderBeneathFetchOrEval.class,
             MoveFilterBeneathGroupBy.class

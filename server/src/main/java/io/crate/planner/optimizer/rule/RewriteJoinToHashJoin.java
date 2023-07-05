@@ -28,9 +28,9 @@ import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.HashJoin;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
@@ -38,19 +38,17 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
+public class RewriteJoinToHashJoin implements Rule<JoinPlan> {
 
-    private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
-        .with(nl -> nl.isRewriteNestedLoopJoinToHashJoinDone() == false &&
-                    nl.orderByWasPushedDown() == false);
+    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class);
 
     @Override
-    public Pattern<NestedLoopJoin> pattern() {
+    public Pattern<JoinPlan> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
+    public LogicalPlan apply(JoinPlan nl,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
@@ -73,11 +71,11 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
                 nl.rhs(),
                 nl.joinType(),
                 nl.joinCondition(),
-                nl.isFiltered(),
-                nl.topMostLeftRelation(),
-                nl.orderByWasPushedDown(),
-                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                nl.isJoinConditionOptimised(),
+                false,
+                null,
+                false,
+                false,
+                false,
                 true
             );
         }

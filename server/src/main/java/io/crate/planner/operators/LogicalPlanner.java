@@ -105,12 +105,10 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
-import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderJoins;
-import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
-import io.crate.planner.optimizer.rule.RewriteNestedLoopJoinToHashJoin;
+import io.crate.planner.optimizer.rule.RewriteJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.types.DataTypes;
 
@@ -122,6 +120,7 @@ public class LogicalPlanner {
     // Join ordering optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
     private final IterativeOptimizer joinOrderOptimizer;
+    private final IterativeOptimizer joinOptimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -143,23 +142,24 @@ public class LogicalPlanner {
         new MoveLimitBeneathRename(),
         new MoveLimitBeneathEval(),
         new MergeFilterAndCollect(),
-        new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathFetchOrEval(),
         new MoveOrderBeneathRename(),
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
-        new RewriteGroupByKeysLimitToLimitDistinct(),
-        new MoveConstantJoinConditionsBeneathNestedLoop(),
-        new RewriteNestedLoopJoinToHashJoin()
+        new RewriteGroupByKeysLimitToLimitDistinct()
     );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
-        new ReorderHashJoin(),
-        new ReorderNestedLoopJoin(),
         new ReorderJoins()
     );
+
+    public static final List<Rule<?>> JOIN_OPTIMIZER_RULE = List.of(
+        new RewriteJoinToHashJoin(),
+        new RewriteFilterOnOuterJoinToInnerJoin(),
+        new MoveOrderBeneathNestedLoop(),
+        new MoveConstantJoinConditionsBeneathNestedLoop()
+        );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
         new RemoveRedundantFetchOrEval(),
@@ -182,6 +182,11 @@ public class LogicalPlanner {
             nodeCtx,
             minNodeVersionInCluster,
             JOIN_ORDER_OPTIMIZER_RULES
+        );
+        this.joinOptimizer = new IterativeOptimizer(
+            nodeCtx,
+            minNodeVersionInCluster,
+            JOIN_OPTIMIZER_RULE
         );
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
@@ -250,6 +255,12 @@ public class LogicalPlanner {
             txnCtx,
             planBuilder.ids
         );
+        optimizedPlan = joinOptimizer.optimize(
+            optimizedPlan,
+            plannerContext.planStats(),
+            txnCtx,
+            planBuilder.ids
+        );
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         return new RootRelationBoundary(plannerContext.nextLogicalPlanId(), prunedPlan);
@@ -303,6 +314,7 @@ public class LogicalPlanner {
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
+        optimizedPlan = joinOptimizer.optimize(optimizedPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";

@@ -99,22 +99,24 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         }
         if (relationsInOrderBy.size() == 1) {
             RelationName relationInOrderBy = relationsInOrderBy.iterator().next();
-            if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
-                LogicalPlan lhs = nestedLoop.sources().get(0);
-                LogicalPlan newLhs = order.replaceSources(List.of(lhs));
-                return new NestedLoopJoin(
-                    ids.getAsInt(),
-                    newLhs,
-                    nestedLoop.sources().get(1),
-                    nestedLoop.joinType(),
-                    nestedLoop.joinCondition(),
-                    nestedLoop.isFiltered(),
-                    nestedLoop.topMostLeftRelation(),
-                    true,
-                    nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    false,
-                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
-                );
+            if (nestedLoop.topMostLeftRelation() != null) {
+                if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
+                    LogicalPlan lhs = nestedLoop.sources().get(0);
+                    LogicalPlan newLhs = order.replaceSources(List.of(lhs));
+                    return new NestedLoopJoin(
+                        ids.getAsInt(),
+                        newLhs,
+                        nestedLoop.sources().get(1),
+                        nestedLoop.joinType(),
+                        nestedLoop.joinCondition(),
+                        nestedLoop.isFiltered(),
+                        nestedLoop.topMostLeftRelation(),
+                        true,
+                        nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                        false,
+                        nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                    );
+                }
             }
         }
         return null;

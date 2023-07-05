@@ -121,8 +121,10 @@ public class JoinPlan implements LogicalPlan {
             SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
             SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+        if (joinCondition != null) {
+            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+        }
         LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
         LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
         if (newLhs == lhs && newRhs == rhs) {

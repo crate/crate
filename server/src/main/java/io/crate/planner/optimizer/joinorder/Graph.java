@@ -42,6 +42,7 @@ import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.NestedLoopJoin;
+import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
 public class Graph {
@@ -144,7 +145,18 @@ public class Graph {
 
         @Override
         public Graph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
-            return super.visitPlan(logicalPlan, context);
+            for (LogicalPlan source : logicalPlan.sources()) {
+                source.accept(this, context);
+            }
+            return new Graph(logicalPlan, List.of(logicalPlan), Map.of());
+        }
+
+        @Override
+        public Graph visitCollect(Collect collect, Map<Symbol, LogicalPlan> context) {
+            for (Symbol output : collect.outputs()) {
+                context.put(output, collect);
+            }
+            return new Graph(collect, List.of(collect), Map.of());
         }
 
         @Override
@@ -161,29 +173,32 @@ public class Graph {
             var right = joinPlan.rhs().accept(this, context);
 
             var joinCondition = joinPlan.joinCondition();
-            assert joinCondition != null : "Join condition cannot be null to build graph";
-
-            var edges = new HashMap<Integer, Set<Edge>>();
-            // find equi-join conditions such as `a.x = b.y` and create edges
-            // TODO deal with the rest of the filters such as `a.x >= 1`
-            var split = QuerySplitter.split(joinCondition);
-            for (var entry : split.entrySet()) {
-                if (entry.getKey().size() == 2) {
-                    if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
-                        if (f.name().equals(EqOperator.NAME)) {
-                            var fromSymbol = f.arguments().get(0);
-                            var toSymbol = f.arguments().get(1);
-                            var from = context.get(fromSymbol);
-                            var to = context.get(toSymbol);
-                            assert from != null & to != null :
-                                "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
-                            var edge = new Edge(from, fromSymbol, to, toSymbol);
-                            insertEdge(edges, edge);
+            // if join condition is null, we have a cross-join
+//            assert joinCondition != null : "Join condition cannot be null to build graph";
+            if (joinCondition != null) {
+                var edges = new HashMap<Integer, Set<Edge>>();
+                // find equi-join conditions such as `a.x = b.y` and create edges
+                // TODO deal with the rest of the filters such as `a.x >= 1`
+                var split = QuerySplitter.split(joinCondition);
+                for (var entry : split.entrySet()) {
+                    if (entry.getKey().size() == 2) {
+                        if (entry.getValue() instanceof io.crate.expression.symbol.Function f) {
+                            if (f.name().equals(EqOperator.NAME)) {
+                                var fromSymbol = f.arguments().get(0);
+                                var toSymbol = f.arguments().get(1);
+                                var from = context.get(fromSymbol);
+                                var to = context.get(toSymbol);
+                                assert from != null & to != null :
+                                    "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
+                                var edge = new Edge(from, fromSymbol, to, toSymbol);
+                                insertEdge(edges, edge);
+                            }
                         }
                     }
                 }
+                return left.joinWith(joinPlan, right, edges);
             }
-            return left.joinWith(joinPlan, right, edges);
+            return left.joinWith(joinPlan, right, Map.of());
         }
 
         private static void insertEdge(Map<Integer, Set<Edge>> edges, Edge edge) {
@@ -197,14 +212,6 @@ public class Graph {
                 }
                 edges.put(id, result);
             }
-        }
-
-        @Override
-        public Graph visitCollect(Collect collect, Map<Symbol, LogicalPlan> context) {
-            for (Symbol output : collect.outputs()) {
-                context.put(output, collect);
-            }
-            return new Graph(collect, List.of(collect), Map.of());
         }
     }
 
