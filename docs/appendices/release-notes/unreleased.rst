@@ -86,3 +86,7 @@ Fixes
     UNION
     SELECT i, avg(k), j FROM t3 GROUP BY 1, 3
     LIMIT 10
+
+- Fixed an issue which prevented ``INSERT INTO ... SELECT ...`` from inserting
+  any records if the target table had a partitioned column of a non-string
+  type, used in any expressions of ``GENERATED`` or ``CHECK`` definitions.
