@@ -202,6 +202,15 @@ Data Types
 Administration and Operations
 -----------------------------
 
+- Added optimizer rules for reordering of joins for hash and nested-loop joins.
+  This allows now to control the join-reordering and disable it, if desired, with
+  session settings::
+
+    SET optimizer_reorder_hash_join = false
+    SET optimizer_reorder_nested_loop_join = false
+
+  Note that these settings are experimental, and may change in the future.
+
 - Added a :ref:`statement_timeout <conf-session-statement-timeout>` session
   setting and :ref:`cluster setting <statement_timeout>` that allows to set a
   timeout for queries.
