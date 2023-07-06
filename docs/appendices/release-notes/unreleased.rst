@@ -219,7 +219,7 @@ Administration and Operations
   has been lowered from `HIGH` to `MEDIUM` as leaving these to default
   or suboptimal values does not translate into data corruption or loss.
 
-- Added the ability to set a 
+- Added the ability to set a
   :ref:`storage_class <sql-create-repo-s3-storage_class>` for S3 repositories.
 
 
@@ -229,6 +229,16 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes,
+  broken replica shards, or even un-recoverable tables on tables using a
+  column definition with a ``IP`` data type and an explicit ``INDEX OFF``.
+  Any table that was created with ``INDEX OFF`` on a ``IP`` column and already
+  written to with CrateDB version >= ``5.3.0`` should be recreated using e.g.
+  :ref:`INSERT INTO new_table SELECT * FROM old_table<dml-inserting-by-query>`
+  (followed by swap table
+  :ref:`ALTER CLUSTER SWAP TABLE new_table TO old_table<alter_cluster_swap_table>`)
+  or :ref:`restored from a backup<sql-restore-snapshot>`.
 
 - Improved error message to be user-friendly, for definition of
   :ref:`CHECK <check_constraint>` at column level for object sub-columns,
