@@ -102,7 +102,7 @@ public class BitStringFieldMapper extends FieldMapper {
                 length,
                 defaultExpression,
                 fieldType,
-                new BitStringFieldType(buildFullName(context), true, true),
+                new BitStringFieldType(buildFullName(context), indexed, hasDocValues),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
