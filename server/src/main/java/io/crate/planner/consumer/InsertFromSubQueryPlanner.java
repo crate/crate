@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -32,11 +31,8 @@ import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
@@ -63,17 +59,7 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-        List<Reference> targetColsExclPartitionCols = new ArrayList<>(
-            Math.max(1, statement.columns().size() - statement.tableInfo().partitionedBy().size()));
-        for (Reference column : statement.columns()) {
-            if (statement.tableInfo().partitionedBy().contains(column.column())) {
-                continue;
-            }
-            targetColsExclPartitionCols.add(column);
-        }
-        List<Symbol> columnSymbols = InputColumns.create(
-            targetColsExclPartitionCols,
-            new InputColumns.SourceSymbols(statement.columns()));
+
 
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
@@ -83,8 +69,6 @@ public final class InsertFromSubQueryPlanner {
             null,
             statement.tableInfo().primaryKey(),
             statement.columns(),
-            targetColsExclPartitionCols,
-            columnSymbols,
             statement.isIgnoreDuplicateKeys(),
             statement.onDuplicateKeyAssignments(),
             statement.primaryKeySymbols(),

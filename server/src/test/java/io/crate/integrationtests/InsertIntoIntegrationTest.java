@@ -1865,4 +1865,53 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into t (id, obj) (select 1, {\"a\" = {\"b\" = null}} from sys.cluster)");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_values_of_the_partitioned_columns_are_validated_without_creating_partition_for_failed_rows() {
+        execute("""
+            CREATE TABLE t (
+                a INT,
+                b INT CONSTRAINT check_1 CHECK (b > 10),
+                c INT as a + 1,
+                d INT NOT NULL
+            ) PARTITIONED BY (b,c,d)
+            """
+        );
+
+        // Failing CHECK, NOT NULL constraints
+        // or wrong provided value for generated partitioned by columns
+        // should not leave invalid partitions behind.
+        // All failing scenarios followed by the last "partition does not exist" assertion.
+
+        // Failing CHECK constraint.
+        execute("insert into t (a, b, d) select 1, 9, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Failing NOT NULL constraint.
+        execute("insert into t (a, b, d) select 1, 12, null");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Generated expression validation (https://github.com/crate/crate/issues/14304).
+        // insert from values used to fail as well because we used to explicitly skip that check for References with PARTITION granularity.
+        assertSQLError(() -> execute("insert into t (a, b, c, d) values (null, 12, 1, 1)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Given value 1 for generated column c does not match calculation (a + 1) = null");
+
+        execute("insert into t (a, b, c, d) select null, 12, 1, 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+
+        // We need to ensure that check is done before partition creation.
+        // If check is done too late, INSERT statement might work as expected and reject invalid records but invalid partitions will left behind.
+        // At this point all failing scenarios are done and haven't written anything.
+        // Checking that neither of them has created a partition.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "t");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
+    }
 }
