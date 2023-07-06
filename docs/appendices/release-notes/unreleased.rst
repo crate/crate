@@ -104,3 +104,5 @@ Fixes
 - Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
   skip ``NULL`` checks of ``CLUSTERED BY`` column values.
 
+- Fixed an issue that resulted in enabled indexing for columns defined as
+  the `BIT` data type even when explicitly turning it of using ``INDEX OFF``.

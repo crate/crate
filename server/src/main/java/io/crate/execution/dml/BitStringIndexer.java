@@ -39,6 +39,7 @@ import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.sql.tree.BitString;
 
@@ -68,7 +69,9 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
         xcontentBuilder.value(bytes);
 
         BytesRef binaryValue = new BytesRef(bytes);
-        addField.accept(new Field(name, binaryValue, fieldType));
+        if (ref.indexType() != IndexType.NONE) {
+            addField.accept(new Field(name, binaryValue, fieldType));
+        }
 
         if (ref.hasDocValues()) {
             addField.accept(new SortedSetDocValuesField(name, binaryValue));
