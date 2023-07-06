@@ -37,6 +37,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.planner.operators.Collect;
+import io.crate.planner.operators.Get;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -44,6 +45,7 @@ import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
+import io.crate.planner.operators.TableFunction;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
 public class Graph {
@@ -122,7 +124,14 @@ public class Graph {
         }
 
         public Set<Integer> ids() {
-            return Set.of(from.id(), to.id());
+            var result = new HashSet<Integer>(2);
+            if (from != null) {
+                result.add(from.id());
+            }
+            if (to != null) {
+                result.add(to().id());
+            }
+            return result;
         }
 
         @Override
@@ -155,6 +164,14 @@ public class Graph {
                 return sources.get(0).accept(this, context);
             }
             throw new UnsupportedOperationException("Graph not available for " + logicalPlan.getClass().getSimpleName());
+        }
+
+        @Override
+        public Graph visitGet(Get get, Map<Symbol, LogicalPlan> context) {
+            for (Symbol output : get.outputs()) {
+                context.put(output, get);
+            }
+            return new Graph(get, List.of(get), Map.of());
         }
 
         @Override
@@ -194,6 +211,7 @@ public class Graph {
                                 var toSymbol = f.arguments().get(1);
                                 var from = context.get(fromSymbol);
                                 var to = context.get(toSymbol);
+//                                assert from != null && to != null : "from and to cannot be null";
                                 var edge = new Edge(from, fromSymbol, to, toSymbol);
                                 insertEdge(edges, edge);
                             }
