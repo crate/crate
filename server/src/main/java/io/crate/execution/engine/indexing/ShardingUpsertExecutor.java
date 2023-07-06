@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.indexing;
 
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +31,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.execution.dml.IndexItem;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -101,8 +102,11 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
     private final Predicate<UpsertResults> earlyTerminationCondition;
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
+    private final Runnable onCompletion;
 
     ShardingUpsertExecutor(ClusterService clusterService,
+                           BiConsumer<String, IndexItem> constraintsChecker,
+                           Runnable onCompletion,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -123,6 +127,7 @@ public class ShardingUpsertExecutor
                            Predicate<UpsertResults> earlyTerminationCondition,
                            Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
         this.localNode = clusterService.state().nodes().getLocalNodeId();
+        this.onCompletion = onCompletion;
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;
@@ -136,6 +141,7 @@ public class ShardingUpsertExecutor
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
             clusterService,
+            constraintsChecker,
             rowShardResolver,
             indexNameResolver,
             expressions,
@@ -298,6 +304,7 @@ public class ShardingUpsertExecutor
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
             .whenComplete((res, err) -> {
+                onCompletion.run();
                 nodeLimit.onSample(startTime, err != null);
             });
     }

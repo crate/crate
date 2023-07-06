@@ -525,7 +525,6 @@ public class Indexer {
                                       Context<?> ctxForRefs,
                                       Reference ref) {
         if (ref instanceof GeneratedReference generated
-                && ref.granularity() == RowGranularity.DOC
                 && Symbols.isDeterministic(generated.generatedExpression())) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
