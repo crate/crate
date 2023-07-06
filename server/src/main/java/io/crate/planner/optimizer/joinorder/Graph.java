@@ -183,6 +183,14 @@ public class Graph {
         }
 
         @Override
+        public Graph visitTableFunction(TableFunction tableFunction, Map<Symbol, LogicalPlan> context) {
+            for (Symbol output : tableFunction.outputs()) {
+                context.put(output, tableFunction);
+            }
+            return new Graph(tableFunction, List.of(tableFunction), Map.of());
+        }
+
+        @Override
         public Graph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
             var resolved = resolvePlan.apply(groupReference);
             return resolved.accept(this, context);
