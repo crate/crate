@@ -46,6 +46,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.operators.TableFunction;
+import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
 
 public class Graph {
@@ -159,35 +160,10 @@ public class Graph {
 
         @Override
         public Graph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
-            List<LogicalPlan> sources = logicalPlan.sources();
-            if (sources.size() == 1) {
-                return sources.get(0).accept(this, context);
+            for (Symbol output : logicalPlan.outputs()) {
+                context.put(output, logicalPlan);
             }
-            throw new UnsupportedOperationException("Graph not available for " + logicalPlan.getClass().getSimpleName());
-        }
-
-        @Override
-        public Graph visitGet(Get get, Map<Symbol, LogicalPlan> context) {
-            for (Symbol output : get.outputs()) {
-                context.put(output, get);
-            }
-            return new Graph(get, List.of(get), Map.of());
-        }
-
-        @Override
-        public Graph visitCollect(Collect collect, Map<Symbol, LogicalPlan> context) {
-            for (Symbol output : collect.outputs()) {
-                context.put(output, collect);
-            }
-            return new Graph(collect, List.of(collect), Map.of());
-        }
-
-        @Override
-        public Graph visitTableFunction(TableFunction tableFunction, Map<Symbol, LogicalPlan> context) {
-            for (Symbol output : tableFunction.outputs()) {
-                context.put(output, tableFunction);
-            }
-            return new Graph(tableFunction, List.of(tableFunction), Map.of());
+            return new Graph(logicalPlan, List.of(logicalPlan), Map.of());
         }
 
         @Override
