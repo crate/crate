@@ -23,7 +23,6 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -81,6 +80,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IpType;
 import io.crate.types.ObjectType;
 
 public class IndexerTest extends CrateDummyClusterServiceUnitTest {
@@ -976,6 +976,44 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             for (int i = 0; i < fields.length; i++) {
                 assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
             }
+        }
+    }
+
+    @Test
+    public void test_indexing_ip_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
+        var idx = 0;
+        var tableName = "tbl";
+        var dt = IpType.INSTANCE;
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
+                .build();
+
+        Indexer indexer = getIndexer(e, tableName, NumberFieldMapper.FIELD_TYPE, "x");
+
+        ParsedDocument doc = indexer.index(item("127.0.0.1"));
+        IndexableField[] fields = doc.doc().getFields("x");
+
+        // @formatter: off
+        String mapping = Strings.toString(JsonXContent.builder()
+            .startObject()
+                .startObject("properties")
+                    .startObject("x")
+                        .field("type", DataTypes.esMappingNameFrom(dt.id()))
+                        .field("index", false)
+                    .endObject()
+                .endObject()
+            .endObject());
+
+        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
+        DocumentMapper mapper = mapper(indexName, mapping);
+        ParsedDocument docFromSource = mapper.parse(
+                new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
+        );
+        IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
+
+        assertThat(fields.length).isEqualTo(fieldsFromSource.length);
+        for (int i = 0; i < fields.length; i++) {
+            assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
         }
     }
 
