@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
+import io.crate.execution.dml.IndexItem;
 import org.elasticsearch.common.TriFunction;
 
 import org.apache.logging.log4j.LogManager;
@@ -67,7 +68,10 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final UnsafeArrayRow spareRow = new UnsafeArrayRow();
     private Object[] spareCells;
 
+    private final BiConsumer<String, IndexItem> constraintsChecker;
+
     public GroupRowsByShard(ClusterService clusterService,
+                            BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
@@ -78,6 +82,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
         this.clusterService = clusterService;
+        this.constraintsChecker = constraintsChecker;
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
         this.expressions = expressions;
@@ -91,12 +96,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     public GroupRowsByShard(ClusterService clusterService,
+                            BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
+             constraintsChecker,
              rowShardResolver,
              indexNameResolver,
              expressions,
@@ -162,6 +169,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
             if (shardLocation == null) {
+                // Validation is done before creating an index in order to ensure
+                // that no "bad partitions" will be left behind in case of validation failure.
+                if (item instanceof IndexItem indexItem) {
+                    constraintsChecker.accept(indexNameResolver.get(), indexItem);
+                }
                 shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
                 shardedRequests.add(item, shardLocation, rowSourceInfo);

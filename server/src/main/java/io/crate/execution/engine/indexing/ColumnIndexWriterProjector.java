@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
+import io.crate.execution.dml.IndexItem;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -59,6 +61,8 @@ public class ColumnIndexWriterProjector implements Projector {
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
+                                      BiConsumer<String, IndexItem> constraintsChecker,
+                                      Runnable onCompletion,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreaker queryCircuitBreaker,
                                       RamAccounting ramAccounting,
@@ -125,6 +129,8 @@ public class ColumnIndexWriterProjector implements Projector {
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
+            constraintsChecker,
+            onCompletion,
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,

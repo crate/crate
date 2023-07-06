@@ -88,6 +88,7 @@ public abstract class ShardCollectorProvider {
         );
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
