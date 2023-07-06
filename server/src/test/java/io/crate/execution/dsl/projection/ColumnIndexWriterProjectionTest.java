@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,9 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -49,67 +45,6 @@ import io.crate.types.DataTypes;
 public class ColumnIndexWriterProjectionTest {
 
     private RelationName relationName = new RelationName("dummy", "table");
-
-    @Test
-    public void testTargetColumnRefsAndSymbolsAreCorrectAfterExclusionOfPartitionColumns() {
-        /*
-         *  pk:             [ymd, domain, area, isp]
-         *  partitioned by: [ymd, isp]
-         *  insert into t   (ymd, domain, area, isp, h) select ...
-         *
-         *  We don't write PartitionedBy columns, so they're excluded from the allTargetColumns:
-         *
-         *  expected targetRefs:      [ domain, area, h ]
-         *  expected column symbols:  [ ic1,   ic2, ic4 ]
-         */
-        ColumnIdent ymd = new ColumnIdent("ymd");
-        ColumnIdent domain = new ColumnIdent("domain");
-        ColumnIdent area = new ColumnIdent("area");
-        ColumnIdent isp = new ColumnIdent("isp");
-        ColumnIdent h = new ColumnIdent("h");
-        Reference ymdRef = partitionRef(ymd, DataTypes.STRING);
-        Reference domainRef = ref(domain, DataTypes.STRING);
-        Reference areaRef = ref(area, DataTypes.STRING);
-        Reference ispRef = partitionRef(isp, DataTypes.STRING);
-        Reference hRef = ref(h, DataTypes.INTEGER);
-        List<ColumnIdent> primaryKeys = Arrays.asList(ymd, domain, area, isp);
-        List<Reference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
-        List<Reference> targetColumnsExclPartitionColumns = Arrays.asList(domainRef, areaRef, hRef);
-        InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
-        List<Symbol> primaryKeySymbols = InputColumns.create(
-            Arrays.asList(ymdRef, domainRef, areaRef, ispRef), targetColsCtx);
-        List<Symbol> partitionedBySymbols = InputColumns.create(Arrays.asList(ymdRef, ispRef), targetColsCtx);
-        List<Symbol> columnSymbols = InputColumns.create(
-            targetColumnsExclPartitionColumns,
-            targetColsCtx);
-
-        ColumnIndexWriterProjection projection = new ColumnIndexWriterProjection(
-            relationName,
-            null,
-            primaryKeys,
-            targetColumns,
-            targetColumnsExclPartitionColumns,
-            columnSymbols,
-            false,
-            null,
-            primaryKeySymbols,
-            partitionedBySymbols,
-            null,
-            null,
-            Settings.EMPTY,
-            true,
-            List.of(),
-            null
-        );
-
-        assertThat(projection.columnReferencesExclPartition(), is(Arrays.asList(
-            domainRef, areaRef, hRef)
-        ));
-        assertThat(projection.columnSymbolsExclPartition(), is(Arrays.asList(
-            new InputColumn(1, DataTypes.STRING),
-            new InputColumn(2, DataTypes.STRING),
-            new InputColumn(4, DataTypes.INTEGER))));
-    }
 
     /**
      * Tests a fix for a regression introduced by an incorrect writing of the columns size by
@@ -124,17 +59,11 @@ public class ColumnIndexWriterProjectionTest {
             var ident = new ColumnIdent(String.valueOf(i));
             targetColumns.add(ref(ident, DataTypes.INTEGER));
         }
-        InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
-        List<Symbol> columnSymbols = InputColumns.create(
-            targetColumns,
-            targetColsCtx);
         var projection = new ColumnIndexWriterProjection(
             relationName,
             null,
             List.of(),
             targetColumns,
-            targetColumns,
-            columnSymbols,
             false,
             Collections.emptyMap(),
             List.of(),

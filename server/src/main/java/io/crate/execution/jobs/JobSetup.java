@@ -177,6 +177,7 @@ public class JobSetup {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
