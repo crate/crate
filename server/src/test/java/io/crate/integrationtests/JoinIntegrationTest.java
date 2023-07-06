@@ -54,6 +54,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
 
+@UseRandomizedOptimizerRules(0)
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends IntegTestCase {
 
@@ -444,6 +445,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
     }
 
+    @UseHashJoins
     @Test
     public void testFilteredSelfJoin() throws Exception {
         execute("create table employees (salary float, name string)");

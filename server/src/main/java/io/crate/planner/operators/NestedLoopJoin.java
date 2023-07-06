@@ -211,7 +211,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             isDistributed ? "distributed-nested-loop" : "nested-loop",
-            Collections.singletonList(createJoinProjection(outputs, joinOutputs)),
+            Collections.singletonList(createJoinProjection(outputs(), joinOutputs)),
             joinExecutionNodesAndMergePhases.v2().get(0),
             joinExecutionNodesAndMergePhases.v2().get(1),
             leftLogicalPlan.outputs().size(),
@@ -234,7 +234,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             NO_LIMIT,
             0,
             NO_LIMIT,
-            outputs.size(),
+            outputs().size(),
             orderByFromLeft
         );
     }

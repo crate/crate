@@ -110,12 +110,16 @@ public class Graph {
     public Collection<Edge> getEdges(LogicalPlan node) {
         var result = edges.get(node.id());
         if (result == null) {
-            return null;
+            return Set.of();
         }
         return result;
     }
 
-    public record Edge(LogicalPlan from, Symbol fromVariable, LogicalPlan to, Symbol toVariable) {
+    public record Edge(LogicalPlan from, @Nullable Symbol fromVariable, LogicalPlan to, @Nullable Symbol toVariable) {
+
+        public boolean isCrossJoin() {
+            return fromVariable == null && toVariable == null;
+        }
 
         public Set<Integer> ids() {
             return Set.of(from.id(), to.id());
@@ -190,8 +194,6 @@ public class Graph {
                                 var toSymbol = f.arguments().get(1);
                                 var from = context.get(fromSymbol);
                                 var to = context.get(toSymbol);
-                                assert from != null && to != null :
-                                    "Invalid join condition to build graph " + joinCondition.toString(Style.QUALIFIED);
                                 var edge = new Edge(from, fromSymbol, to, toSymbol);
                                 insertEdge(edges, edge);
                             }

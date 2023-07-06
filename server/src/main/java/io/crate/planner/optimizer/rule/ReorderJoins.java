@@ -74,7 +74,8 @@ public class ReorderJoins implements Rule<JoinPlan> {
         if (isOriginalOrder(joinOrder)) {
             return null;
         }
-        return buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
+        var result = buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
+        return result;
     }
 
     /**
@@ -139,14 +140,20 @@ public class ReorderJoins implements Rule<JoinPlan> {
                     criteria.add(condition);
                 }
             }
-            // rebuild joins
+            JoinType joinType;
+            if (criteria.isEmpty()) {
+                joinType = JoinType.CROSS;
+            } else {
+                joinType = JoinType.INNER;
+            }
+
             result = new JoinPlan(
                 ids.getAsInt(),
                 outputs,
                 result,
                 rightNode,
                 AndOperator.join(criteria, null),
-                JoinType.INNER,
+                joinType,
                 true
             );
         }

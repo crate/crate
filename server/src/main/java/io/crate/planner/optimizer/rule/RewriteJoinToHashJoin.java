@@ -48,7 +48,7 @@ public class RewriteJoinToHashJoin implements Rule<JoinPlan> {
     }
 
     @Override
-    public LogicalPlan apply(JoinPlan nl,
+    public LogicalPlan apply(JoinPlan join,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
@@ -57,20 +57,20 @@ public class RewriteJoinToHashJoin implements Rule<JoinPlan> {
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
 
         if (txnCtx.sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(nl.joinType(), nl.joinCondition())) {
+            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
             return new HashJoin(
                 ids.getAsInt(),
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinCondition()
+                join.lhs(),
+                join.rhs(),
+                join.joinCondition()
             );
         } else {
             return new NestedLoopJoin(
                 ids.getAsInt(),
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
+                join.lhs(),
+                join.rhs(),
+                join.joinType(),
+                join.joinCondition(),
                 false,
                 null,
                 false,

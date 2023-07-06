@@ -155,10 +155,10 @@ public class LogicalPlanner {
     );
 
     public static final List<Rule<?>> JOIN_OPTIMIZER_RULE = List.of(
-        new RewriteJoinToHashJoin(),
-        new RewriteFilterOnOuterJoinToInnerJoin(),
-        new MoveOrderBeneathNestedLoop(),
-        new MoveConstantJoinConditionsBeneathNestedLoop()
+        new RewriteJoinToHashJoin()
+//        new RewriteFilterOnOuterJoinToInnerJoin(),
+//        new MoveOrderBeneathNestedLoop(),
+//        new MoveConstantJoinConditionsBeneathNestedLoop()
         );
 
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
