@@ -37,4 +37,26 @@ public class BitStringFieldMapperTest {
         BitStringFieldMapper mapper = builder.build(context);
         assertThat(mapper.name()).isEqualTo("o.x");
     }
+
+    @Test
+    public void test_indexed_value_is_applied() {
+        BitStringFieldMapper.Builder builder = new BitStringFieldMapper.Builder("x");
+        builder.index(false);
+        ContentPath contentPath = new ContentPath();
+        contentPath.add("o");
+        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        BitStringFieldMapper mapper = builder.build(context);
+        assertThat(mapper.mappedFieldType.isSearchable()).isFalse();
+    }
+
+    @Test
+    public void test_hasDocValues_value_is_applied() {
+        BitStringFieldMapper.Builder builder = new BitStringFieldMapper.Builder("x");
+        builder.docValues(false);
+        ContentPath contentPath = new ContentPath();
+        contentPath.add("o");
+        var context = new Mapper.BuilderContext(Settings.EMPTY, contentPath);
+        BitStringFieldMapper mapper = builder.build(context);
+        assertThat(mapper.mappedFieldType.hasDocValues()).isFalse();
+    }
 }
