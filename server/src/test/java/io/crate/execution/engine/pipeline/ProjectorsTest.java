@@ -69,6 +69,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,

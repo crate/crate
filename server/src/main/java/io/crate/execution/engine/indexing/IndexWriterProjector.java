@@ -132,6 +132,8 @@ public class IndexWriterProjector implements Projector {
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
+            (ignored1, ignored2) -> {},
+            () -> {},
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,
