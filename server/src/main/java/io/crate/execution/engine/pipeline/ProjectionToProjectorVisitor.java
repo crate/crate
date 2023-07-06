@@ -23,6 +23,7 @@ package io.crate.execution.engine.pipeline;
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
+import static io.crate.planner.operators.InsertFromValues.checkConstraints;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,12 +31,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
@@ -131,8 +135,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -171,9 +177,11 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
     private final int numProcessors;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
+    private final Schemas schemas;
 
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -188,6 +196,7 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
+        this.schemas = schemas;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
         this.nodeCtx = nodeCtx;
@@ -205,6 +214,7 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -216,6 +226,7 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -491,8 +502,13 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbolsExclPartition().size());
-        for (Symbol symbol : projection.columnSymbolsExclPartition()) {
+        List<Input<?>> insertInputs = new ArrayList<>(projection.allTargetColumns().size());
+
+        List<Symbol> columnSymbols = InputColumns.create(
+            projection.allTargetColumns(),
+            new InputColumns.SourceSymbols(projection.allTargetColumns()));
+
+        for (Symbol symbol : columnSymbols) {
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
@@ -502,8 +518,23 @@ public class ProjectionToProjectorVisitor
         int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
         int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
 
+        final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
+
+        BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
+            indexItem,
+            indexName,
+            schemas.getTableInfo(projection.tableIdent(), Operation.INSERT),
+            context.txnCtx,
+            nodeCtx,
+            validatorsCache,
+            projection.allTargetColumns()
+        );
+        Runnable onCompletion = () -> validatorsCache.clear();
+
         return new ColumnIndexWriterProjector(
             clusterService,
+            constraintsChecker,
+            onCompletion,
             nodeJobsCounter,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             context.ramAccounting,
@@ -520,7 +551,7 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.columnReferencesExclPartition(),
+            projection.allTargetColumns(),
             insertInputs,
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),
