@@ -107,6 +107,9 @@ Fixes
 - Fixed an issue that resulted in enabled indexing for columns defined as
   the `BIT` data type even when explicitly turning it of using ``INDEX OFF``.
 
+- Fixed an issue resulting in an exception when writing data into a column of
+  type ``Boolean`` with disabled indexing using ``INDEX OFF``.
+
 - Fixed an issue that caused an exception to be thrown when inserting a
   non-array value into a column that is dynamically created by inserting an
   empty array, ultimately modifying the type of the column and then selecting
