@@ -384,7 +384,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromToPartitionedTableWithNullValue() {
+    @Repeat(iterations = 100)
+    public void testCopyFromToPartitionedTableWithNullValue() throws Exception {
         execute("CREATE TABLE times (" +
                 "   time timestamp with time zone" +
                 ") partitioned by (time)");
@@ -392,6 +393,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy times from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from_null_value.json"});
         refresh();
 
+        waitNoPendingTasksOnAll();
         execute("select time from times");
         assertThat(response.rowCount(), is(1L));
         assertNull(response.rows()[0][0]);
