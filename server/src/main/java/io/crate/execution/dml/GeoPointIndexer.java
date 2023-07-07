@@ -39,6 +39,7 @@ import org.locationtech.spatial4j.shape.Point;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class GeoPointIndexer implements ValueIndexer<Point> {
@@ -65,7 +66,9 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
             .value(point.getX())
             .value(point.getY())
             .endArray();
-        addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
+        if (ref.indexType() != IndexType.NONE) {
+            addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
+        }
         if (fieldType.stored()) {
             String value = point.getLat() + ", " + point.getLon();
             addField.accept(new StoredField(name, value));
