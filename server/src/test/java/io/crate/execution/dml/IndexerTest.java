@@ -79,6 +79,7 @@ import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
+import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IpType;
@@ -1040,6 +1041,44 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                         .field("type", DataTypes.esMappingNameFrom(dt.id()))
                         .field("index", false)
                         .field("length", 1)
+                    .endObject()
+                .endObject()
+            .endObject());
+
+        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
+        DocumentMapper mapper = mapper(indexName, mapping);
+        ParsedDocument docFromSource = mapper.parse(
+                new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
+        );
+        IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
+
+        assertThat(fields.length).isEqualTo(fieldsFromSource.length);
+        for (int i = 0; i < fields.length; i++) {
+            assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
+        }
+    }
+
+    @Test
+    public void test_indexing_boolean_results_in_same_fields_as_document_mapper_if_not_indexed() throws Exception {
+        var idx = 0;
+        var tableName = "tbl";
+        var dt = BooleanType.INSTANCE;
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+                .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)")
+                .build();
+
+        Indexer indexer = getIndexer(e, tableName, NumberFieldMapper.FIELD_TYPE, "x");
+
+        ParsedDocument doc = indexer.index(item(true));
+        IndexableField[] fields = doc.doc().getFields("x");
+
+        // @formatter: off
+        String mapping = Strings.toString(JsonXContent.builder()
+            .startObject()
+                .startObject("properties")
+                    .startObject("x")
+                        .field("type", DataTypes.esMappingNameFrom(dt.id()))
+                        .field("index", false)
                     .endObject()
                 .endObject()
             .endObject());
