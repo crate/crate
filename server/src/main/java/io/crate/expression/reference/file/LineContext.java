@@ -34,6 +34,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 import java.net.URI;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class LineContext {
@@ -74,7 +75,9 @@ public class LineContext {
     public Object get(ColumnIdent columnIdent) {
         Map<String, Object> parentMap = sourceAsMap();
         if (parentMap == null) {
-            return null;
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH, "Cannot read column %s from non-existent row", columnIdent.fqn())
+            );
         }
         return ColumnIdent.get(parentMap, columnIdent);
     }
