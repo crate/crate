@@ -593,7 +593,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(
             () -> analyze("create table foo (id integer, id2 integer, INDEX id_ft using fulltext (id, id2))"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("INDEX definition only support 'string' typed source columns");
+            .hasMessage("INDEX source columns require `string` types. Cannot use `id` (integer) as source for `id_ft`");
     }
 
     @Test
@@ -601,7 +601,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(
             () -> analyze("create table foo (id integer, name string, INDEX id_ft using fulltext (id, name))"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("INDEX definition only support 'string' typed source columns");
+            .hasMessage("INDEX source columns require `string` types. Cannot use `id` (integer) as source for `id_ft`");
     }
 
     @Test
@@ -914,7 +914,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(
             () -> analyze("create table t(id int primary key) partitioned by (id) clustered by (id)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+            .hasMessage("Cannot use CLUSTERED BY column `id` in PARTITIONED BY clause");
     }
 
     @Test
@@ -1213,7 +1213,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 )
                     """))
             .isExactlyInstanceOf(ColumnValidationException.class)
-            .hasMessage("Validation failed for date_string: a generated column cannot be based on a generated column");
+            .hasMessage("Validation failed for date_string: Generated column cannot be based on generated column `day`");
     }
 
     @Test
@@ -1325,8 +1325,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithDefaultExpressionRefToColumnsNotAllowed() {
         assertThatThrownBy(() -> analyze("create table foo (name text, name_def text default upper(name))"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Columns cannot be used in this context. " +
-                        "Maybe you wanted to use a string literal which requires single quotes: 'name'");
+            .hasMessage(
+                "Cannot reference columns in DEFAULT expression of `name_def`. "
+                + "Maybe you wanted to use a string literal with single quotes instead: 'name'");
     }
 
     @Test
@@ -1379,7 +1380,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 analyze.bind(e.nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), Row.EMPTY, SubQueryResults.EMPTY);
             })
             .isExactlyInstanceOf(ColumnValidationException.class)
-            .hasMessage("Validation failed for col3: a generated column cannot be based on a generated column");
+            .hasMessage("Validation failed for col3: Generated column cannot be based on generated column `col2`");
     }
 
     @Test
@@ -1417,7 +1418,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithInvalidIndexConstraint() {
         assertThatThrownBy(() -> analyze("create table test (obj object index off)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("INDEX constraint cannot be used on columns of type \"object\"");
+            .hasMessage("INDEX constraint cannot be used on columns of type \"object\": `obj`");
     }
 
     @Test
@@ -1452,7 +1453,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             } else if (dataType.storageSupport() != null) {
                 assertThatThrownBy(() -> analyze(stmt))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Invalid storage option \"columnstore\" for data type \"" + dataType.getName() + "\"");
+                    .hasMessage("Invalid storage option \"columnstore\" for data type \"" + dataType.getName() + "\" for column: s");
             }
         }
     }
