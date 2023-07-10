@@ -29,10 +29,12 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.format.Style;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -102,6 +104,21 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             isReordered
         );
+    }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("JoinPlan[")
+            .text(joinType.toString());
+        if (joinCondition != null) {
+            printContext
+                .text(" | ")
+                .text(joinCondition.toString(Style.QUALIFIED));
+        }
+        printContext.text("]");
+        printStats(printContext);
+        printContext.nest(Lists2.map(sources(), x -> x::print));
     }
 
     @Override

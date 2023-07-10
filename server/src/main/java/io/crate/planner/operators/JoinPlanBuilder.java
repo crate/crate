@@ -74,7 +74,7 @@ public class JoinPlanBuilder {
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
-        boolean optimizeOrder = true;
+        boolean optimizeOrder = false;
         for (var joinPair : allJoinPairs) {
             if (hasAdditionalDependencies(joinPair)) {
                 optimizeOrder = false;

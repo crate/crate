@@ -312,6 +312,9 @@ public class LogicalPlanner {
             plannerContext::nextLogicalPlanId
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
+        PrintContext printContext = new PrintContext(null);
+        logicalPlan.print(printContext);
+        System.out.println("Before:" + printContext.toString());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
         optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
         optimizedPlan = joinOptimizer.optimize(optimizedPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);

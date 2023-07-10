@@ -42,6 +42,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.PrintContext;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.joinorder.Graph;
@@ -74,12 +75,17 @@ public class ReorderJoins implements Rule<JoinPlan> {
         if (isOriginalOrder(joinOrder)) {
             return null;
         }
+//        System.out.println("Reordered joins successfully");
         var result = buildJoinPlan(plan.outputs(), joinGraph, joinOrder, ids);
+        PrintContext printContext = new PrintContext(null);
+//        result.print(printContext);
+//        System.out.println("After:" + printContext.toString());
+
         return result;
     }
 
     /**
-     * Basic cross-join elimination without cost model.
+     * Basic cross-join elimination without cost model
      */
     public static List<Integer> eliminateCrossJoins(Graph graph) {
         List<Integer> joinOrder = new ArrayList<>();
@@ -100,7 +106,9 @@ public class ReorderJoins implements Rule<JoinPlan> {
                 visited.add(node);
                 joinOrder.add(node.id());
                 for (Graph.Edge edge : graph.getEdges(node)) {
-                    nodesToVisit.add(edge.to());
+                    if (edge.to() != null) {
+                        nodesToVisit.add(edge.to());
+                    }
                 }
             }
 
@@ -140,12 +148,7 @@ public class ReorderJoins implements Rule<JoinPlan> {
                     criteria.add(condition);
                 }
             }
-            JoinType joinType;
-            if (criteria.isEmpty()) {
-                joinType = JoinType.CROSS;
-            } else {
-                joinType = JoinType.INNER;
-            }
+            JoinType joinType = criteria.isEmpty() ?  JoinType.CROSS : JoinType.INNER;
 
             result = new JoinPlan(
                 ids.getAsInt(),

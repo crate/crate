@@ -36,18 +36,11 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
-import io.crate.planner.operators.Collect;
-import io.crate.planner.operators.Get;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
-import io.crate.planner.operators.NestedLoopJoin;
-import io.crate.planner.operators.Order;
-import io.crate.planner.operators.Rename;
-import io.crate.planner.operators.TableFunction;
-import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
+import io.crate.sql.tree.JoinType;
 
 public class Graph {
 
@@ -118,7 +111,7 @@ public class Graph {
         return result;
     }
 
-    public record Edge(LogicalPlan from, @Nullable Symbol fromVariable, LogicalPlan to, @Nullable Symbol toVariable) {
+    public record Edge(LogicalPlan from, @Nullable Symbol fromVariable, LogicalPlan to, @Nullable Symbol toVariable, JoinType joinType) {
 
         public boolean isCrossJoin() {
             return fromVariable == null && toVariable == null;
@@ -168,8 +161,7 @@ public class Graph {
 
         @Override
         public Graph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
-            var resolved = resolvePlan.apply(groupReference);
-            return resolved.accept(this, context);
+            return resolvePlan.apply(groupReference).accept(this, context);
         }
 
         //TODO Handle filters
@@ -180,10 +172,9 @@ public class Graph {
             var right = joinPlan.rhs().accept(this, context);
 
             var joinCondition = joinPlan.joinCondition();
+            var edges = new HashMap<Integer, Set<Edge>>();
             // if join condition is null, we have a cross-join
-//            assert joinCondition != null : "Join condition cannot be null to build graph";
             if (joinCondition != null) {
-                var edges = new HashMap<Integer, Set<Edge>>();
                 // find equi-join conditions such as `a.x = b.y` and create edges
                 // TODO deal with the rest of the filters such as `a.x >= 1`
                 var split = QuerySplitter.split(joinCondition);
@@ -196,15 +187,14 @@ public class Graph {
                                 var from = context.get(fromSymbol);
                                 var to = context.get(toSymbol);
 //                                assert from != null && to != null : "from and to cannot be null";
-                                var edge = new Edge(from, fromSymbol, to, toSymbol);
+                                var edge = new Edge(from, fromSymbol, to, toSymbol, joinPlan.joinType());
                                 insertEdge(edges, edge);
                             }
                         }
                     }
                 }
-                return left.joinWith(joinPlan, right, edges);
             }
-            return left.joinWith(joinPlan, right, Map.of());
+            return left.joinWith(joinPlan, right, edges);
         }
 
         private static void insertEdge(Map<Integer, Set<Edge>> edges, Edge edge) {

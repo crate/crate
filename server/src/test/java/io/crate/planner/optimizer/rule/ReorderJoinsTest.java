@@ -21,13 +21,13 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+
 
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,15 +77,23 @@ public class ReorderJoinsTest extends CrateDummyClusterServiceUnitTest {
 
         JoinPlan join1 = new JoinPlan(4, outputs, c1, c2, null, JoinType.INNER, false);
 
-        var condition2 = sqlExpressions.asSymbol("doc.t2.y = doc.t3.z");
+        var condition2 = sqlExpressions.asSymbol("doc.t1.x = doc.t3.z");
         var outputs2 = Lists2.concat(outputs, c3.outputs());
         JoinPlan join2 = new JoinPlan(2, outputs2, join1, c3, condition2, JoinType.INNER, false);
+        assertThat(join2).isEqualTo(
+            "JoinPlan[INNER | (doc.t1.x = doc.t3.z)]\n" +
+            "  ├ JoinPlan[INNER]\n" +
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]\n" +
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]\n" +
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+
 
         var rule = new ReorderJoins();
         Match<JoinPlan> match = rule.pattern().accept(join2, Captures.empty());
 
-        assertThat(match.isPresent(), Matchers.is(true));
-        assertThat(match.value(), Matchers.is(join2));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(join2);
 
         var result = rule.apply(match.value(),
                                 match.captures(),
