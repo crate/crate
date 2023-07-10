@@ -23,7 +23,6 @@ package io.crate.sql.tree;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class CreateFunction<T> extends Statement {
 
@@ -72,18 +71,6 @@ public class CreateFunction<T> extends Statement {
         return definition;
     }
 
-    public <U> CreateFunction<U> map(Function<? super T, ? extends U> mapper) {
-        return new CreateFunction<>(
-            name,
-            replace,
-            arguments,
-            returnType.map(mapper),
-            mapper.apply(language),
-            mapper.apply(definition)
-        );
-    }
-
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateFunction(this, context);
@@ -94,7 +81,7 @@ public class CreateFunction<T> extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        final CreateFunction that = (CreateFunction) o;
+        final CreateFunction<?> that = (CreateFunction<?>) o;
         return Objects.equals(this.name, that.name)
             && Objects.equals(this.replace, that.replace)
             && Objects.equals(this.arguments, that.arguments)

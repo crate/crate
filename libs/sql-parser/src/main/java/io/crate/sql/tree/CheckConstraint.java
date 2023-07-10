@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
 
 public class CheckConstraint<T> extends TableElement<T> {
 
@@ -84,7 +84,7 @@ public class CheckConstraint<T> extends TableElement<T> {
         if (o == null || false == o instanceof CheckConstraint) {
             return false;
         }
-        CheckConstraint that = (CheckConstraint) o;
+        CheckConstraint<?> that = (CheckConstraint<?>) o;
         return Objects.equals(expression, that.expression) &&
                Objects.equals(name, that.name) &&
                Objects.equals(columnName, that.columnName);
@@ -93,11 +93,6 @@ public class CheckConstraint<T> extends TableElement<T> {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCheckConstraint(this, context);
-    }
-
-    @Override
-    public <U> TableElement<U> map(Function<? super T, ? extends U> mapper) {
-        return new CheckConstraint<>(name, columnName, mapper.apply(expression), expressionStr);
     }
 
     @Override
