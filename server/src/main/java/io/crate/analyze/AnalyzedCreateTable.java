@@ -32,7 +32,7 @@ import java.util.function.Function;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.analyze.TableElementsAnalyzer2.RefBuilder;
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;

@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 
@@ -35,5 +36,14 @@ public enum IndexType {
 
     static IndexType fromStream(StreamInput in) throws IOException {
         return VALUES.get(in.readVInt());
+    }
+
+    public static IndexType of(String indexMethod) {
+        return switch (indexMethod.toLowerCase(Locale.ENGLISH)) {
+            case "fulltext" -> IndexType.FULLTEXT;
+            case "off" -> IndexType.NONE;
+            case "plain" -> IndexType.PLAIN;
+            default -> IndexType.PLAIN;
+        };
     }
 }

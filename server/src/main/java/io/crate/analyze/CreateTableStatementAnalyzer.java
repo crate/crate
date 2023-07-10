@@ -42,7 +42,7 @@ public final class CreateTableStatementAnalyzer {
             .of(createTable.name().getName(), txnCtx.sessionSettings().searchPath().currentSchema());
         relationName.ensureValidForRelationCreation();
 
-        var tableElementsAnalyzer = new TableElementsAnalyzer2(relationName, txnCtx, nodeCtx, paramTypeHints);
+        var tableElementsAnalyzer = new TableElementsAnalyzer(relationName, txnCtx, nodeCtx, paramTypeHints);
         return tableElementsAnalyzer.analyze(createTable);
     }
 }

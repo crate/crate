@@ -21,52 +21,38 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class AnalyzedAlterTableAddColumn implements DDLStatement {
+import com.carrotsearch.hppc.IntArrayList;
 
-    private final DocTableInfo tableInfo;
-    private final AnalyzedTableElements<Symbol> analyzedTableElements;
-    private final AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions;
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
+import io.crate.data.Row;
+import io.crate.execution.ddl.tables.AddColumnRequest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.SubQueryAndParamBinder;
+import io.crate.planner.operators.SubQueryResults;
 
-    public AnalyzedAlterTableAddColumn(DocTableInfo tableInfo,
-                                       AnalyzedTableElements<Symbol> analyzedTableElements,
-                                       AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions) {
-        this.tableInfo = tableInfo;
-        this.analyzedTableElements = analyzedTableElements;
-        this.analyzedTableElementsWithExpressions = analyzedTableElementsWithExpressions;
-    }
-
-    public DocTableInfo tableInfo() {
-        return tableInfo;
-    }
-
-    /**
-     * List of table elements where every generated or default expression is null-ed out, so all symbols can be safely
-     * evaluated to values. See {@link #analyzedTableElementsWithExpressions()} to get table elements including
-     * expressions.
-     */
-    public AnalyzedTableElements<Symbol> analyzedTableElements() {
-        return analyzedTableElements;
-    }
-
-    /**
-     * List of table elements where every possible generated and default expression is evaluated to symbols.
-     * These elements (or in concrete the expressions inside) MUST NOT be evaluated, only bound with parameters or
-     * subquery result. Evaluating them would destroy the Symbol tree we want to serialize and store inside the table's
-     * metadata in order to evaluate it on every write (generated expression) or read (default expression).
-     * <p>
-     * Putting all together is done by the
-     * {@link AnalyzedTableElements#finalizeAndValidate(RelationName, AnalyzedTableElements, AnalyzedTableElements)}
-     * method which adds the serialized (printed) symbol tree of these expressions to the evaluated table elements.
-     */
-    public AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions() {
-        return analyzedTableElementsWithExpressions;
-    }
+public record AnalyzedAlterTableAddColumn(
+        DocTableInfo table,
+        /**
+         * In order of definition
+         */
+        Map<ColumnIdent, RefBuilder> columns,
+        /**
+         * By constraint name; In order of definition
+         **/
+        Map<String, AnalyzedCheck> checks) implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
@@ -75,11 +61,39 @@ public class AnalyzedAlterTableAddColumn implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (var col : analyzedTableElements.columns()) {
-            col.visitSymbols(consumer);
+    }
+
+    public AddColumnRequest bind(NodeContext nodeCtx,
+                                 CoordinatorTxnCtx txnCtx,
+                                 Row params,
+                                 SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder bindParameter = new SubQueryAndParamBinder(params, subQueryResults);
+        Function<Symbol, Object> toValue = new SymbolEvaluator(txnCtx, nodeCtx, subQueryResults).bind(params);
+        List<Reference> newColumns = new ArrayList<>(columns.size());
+        LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        for (var refBuilder : columns.values()) {
+            Reference reference = refBuilder.build(columns, table.ident(), bindParameter, toValue);
+            if (refBuilder.isPrimaryKey()) {
+                primaryKeys.add(reference);
+            }
+            newColumns.add(reference);
         }
-        for (var col : analyzedTableElementsWithExpressions.columns()) {
-            col.visitSymbols(consumer);
+        Map<String, String> checkConstraints = new LinkedHashMap<>();
+        for (var entry : checks.entrySet()) {
+            String constraintName = entry.getKey();
+            AnalyzedCheck check = entry.getValue();
+            checkConstraints.put(constraintName, check.expression());
         }
+        IntArrayList pkIndices = new IntArrayList(primaryKeys.size());
+        for (Reference pk : primaryKeys) {
+            int idx = Reference.indexOf(newColumns, pk.column());
+            pkIndices.add(idx);
+        }
+        return new AddColumnRequest(
+            table.ident(),
+            newColumns,
+            checkConstraints,
+            pkIndices
+        );
     }
 }
