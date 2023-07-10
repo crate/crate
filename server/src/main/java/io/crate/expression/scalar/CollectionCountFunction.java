@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 
@@ -33,6 +32,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
@@ -42,7 +42,7 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.LONG.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             CollectionCountFunction::new

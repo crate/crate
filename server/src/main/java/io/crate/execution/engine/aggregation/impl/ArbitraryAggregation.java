@@ -24,8 +24,6 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -33,6 +31,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableObject;
 import io.crate.data.Input;
@@ -69,7 +68,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public static final String ALIAS = "any_value";
 
     public static void register(AggregationImplModule mod) {
-        TypeSignature T = TypeSignature.parseTypeSignature("T");
+        TypeSignature T = TypeSignature.parse("T");
         mod.register(
             Signature.aggregate(NAME, T, T)
                 .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),

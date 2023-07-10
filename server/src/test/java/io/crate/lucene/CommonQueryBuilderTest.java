@@ -22,7 +22,6 @@
 package io.crate.lucene;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -64,6 +63,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 import io.crate.user.User;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
@@ -596,7 +596,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         var innerFunction = new Function(
             Signature.scalar(
                 "array_length",
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),

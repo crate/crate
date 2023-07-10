@@ -22,7 +22,6 @@
 package io.crate.expression.operator;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.regex.Pattern;
 
@@ -36,6 +35,7 @@ import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class LikeOperators {
     public static final String OP_LIKE = "op_like";
@@ -122,8 +122,8 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_LIKE,
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
@@ -136,8 +136,8 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_NOT_LIKE,
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
@@ -150,8 +150,8 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_ILIKE,
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
@@ -164,8 +164,8 @@ public class LikeOperators {
         module.register(
             Signature.scalar(
                 ANY_NOT_ILIKE,
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->

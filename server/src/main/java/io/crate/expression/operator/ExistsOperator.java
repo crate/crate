@@ -40,7 +40,7 @@ public class ExistsOperator extends Operator<List<Object>> {
     public static void register(OperatorModule module) {
         Signature signature = Signature.scalar(
             NAME,
-            TypeSignature.parseTypeSignature("array(E)"),
+            TypeSignature.parse("array(E)"),
             Operator.RETURN_TYPE.getTypeSignature()
         ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"));
         module.register(signature, ExistsOperator::new);

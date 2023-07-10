@@ -21,6 +21,11 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.List;
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -34,12 +39,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public final class PgExpandArray extends TableFunctionImplementation<List<Object>> {
 
@@ -50,8 +50,8 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
         module.register(
             Signature.table(
                 FUNCTION_NAME,
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("record(x E, n integer)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("record(x E, n integer)")
             ).withTypeVariableConstraints(typeVariable("E")),
             PgExpandArray::new
         );

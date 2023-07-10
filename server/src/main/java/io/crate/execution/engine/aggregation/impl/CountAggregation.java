@@ -22,16 +22,14 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.MutableLong;
@@ -67,6 +65,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.TypeSignature;
 
 public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
@@ -74,7 +73,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public static final Signature SIGNATURE =
         Signature.aggregate(
             NAME,
-            parseTypeSignature("V"),
+            TypeSignature.parse("V"),
             DataTypes.LONG.getTypeSignature()
         ).withTypeVariableConstraints(typeVariable("V"));
 

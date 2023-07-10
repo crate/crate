@@ -98,8 +98,8 @@ public abstract sealed class AnyOperator extends Operator<Object>
         module.register(
             Signature.scalar(
                 name,
-                TypeSignature.parseTypeSignature("E"),
-                TypeSignature.parseTypeSignature("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
             operatorFactory

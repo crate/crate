@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.signatures;
+package io.crate.types;
 
 import static java.lang.String.format;
 

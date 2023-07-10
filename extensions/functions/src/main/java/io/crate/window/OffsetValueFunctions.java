@@ -21,6 +21,14 @@
 
 package io.crate.window;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -31,14 +39,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 /**
  * The offset functions return the evaluated value at a row that
@@ -247,8 +248,8 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LEAD_NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
@@ -260,9 +261,9 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LEAD_NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E")
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
@@ -274,10 +275,10 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LEAD_NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
@@ -290,8 +291,8 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LAG_NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
@@ -303,9 +304,9 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LAG_NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E")
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
@@ -317,10 +318,10 @@ public class OffsetValueFunctions implements WindowFunction {
         module.register(
             Signature.window(
                 LAG_NAME,
-                parseTypeSignature("E"),
+                TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                parseTypeSignature("E"),
-                parseTypeSignature("E")
+                TypeSignature.parse("E"),
+                TypeSignature.parse("E")
             ).withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
