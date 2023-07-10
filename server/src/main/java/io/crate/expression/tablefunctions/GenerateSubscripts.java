@@ -21,6 +21,12 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.DataTypes.INTEGER;
+
+import java.util.List;
+import java.util.Locale;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionName;
@@ -32,13 +38,7 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-
-import java.util.List;
-import java.util.Locale;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> {
 
@@ -50,7 +50,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
         module.register(
             Signature.table(
                 NAME,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
@@ -59,7 +59,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
         module.register(
             Signature.table(
                 NAME,
-                parseTypeSignature("array(E)"),
+                TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()

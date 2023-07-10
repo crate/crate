@@ -22,7 +22,6 @@
 package io.crate.expression.tablefunctions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +38,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
+import io.crate.types.TypeSignature;
 
 public class ValuesFunction {
 
@@ -47,7 +47,7 @@ public class ValuesFunction {
     public static final Signature SIGNATURE = Signature
         .table(
             NAME,
-            parseTypeSignature("array(E)"),
+            TypeSignature.parse("array(E)"),
             RowType.EMPTY.getTypeSignature())
         .withTypeVariableConstraints(typeVariableOfAnyType("E"))
         .withVariableArity();

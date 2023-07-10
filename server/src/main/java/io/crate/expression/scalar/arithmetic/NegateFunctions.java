@@ -21,14 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.math.BigDecimal;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 public final class NegateFunctions {
 
@@ -38,8 +37,8 @@ public final class NegateFunctions {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("double precision"),
-                parseTypeSignature("double precision")
+                TypeSignature.parse("double precision"),
+                TypeSignature.parse("double precision")
             )
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
@@ -58,8 +57,8 @@ public final class NegateFunctions {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("integer"),
-                parseTypeSignature("integer")
+                TypeSignature.parse("integer"),
+                TypeSignature.parse("integer")
             )
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
@@ -68,8 +67,8 @@ public final class NegateFunctions {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("bigint"),
-                parseTypeSignature("bigint")
+                TypeSignature.parse("bigint"),
+                TypeSignature.parse("bigint")
             )
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
@@ -78,8 +77,8 @@ public final class NegateFunctions {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("smallint"),
-                parseTypeSignature("smallint")
+                TypeSignature.parse("smallint"),
+                TypeSignature.parse("smallint")
             )
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->

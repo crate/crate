@@ -24,18 +24,16 @@ package io.crate.metadata.functions;
 import static io.crate.metadata.FunctionType.SCALAR;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.testing.Asserts.assertThat;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.test.ESTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.types.BitStringType;
@@ -59,8 +57,8 @@ public class SignatureBinderTest extends ESTestCase {
     public void testBasic() {
         Signature function = functionSignature()
             .typeVariableConstraints(List.of(typeVariable("T")))
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("T"))
             .build();
 
         assertThatSignature(function)
@@ -83,8 +81,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBindUnknownToConcreteArray() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("array(boolean)"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("array(boolean)"))
             .build();
 
         assertThatSignature(function)
@@ -96,8 +94,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBindTypeVariablesBasedOnTheSecondArgument() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("array(T)"), parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -110,8 +108,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBindParametricTypeParameterToUnknown() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("array(T)"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("array(T)"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -128,8 +126,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBindUnknownToTypeParameter() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -142,8 +140,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBindDoubleToBigint() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("double precision"), parseTypeSignature("double precision"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("double precision"), TypeSignature.parse("double precision"))
             .build();
 
         assertThatSignature(function)
@@ -155,8 +153,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testMismatchedArgumentCount() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("bigint"), parseTypeSignature("bigint"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("bigint"), TypeSignature.parse("bigint"))
             .build();
 
         assertThatSignature(function)
@@ -171,8 +169,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testArray() {
         Signature getFunction = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("array(T)"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("array(T)"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -187,8 +185,8 @@ public class SignatureBinderTest extends ESTestCase {
             .fails();
 
         Signature containsFunction = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("array(T)"), parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -203,8 +201,8 @@ public class SignatureBinderTest extends ESTestCase {
             .fails();
 
         Signature castFunction = functionSignature()
-            .returnType(parseTypeSignature("array(T2)"))
-            .argumentTypes(parseTypeSignature("array(T1)"), parseTypeSignature("array(T2)"))
+            .returnType(TypeSignature.parse("array(T2)"))
+            .argumentTypes(TypeSignature.parse("array(T1)"), TypeSignature.parse("array(T2)"))
             .typeVariableConstraints(List.of(typeVariable("T1"), typeVariable("T2")))
             .build();
 
@@ -218,8 +216,8 @@ public class SignatureBinderTest extends ESTestCase {
             ));
 
         Signature fooFunction = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("array(T)"), parseTypeSignature("array(T)"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("array(T)"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -238,8 +236,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testMap() {
         Signature getValueFunction = functionSignature()
-            .returnType(parseTypeSignature("V"))
-            .argumentTypes(parseTypeSignature("object(K,V)"), parseTypeSignature("K"))
+            .returnType(TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.parse("object(K,V)"), TypeSignature.parse("K"))
             .typeVariableConstraints(List.of(typeVariable("K"), typeVariable("V")))
             .build();
 
@@ -266,8 +264,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_record_type_signature_as_argument_type() {
         var signature = functionSignature()
-            .returnType(parseTypeSignature("T"))
-            .argumentTypes(parseTypeSignature("record(T)"))
+            .returnType(TypeSignature.parse("T"))
+            .argumentTypes(TypeSignature.parse("record(T)"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -285,7 +283,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_text_types_with_limit_length_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
+            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -299,7 +297,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_character_types_with_limit_length_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
+            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -313,7 +311,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_bit_types_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
+            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -327,8 +325,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_record_type_signature_as_return_type() {
         var signature = functionSignature()
-            .returnType(parseTypeSignature("record(col T)"))
-            .argumentTypes(parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("record(col T)"))
+            .argumentTypes(TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -341,10 +339,10 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testVariableArityGroup() {
         Signature mapFunction = functionSignature()
-            .returnType(parseTypeSignature("object(text, V)"))
-            .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
+            .returnType(TypeSignature.parse("object(text, V)"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
             .typeVariableConstraints(List.of(typeVariable("V")))
-            .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
+            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
             .build();
 
         assertThatSignature(mapFunction)
@@ -373,8 +371,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testVariableArityOfAnyTypeConstraint() {
         Signature fooFunction = functionSignature()
-            .returnType(parseTypeSignature("text"))
-            .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
+            .returnType(TypeSignature.parse("text"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
             .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
             .setVariableArity(true)
             .build();
@@ -401,8 +399,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_variable_arity_with_array_nested_variable_constraint_of_any_type() {
         Signature signature = functionSignature()
-            .returnType(parseTypeSignature("integer"))
-            .argumentTypes(parseTypeSignature("array(E)"))
+            .returnType(TypeSignature.parse("integer"))
+            .argumentTypes(TypeSignature.parse("array(E)"))
             .typeVariableConstraints(List.of(typeVariableOfAnyType("E")))
             .setVariableArity(true)
             .build();
@@ -429,8 +427,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_variable_arity_with_multi_array_nested_variable_constraint_of_any_type() {
         Signature signature = functionSignature()
-            .returnType(parseTypeSignature("integer"))
-            .argumentTypes(parseTypeSignature("array(array(E))"))
+            .returnType(TypeSignature.parse("integer"))
+            .argumentTypes(TypeSignature.parse("array(array(E))"))
             .typeVariableConstraints(List.of(typeVariableOfAnyType("E")))
             .setVariableArity(true)
             .build();
@@ -457,8 +455,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testVarArgs() {
         Signature variableArityFunction = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .setVariableArity(true)
             .build();
@@ -494,8 +492,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testCoercion() {
         Signature function = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("T"), parseTypeSignature("double precision"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("T"), TypeSignature.parse("double precision"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -529,8 +527,8 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testUnknownCoercion() {
         Signature foo = functionSignature()
-            .returnType(parseTypeSignature("boolean"))
-            .argumentTypes(parseTypeSignature("T"), parseTypeSignature("T"))
+            .returnType(TypeSignature.parse("boolean"))
+            .argumentTypes(TypeSignature.parse("T"), TypeSignature.parse("T"))
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
@@ -554,7 +552,7 @@ public class SignatureBinderTest extends ESTestCase {
     }
 
     private DataType<?> type(String signature) {
-        TypeSignature typeSignature = TypeSignature.parseTypeSignature(signature);
+        TypeSignature typeSignature = TypeSignature.parse(signature);
         return typeSignature.createType();
     }
 
@@ -591,7 +589,7 @@ public class SignatureBinderTest extends ESTestCase {
                 if (argument instanceof DataType<?> dataType) {
                     builder.add(dataType);
                 } else if (argument instanceof String str) {
-                    builder.add(TypeSignature.parseTypeSignature(str).createType());
+                    builder.add(TypeSignature.parse(str).createType());
                 } else if (argument instanceof TypeSignature typeSig) {
                     builder.add(typeSig.createType());
                 } else {

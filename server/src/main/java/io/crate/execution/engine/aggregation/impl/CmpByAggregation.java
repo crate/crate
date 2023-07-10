@@ -21,14 +21,10 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
@@ -36,6 +32,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
@@ -104,8 +101,8 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     public static void register(AggregationImplModule mod) {
-        TypeSignature returnValueType = parseTypeSignature("A");
-        TypeSignature cmpType = parseTypeSignature("B");
+        TypeSignature returnValueType = TypeSignature.parse("A");
+        TypeSignature cmpType = TypeSignature.parse("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
         mod.register(

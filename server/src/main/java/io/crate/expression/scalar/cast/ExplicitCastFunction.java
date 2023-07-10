@@ -22,7 +22,6 @@
 package io.crate.expression.scalar.cast;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
@@ -35,6 +34,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 
 public class ExplicitCastFunction extends Scalar<Object, Object> {
 
@@ -45,9 +45,9 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
             Signature
                 .scalar(
                     NAME,
-                    parseTypeSignature("E"),
-                    parseTypeSignature("V"),
-                    parseTypeSignature("V"))
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("V"),
+                    TypeSignature.parse("V"))
                 .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
             ExplicitCastFunction::new
         );
