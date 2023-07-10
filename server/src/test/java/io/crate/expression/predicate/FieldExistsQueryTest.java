@@ -22,7 +22,6 @@
 
 package io.crate.expression.predicate;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.UNSUPPORTED_INDEX_TYPE_IDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -33,6 +32,7 @@ import java.util.function.Supplier;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.analyze.TableElementsAnalyzer;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -116,7 +116,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_off() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
-            if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
+            if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
                     " (xs array(" + type.getName() + ") index off)";
@@ -166,7 +166,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_off() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
-            if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
+            if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
                     " (xs array(" + type.getName() + ") index off)";

@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.typeNameForESMapping;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -80,8 +79,8 @@ public class CreateTableRequestTest {
             null
         );
         List<Reference> refs = List.of(ref1, ref2, ref3, ref4);
-        List<String> partCol1 = List.of("part_col_1", typeNameForESMapping(DataTypes.STRING, null, false));
-        List<String> partCol2 = List.of("part_col_2", typeNameForESMapping(DataTypes.INTEGER, null, false));
+        List<String> partCol1 = List.of("part_col_1", DataTypes.esMappingNameFrom(DataTypes.STRING.id()));
+        List<String> partCol2 = List.of("part_col_2", DataTypes.esMappingNameFrom(DataTypes.INTEGER.id()));
         List<List<String>> partitionedBy = List.of(partCol1, partCol2);
 
         CreateTableRequest request = new CreateTableRequest(

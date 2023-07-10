@@ -54,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Maps;
+import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -65,6 +66,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -1368,11 +1370,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)").build();
         assertThatThrownBy(
-            () -> analyze(
-                """
-                    ALTER TABLE tbl
-                        ADD COLUMN col3 INT GENERATED ALWAYS AS col2+1
-                """))
+            () -> {
+                AnalyzedAlterTableAddColumn analyze = analyze(
+                    """
+                        ALTER TABLE tbl
+                            ADD COLUMN col3 INT GENERATED ALWAYS AS col2+1
+                    """);
+                analyze.bind(e.nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), Row.EMPTY, SubQueryResults.EMPTY);
+            })
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for col3: a generated column cannot be based on a generated column");
     }

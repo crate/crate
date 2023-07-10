@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.COLUMN_STORE_PROPERTY;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -203,7 +202,7 @@ public class MetadataToASTNodeResolver {
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
                     GenericProperties<Expression> properties = new GenericProperties<>(Map.of(
-                        COLUMN_STORE_PROPERTY, Literal.fromObject(ref.hasDocValues())
+                        TableElementsAnalyzer.COLUMN_STORE_PROPERTY, Literal.fromObject(ref.hasDocValues())
                     ));
                     constraints.add(new ColumnStorageDefinition<>(properties));
                 }

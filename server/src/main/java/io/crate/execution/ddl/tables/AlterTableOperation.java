@@ -34,8 +34,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -51,6 +49,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
@@ -120,7 +119,7 @@ public class AlterTableOperation {
         this.logicalReplicationService = logicalReplicationService;
     }
 
-    public CompletableFuture<Long> executeAlterTableAddColumn(AddColumnRequest addColumnRequest) {
+    public CompletableFuture<Long> addColumn(AddColumnRequest addColumnRequest) {
         String subject = null;
         if (addColumnRequest.pKeyIndices().isEmpty() == false) {
             subject = "primary key";

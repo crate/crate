@@ -565,7 +565,7 @@ public final class AccessControlImpl implements AccessControl {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
-                analysis.tableInfo().ident().toString(),
+                analysis.table().ident().toString(),
                 user,
                 defaultSchema);
             return null;
