@@ -180,6 +180,12 @@ public class SymbolVisitors {
                     if (t instanceof Reference tRef && tRef.column().equals(root)) {
                         consumer.accept(t);
                         break;
+                    } else if (ref instanceof VoidReference
+                               && t instanceof ScopedSymbol tScopedSymbol
+                               && tScopedSymbol.relation().equals(ref.ident().tableIdent())
+                               && tScopedSymbol.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
                     }
                 }
             }
