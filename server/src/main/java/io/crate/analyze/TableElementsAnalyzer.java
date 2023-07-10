@@ -217,7 +217,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             Symbol columnStoreSymbol = storageProperties.get(COLUMN_STORE_PROPERTY);
             if (!storageSupport.supportsDocValuesOff() && columnStoreSymbol != null) {
-                throw new IllegalArgumentException("Invalid storage option \"columnstore\" for data type \"" + type.getName() + "\"");
+                throw new IllegalArgumentException("Invalid storage option \"columnstore\" for data type \"" + type.getName() + "\" for column: " + name);
             }
             boolean hasDocValues = columnStoreSymbol == null
                 ? storageSupport.getComputedDocValuesDefault(indexType)
@@ -235,7 +235,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 List<Reference> sources = new ArrayList<>(indexSources.size());
                 for (Symbol indexSource : indexSources) {
                     if (!ArrayType.unnest(indexSource.valueType()).equals(DataTypes.STRING)) {
-                        throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "INDEX source columns require `string` types. Cannot use `%s` (%s) as source for `%s`",
+                            Symbols.pathFromSymbol(indexSource),
+                            indexSource.valueType().getName(),
+                            name
+                            ));
                     }
                     Reference source = (Reference) RefReplacer.replaceRefs(bindParameter.apply(indexSource), x -> {
                         if (x instanceof DynamicReference) {
@@ -245,7 +251,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                         return x;
                     });
                     if (Reference.indexOf(sources, source.column()) > -1) {
-                        throw new IllegalArgumentException("Index " + name + " contains duplicate columns");
+                        throw new IllegalArgumentException("Index " + name + " contains duplicate columns: " + sources);
                     }
                     sources.add(source);
                 }
@@ -300,7 +306,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                         x = column.build(columns, tableName, bindParameter, toValue);
                     }
                     if (x instanceof GeneratedReference) {
-                        throw new ColumnValidationException(name.sqlFqn(), tableName, "a generated column cannot be based on a generated column");
+                        throw new ColumnValidationException(name.sqlFqn(), tableName, "Generated column cannot be based on generated column `" + x.column() + "`");
                     }
                     return x;
                 });
@@ -383,7 +389,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
     private void ensureValidPartitionColumn(Optional<ClusteredBy<Symbol>> clusteredBy, ColumnIdent partitionColumnIdent, RefBuilder column) {
         if (partitionColumnIdent.isSystemColumn()) {
-            throw new IllegalArgumentException("Cannot use system columns in PARTITIONED BY clause");
+            throw new IllegalArgumentException("Cannot use system column `" + partitionColumnIdent + "` in PARTITIONED BY clause");
         }
         if (!primaryKeys.isEmpty() && !primaryKeys.contains(partitionColumnIdent)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -414,7 +420,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         clusteredBy.flatMap(ClusteredBy::column).ifPresent(clusteredBySymbol -> {
             ColumnIdent clusteredByColumnIdent = Symbols.pathFromSymbol(clusteredBySymbol);
             if (partitionColumnIdent.equals(clusteredByColumnIdent)) {
-                throw new IllegalArgumentException("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
+                throw new IllegalArgumentException("Cannot use CLUSTERED BY column `" + clusteredByColumnIdent + "` in PARTITIONED BY clause");
             }
         });
     }
@@ -515,8 +521,9 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 Symbol defaultSymbol = expressionAnalyzer.convert(defaultExpression, expressionContext);
                 builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
                 RefVisitor.visitRefs(builder.defaultExpression, x -> {
-                    throw new UnsupportedOperationException("Columns cannot be used in this context. " +
-                        "Maybe you wanted to use a string literal which requires single quotes: '" + x.column().name() + "'");
+                    throw new UnsupportedOperationException(
+                        "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
+                        "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
                 });
                 EnsureNoMatchPredicate.ensureNoMatchPredicate(defaultSymbol, "Cannot use MATCH in CREATE TABLE statements");
             }
@@ -562,7 +569,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 GenericProperties<Symbol> storageProperties = storageDefinition.properties().map(toSymbol);
                 for (String storageProperty : storageProperties.keys()) {
                     if (!COLUMN_STORE_PROPERTY.equals(storageProperty)) {
-                        throw new IllegalArgumentException("Invalid STORAGE WITH option `" + storageProperty + "`");
+                        throw new IllegalArgumentException("Invalid STORAGE WITH option `" + storageProperty + "` for column `" + columnName.sqlFqn() + "`");
                     }
                 }
                 builder.storageProperties = storageProperties;
@@ -581,7 +588,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
                 if (builder.indexType != IndexType.PLAIN && UNSUPPORTED_INDEX_TYPE_IDS.contains(builder.type.id())) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "INDEX constraint cannot be used on columns of type \"%s\"", builder.type));
+                        "INDEX constraint cannot be used on columns of type \"%s\": `%s`", builder.type, columnName));
                 }
             } else if (constraint instanceof NotNullColumnConstraint<Expression> notNull) {
                 builder.nullable = false;
