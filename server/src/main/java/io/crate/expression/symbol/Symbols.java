@@ -21,8 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -31,11 +29,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
@@ -222,9 +219,8 @@ public class Symbols {
     }
 
     public static Symbol unwrapReferenceFromCast(Symbol symbol) {
-        if (symbol instanceof Function
-            && CAST_FUNCTION_NAMES.contains(((Function) symbol).name())) {
-            return ((Function) symbol).arguments().get(0);
+        if (symbol instanceof Function fn && fn.isCast()) {
+            return fn.arguments().get(0);
         }
         return symbol;
     }

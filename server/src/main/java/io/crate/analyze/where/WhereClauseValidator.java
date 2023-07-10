@@ -22,7 +22,6 @@
 package io.crate.analyze.where;
 
 
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
 
 import java.util.Locale;
 import java.util.Set;
@@ -131,7 +130,7 @@ public final class WhereClauseValidator {
             var lastFunction = context.functions.get(numFunctions - 1);
             var parentFunction = context.functions.get(numFunctions - 2);
 
-            if (CAST_FUNCTION_NAMES.contains(lastFunction.name())
+            if (lastFunction.isCast()
                 && parentFunction.name().startsWith(Operator.PREFIX)
                 && requiredFunctionNames.contains(parentFunction.name())) {
                 var rightArg = parentFunction.arguments().get(1);

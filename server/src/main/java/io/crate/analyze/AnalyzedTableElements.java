@@ -44,7 +44,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -382,7 +382,7 @@ public class AnalyzedTableElements<T> {
                 );
             }
 
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType);
+            Symbol castFunction = function.cast(definedType, CastMode.IMPLICIT);
             function = castFunction;
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
