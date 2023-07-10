@@ -27,7 +27,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import java.util.List;
 import java.util.Optional;
 
-import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.Function;
@@ -73,7 +73,9 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
-        Symbol castedLiteral = literal.cast(targetType, CastFunctionResolver.getCastMode(castFunction.name()));
+        CastMode castMode = castFunction.castMode();
+        assert castMode != null : "Pattern matched, function must be a cast";
+        Symbol castedLiteral = literal.cast(targetType, castMode);
         // Can't use functionResolver here because it would attempt to re-resolve the function
         // and re-add casts if there is a text/varchar(n) missmatch.
         return new Function(operator.signature(), List.of(reference, castedLiteral), operator.valueType());

@@ -21,6 +21,12 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
+import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
+import java.util.List;
+import java.util.Optional;
+
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -32,13 +38,6 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
-
-import java.util.List;
-import java.util.Optional;
-
-import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_FUNCTION_NAMES;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 
 public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implements Rule<Function> {
@@ -54,7 +53,7 @@ public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implemen
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
+                .with(f -> f.isCast())
                 .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class)
                     .with(f -> f.name().equals(ArrayUpperFunction.ARRAY_LENGTH)
                                || f.name().equals(ArrayUpperFunction.ARRAY_UPPER))

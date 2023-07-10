@@ -28,12 +28,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -176,6 +175,23 @@ public class Function implements Symbol, Cloneable {
             newDataType,
             null
         );
+    }
+
+    public boolean isCast() {
+        return castMode() != null;
+    }
+
+    /**
+     * @return {@link CastMode} if {@link #isCast()} is true, otherwise null
+     **/
+    @Nullable
+    public CastMode castMode() {
+        return switch (name()) {
+            case ExplicitCastFunction.NAME -> CastMode.EXPLICIT;
+            case ImplicitCastFunction.NAME -> CastMode.IMPLICIT;
+            case TryCastFunction.NAME -> CastMode.TRY;
+            default -> null;
+        };
     }
 
     @Override
@@ -322,9 +338,7 @@ public class Function implements Symbol, Cloneable {
             default:
                 if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
-                } else if (name.equalsIgnoreCase(ImplicitCastFunction.NAME) ||
-                           name.equalsIgnoreCase(ExplicitCastFunction.NAME) ||
-                           name.equalsIgnoreCase(TryCastFunction.NAME)) {
+                } else if (isCast()) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
                     printOperator(builder, style, null);
