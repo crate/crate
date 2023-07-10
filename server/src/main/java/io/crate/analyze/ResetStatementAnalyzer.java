@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.HashSet;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -28,8 +30,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ResetStatement;
-
-import java.util.HashSet;
 
 public class ResetStatementAnalyzer {
 

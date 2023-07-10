@@ -21,22 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
-import io.crate.sql.tree.FunctionArgument;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class FunctionArgumentDefinition implements Writeable, ToXContent {
 
@@ -66,14 +64,6 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
 
     public static FunctionArgumentDefinition of(DataType<?> dataType) {
         return new FunctionArgumentDefinition(null, dataType);
-    }
-
-    public static List<FunctionArgumentDefinition> toFunctionArgumentDefinitions(List<FunctionArgument> arguments) {
-        return arguments.stream()
-            .map(arg -> FunctionArgumentDefinition.of(
-                arg.name(),
-                DataTypeAnalyzer.convert(arg.type())))
-            .collect(Collectors.toList());
     }
 
     public DataType<?> type() {

@@ -21,14 +21,10 @@
 
 package io.crate.sql.tree;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.collections.Lists2;
 
 public class ObjectColumnType<T> extends ColumnType<T> {
 
@@ -55,50 +51,6 @@ public class ObjectColumnType<T> extends ColumnType<T> {
     }
 
     @Override
-    public <U> ObjectColumnType<U> map(Function<? super T, ? extends U> mapper) {
-        checkNestedColumnConstraints(nestedColumns);
-
-        String objectTypeString = null;
-        if (columnPolicy.isPresent()) {
-            objectTypeString = columnPolicy.get().lowerCaseName();
-        }
-        return new ObjectColumnType<>(
-            objectTypeString,
-            Lists2.map(nestedColumns, x -> x.map(mapper))
-        );
-    }
-
-    private void checkNestedColumnConstraints(List<ColumnDefinition<T>> nestedColumns) {
-        for (var nestedColumn : nestedColumns) {
-            for (var constraint : nestedColumn.constraints()) {
-                if (constraint instanceof CheckColumnConstraint<T>) {
-                    throw new UnsupportedOperationException("Constraints on nested columns are not allowed");
-                }
-            }
-        }
-    }
-
-    @Override
-    public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
-                                            Function<? super T, ? extends U> mapper) {
-        ObjectColumnType<U> mappedObjectType = (ObjectColumnType<U>) mappedType;
-        String objectTypeString = null;
-        if (columnPolicy.isPresent()) {
-            objectTypeString = columnPolicy.get().lowerCaseName();
-        }
-        ArrayList<ColumnDefinition<U>> nestedMappedColumns = new ArrayList<>(nestedColumns.size());
-        for (int i = 0; i < nestedColumns.size(); i++) {
-            ColumnDefinition<U> columnDefinition =
-                (ColumnDefinition<U>) nestedColumns.get(i).mapExpressions(mappedObjectType.nestedColumns.get(i), mapper);
-            nestedMappedColumns.add(columnDefinition);
-        }
-        return new ObjectColumnType<>(
-            objectTypeString,
-            nestedMappedColumns
-        );
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -110,7 +62,7 @@ public class ObjectColumnType<T> extends ColumnType<T> {
             return false;
         }
 
-        ObjectColumnType that = (ObjectColumnType) o;
+        ObjectColumnType<?> that = (ObjectColumnType<?>) o;
 
         if (!columnPolicy.equals(that.columnPolicy)) {
             return false;

@@ -22,34 +22,12 @@
 package io.crate.sql.tree;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public abstract class TableElement<T> extends Node {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitTableElement(this, context);
-    }
-
-    /**
-     * Map all generic properties using the given mapper.
-     * If a table element contains any expressions which should not be mapped in general (e.g. generated/default
-     * expression), NULL them here and use the concrete {@link #mapExpressions(TableElement, Function)}
-     * to map them using a concrete mapper.
-     */
-    public abstract <U> TableElement<U> map(Function<? super T, ? extends U> mapper);
-
-    /**
-     * Map any expressions which were NOT processed by the {@link #map(Function)} function in general
-     * like e.g. generated or default expressions.
-     *
-     * @param mappedElement     An already mapped table element were some expressions were left out.
-     * @param mapper            The mapper function
-     * @return                  The mapped table element including possible newly mapped expressions.
-     */
-    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
-                                              Function<? super T, ? extends U> mapper) {
-        return mappedElement;
     }
 
     public abstract void visit(Consumer<? super T> consumer);
