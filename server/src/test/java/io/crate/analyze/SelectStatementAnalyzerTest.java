@@ -81,6 +81,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.PartitionName;
@@ -2959,5 +2960,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().get(0)).isFunction("subscript", isField("obj"), isLiteral("unknown"));
+    }
+
+    @Test
+    public void test_aliased_unknown_object_key() throws IOException {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table t (o object)")
+            .build();
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+        var analyzed = executor.analyze("select alias.o['unknown_key'] from (select * from t) alias");
+        assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().get(0)).isVoidReference(new ColumnIdent("o", "unknown_key"), new RelationName(null, "alias"));
     }
 }

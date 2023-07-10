@@ -42,6 +42,10 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
+    public R visitVoidReference(VoidReference symbol, C context) {
+        return visitReference(symbol, context);
+    }
+
     public R visitFunction(Function symbol, C context) {
         return visitSymbol(symbol, context);
     }

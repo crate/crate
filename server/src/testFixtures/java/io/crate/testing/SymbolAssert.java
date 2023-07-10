@@ -47,6 +47,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
 
@@ -148,6 +149,12 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
 
     public SymbolAssert isVoidReference(String expectedName) {
         isReference(expectedName);
+        isExactlyInstanceOf(VoidReference.class);
+        return this;
+    }
+
+    public SymbolAssert isVoidReference(ColumnIdent expectedColumn, RelationName expectedRelName) {
+        isReference(expectedColumn, expectedRelName, DataTypes.UNDEFINED);
         isExactlyInstanceOf(VoidReference.class);
         return this;
     }
