@@ -27,7 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
@@ -37,6 +37,7 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
@@ -383,5 +384,23 @@ public class ObjectColumnTest extends IntegTestCase {
             "2| {key=d}| [{x=d}, null, {x=d, y=10}, {x=1, y=2}]| {x=d}",
             "3| {key=d}| NULL| {os=[{key=d}, null], x=d}"
         );
+    }
+
+    @Test
+    public void test_aliased_unknown_object_key() {
+        try (var session = sqlExecutor.newSession()) {
+            execute("create table test (o object)", session);
+            execute("insert into test values({a=1})", session);
+            refresh();
+
+            session.sessionSettings().setErrorOnUnknownObjectKey(true);
+            assertThatThrownBy(() -> execute("select T.o['unknown'] from (select * from test) T", session))
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                    .hasMessage("The object `{a=1}` does not contain the key `unknown`");
+
+            session.sessionSettings().setErrorOnUnknownObjectKey(false);
+            execute("select T.o['unknown'] from (select * from test) T", session);
+            assertThat(response).hasRows("NULL");
+        }
     }
 }

@@ -56,4 +56,9 @@ public class VoidReference extends DynamicReference {
     public SymbolType symbolType() {
         return SymbolType.VOID_REFERENCE;
     }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitVoidReference(this, context);
+    }
 }
