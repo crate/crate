@@ -1,0 +1,114 @@
+.. _version_5.3.4:
+
+=============
+Version 5.3.4
+=============
+
+Released on 2023-07-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.3.4.
+
+    We recommend that you upgrade to the latest 5.2 release before moving to
+    5.3.4.
+
+    A rolling upgrade from 5.2.x to 5.3.4 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
+
+Fixes
+=====
+
+- Fixed an issue introduced with CrateDB ``5.3.0`` resulting in failing writes,
+  broken replica shards, or even un-recoverable tables on tables using a
+  column definition with a ``IP`` data type and an explicit ``INDEX OFF``.
+  Any table that was created with ``INDEX OFF`` on a ``IP`` column and already
+  written to with CrateDB version >= ``5.3.0`` should be recreated using e.g.
+  :ref:`INSERT INTO new_table SELECT * FROM old_table<dml-inserting-by-query>`
+  (followed by swap table
+  :ref:`ALTER CLUSTER SWAP TABLE new_table TO old_table<alter_cluster_swap_table>`)
+  or :ref:`restored from a backup<sql-restore-snapshot>`.
+
+- Improved error message to be user-friendly, for definition of
+  :ref:`CHECK <check_constraint>` at column level for object sub-columns,
+  instead of a ``ConversionException``.
+
+- Added validation to prevent creation of invalid nested array columns via
+  ``INSERT INTO`` and dynamic column policy.
+
+- Fixed parsing of ``ARRAY`` literals in PostgreSQL ``simple`` query mode.
+
+- Fixed value of ``sys.jobs_log.stmt`` for various statements when issued via
+  the PostgreSQL ``simple`` query mode by using the original query string
+  instead of the statements string representation.
+
+- Fixed an issue that caused ``UPDATE`` and ``DELETE`` on tables with
+  ``PRIMARY KEYs`` from ignoring non ``primary key`` symbols in ``WHERE``
+  clauses if the ``WHERE`` clauses contain ``PRIMARY KEYS``, e.g. ::
+
+    UPDATE test SET x = 10 WHERE pk_col = 1 AND x = 2; -- executed update with 'pk_col = 1' only, ignoring 'x = 2'
+
+- Fixed an issue that could cause errors for queries with aggregations,
+  ``UNION`` and ``LIMIT``, e.g. ::
+
+    SELECT a, avg(c), b FROM t1 GROUP BY 1, 3
+    UNION
+    SELECT x, avg(z), y FROM t2 GROUP BY 1, 3
+    UNION
+    SELECT i, avg(k), j FROM t3 GROUP BY 1, 3
+    LIMIT 10
+
+- Fixed an issue which prevented ``INSERT INTO ... SELECT ...`` from inserting
+  any records if the target table had a partitioned column of a non-string
+  type, used in any expressions of ``GENERATED`` or ``CHECK`` definitions.
+
+- Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
+  skip ``NULL`` checks of ``CLUSTERED BY`` column values.
+
+- Fixed an issue that resulted in enabled indexing for columns defined as
+  the ``BIT`` data type even when explicitly turning it of using ``INDEX OFF``.
+
+- Fixed an issue resulting in an exception when writing data into a column of
+  type ``Boolean`` with disabled indexing using ``INDEX OFF``.
+
+- Fixed an issue that caused an exception to be thrown when inserting a
+  non-array value into a column that is dynamically created by inserting an
+  empty array, ultimately modifying the type of the column and then selecting
+  this column by the row's primary key, for example::
+
+    CREATE TABLE t (id int primary key, o OBJECT(dynamic));
+    INSERT INTO t VALUES (1, {x=[]});
+    INSERT INTO t VALUES (2, {x={}});  /* this is the culprit statement, inserting an object onto an array typed column */
+
+    SELECT * FROM t WHERE id=1;
+    SQLParseException[Cannot cast object element `x` with value `[]` to type `object`]
+
+  after the fix::
+
+    SELECT * FROM t WHERE id=1;
+    +----+-------------+
+    | id | o           |
+    +----+-------------+
+    |  1 | {"x": null} |
+    +----+-------------+
+
