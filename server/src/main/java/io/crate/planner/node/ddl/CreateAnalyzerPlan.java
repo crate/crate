@@ -33,14 +33,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedCreateAnalyzer;
-import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Tuple;
@@ -208,11 +206,8 @@ public class CreateAnalyzerPlan implements Plan {
             name = String.format(Locale.ENGLISH, "%s_%s", analyzerIdent, name);
             Settings.Builder builder = Settings.builder();
             for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
-                GenericPropertiesConverter.genericPropertyToSetting(
-                    builder,
-                    TOKENIZER.buildSettingChildName(name, property.getKey()),
-                    eval.apply(property.getValue())
-                );
+                String settingName = TOKENIZER.buildSettingChildName(name, property.getKey());
+                builder.putStringOrList(settingName, eval.apply(property.getValue()));
             }
             return new Tuple<>(name, builder.build());
         }
@@ -260,11 +255,8 @@ public class CreateAnalyzerPlan implements Plan {
                 }
 
                 for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
-                    GenericPropertiesConverter.genericPropertyToSetting(
-                        builder,
-                        TOKEN_FILTER.buildSettingChildName(fullName, property.getKey()),
-                        eval.apply(property.getValue())
-                    );
+                    String settingName = TOKEN_FILTER.buildSettingChildName(fullName, property.getKey());
+                    builder.putStringOrList(settingName, eval.apply(property.getValue()));
                 }
                 boundTokenFilters.put(fullName, builder.build());
             }
@@ -303,10 +295,8 @@ public class CreateAnalyzerPlan implements Plan {
                 name = String.format(Locale.ENGLISH, "%s_%s", analyzerIdent, name);
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Symbol> charFilterProperty : properties.properties().entrySet()) {
-                    GenericPropertiesConverter.genericPropertyToSetting(
-                        builder,
-                        CHAR_FILTER.buildSettingChildName(name, charFilterProperty.getKey()),
-                        eval.apply(charFilterProperty.getValue()));
+                    String settingName = CHAR_FILTER.buildSettingChildName(name, charFilterProperty.getKey());
+                    builder.putStringOrList(settingName, eval.apply(charFilterProperty.getValue()));
                 }
                 boundedCharFilters.put(name, builder.build());
             }
@@ -319,10 +309,8 @@ public class CreateAnalyzerPlan implements Plan {
                                                           Function<? super Symbol, Object> eval) {
         Settings.Builder builder = Settings.builder();
         for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
-            GenericPropertiesConverter.genericPropertyToSetting(
-                builder,
-                ANALYZER.buildSettingChildName(analyzerIdent, property.getKey()),
-                eval.apply(property.getValue()));
+            String settingName = ANALYZER.buildSettingChildName(analyzerIdent, property.getKey());
+            builder.putStringOrList(settingName, eval.apply(property.getValue()));
         }
         return builder.build();
     }
