@@ -150,7 +150,8 @@ task chooseReleaseNotes(dependsOn: [':server:getVersion']) {
         def version = project(':server').getVersion.version
         def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
-        if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
+        def file = new File(releaseNotesDir + "/" + releaseNotesFile)
+        if (file.exists()) {
             copy {
                 from("$releaseNotesDir") {
                     include "$releaseNotesFile"
@@ -159,12 +160,7 @@ task chooseReleaseNotes(dependsOn: [':server:getVersion']) {
                 rename releaseNotesFile, 'CHANGES.txt'
             }
         } else {
-            copy {
-                from("$rootDir") {
-                    include 'CHANGES.txt'
-                }
-                into project.buildDir.path + "/releaseNotes"
-            }
+            throw new FileNotFoundException("Release notes file: " + file.getAbsolutePath() + " not found!")
         }
     }
 }
