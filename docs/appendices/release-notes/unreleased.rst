@@ -223,6 +223,10 @@ Administration and Operations
   :ref:`storage_class <sql-create-repo-s3-storage_class>` for S3 repositories.
 
 
+- Added :ref:`concat(array, value) <scalar-concat>` as an alias for the
+  :ref:`array_append(array, value) <scalar-array_append>` scalar function for
+  improved compatibility with PostgreSQL.
+
 Fixes
 =====
 

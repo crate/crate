@@ -120,4 +120,9 @@ public class ConcatFunctionTest extends ScalarTestCase {
     public void test_two_objects() {
         assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
     }
+
+    @Test
+    public void test_append_value_to_array() {
+        assertEvaluate("concat([1,2],3)", List.of(1, 2, 3));
+    }
 }
