@@ -21,10 +21,11 @@
 
 package io.crate.replication.logical.plan;
 
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 import java.util.Locale;
 import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
@@ -71,7 +72,7 @@ public class CreateSubscriptionPlan implements Plan {
 
         var url = validateAndConvertToString(eval.apply(analyzedCreateSubscription.connectionInfo()));
         var connectionInfo = ConnectionInfo.fromURL(url);
-        var settings = genericPropertiesToSettings(analyzedCreateSubscription.properties().map(eval));
+        var settings = Settings.builder().put(analyzedCreateSubscription.properties().map(eval)).build();
 
         var subscribingUser = connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey());
         if (subscribingUser == null || subscribingUser.isEmpty()) {

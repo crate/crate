@@ -26,61 +26,15 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_SETTING_PRE
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.sql.tree.GenericProperties;
 
 public class GenericPropertiesConverter {
-
-    private static final String INVALID_SETTING_MESSAGE = "setting '%s' not supported";
-
-    public static void genericPropertyToSetting(Settings.Builder builder,
-                                                String name,
-                                                Object value) {
-        if (value instanceof String[] strArray) {
-            builder.putList(name, strArray);
-        } else if (value instanceof List<?> list) {
-            builder.putList(name, list);
-        } else {
-            builder.put(name, value.toString());
-        }
-    }
-
-    public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties,
-                                                       Map<String, Setting<?>> supportedSettings) {
-        Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(
-            builder,
-            genericProperties,
-            settingKey -> {
-                if (!supportedSettings.containsKey(settingKey)) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, INVALID_SETTING_MESSAGE, settingKey));
-                }
-            });
-        return builder.build();
-    }
-
-    public static <T> Settings genericPropertiesToSettings(GenericProperties<T> genericProperties) {
-        Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties, settingKey -> {});
-        return builder.build();
-    }
-
-    private static <T> void genericPropertiesToSettings(Settings.Builder builder,
-                                                        GenericProperties<T> genericProperties,
-                                                        Consumer<String> settingKeyValidator) {
-        for (Map.Entry<String, T> entry : genericProperties.properties().entrySet()) {
-            settingKeyValidator.accept(entry.getKey());
-            builder.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().toString());
-        }
-    }
 
     static void settingsFromProperties(Settings.Builder builder,
                                        GenericProperties<Object> properties,
@@ -217,7 +171,7 @@ public class GenericPropertiesConverter {
                     "Cannot change a dynamic group setting, only concrete settings allowed.");
             }
             Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
-            genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueSymbol);
+            singleSettingBuilder.putStringOrList(setting.getKey(), valueSymbol);
             Object value = setting.get(singleSettingBuilder.build());
             if (value instanceof Settings settings) {
                 builder.put(settings);

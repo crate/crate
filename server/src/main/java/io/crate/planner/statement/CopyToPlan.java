@@ -24,7 +24,6 @@ package io.crate.planner.statement;
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -245,7 +244,7 @@ public final class CopyToPlan implements Plan {
             outputs = List.of(sourceRef);
         }
 
-        Settings settings = genericPropertiesToSettings(copyTo.properties().map(eval));
+        Settings settings = Settings.builder().put(copyTo.properties().map(eval)).build();
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));

@@ -21,8 +21,24 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.Function;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotState;
+
 import io.crate.analyze.AnalyzedCreateSnapshot;
-import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -47,23 +63,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotState;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.function.Function;
-
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
-import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 public class CreateSnapshotPlan implements Plan {
 
@@ -130,10 +131,10 @@ public class CreateSnapshotPlan implements Plan {
             subQueryResults
         );
 
-        Settings settings = GenericPropertiesConverter.genericPropertiesToSettings(
-            createSnapshot.properties().map(eval),
-            SnapshotSettings.SETTINGS
-        );
+        GenericProperties<Object> properties = createSnapshot.properties()
+            .ensureContainsOnly(SnapshotSettings.SETTINGS.keySet())
+            .map(eval);
+        Settings settings = Settings.builder().put(properties).build();
 
         boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 

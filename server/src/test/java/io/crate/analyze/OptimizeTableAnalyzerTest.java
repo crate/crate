@@ -115,7 +115,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testOptimizeTableWithInvalidParamName() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'invalidparam' not supported");
+        expectedException.expectMessage("Setting 'invalidparam' is not supported");
         analyze("OPTIMIZE TABLE users WITH (invalidParam=123)");
     }
 

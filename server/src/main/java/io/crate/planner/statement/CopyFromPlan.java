@@ -24,7 +24,6 @@ package io.crate.planner.statement;
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,11 +36,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -169,7 +167,7 @@ public final class CopyFromPlan implements Plan {
         var properties = copyFrom.properties().map(eval);
         var nodeFiltersPredicate = discoveryNodePredicate(
             properties.properties().getOrDefault(NodeFilters.NAME, null));
-        var settings = genericPropertiesToSettings(properties);
+        var settings = Settings.builder().put(properties).build();
         var inputFormat = settingAsEnum(
             FileUriCollectPhase.InputFormat.class,
             settings.get(INPUT_FORMAT_SETTING.getKey(), INPUT_FORMAT_SETTING.getDefault(Settings.EMPTY)));
@@ -426,8 +424,8 @@ public final class CopyFromPlan implements Plan {
     private static Symbol validateAndConvertToLiteral(Object uri) {
         if (uri instanceof String) {
             return Literal.of(DataTypes.STRING.sanitizeValue(uri));
-        } else if (uri instanceof List) {
-            Object value = ((List) uri).get(0);
+        } else if (uri instanceof List<?> uris) {
+            Object value = uris.get(0);
             if (!(value instanceof String)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
@@ -441,7 +439,7 @@ public final class CopyFromPlan implements Plan {
             return discoveryNode -> true;
         }
         try {
-            return NodeFilters.fromMap((Map) nodeFilter);
+            return NodeFilters.fromMap((Map<?, ?>) nodeFilter);
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
