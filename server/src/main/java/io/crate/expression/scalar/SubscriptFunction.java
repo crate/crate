@@ -242,8 +242,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         //       inner
         if (!(inner.arguments().get(0) instanceof Reference ref
-                && inner.arguments().get(1) instanceof Literal<?> keyLiteral
-                && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
+              && inner.arguments().get(1) instanceof Literal<?>
+              && parent.arguments().size() == 2 // parent could for example be `op_isnull`
+              && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {
             return null;
         }
         if (DataTypes.isArray(ref.valueType())) {
