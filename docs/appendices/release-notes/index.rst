@@ -17,13 +17,25 @@ information and changelog.
 Versions
 ========
 
+5.x
+---
+
+5.5.x
+.....
+
 .. toctree::
     :maxdepth: 1
 
-    unreleased
+    5.5.0
 
-5.x
----
+5.4.x
+.....
+
+.. toctree::
+    :maxdepth: 1
+
+    5.4.1
+    5.4.0
 
 5.3.x
 .....
