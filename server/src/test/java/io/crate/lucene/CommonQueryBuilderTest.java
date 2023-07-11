@@ -472,6 +472,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_is_null_on_subscript_function() {
+        Query query = convert("o_array[1]['xs'] is null");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
     public void testMatchWithOperator() {
         assertThat(convert("match(tags, 'foo bar') using best_fields with (operator='and')")).hasToString(
             "+tags:foo +tags:bar");
