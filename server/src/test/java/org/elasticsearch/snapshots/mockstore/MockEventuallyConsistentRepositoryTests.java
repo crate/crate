@@ -18,10 +18,9 @@
  */
 package org.elasticsearch.snapshots.mockstore;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.startsWith;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -48,6 +47,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
 
@@ -68,7 +68,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             try (InputStream in = blobContainer.readBlob(blobName)) {
                 final byte[] readBytes = new byte[lengthWritten + 1];
                 final int lengthSeen = in.read(readBytes);
-                assertThat(lengthSeen, equalTo(lengthWritten));
+                assertThat(lengthSeen).isEqualTo(lengthWritten);
                 assertArrayEquals(blobData, Arrays.copyOf(readBytes, lengthWritten));
             }
         }
@@ -108,6 +108,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testOverwriteRandomBlobFails() throws IOException {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
@@ -119,12 +120,13 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             final int lengthWritten = randomIntBetween(1, 100);
             final byte[] blobData = randomByteArrayOfLength(lengthWritten);
             container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, false);
-            final AssertionError assertionError = expectThrows(AssertionError.class,
-                () -> container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten - 1, false));
-            assertThat(assertionError.getMessage(), startsWith("Tried to overwrite blob [" + blobName +"]"));
+            assertThatThrownBy(() -> container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten - 1, false))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageStartingWith("Tried to overwrite blob [" + blobName +"]");
         }
     }
 
+    @Test
     public void testOverwriteShardSnapBlobFails() throws IOException {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
@@ -137,12 +139,13 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             final int lengthWritten = randomIntBetween(1, 100);
             final byte[] blobData = randomByteArrayOfLength(lengthWritten);
             container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, false);
-            final AssertionError assertionError = expectThrows(AssertionError.class,
-                () -> container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, false));
-            assertThat(assertionError.getMessage(), equalTo("Shard level snap-{uuid} blobs should never be overwritten"));
+            assertThatThrownBy(() -> container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, false))
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Shard level snap-{uuid} blobs should never be overwritten");
         }
     }
 
+    @Test
     public void testOverwriteSnapshotInfoBlob() throws Exception {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         final RepositoryMetadata metaData = new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY);
@@ -164,13 +167,14 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                     Version.CURRENT, Function.identity(), f));
 
             // We try to write another snap- blob for "foo" in the next generation. It fails because the content differs.
-            final AssertionError assertionError = expectThrows(AssertionError.class,
+            assertThatThrownBy(
                 () -> TestFutureUtils.<RepositoryData, Exception>get(f ->
                     repository.finalizeSnapshot(ShardGenerations.EMPTY, 0L, Metadata.EMPTY_METADATA,
                         new SnapshotInfo(snapshotId, Collections.emptyList(),
                             0L, null, 1L, 6, Collections.emptyList(), true),
-                        Version.CURRENT, Function.identity(), f)));
-            assertThat(assertionError.getMessage(), equalTo("\nExpected: <6>\n     but: was <5>"));
+                        Version.CURRENT, Function.identity(), f))
+            ).isInstanceOf(AssertionError.class)
+                .hasMessage("\nExpected: <6>\n     but: was <5>");
 
             // We try to write yet another snap- blob for "foo" in the next generation.
             // It passes cleanly because the content of the blob except for the timestamps.
@@ -183,7 +187,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
     }
 
     private static void assertThrowsOnInconsistentRead(BlobContainer blobContainer, String blobName) {
-        final AssertionError assertionError = expectThrows(AssertionError.class, () -> blobContainer.readBlob(blobName));
-        assertThat(assertionError.getMessage(), equalTo("Inconsistent read on [" + blobName + ']'));
+        assertThatThrownBy(() -> blobContainer.readBlob(blobName))
+            .isInstanceOf(AssertionError.class)
+            .hasMessage("Inconsistent read on [" + blobName + ']');
     }
 }

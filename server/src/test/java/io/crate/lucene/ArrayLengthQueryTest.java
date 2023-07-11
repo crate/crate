@@ -21,10 +21,8 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -79,16 +77,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testArrayLengthGt0FiltersEmptyAndNullRecords() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 0");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20),
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20),
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
@@ -96,167 +91,128 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     public void testArrayLengthGte0FiltersZeroLengthAndNullRecords() throws Exception {
         // array_upper([], 1) evaluates to NULL so NULL >= 0 -> no match
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 0");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20),
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20),
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthGt1FiltersNullEmptyAndLength1Records() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 1");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthGte1ReturnsAllButEmptyOrNullValues() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 1");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20),
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20),
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthGt2ReturnsAllGreater2() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 2");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthGte2ReturnsAllGreaterOrEq2() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) >= 2");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthLt0ReturnsNothing() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 0");
-        assertThat(
-            rows,
-            empty()
-        );
+        assertThat(rows).isEmpty();
     }
 
     @Test
     public void testArrayLengthLte0ReturnsNothing() throws Exception {
         // `array_length([], 1)` <= 0 --> `NULL <= 0` --> NO MATCH
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 0");
-        assertThat(
-            rows,
-            empty()
-        );
+        assertThat(rows).isEmpty();
     }
 
     @Test
     public void testArrayLengthLt1ReturnsNothing() throws Exception {
         // Since `array_length([], 1)` returns NULL, there can't be a match for < 1
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 1");
-        assertThat(
-            rows,
-            empty()
-        );
+        assertThat(rows).isEmpty();
     }
 
     @Test
     public void testArrayLengthLte1ReturnsArraysWith1Element() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 1");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20)
         );
     }
 
     @Test
     public void testArrayLengthLte3ReturnsArraysWithUpToIncl3Element() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 3");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20),
-                List.of(10, 10),
-                List.of(10, 20),
-                List.of(10, 10, 20),
-                List.of(10, 20, 30)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20),
+            List.of(10, 10),
+            List.of(10, 20),
+            List.of(10, 10, 20),
+            List.of(10, 20, 30)
         );
     }
 
     @Test
     public void testArrayLengthLt3ReturnsArraysWithUpToExcl3Element() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) < 3");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20),
-                List.of(10, 10),
-                List.of(10, 20)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20),
+            List.of(10, 10),
+            List.of(10, 20)
         );
     }
 
     @Test
     public void testArrayLengthEq1ReturnsArraysWith1Element() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10),
-                List.of(20)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10),
+            List.of(20)
         );
     }
 
     @Test
     public void testArrayLengthEq1ReturnsArraysWith2Elements() throws Exception {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 2");
-        assertThat(
-            rows,
-            containsInAnyOrder(
-                List.of(10, 10),
-                List.of(10, 20)
-            )
+        assertThat(rows).containsExactlyInAnyOrder(
+            List.of(10, 10),
+            List.of(10, 20)
         );
     }
 
@@ -264,13 +220,11 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     public void testArrayLengthEq0ReturnsNoElements() throws Exception {
         // Since `array_length([], 1)` returns NULL, there can't be a match for = 0
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 0");
-        assertThat(
-            rows,
-            empty()
-        );
+        assertThat(rows).isEmpty();
     }
 
     @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             // This is temporary as long as interval is not fully implemented
@@ -296,13 +250,15 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) > 4");
-                assertThat("array_length(xs, 1) > 1 must match for " + type, result.size(), is(1));
+                assertThat(result)
+                    .as("array_length(xs, 1) > 1 must match for " + type)
+                    .hasSize(1);
                 ArrayType arrayType = new ArrayType<>(type);
                 // Object compareValueTo does type-guessing which might result in
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
                 if (type.id() != ObjectType.ID) {
-                    assertThat(arrayType.compare((List) result.get(0), arr), is(0));
+                    assertThat(arrayType.compare((List<?>) result.get(0), arr)).isEqualTo(0);
                 }
             }
         }
