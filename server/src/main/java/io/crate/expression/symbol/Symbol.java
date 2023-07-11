@@ -116,9 +116,9 @@ public interface Symbol extends Writeable, Accountable {
                 Signature
                     .scalar(
                         name,
-                        TypeSignature.parseTypeSignature("E"),
-                        TypeSignature.parseTypeSignature("V"),
-                        TypeSignature.parseTypeSignature("V")
+                        TypeSignature.parse("E"),
+                        TypeSignature.parse("V"),
+                        TypeSignature.parse("V")
                     ).withTypeVariableConstraints(
                         TypeVariableConstraint.typeVariable("E"),
                         TypeVariableConstraint.typeVariable("V")),
@@ -132,7 +132,7 @@ public interface Symbol extends Writeable, Accountable {
                 Signature
                     .scalar(
                         ImplicitCastFunction.NAME,
-                        TypeSignature.parseTypeSignature("E"),
+                        TypeSignature.parse("E"),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.UNDEFINED.getTypeSignature())
                     .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),

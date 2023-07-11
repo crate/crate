@@ -19,22 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.signatures;
+package io.crate.types;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.IntegerLiteralTypeSignature;
-import io.crate.types.ObjectType;
-import io.crate.types.ParameterTypeSignature;
-import io.crate.types.RowType;
-import io.crate.types.TimeTZType;
-import io.crate.types.TimestampType;
-import io.crate.types.TypeSignature;
 import io.crate.signatures.antlr.TypeSignaturesBaseVisitor;
 import io.crate.signatures.antlr.TypeSignaturesParser;
 

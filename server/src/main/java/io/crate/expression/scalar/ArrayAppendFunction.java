@@ -21,6 +21,11 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -29,12 +34,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 class ArrayAppendFunction extends Scalar<List<Object>, Object> {
 
@@ -44,9 +44,9 @@ class ArrayAppendFunction extends Scalar<List<Object>, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
             ArrayAppendFunction::new
         );

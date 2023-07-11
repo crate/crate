@@ -21,6 +21,15 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureSingleArgumentArrayInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -29,16 +38,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureSingleArgumentArrayInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.TypeSignature;
 
 class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
@@ -48,17 +48,17 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
             ArrayUniqueFunction::new
         );
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)"),
-                parseTypeSignature("array(E)")
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)"),
+                TypeSignature.parse("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
             ArrayUniqueFunction::new
         );

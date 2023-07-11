@@ -28,7 +28,6 @@ import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -54,6 +53,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.RegclassType;
+import io.crate.types.TypeSignature;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
 public class CastFunctionTest extends ScalarTestCase {
@@ -254,9 +254,9 @@ public class CastFunctionTest extends ScalarTestCase {
 
         var signature = Signature.scalar(
             ExplicitCastFunction.NAME,
-            parseTypeSignature("E"),
-            parseTypeSignature("V"),
-            parseTypeSignature("V")
+            TypeSignature.parse("E"),
+            TypeSignature.parse("V"),
+            TypeSignature.parse("V")
         ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,

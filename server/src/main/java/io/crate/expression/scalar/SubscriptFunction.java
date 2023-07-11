@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +59,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
 
 /**
  * Supported subscript expressions:
@@ -82,9 +82,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("array(object)"),
+                TypeSignature.parse("array(object)"),
                 DataTypes.STRING.getTypeSignature(),
-                parseTypeSignature("array(undefined)")
+                TypeSignature.parse("array(undefined)")
             ).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
@@ -98,9 +98,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             Signature
                 .scalar(
                     NAME,
-                    parseTypeSignature("array(E)"),
+                    TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
-                    parseTypeSignature("E"))
+                    TypeSignature.parse("E"))
                 .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new SubscriptFunction(

@@ -23,12 +23,9 @@ package io.crate.expression.predicate;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.Collections;
 import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -42,6 +39,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.DynamicReference;
@@ -61,13 +59,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
-        parseTypeSignature("E"),
+        TypeSignature.parse("E"),
         DataTypes.BOOLEAN.getTypeSignature()
     ).withTypeVariableConstraints(typeVariable("E"));
 
