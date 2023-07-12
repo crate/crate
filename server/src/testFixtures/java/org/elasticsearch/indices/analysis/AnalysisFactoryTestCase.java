@@ -219,7 +219,9 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         // LUCENE 9.2.0 upgrade
         entry("daitchmokotoffsoundex", Void.class),
         entry("persianstem", Void.class),
-        entry("spanishpluralstem", Void.class)
+        entry("spanishpluralstem", Void.class),
+        // LUCENE 9.7.0 upgrade
+        entry("word2vecsynonym", Void.class)
     );
 
     static final Map<String, Class<?>> KNOWN_CHARFILTERS = Map.of(
