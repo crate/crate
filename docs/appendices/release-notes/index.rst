@@ -17,10 +17,6 @@ information and changelog.
 Versions
 ========
 
-.. toctree::
-    :maxdepth: 1
-
-    unreleased
 
 5.x
 ---
@@ -31,6 +27,7 @@ Versions
 .. toctree::
     :maxdepth: 1
 
+    5.3.5
     5.3.4
     5.3.3
     5.3.2
