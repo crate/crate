@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -139,7 +138,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .build();
 
         assertThatThrownBy(() -> analyze("alter table users add column bazinga int constraint bazinga_check check(id > 0)"))
-            .hasMessage("CHECK constraint on column `bazinga` cannot refer to column `id`. Use a table check constraint instead");
+            .hasMessage("CHECK constraint on column `bazinga` cannot refer to column `id`. Use full path to refer " +
+                        "to a sub-column or a table check constraint instead");
     }
 
     @Test
@@ -179,7 +179,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column() throws Exception {
+    public void test_check_constraint_on_nested_object_sub_column_has_correct_type_and_expression() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t (i int, o object)")
             .build();
@@ -191,5 +191,18 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             o1 -> assertThat(o1).isReference("o1['o2']['b']", DataTypes.INTEGER)
         );
         assertThat(addColumnRequest.checkConstraints()).containsValue("\"o1\"['o2']['b'] > 100");
+    }
+
+    @Test
+    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column_without_full_path() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        assertThatThrownBy(
+            () -> analyze("alter table t add column o1 object as (o2 object as (b int check (b > 100)))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("CHECK constraint on column `o1['o2']['b']` cannot refer to column `b`. Use full path to " +
+                        "refer to a sub-column or a table check constraint instead");
     }
 }
