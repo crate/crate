@@ -24,20 +24,34 @@ package io.crate.testing;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.assertj.core.api.AbstractAssert;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.PrintContext;
+import io.crate.planner.optimizer.costs.PlanStats;
 
 public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, LogicalPlan> {
 
+    @Nullable
+    private final PlanStats planStats;
+
     protected LogicalPlanAssert(LogicalPlan actual) {
-        super(actual, LogicalPlanAssert.class);
+        this(actual, null);
     }
 
-    private static String printPlan(LogicalPlan logicalPlan) {
-        var printContext = new PrintContext(null);
+    protected LogicalPlanAssert(LogicalPlan actual, @Nullable PlanStats planStats) {
+        super(actual, LogicalPlanAssert.class);
+        this.planStats = planStats;
+    }
+
+    private String printPlan(LogicalPlan logicalPlan) {
+        var printContext = new PrintContext(planStats);
         logicalPlan.print(printContext);
         return printContext.toString();
+    }
+
+    public LogicalPlanAssert withPlanStats(PlanStats planStats) {
+        return new LogicalPlanAssert(this.actual, planStats);
     }
 
     public LogicalPlanAssert isEqualTo(String expectedPlan) {
