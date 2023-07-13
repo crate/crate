@@ -44,7 +44,7 @@ Breaking Changes
   be in sync with PostgreSQL version ``14``.
 
 - Added column ``relrewrite`` and removed columns ``relhasoids`` and
-  ``relhaspkey``from ``pg_class`` table to be in sync with PostgreSQL version
+  ``relhaspkey`` from ``pg_class`` table to be in sync with PostgreSQL version
   ``14``.
 
 - Added columns ``atthasmissing`` and ``attmissingval`` to ``pg_attribute`` table
@@ -193,7 +193,7 @@ Data Types
 - Added support to disable :ref:`column storage <ddl-storage-columnstore>` for
   :ref:`numeric data types <data-types-numeric>`,
   :ref:`timestamp <type-timestamp>` and
-  :ref:`timestamp with timezone`<type-timestamp-with-tz>`.
+  :ref:`timestamp with timezone<type-timestamp-with-tz>`.
 
 Administration and Operations
 -----------------------------
