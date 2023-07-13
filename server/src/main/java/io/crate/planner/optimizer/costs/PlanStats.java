@@ -121,7 +121,9 @@ public class PlanStats {
             var stats = limit.source().accept(this, null);
             if (limit.limit() instanceof Literal<?> literal) {
                 var numberOfRows = DataTypes.LONG.sanitizeValue(literal.value());
-                return stats.withNumDocs(numberOfRows);
+                if (stats.numDocs() > numberOfRows) {
+                    return stats.withNumDocs(numberOfRows);
+                }
             }
             return stats;
         }

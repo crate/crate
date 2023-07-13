@@ -197,9 +197,17 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
+        Asserts.assertThat(outerSubSelectPlan).withPlanStats(e.planStats()).hasOperators(
+            "Limit[2::bigint;0::bigint] (rows=1)",
+            "  └ MultiPhase (rows=1)",
+            "    └ HashAggregate[count(id)] (rows=1)",
+            "      └ Collect[doc.users | [id] | (id = ANY(_cast((SELECT unnest([1, 2, 3, 4]) FROM (empty_row)), 'array(bigint)')))] (rows=unknown)",
+            "    └ OrderBy[unnest([1, 2, 3, 4]) ASC] (rows=unknown)",
+            "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
+            "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
         SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
         assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
-        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(2L));
+        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(1L));
 
         LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
