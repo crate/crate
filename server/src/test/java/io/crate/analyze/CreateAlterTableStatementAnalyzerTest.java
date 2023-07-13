@@ -27,7 +27,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -1434,6 +1433,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AnalyzedCheck check = createTable.checks().values().iterator().next();
         assertThat(check.check()).isSQL("(doc.t.o1['o2']['b'] > 100)");
         assertThat(check.check()).isFunction("op_>", List.of(DataTypes.INTEGER, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void test_check_constraint_cannot_be_added_to_nested_object_sub_column_without_full_path() {
+        assertThatThrownBy(
+            () -> analyze("create table t (i int, o1 object as (o2 object as (b text check (b != 'foo'))))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("CHECK constraint on column `o1['o2']['b']` cannot refer to column `b`. Use full path to " +
+                        "refer to a sub-column or a table check constraint instead");
     }
 
     @Test

@@ -563,8 +563,10 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         private void processConstraint(RefBuilder builder, ColumnConstraint<Expression> constraint) {
             ColumnIdent columnName = builder.name;
             if (constraint instanceof CheckColumnConstraint<Expression> checkConstraint) {
+                resolveMissing = true;
                 Symbol checkSymbol = expressionAnalyzer.convert(checkConstraint.expression(), expressionContext);
                 addCheck(checkConstraint.name(), checkConstraint.expressionStr(), checkSymbol, columnName);
+                resolveMissing = false;
             } else if (constraint instanceof ColumnStorageDefinition<Expression> storageDefinition) {
                 GenericProperties<Symbol> storageProperties = storageDefinition.properties().map(toSymbol);
                 for (String storageProperty : storageProperties.keys()) {
@@ -590,9 +592,9 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "INDEX constraint cannot be used on columns of type \"%s\": `%s`", builder.type, columnName));
                 }
-            } else if (constraint instanceof NotNullColumnConstraint<Expression> notNull) {
+            } else if (constraint instanceof NotNullColumnConstraint<Expression>) {
                 builder.nullable = false;
-            } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression> primaryKey) {
+            } else if (constraint instanceof PrimaryKeyColumnConstraint<Expression>) {
                 markAsPrimaryKey(builder);
             }
         }
@@ -612,7 +614,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
 
             ColumnType<Expression> type = columnDefinition.type();
-            while (type instanceof CollectionColumnType collectionColumnType) {
+            while (type instanceof CollectionColumnType<Expression> collectionColumnType) {
                 type = collectionColumnType.innerType();
             }
             if (type instanceof ObjectColumnType<Expression> objectColumnType) {
@@ -678,7 +680,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             RefVisitor.visitRefs(expressionSymbol, ref -> {
                 if (!ref.column().equals(column)) {
                     throw new UnsupportedOperationException(
-                        "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() + "`. Use a table check constraint instead");
+                        "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() +
+                        "`. Use full path to refer to a sub-column or a table check constraint instead");
                 }
             });
         }
