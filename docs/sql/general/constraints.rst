@@ -136,11 +136,15 @@ Multiple columns can be referenced::
 .. NOTE::
 
    ``CHECK`` constraints cannot be added at "sub-column level" for object
-   sub-columns, e.g.::
+   sub-columns by referring simply to the sub-column name, e.g.::
 
      CREATE TABLE t(o OBJECT AS (oi INTEGER CHECK (oi > 10)))
 
-   but they can be added at "table level", e.g.::
+   instead you need to provide the full path of that sub-column, e.g.::
+
+     CREATE TABLE t(o OBJECT AS (oi INTEGER CHECK (o['oi'] > 10)))
+
+   alternatively they can be added at "table level", e.g.::
 
      CREATE TABLE t(o OBJECT AS (oi INTEGER), CHECK (o['oi'] > 100))
 
