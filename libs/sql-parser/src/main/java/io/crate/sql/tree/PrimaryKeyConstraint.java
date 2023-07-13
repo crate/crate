@@ -21,12 +21,9 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class PrimaryKeyConstraint<T> extends TableElement<T> {
 
@@ -67,11 +64,6 @@ public class PrimaryKeyConstraint<T> extends TableElement<T> {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitPrimaryKeyConstraint(this, context);
-    }
-
-    @Override
-    public <U> TableElement<U> map(Function<? super T, ? extends U> mapper) {
-        return new PrimaryKeyConstraint<>(Lists2.map(columns, mapper));
     }
 
     @Override
