@@ -39,34 +39,45 @@ Released on 2023-07-11.
 Breaking Changes
 ================
 
-- Added columns ``prosupport``, ``prokind``, ``prosqlbody`` and removed columns
-  ``protransform``, ``proisagg`` and ``proiswindow`` from ``pg_proc`` table to
-  be in sync with PostgreSQL version ``14``.
+- Implemented several changes to the ``pg_catalog`` tables, involving the
+  addition and removal of columns, and modification of column data types, to
+  align with PostgreSQL version 14:
 
-- Added column ``relrewrite`` and removed columns ``relhasoids`` and
-  ``relhaspkey`` from ``pg_class`` table to be in sync with PostgreSQL version
-  ``14``.
+  - ``pg_attribute``
 
-- Added columns ``atthasmissing`` and ``attmissingval`` to ``pg_attribute`` table
-  to be in sync with PostgreSQL version ``14``.
+    - **Added**: ``atthasmissing``, ``attmissingval``
+    - **Type Changed**: ``spcacl`` from ``OBJECT[]`` to ``STRING[]``
 
-- Added column ``conparentid`` and removed column ``consrc`` from
-  ``pg_constraint`` table to be in sync with PostgreSQL version ``14``.
+  - ``pg_class``
 
-- Added column ``indnkeyatts`` to ``pg_index`` table to be in sync with
-  PostgreSQL version ``14``.
+    - **Added**: ``relrewrite``
+    - **Removed**: ``relhasoids``, ``relhaspkey``
+    - **Type Changed**: ``relacl`` from ``OBJECT[]`` to ``STRING[]``
+  - ``pg_constraint``
 
-- Added columns ``typacl``, ``typalign``, ``typanalyze``, ``typdefaultbin``,
-  ``typmodin``, ``typmodout``, ``typstorage``, ``typsubscript`` to ``pg_type``
-  table to be in sync with PostgreSQL version ``14``.
+    - **Added**: ``conparentid``
+    - **Removed**: ``consrc``
+    - **Type Changed**: ``conbin`` from ``OBJECT`` to ``STRING``
 
-- Changed ``pg_constraint.conbin`` column type from ``OBJECT`` to ``STRING`` and
-  ``pg_proc.proargdefaults`` column type from ``OBJECT[]`` to ``STRING`` to be
-  in sync with other similar columns, e.g.: ``pg_index.indexprs``.
+  - ``pg_index``
 
-- Changed ``pg_attribute.spcacl``, ``pg_class.relacl`` and
-  ``pg_namespace.nspacl`` columns type from ``OBJECT[]`` to ``STRING[]`` to be
-  in sync with other similar columns, e.g.: ``pg_database.datacl``.
+    - **Added**: ``indnkeyatts``
+
+  - ``pg_namespace``
+
+    - **Type Changed**: ``nspacl`` from ``OBJECT[]`` to ``STRING[]``
+
+  - ``pg_proc``
+
+    - **Added**: ``prokind``, ``prosqlbody``, ``prosupport``
+    - **Removed**: ``proisagg``, ``proiswindow``, ``protransform``
+    - **Type Changed**: ``proargdefaults`` from ``OBJECT[]`` to ``STRING``
+    
+  - ``pg_type``
+
+    - **Added**: ``typacl``, ``typalign``, ``typanalyze``, 
+      ``typdefaultbin``, ``typmodin``, ``typmodout``, ``typstorage``,
+      ``typsubscript``
 
 - Raise an exception if duplicate columns are detected on
   :ref:`named index column definition <named-index-column>` instead of
