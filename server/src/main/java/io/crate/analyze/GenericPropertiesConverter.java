@@ -78,7 +78,7 @@ public class GenericPropertiesConverter {
                                                         Consumer<String> settingKeyValidator) {
         for (Map.Entry<String, T> entry : genericProperties.properties().entrySet()) {
             settingKeyValidator.accept(entry.getKey());
-            builder.put(entry.getKey(), entry.getValue().toString());
+            builder.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().toString());
         }
     }
 

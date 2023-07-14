@@ -47,6 +47,11 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a ``NullPointerException` which was thrown, instead of using default
+  ``no compression`` behavior, when
+  :ref:`compression parameter<sql-copy-to-compression>` of
+  :ref:`COPY TO<sql-copy-to>` statement is set to ``null``.
+
 - Fixed ``IndexOutOfBoundsException`` caused by an ``IS [NOT] NULL`` filter on
   a sub-column of an object or object array in a ``WHERE`` clause, e.g. ::
 
