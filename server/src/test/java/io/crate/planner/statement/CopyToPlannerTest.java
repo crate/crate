@@ -153,6 +153,20 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(writerProjection.withClauseOptions().getAsBoolean(
             "wait_for_completion", true)).isFalse();
 
+        // null or empty compression
+        for (var compression : List.of("''", "null")) {
+            merge = plan(
+                "copy users to directory '/path/to' with (compression=" + compression + ")");
+            collect = (Collect) merge.subPlan();
+            writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+            assertThat(writerProjection.withClauseOptions().size()).isEqualTo(1);
+            if (compression.equals("''")) {
+                assertThat(writerProjection.withClauseOptions().get("compression")).isEmpty();
+            } else {
+                assertThat(writerProjection.withClauseOptions().get("compression")).isNull();
+            }
+        }
+
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
