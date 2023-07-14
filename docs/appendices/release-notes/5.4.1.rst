@@ -61,8 +61,9 @@ Fixes
     SELECT * FROM test AS T WHERE T.o2['unknown_col'] IS NOT NULL;
     => IndexOutOfBoundsException[Index: 1 Size: 1]
 
-- Fixed an issue which caused INSERT INTO statements to skip generated
+- Fixed an issue which caused ``INSERT INTO`` statements to skip generated
   expression validation for partitioned columns.
 
-- Fixed an issue which caused INSERT INTO statements to leave behind
-  empty partitions if NULL or CHECK constraint on partitioned by column failed.
+- Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
+  leave behind empty partitions if ``NULL`` or ``CHECK`` constraint on
+  partitioned by column failed.
