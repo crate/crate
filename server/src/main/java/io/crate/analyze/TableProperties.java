@@ -21,73 +21,56 @@
 
 package io.crate.analyze;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_SETTING_PREFIX;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.AffixSetting;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.sql.tree.GenericProperties;
 
-public class GenericPropertiesConverter {
+public final class TableProperties {
 
-    private static final String INVALID_SETTING_MESSAGE = "setting '%s' not supported";
+    private static final String INVALID_MESSAGE = "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement";
 
-    public static void genericPropertyToSetting(Settings.Builder builder,
-                                                String name,
-                                                Object value) {
-        if (value instanceof String[] strArray) {
-            builder.putList(name, strArray);
-        } else if (value instanceof List<?> list) {
-            builder.putList(name, list);
-        } else {
-            builder.put(name, value.toString());
-        }
+    private TableProperties() {
     }
 
-    public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties,
-                                                       Map<String, Setting<?>> supportedSettings) {
-        Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(
-            builder,
-            genericProperties,
-            settingKey -> {
-                if (!supportedSettings.containsKey(settingKey)) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, INVALID_SETTING_MESSAGE, settingKey));
-                }
-            });
-        return builder.build();
+    public static void analyze(TableParameter tableParameter,
+                               TableParameters tableParameters,
+                               GenericProperties<Object> properties,
+                               boolean withDefaults) {
+        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
+
+        settingsFromProperties(
+            tableParameter.settingsBuilder(),
+            properties,
+            settingMap,
+            withDefaults,
+            mappingsMap::containsKey,
+            INVALID_MESSAGE);
+
+        settingsFromProperties(
+            tableParameter.mappingsBuilder(),
+            properties,
+            mappingsMap,
+            withDefaults,
+            settingMap::containsKey,
+            INVALID_MESSAGE);
     }
 
-    public static <T> Settings genericPropertiesToSettings(GenericProperties<T> genericProperties) {
-        Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties, settingKey -> {});
-        return builder.build();
-    }
-
-    private static <T> void genericPropertiesToSettings(Settings.Builder builder,
-                                                        GenericProperties<T> genericProperties,
-                                                        Consumer<String> settingKeyValidator) {
-        for (Map.Entry<String, T> entry : genericProperties.properties().entrySet()) {
-            settingKeyValidator.accept(entry.getKey());
-            builder.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().toString());
-        }
-    }
-
-    static void settingsFromProperties(Settings.Builder builder,
-                                       GenericProperties<Object> properties,
-                                       Map<String, Setting<?>> supportedSettings,
-                                       boolean setDefaults,
-                                       Predicate<String> ignoreProperty,
-                                       String invalidMessage) {
+    private static void settingsFromProperties(Settings.Builder builder,
+                                               GenericProperties<Object> properties,
+                                               Map<String, Setting<?>> supportedSettings,
+                                               boolean setDefaults,
+                                               Predicate<String> ignoreProperty,
+                                               String invalidMessage) {
         if (setDefaults) {
             setDefaults(builder, supportedSettings);
         }
@@ -118,12 +101,36 @@ public class GenericPropertiesConverter {
         }
     }
 
-    @SuppressWarnings("SameParameterValue")
-    static void resetSettingsFromProperties(Settings.Builder builder,
-                                            List<String> properties,
-                                            Map<String, Setting<?>> supportedSettings,
-                                            Predicate<String> ignoreProperty,
-                                            String invalidMessage) {
+    /**
+     * Processes the property names which should be reset and updates the settings or mappings with the related
+     * default value.
+     */
+    public static void analyzeResetProperties(TableParameter tableParameter,
+                                              TableParameters tableParameters,
+                                              List<String> properties) {
+        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
+
+        resetSettingsFromProperties(
+            tableParameter.settingsBuilder(),
+            properties,
+            settingMap,
+            mappingsMap::containsKey,
+            INVALID_MESSAGE);
+
+        resetSettingsFromProperties(
+            tableParameter.mappingsBuilder(),
+            properties,
+            mappingsMap,
+            settingMap::containsKey,
+            INVALID_MESSAGE);
+    }
+
+    private static void resetSettingsFromProperties(Settings.Builder builder,
+                                                    List<String> properties,
+                                                    Map<String, Setting<?>> supportedSettings,
+                                                    Predicate<String> ignoreProperty,
+                                                    String invalidMessage) {
         for (String name : properties) {
             if (ignoreProperty.test(name)) {
                 continue;
@@ -142,12 +149,20 @@ public class GenericPropertiesConverter {
 
     private static void setDefaults(Settings.Builder builder, Map<String, Setting<?>> supportedSettings) {
         for (Map.Entry<String, Setting<?>> entry : supportedSettings.entrySet()) {
-            SettingHolder settingHolder = new SettingHolder(entry.getValue());
+            Setting<?> setting = entry.getValue();
             // We'd set the "wrong" default for settings that base their default on other settings
-            if (TableParameters.SETTINGS_NOT_INCLUDED_IN_DEFAULT.contains(settingHolder.setting)) {
+            if (TableParameters.SETTINGS_NOT_INCLUDED_IN_DEFAULT.contains(setting)) {
                 continue;
             }
-            settingHolder.applyDefault(builder);
+            if (setting instanceof AffixSetting) {
+                continue;
+            }
+            Object value = setting.getDefault(Settings.EMPTY);
+            if (value instanceof Settings settings) {
+                builder.put(settings);
+            } else {
+                builder.put(setting.getKey(), value.toString());
+            }
         }
     }
 
@@ -160,7 +175,7 @@ public class GenericPropertiesConverter {
             if (groupKey != null) {
                 setting = supportedSettings.get(groupKey);
                 if (setting instanceof Setting.AffixSetting<?> affixSetting) {
-                    setting = affixSetting.getConcreteSetting(INDEX_SETTING_PREFIX + settingName);
+                    setting = affixSetting.getConcreteSetting(IndexMetadata.INDEX_SETTING_PREFIX + settingName);
                     return new SettingHolder(setting, true);
                 }
             }
@@ -197,19 +212,6 @@ public class GenericPropertiesConverter {
             this.isChildOfAffixSetting = isChildOfAffixSetting;
         }
 
-        void applyDefault(Settings.Builder builder) {
-            if (isAffixSetting) {
-                // affix settings are user defined, they have no default value
-                return;
-            }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
-        }
-
         void apply(Settings.Builder builder, Object valueSymbol) {
             if (isAffixSetting) {
                 // only concrete affix settings are supported otherwise it's not possible to parse values
@@ -217,7 +219,7 @@ public class GenericPropertiesConverter {
                     "Cannot change a dynamic group setting, only concrete settings allowed.");
             }
             Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
-            genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueSymbol);
+            singleSettingBuilder.putStringOrList(setting.getKey(), valueSymbol);
             Object value = setting.get(singleSettingBuilder.build());
             if (value instanceof Settings settings) {
                 builder.put(settings);

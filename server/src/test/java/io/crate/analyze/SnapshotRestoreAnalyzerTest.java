@@ -26,7 +26,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -141,7 +141,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateSnapshotUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "CREATE SNAPSHOT my_repo.my_snapshot ALL with (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("setting 'foo' not supported");
+            .hasMessage("Setting 'foo' is not supported");
     }
 
     @Test
@@ -304,7 +304,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testRestoreUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users WITH (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("setting 'foo' not supported");
+            .hasMessage("Setting 'foo' is not supported");
     }
 
     @Test

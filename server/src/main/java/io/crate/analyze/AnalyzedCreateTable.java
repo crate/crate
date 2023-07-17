@@ -122,7 +122,7 @@ public record AnalyzedCreateTable(
             }
         }
 
-        TablePropertiesAnalyzer.analyzeWithBoundValues(
+        TableProperties.analyze(
             tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
