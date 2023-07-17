@@ -68,6 +68,9 @@ public record AnalyzedCreateTable(
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var refBuilder : columns.values()) {
+            refBuilder.visitSymbols(consumer);
+        }
         for (AnalyzedCheck check : checks.values()) {
             consumer.accept(check.check());
         }
