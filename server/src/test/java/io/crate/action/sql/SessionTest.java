@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -623,5 +624,19 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
         assertThat(parameterTypes).containsExactly(DataTypes.STRING);
+    }
+
+
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void test_can_extract_parameters_from_create_table_defaults() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .build();
+
+        AnalyzedStatement stmt = e.analyze("create table tbl (x int, y int default $1)");
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
+        assertThat(parameterTypes).containsExactly(DataTypes.INTEGER);
+
     }
 }

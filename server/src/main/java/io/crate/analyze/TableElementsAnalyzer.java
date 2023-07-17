@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.elasticsearch.common.UUIDs;
@@ -315,6 +316,17 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
             builtReference = ref;
             return ref;
+        }
+
+        public void visitSymbols(Consumer<? super Symbol> consumer) {
+            if (defaultExpression != null) {
+                consumer.accept(defaultExpression);
+            }
+            if (generated != null) {
+                consumer.accept(generated);
+            }
+            indexProperties.properties().values().forEach(consumer);
+            storageProperties.properties().values().forEach(consumer);
         }
     }
 
