@@ -38,10 +38,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
@@ -55,6 +51,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
@@ -66,6 +63,7 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;
@@ -94,6 +92,7 @@ import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.CorrelatedJoinProjector;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
@@ -519,7 +518,6 @@ public class ProjectionToProjectorVisitor
         int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
-
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
             indexItem,
             indexName,
@@ -529,12 +527,9 @@ public class ProjectionToProjectorVisitor
             validatorsCache,
             projection.allTargetColumns()
         );
-        Runnable onCompletion = () -> validatorsCache.clear();
-
         return new ColumnIndexWriterProjector(
             clusterService,
             constraintsChecker,
-            onCompletion,
             nodeJobsCounter,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             context.ramAccounting,

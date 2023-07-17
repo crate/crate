@@ -43,8 +43,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -60,6 +58,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -196,11 +195,8 @@ public class InsertFromValues implements LogicalPlan {
             primaryKeyInputs.add(context.add(symbol));
         }
 
-        Input<?> clusterByInput;
         if (writerProjection.clusteredBy() != null) {
-            clusterByInput = context.add(writerProjection.clusteredBy());
-        } else {
-            clusterByInput = null;
+            context.add(writerProjection.clusteredBy());
         }
 
         String[] onConflictColumns;
