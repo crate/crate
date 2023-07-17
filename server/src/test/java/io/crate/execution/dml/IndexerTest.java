@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -1159,5 +1160,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"a":1, "gen_from_parted": 3}
             """
         );
+    }
+
+    @Test
+    public void test_check_constraint_on_object_sub_column_is_verified() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (obj object as (x int check (obj['x'] > 10)))")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("obj"));
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x),
+            null
+        );
+        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 5))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContainingAll("Failed CONSTRAINT", "CHECK (\"obj\"['x'] > 10) for values: [{x=5}]");
     }
 }

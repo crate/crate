@@ -73,6 +73,11 @@ SQL Statements
     my_column text index using fulltext with (analyzer = 'myanalyzer')
 
 
+- Changed ``CREATE TABLE`` to allow defining ``CHECK`` constraints inline on
+  sub-columns of object columns. Before it was necessary to use table check
+  constraints.
+
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
