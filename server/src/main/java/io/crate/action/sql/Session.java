@@ -33,13 +33,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -50,8 +49,8 @@ import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterTypes;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.annotations.VisibleForTesting;
@@ -158,7 +157,6 @@ public class Session implements AutoCloseable {
     private final Planner planner;
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
-    private final ParameterTypeExtractor parameterTypeExtractor;
     private final Runnable onClose;
     private final TableStats tableStats;
 
@@ -185,7 +183,6 @@ public class Session implements AutoCloseable {
         this.executor = executor;
         this.sessionSettings = sessionSettings;
         this.tableStats = tableStats;
-        this.parameterTypeExtractor = new ParameterTypeExtractor();
         this.onClose = onClose;
     }
 
@@ -331,9 +328,7 @@ public class Session implements AutoCloseable {
                 cursors
             );
 
-            parameterTypes = parameterTypeExtractor.getParameterTypes(
-                x -> Relations.traverseDeepSymbols(analyzedStatement, x)
-            );
+            parameterTypes = ParameterTypes.extract(analyzedStatement).toArray(new DataType[0]);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUIDs.dirtyUUID(),
@@ -380,9 +375,7 @@ public class Session implements AutoCloseable {
             Declare declare = analyzedDeclare.declare();
             String cursorName = declare.cursorName();
             if (!cursorName.equals(portalName)) {
-                var parameterTypes = parameterTypeExtractor.getParameterTypes(
-                    x -> Relations.traverseDeepSymbols(analyzedDeclare.query(), x)
-                );
+                var parameterTypes = ParameterTypes.extract(analyzedDeclare.query()).toArray(new DataType[0]);
                 PreparedStmt preparedQuery = new PreparedStmt(
                     declare.query(),
                     analyzedDeclare.query(),
