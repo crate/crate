@@ -23,17 +23,20 @@ package io.crate.types;
 
 import org.apache.lucene.search.Query;
 
+import io.crate.metadata.IndexType;
+
 /**
  * For types which can be stored in Lucene and support optimized equality related queries
  **/
 public interface EqQuery<T> {
 
-    Query termQuery(String field, T value);
+    Query exactQuery(String field, T value, boolean hasDocValues, IndexType indexType);
 
     Query rangeQuery(String field,
                      T lowerTerm,
                      T upperTerm,
                      boolean includeLower,
                      boolean includeUpper,
-                     boolean hasDocValues);
+                     boolean hasDocValues,
+                     IndexType indexType);
 }

@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -55,6 +56,7 @@ import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
@@ -78,7 +80,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
         new EqQuery<Object>() {
 
             @Override
-            public Query termQuery(String field, Object value) {
+            public Query exactQuery(String field, Object value, boolean hasDocValues, IndexType indexType) {
+                if (indexType == IndexType.PLAIN && hasDocValues) {
+                    return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
+                }
                 return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
             }
 
@@ -88,7 +93,17 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                     Object upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    IndexType indexType) {
+                if (indexType == IndexType.PLAIN && hasDocValues) {
+                    return SortedSetDocValuesField.newSlowRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                }
                 return new TermRangeQuery(
                     field,
                     BytesRefs.toBytesRef(lowerTerm),
@@ -96,6 +111,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
                     includeLower,
                     includeUpper
                 );
+
             }
         }
     ) {

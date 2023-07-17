@@ -27,9 +27,9 @@ import java.math.BigInteger;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -40,6 +40,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -55,8 +56,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         new EqQuery<Float>() {
 
             @Override
-            public Query termQuery(String field, Float value) {
-                return FloatPoint.newExactQuery(field, value);
+            public Query exactQuery(String field, Float value, boolean hasDocValues, IndexType indexType) {
+                boolean isIndexed = indexType != IndexType.NONE;
+                if (hasDocValues && isIndexed) {
+                    return FloatField.newExactQuery(field, value);
+                } else if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.floatToSortableInt(value));
+                } else if (isIndexed) {
+                    return FloatPoint.newExactQuery(field, value);
+                }
+                return null;
             }
 
             @Override
@@ -65,7 +74,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                                     Float upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    IndexType indexType) {
                 float lower;
                 if (lowerTerm == null) {
                     lower = Float.NEGATIVE_INFINITY;
@@ -79,16 +89,18 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                 } else {
                     upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
                 }
-
-                Query indexQuery = FloatPoint.newRangeQuery(field, lower, upper);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField
-                            .newSlowRangeQuery(field,
-                                               NumericUtils.floatToSortableInt(lower),
-                                               NumericUtils.floatToSortableInt(upper));
-                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                boolean isIndexed = indexType != IndexType.NONE;
+                if (hasDocValues && isIndexed) {
+                    return FloatField.newRangeQuery(field, lower, upper);
+                } else if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowRangeQuery(
+                        field,
+                        NumericUtils.floatToSortableInt(lower),
+                        NumericUtils.floatToSortableInt(upper));
+                } else if (isIndexed) {
+                    return FloatPoint.newRangeQuery(field, lower, upper);
                 }
-                return indexQuery;
+                return null;
             }
         }
     ) {

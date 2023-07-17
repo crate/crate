@@ -21,16 +21,26 @@
 
 package io.crate.types;
 
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
+
+import io.crate.metadata.IndexType;
 
 public class IntEqQuery implements EqQuery<Number> {
 
     @Override
-    public Query termQuery(String field, Number value) {
-        return IntPoint.newExactQuery(field, value.intValue());
+    public Query exactQuery(String field, Number value, boolean hasDocValues, IndexType indexType) {
+        boolean isIndexed = indexType != IndexType.NONE;
+        if (hasDocValues && isIndexed) {
+            return IntField.newExactQuery(field, value.intValue());
+        } else if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowExactQuery(field, value.intValue());
+        } else if (isIndexed) {
+            return IntPoint.newExactQuery(field, value.intValue());
+        }
+        return null;
     }
 
     @Override
@@ -39,7 +49,8 @@ public class IntEqQuery implements EqQuery<Number> {
                             Number upperTerm,
                             boolean includeLower,
                             boolean includeUpper,
-                            boolean hasDocValues) {
+                            boolean hasDocValues,
+                            IndexType indexType) {
         int lower = Integer.MIN_VALUE;
         if (lowerTerm != null) {
             lower = includeLower ? lowerTerm.intValue() : lowerTerm.intValue() + 1;
@@ -48,11 +59,14 @@ public class IntEqQuery implements EqQuery<Number> {
         if (upperTerm != null) {
             upper = includeUpper ? upperTerm.intValue() : upperTerm.intValue() - 1;
         }
-        Query indexquery = IntPoint.newRangeQuery(field, lower, upper);
-        if (hasDocValues) {
-            return new IndexOrDocValuesQuery(
-                    indexquery, SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        boolean isIndexed = indexType != IndexType.NONE;
+        if (hasDocValues && isIndexed) {
+            return IntField.newRangeQuery(field, lower, upper);
+        } else if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        } else if (isIndexed) {
+            return IntPoint.newRangeQuery(field, lower, upper);
         }
-        return indexquery;
+        return null;
     }
 }

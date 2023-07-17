@@ -21,16 +21,26 @@
 
 package io.crate.types;
 
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
+
+import io.crate.metadata.IndexType;
 
 public class LongEqQuery implements EqQuery<Long> {
 
     @Override
-    public Query termQuery(String field, Long value) {
-        return LongPoint.newExactQuery(field, value);
+    public Query exactQuery(String field, Long value, boolean hasDocValues, IndexType indexType) {
+        boolean isIndexed = indexType != IndexType.NONE;
+        if (hasDocValues && isIndexed) {
+            return LongField.newExactQuery(field, value);
+        } else if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowExactQuery(field, value);
+        } else if (isIndexed) {
+            return LongPoint.newExactQuery(field, value);
+        }
+        return null;
     }
 
     @Override
@@ -39,18 +49,22 @@ public class LongEqQuery implements EqQuery<Long> {
                             Long upperTerm,
                             boolean includeLower,
                             boolean includeUpper,
-                            boolean hasDocValues) {
+                            boolean hasDocValues,
+                            IndexType indexType) {
         long lower = lowerTerm == null
             ? Long.MIN_VALUE
             : (includeLower ? lowerTerm : lowerTerm + 1);
         long upper = upperTerm == null
             ? Long.MAX_VALUE
             : (includeUpper ? upperTerm : upperTerm - 1);
-        Query indexQuery = LongPoint.newRangeQuery(field, lower, upper);
-        if (hasDocValues) {
-            return new IndexOrDocValuesQuery(indexQuery,
-                                             SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        boolean isIndexed = indexType != IndexType.NONE;
+        if (hasDocValues && isIndexed) {
+            return LongField.newRangeQuery(field, lower, upper);
+        } else if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        } else if (isIndexed) {
+            return LongPoint.newRangeQuery(field, lower, upper);
         }
-        return indexQuery;
+        return null;
     }
 }

@@ -82,20 +82,20 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(eqQuery.rangeQuery(columnName, null, value, false, true, ref.hasDocValues()),
+                        booleanQuery.add(eqQuery.rangeQuery(columnName, null, value, false, true, ref.hasDocValues(), ref.indexType()),
                                          BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(eqQuery.rangeQuery(columnName, value, null, true, false, ref.hasDocValues()),
+                        booleanQuery.add(eqQuery.rangeQuery(columnName, value, null, true, false, ref.hasDocValues(), ref.indexType()),
                                          BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
                         orderQuery = eqQuery.rangeQuery(
-                                columnName, value, null, false, false, ref.hasDocValues());
+                                columnName, value, null, false, false, ref.hasDocValues(), ref.indexType());
                     } else {
                         orderQuery = eqQuery.rangeQuery(
-                                columnName, null, value, false, false, ref.hasDocValues());
+                                columnName, null, value, false, false, ref.hasDocValues(), ref.indexType());
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

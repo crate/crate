@@ -56,7 +56,6 @@ import io.crate.expression.scalar.NumTermsPerDocQuery;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -147,26 +146,30 @@ public final class EqOperator extends Operator<Object> {
             return new MatchNoDocsQuery("`" + fqn + "` = null is always null");
         }
         DataType<?> dataType = ref.valueType();
-        if (dataType.id() != ObjectType.ID && dataType.id() != ArrayType.ID && ref.indexType() == IndexType.NONE) {
-            throw new IllegalArgumentException(
-                "Cannot search on field [" + fqn + "] since it is not indexed.");
-        }
         return switch (dataType.id()) {
-            case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
+            case ObjectType.ID -> refEqObject(
+                function,
+                fqn,
+                (ObjectType) dataType,
+                (Map<String, Object>) value,
+                context,
+                ref.hasDocValues(),
+                ref.indexType());
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
                 ref.column().fqn(),
                 ArrayType.unnest(dataType),
                 (Collection<?>) value,
-                context
-            );
-            default -> fromPrimitive(dataType, fqn, value);
+                context,
+                ref.hasDocValues(),
+                ref.indexType());
+            default -> fromPrimitive(dataType, fqn, value, ref.hasDocValues(), ref.indexType());
         };
     }
 
     @Nullable
     @SuppressWarnings("unchecked")
-    public static Query termsQuery(String column, DataType<?> type, Collection<?> values) {
+    public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
             return null;
@@ -193,20 +196,29 @@ public final class EqOperator extends Operator<Object> {
                 column,
                 nonNullValues.stream().map(x -> new BytesRef(((BitString) x).bitSet().toByteArray())).toList()
             );
-            default -> booleanShould(column, type, nonNullValues);
+            default -> booleanShould(column, type, nonNullValues, hasDocValues, indexType);
         };
     }
 
     @Nullable
-    private static Query booleanShould(String column, DataType<?> type, Collection<?> values) {
+    private static Query booleanShould(String column,
+                                       DataType<?> type,
+                                       Collection<?> values,
+                                       boolean hasDocValues,
+                                       IndexType indexType) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         for (var term : values) {
-            builder.add(EqOperator.fromPrimitive(type, column, term), Occur.SHOULD);
+            builder.add(EqOperator.fromPrimitive(type, column, term, hasDocValues, indexType), Occur.SHOULD);
         }
         return new ConstantScoreQuery(builder.build());
     }
 
-    private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
+    private static Query termsAndGenericFilter(Function function,
+                                               String column,
+                                               DataType<?> elementType, Collection<?> values,
+                                               Context context,
+                                               boolean hasDocValues,
+                                               IndexType indexType) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             if (elementType.id() == ObjectType.ID) {
@@ -237,7 +249,7 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values);
+            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
@@ -248,7 +260,7 @@ public final class EqOperator extends Operator<Object> {
     }
 
     @SuppressWarnings("unchecked")
-    public static Query fromPrimitive(DataType<?> type, String column, Object value) {
+    public static Query fromPrimitive(DataType<?> type, String column, Object value, boolean hasDocValues, IndexType indexType) {
         if (column.equals(DocSysColumns.ID.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
@@ -257,7 +269,7 @@ public final class EqOperator extends Operator<Object> {
         if (eqQuery == null) {
             return null;
         }
-        return ((EqQuery<Object>) eqQuery).termQuery(column, value);
+        return ((EqQuery<Object>) eqQuery).exactQuery(column, value, hasDocValues, indexType);
     }
 
     /**
@@ -279,7 +291,9 @@ public final class EqOperator extends Operator<Object> {
                                      String fqn,
                                      ObjectType type,
                                      Map<String, Object> value,
-                                     LuceneQueryBuilder.Context context) {
+                                     Context context,
+                                     boolean hasDocValues,
+                                     IndexType indexType) {
         BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
         int preFilters = 0;
         for (Map.Entry<String, Object> entry : value.entrySet()) {
@@ -292,9 +306,10 @@ public final class EqOperator extends Operator<Object> {
             String fqNestedColumn = fqn + '.' + key;
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
-                innerQuery = termsAndGenericFilter(eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context);
+                innerQuery = termsAndGenericFilter(
+                    eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context, hasDocValues, indexType);
             } else {
-                innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue());
+                innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue(), hasDocValues, indexType);
             }
             if (innerQuery == null) {
                 continue;

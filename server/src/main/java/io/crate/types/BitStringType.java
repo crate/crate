@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -45,6 +46,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
@@ -69,7 +71,10 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         new EqQuery<BitString>() {
 
             @Override
-            public Query termQuery(String field, BitString value) {
+            public Query exactQuery(String field, BitString value, boolean hasDocValues, IndexType indexType) {
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(value.bitSet().toByteArray()));
+                }
                 return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
             }
 
@@ -79,7 +84,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                                     BitString upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    IndexType indexType) {
+                // TODO: this should be a bug:
+                //  select * from t where a > b'001';
+                //  => UnsupportedFunctionException[Unknown function: (doc.t.a > B'001')
                 return null;
             }
         }

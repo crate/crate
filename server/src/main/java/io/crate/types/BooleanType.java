@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -39,6 +40,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -57,7 +59,13 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
 
         @Override
-        public Query termQuery(String field, Boolean value) {
+        public Query exactQuery(String field, Boolean value, boolean hasDocValues, IndexType indexType) {
+            if (hasDocValues) {
+                return SortedNumericDocValuesField.newSlowExactQuery(
+                    field,
+                    // TODO: need a null check?
+                    value ? 1 : 0);
+            }
             return new TermQuery(new Term(field, indexedValue(value)));
         }
 
@@ -67,7 +75,14 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
+                                boolean hasDocValues,
+                                IndexType indexType) {
+            if (hasDocValues) {
+                return SortedNumericDocValuesField.newSlowRangeQuery(
+                    field,
+                    lowerTerm ? 1 : 0,
+                    upperTerm ? 1 : 0);
+            }
             return new TermRangeQuery(
                 field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
         }

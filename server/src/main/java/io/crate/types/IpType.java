@@ -27,7 +27,10 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -37,6 +40,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -51,8 +55,19 @@ public class IpType extends DataType<String> implements Streamer<String> {
         new EqQuery<String>() {
 
             @Override
-            public Query termQuery(String field, String value) {
-                return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
+            public Query exactQuery(String field, String value, boolean hasDocValues, IndexType indexType) {
+                boolean isIndexed = indexType != IndexType.NONE;
+                if (hasDocValues && isIndexed) {
+                    return new IndexOrDocValuesQuery(
+                        InetAddressPoint.newExactQuery(field, InetAddresses.forString(value)),
+                        SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(InetAddressPoint.encode(InetAddresses.forString(value))))
+                    );
+                } else if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(InetAddressPoint.encode(InetAddresses.forString(value))));
+                } else if (isIndexed) {
+                    return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
+                }
+                return null;
             }
 
             @Override
@@ -61,7 +76,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                     String upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    IndexType indexType) {
                 InetAddress lower;
                 if (lowerTerm == null) {
                     lower = InetAddressPoint.MIN_VALUE;
@@ -77,8 +93,27 @@ public class IpType extends DataType<String> implements Streamer<String> {
                     var upperAddress = InetAddresses.forString(upperTerm);
                     upper = includeUpper ? upperAddress : InetAddressPoint.nextDown(upperAddress);
                 }
-
-                return InetAddressPoint.newRangeQuery(field, lower, upper);
+                boolean isIndexed = indexType != IndexType.NONE;
+                if (hasDocValues && isIndexed) {
+                    return new IndexOrDocValuesQuery(
+                        InetAddressPoint.newRangeQuery(field, lower, upper),
+                        SortedSetDocValuesField.newSlowRangeQuery(
+                            field,
+                            new BytesRef(InetAddressPoint.encode(InetAddresses.forString(lowerTerm))),
+                            new BytesRef(InetAddressPoint.encode(InetAddresses.forString(upperTerm))),
+                            includeLower,
+                            includeUpper));
+                } else if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowRangeQuery(
+                        field,
+                        new BytesRef(InetAddressPoint.encode(InetAddresses.forString(lowerTerm))),
+                        new BytesRef(InetAddressPoint.encode(InetAddresses.forString(upperTerm))),
+                        includeLower,
+                        includeUpper);
+                } else if (isIndexed) {
+                    return InetAddressPoint.newRangeQuery(field, lower, upper);
+                }
+                return null;
             }
         }
     ) {

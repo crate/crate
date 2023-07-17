@@ -65,7 +65,14 @@ public final class AnyNeqOperator extends AnyOperator {
 
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : (Iterable<?>) candidates.value()) {
-            andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
+            andBuilder.add(
+                EqOperator.fromPrimitive(
+                    probe.valueType(),
+                    probe.column().fqn(),
+                    value,
+                    probe.hasDocValues(),
+                    probe.indexType()),
+                BooleanClause.Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
         return new BooleanQuery.Builder()
@@ -96,11 +103,11 @@ public final class AnyNeqOperator extends AnyOperator {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            eqQuery.rangeQuery(columnName, value, null, false, false, candidates.hasDocValues()),
+            eqQuery.rangeQuery(columnName, value, null, false, false, candidates.hasDocValues(), candidates.indexType()),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            eqQuery.rangeQuery(columnName, null, value, false, false, candidates.hasDocValues()),
+            eqQuery.rangeQuery(columnName, null, value, false, false, candidates.hasDocValues(), candidates.indexType()),
             BooleanClause.Occur.SHOULD
         );
         return query.build();
