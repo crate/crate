@@ -70,33 +70,6 @@ pipeline {
             sh './gradlew --no-daemon s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
           }
         }
-        stage('benchmarks') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'git clone https://github.com/crate/crate-benchmarks'
-            sh '''
-              ./gradlew clean distTar
-              rm -rf crate-dist
-              mkdir crate-dist
-              tar xvz --strip-components=1 -f app/build/distributions/crate-*.tar.gz -C crate-dist/
-              export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-              export CR8_NO_TQDM=True
-              cd crate-benchmarks
-              python3 -m venv venv
-              venv/bin/python -m pip install -U wheel
-              venv/bin/python -m pip install -r requirements.txt
-              venv/bin/python compare_run.py \
-                --v1 branch:master \
-                --v2 ../app/build/distributions/crate-*.tar.gz \
-                --spec fast/queries.toml \
-                --env CRATE_HEAP_SIZE=2g \
-                --forks 1 \
-                --show-plot true
-            '''.stripIndent()
-          }
-        }
       }
     }
   }
