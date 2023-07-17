@@ -35,10 +35,6 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
     @Nullable
     private final PlanStats planStats;
 
-    protected LogicalPlanAssert(LogicalPlan actual) {
-        this(actual, null);
-    }
-
     protected LogicalPlanAssert(LogicalPlan actual, @Nullable PlanStats planStats) {
         super(actual, LogicalPlanAssert.class);
         this.planStats = planStats;

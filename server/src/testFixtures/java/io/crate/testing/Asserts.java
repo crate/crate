@@ -99,7 +99,7 @@ public class Asserts extends Assertions {
     }
 
     public static LogicalPlanAssert assertThat(LogicalPlan actual) {
-        return new LogicalPlanAssert(actual);
+        return new LogicalPlanAssert(actual, null);
     }
 
     public static JoinPairAssert assertThat(JoinPair actual) {
