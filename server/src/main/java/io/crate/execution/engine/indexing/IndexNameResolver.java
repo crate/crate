@@ -32,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static io.crate.Constants.NO_VALUE_MARKER;
 import static io.crate.common.StringUtils.nullOrString;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -77,7 +78,13 @@ public class IndexNameResolver {
             });
         return () -> {
             // copy because the values of the inputs are mutable
-            List<String> partitions = Lists2.map(partitionedByInputs, input -> nullOrString(input.value()));
+            List<String> partitions = Lists2.map(partitionedByInputs, input -> {
+                Object value = input.value();
+                // It's safe to fall back to NULL for regular PARTITIONED BY columns.
+                // Generated PARTITIONED BY columns cannot have marker value since such columns are unwrapped on planning phase.
+                // Hence, Generated PARTITIONED BY column's value is always computed and validated later before creating a partition.
+                return NO_VALUE_MARKER.equals(value) ? null : nullOrString(value);
+            });
             return cache.get(partitions);
         };
     }

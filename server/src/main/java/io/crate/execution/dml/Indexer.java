@@ -584,26 +584,8 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                Object value = values[i];
-                ColumnConstraint check = columnConstraints.get(reference.column());
+                Object value = validatedValue(values[i], columnConstraints.get(reference.column()), reference.valueType());
 
-                if (NO_VALUE_MARKER.equals(value)) {
-                    // NO_VALUE_MARKER is only relevant for COPY FROM.
-                    if (check != null) {
-                        // If reference is a generated column, we skip validation and generate it ourselves.
-                        // If it's not generated constraint or "generated as null" we skip it later.
-                        value = check.expectedValue();
-                    } else {
-                        // Switch back from marker to NULL as in this case
-                        // we want to fallback into skip null shirt-circuit below and don't write it to the source.
-                        value = null;
-                    }
-                } else {
-                    value = reference.valueType().valueForInsert(values[i]);
-                    if (check != null) {
-                        check.verify(value);
-                    }
-                }
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
@@ -745,11 +727,7 @@ public class Indexer {
             Object[] values = indexItem.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = targetColumns.get(i);
-                Object value = reference.valueType().valueForInsert(values[i]);
-                ColumnConstraint check = columnConstraints.get(reference.column());
-                if (check != null) {
-                    check.verify(value);
-                }
+                Object value = validatedValue(values[i], columnConstraints.get(reference.column()), reference.valueType());
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
@@ -761,6 +739,30 @@ public class Indexer {
                 constraint.verify(values);
             }
         };
+    }
+
+    /**
+     * NO_VALUE_MARKER aware check.
+     * NO_VALUE_MARKER is relevant only or COPY FROM, otherwise fall to normal behavior.
+     */
+    private static Object validatedValue(Object value, ColumnConstraint check, DataType<?> valueType) {
+        if (NO_VALUE_MARKER.equals(value)) {
+            if (check != null) {
+                // If reference is a generated column, we skip validation and generate it ourselves.
+                // If it's not generated constraint or "generated as null" we skip it later.
+                value = check.expectedValue();
+            } else {
+                // Switch back from marker to NULL as in this case
+                // we want to fallback into skip null shirt-circuit below and don't write it to the source.
+                value = null;
+            }
+        } else {
+            value = valueType.valueForInsert(value);
+            if (check != null) {
+                check.verify(value);
+            }
+        }
+        return value;
     }
 
     public boolean hasUndeterministicSynthetics() {

@@ -328,6 +328,21 @@ public final class CopyFromPlan implements Plan {
                 clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
             }
 
+
+            // GeneratedReference-s are normally not unwrapped and their values are provided as NO_VALUE_MARKER.
+            // Indexer can handle NO_VALUE_MARKER for generated columns and uses computed value if it passes validation.
+            // partitionedBySymbols is used only by IndexNameResolver to compute partition name.
+            // We unwrap generated PARTITIONED BY columns only for this component,
+            // so that it doesn't have to do validation of the generated expression which is anyway done before creating a partition.
+            Collection<Symbol> partitionedBySymbols = table.partitionedByColumns()
+                .stream()
+                .map(ref -> {
+                    if (ref instanceof GeneratedReference genRef) {
+                        return genRef.generatedExpression();
+                    }
+                    return ref;
+                }).collect(Collectors.toList());
+
             indexWriterProjection = new ColumnIndexWriterProjection(
                 table.ident(),
                 partitionIdent,
@@ -337,7 +352,7 @@ public final class CopyFromPlan implements Plan {
                 boundedCopyFrom.settings().getAsBoolean("overwrite_duplicates", false),
                 Collections.emptyMap(), // ON UPDATE SET assignments is irrelevant for COPY FROM
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
-                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                InputColumns.create(partitionedBySymbols, sourceSymbols),
                 table.clusteredBy(),
                 clusteredByInputCol,
                 boundedCopyFrom.settings(),
