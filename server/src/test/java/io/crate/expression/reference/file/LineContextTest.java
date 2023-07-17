@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.file;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static io.crate.Constants.NO_VALUE_MARKER;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
@@ -39,8 +39,9 @@ public class LineContextTest extends ESTestCase {
         String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
         context.rawSource(source.getBytes(StandardCharsets.UTF_8));
 
-        assertNull(context.get(new ColumnIdent("invalid", "column")));
-        assertNull(context.get(new ColumnIdent("details", "invalid")));
-        assertEquals(43, context.get(new ColumnIdent("details", "age")));
+        assertThat(context.get(new ColumnIdent("invalid", "column"))).isEqualTo(NO_VALUE_MARKER);
+        // We use marker only for COPY FROM and only for top-level columns
+        assertThat(context.get(new ColumnIdent("details", "invalid"))).isNull();
+        assertThat(context.get(new ColumnIdent("details", "age"))).isEqualTo(43);
     }
 }

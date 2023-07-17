@@ -347,6 +347,7 @@ public final class CopyFromPlan implements Plan {
             );
         }
 
+
         // if there are partitionValues (we've had a PARTITION clause in the statement)
         // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
         // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed

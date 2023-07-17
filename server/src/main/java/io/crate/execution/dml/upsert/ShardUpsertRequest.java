@@ -50,6 +50,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
 
+import static io.crate.Constants.NO_VALUE_MARKER;
+
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     public enum DuplicateKeyAction {
@@ -444,8 +446,19 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (missingAssignmentsSize > 0) {
                 assert insertValueStreamers != null : "streamers are required if reading insert values";
                 this.insertValues = new Object[missingAssignmentsSize];
-                for (int i = 0; i < missingAssignmentsSize; i++) {
-                    insertValues[i] = insertValueStreamers[i].readValueFrom(in);
+                if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+                    for (int i = 0; i < missingAssignmentsSize; i++) {
+                        boolean isMarker = in.readBoolean();
+                        if (isMarker) {
+                            insertValues[i] = NO_VALUE_MARKER;
+                        } else {
+                            insertValues[i] = insertValueStreamers[i].readValueFrom(in);
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < missingAssignmentsSize; i++) {
+                        insertValues[i] = insertValueStreamers[i].readValueFrom(in);
+                    }
                 }
             }
             if (in.readBoolean()) {
@@ -482,8 +495,19 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 assert insertValueStreamers != null && insertValueStreamers.length >= insertValues.length
                     : "streamers are required to stream insert values and must have a streamer for each value";
                 out.writeVInt(insertValues.length);
-                for (int i = 0; i < insertValues.length; i++) {
-                    insertValueStreamers[i].writeValueTo(out, insertValues[i]);
+                if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
+                    for (int i = 0; i < insertValues.length; i++) {
+                        if (NO_VALUE_MARKER.equals(insertValues[i])) {
+                            out.writeBoolean(true);
+                        } else {
+                            out.writeBoolean(false);
+                            insertValueStreamers[i].writeValueTo(out, insertValues[i]);
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < insertValues.length; i++) {
+                        insertValueStreamers[i].writeValueTo(out, insertValues[i]);
+                    }
                 }
             } else {
                 out.writeVInt(0);
