@@ -39,6 +39,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.types.DataType;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -328,10 +329,9 @@ public final class CopyFromPlan implements Plan {
                 clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
             }
 
-
             // GeneratedReference-s are normally not unwrapped and their values are provided as NO_VALUE_MARKER.
             // Indexer can handle NO_VALUE_MARKER for generated columns and uses computed value if it passes validation.
-            // partitionedBySymbols is used only by IndexNameResolver to compute partition name.
+            // When no partition ident is specified, partitionedBySymbols is used only by IndexNameResolver to compute partition name.
             // We unwrap generated PARTITIONED BY columns only for this component,
             // so that it doesn't have to do validation of the generated expression which is anyway done before creating a partition.
             Collection<Symbol> partitionedBySymbols = table.partitionedByColumns()
@@ -402,6 +402,7 @@ public final class CopyFromPlan implements Plan {
         return Merge.ensureOnHandler(collect, context, handlerProjections);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
                                                              List<String> partitionValues,
                                                              List<Symbol> toCollect) {
@@ -414,7 +415,10 @@ public final class CopyFromPlan implements Plan {
                 idx = toCollect.indexOf(partitionedByColumn);
             }
             if (idx > -1) {
-                toCollect.set(idx, Literal.of(partitionValues.get(i)));
+                // PARTITIONED BY columns are included into targets for validation reasons since 5.3.5 and their values are streamed.
+                // Need to pre-cast in order not to break streaming of ShardUpsertRequest.Item values.
+                DataType valueType = partitionedByColumns.get(i).valueType();
+                toCollect.set(idx, Literal.of(valueType, valueType.implicitCast(partitionValues.get(i))));
             }
         }
     }

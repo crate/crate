@@ -60,7 +60,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.UseRandomizedSchema;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -319,6 +323,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testCopyFromFileIntoSinglePartition() throws Exception {
         execute("CREATE TABLE quotes (id INTEGER, quote STRING) PARTITIONED BY (id)");
         ensureGreen();
@@ -328,6 +333,19 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("SELECT * FROM quotes");
         assertEquals(3L, response.rowCount());
+
+        // Ensure that despite of having all 3 rows imported, we created single partition "1".
+        // In other words, rows with id = 2 and id = 3 got their id values rewritten to 1.
+        Metadata updatedMetadata = cluster().clusterService().state().metadata();
+        String tableTemplateName = PartitionName.templateName("doc", "quotes");
+        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
+            String indexName = cursor.value;
+            if (PartitionName.templateName(indexName).equals(tableTemplateName)) {
+                List<String> values = PartitionName.fromIndexOrTemplate(indexName).values();
+                assertThat(values).hasSize(1);
+                assertThat(values.get(0)).isEqualTo("1");
+            }
+        }
     }
 
     @Test
