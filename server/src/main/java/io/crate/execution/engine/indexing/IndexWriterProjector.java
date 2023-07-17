@@ -33,8 +33,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -46,6 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
 import io.crate.data.BatchIterator;
@@ -133,7 +132,6 @@ public class IndexWriterProjector implements Projector {
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             (ignored1, ignored2) -> {},
-            () -> {},
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,

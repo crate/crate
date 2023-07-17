@@ -29,13 +29,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import io.crate.execution.dml.IndexItem;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -43,6 +41,7 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -62,7 +61,6 @@ public class ColumnIndexWriterProjector implements Projector {
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
                                       BiConsumer<String, IndexItem> constraintsChecker,
-                                      Runnable onCompletion,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreaker queryCircuitBreaker,
                                       RamAccounting ramAccounting,
@@ -130,7 +128,6 @@ public class ColumnIndexWriterProjector implements Projector {
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             constraintsChecker,
-            onCompletion,
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,

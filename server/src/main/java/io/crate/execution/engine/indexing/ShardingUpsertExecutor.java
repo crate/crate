@@ -36,9 +36,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import io.crate.execution.dml.IndexItem;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -53,6 +50,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -61,6 +59,7 @@ import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -102,11 +101,9 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
     private final Predicate<UpsertResults> earlyTerminationCondition;
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
-    private final Runnable onCompletion;
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            BiConsumer<String, IndexItem> constraintsChecker,
-                           Runnable onCompletion,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -127,7 +124,6 @@ public class ShardingUpsertExecutor
                            Predicate<UpsertResults> earlyTerminationCondition,
                            Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
         this.localNode = clusterService.state().nodes().getLocalNodeId();
-        this.onCompletion = onCompletion;
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.scheduler = scheduler;
@@ -304,7 +300,6 @@ public class ShardingUpsertExecutor
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
             .whenComplete((res, err) -> {
-                onCompletion.run();
                 nodeLimit.onSample(startTime, err != null);
             });
     }
