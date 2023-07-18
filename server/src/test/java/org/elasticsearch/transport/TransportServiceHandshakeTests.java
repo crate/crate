@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
@@ -175,7 +174,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         IllegalStateException ex = expectThrows(IllegalStateException.class, () -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
-                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, ActionListener.map(fut, x -> null)));
+                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
             }
         });
         assertThat(ex.getMessage(), containsString("handshake with [" + discoveryNode +
@@ -197,7 +196,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         IllegalStateException ex = expectThrows(IllegalStateException.class, () -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
-                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, ActionListener.map(fut, x -> null)));
+                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
             }
         });
         assertThat(ex.getMessage(), containsString("handshake with [" + discoveryNode +

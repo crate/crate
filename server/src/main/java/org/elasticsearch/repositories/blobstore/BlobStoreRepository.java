@@ -49,8 +49,6 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -138,6 +136,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
@@ -693,7 +692,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                                          ActionListener<Void> listener) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(
             listener,
-            l -> cleanupStaleBlobs(deletedSnapshots, foundIndices, rootBlobs, updatedRepoData, ActionListener.map(l, ignored -> null))));
+            l -> cleanupStaleBlobs(deletedSnapshots, foundIndices, rootBlobs, updatedRepoData, l.map(ignored -> null))));
     }
 
 
@@ -730,8 +729,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
         // Listener that flattens out the delete results for each index
         final ActionListener<Collection<ShardSnapshotMetaDeleteResult>> deleteIndexMetadataListener = new GroupedActionListener<>(
-            ActionListener.map(onAllShardsCompleted,
-                               res -> res.stream().flatMap(Collection::stream).collect(Collectors.toList())), indices.size());
+            onAllShardsCompleted.map(res -> res.stream().flatMap(Collection::stream).toList()), indices.size());
 
         for (IndexId indexId : indices) {
             final Set<SnapshotId> survivingSnapshots = oldRepositoryData.getSnapshots(indexId).stream()
@@ -1981,8 +1979,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             : 1;
                         final int workers = Math.min(maxPoolSize, snapshotFiles.indexFiles().size());
                         final BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files = new LinkedBlockingQueue<>(filesToRecover);
-                        final ActionListener<Void> allFilesListener =
-                            fileQueueListener(files, workers, ActionListener.map(listener, v -> null));
+                        final ActionListener<Void> allFilesListener = fileQueueListener(files, workers, listener.map(v -> null));
                         // restore the files from the snapshot to the Lucene store
                         for (int i = 0; i < workers; ++i) {
                             try {

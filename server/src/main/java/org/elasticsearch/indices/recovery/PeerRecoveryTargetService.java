@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -71,6 +69,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.unit.TimeValue;
@@ -528,7 +527,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                                                         final CheckedFunction<Void, TransportResponse, Exception> responseFn) {
         final RecoveryTarget recoveryTarget = recoveryRef.target();
         final ActionListener<TransportResponse> channelListener = new ChannelActionListener<>(channel, action, request);
-        final ActionListener<Void> voidListener = ActionListener.map(channelListener, responseFn);
+        final ActionListener<Void> voidListener = channelListener.map(responseFn);
 
         final long requestSeqNo = request.requestSeqNo();
         final ActionListener<Void> listener;

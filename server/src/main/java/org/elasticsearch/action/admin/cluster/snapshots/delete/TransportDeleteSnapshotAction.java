@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.delete;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -31,8 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Transport action for delete snapshot operation
@@ -69,6 +69,6 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
     protected void masterOperation(final DeleteSnapshotRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        snapshotsService.deleteSnapshots(request, ActionListener.map(listener, v -> new AcknowledgedResponse(true)));
+        snapshotsService.deleteSnapshots(request, listener.map(v -> new AcknowledgedResponse(true)));
     }
 }

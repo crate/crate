@@ -19,6 +19,9 @@
 
 package org.elasticsearch.index.seqno;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
@@ -38,9 +41,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * This class holds all actions related to retention leases. Note carefully that these actions are executed under a primary permit. Care is
@@ -150,7 +150,7 @@ public class RetentionLeaseActions {
                     request.getId(),
                     request.getRetainingSequenceNumber(),
                     request.getSource(),
-                    ActionListener.map(listener, r -> new Response()));
+                    listener.map(r -> new Response()));
             }
         }
 
@@ -233,7 +233,7 @@ public class RetentionLeaseActions {
             void doRetentionLeaseAction(final IndexShard indexShard, final RemoveRequest request, final ActionListener<Response> listener) {
                 indexShard.removeRetentionLease(
                     request.getId(),
-                    ActionListener.map(listener, r -> new Response()));
+                    listener.map(r -> new Response()));
             }
         }
 
