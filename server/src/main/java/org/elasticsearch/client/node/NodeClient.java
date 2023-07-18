@@ -59,23 +59,13 @@ public class NodeClient extends AbstractClient {
                                                                Request request,
                                                                ActionListener<Response> listener) {
 
-        executeLocally(action, request, listener);
+        executeLocally(action, request).whenComplete(listener);
     }
 
     public <Request extends TransportRequest,
             Response extends TransportResponse> CompletableFuture<Response> executeLocally(ActionType<Response> action,
                                                                                            Request request) {
         return transportAction(action).execute(request);
-    }
-
-    /**
-     * @deprecated use {@link #executeLocally(ActionType, TransportRequest)
-     */
-    public <Request extends TransportRequest,
-            Response extends TransportResponse> void executeLocally(ActionType<Response> action,
-                                                                    Request request,
-                                                                    ActionListener<Response> listener) {
-        transportAction(action).execute(request).whenComplete(listener);
     }
 
     /**
