@@ -24,6 +24,7 @@ package io.crate.metadata.view;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
@@ -62,6 +63,7 @@ public class ViewInfoFactory {
             return null;
         }
         List<Reference> columns;
+        boolean analyzeError = false;
         try {
             AnalyzedRelation relation = analyzerProvider.get().analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
@@ -79,14 +81,14 @@ public class ViewInfoFactory {
             }
             columns = collectedColumns;
         } catch (Exception e) {
-            if (e instanceof ResourceUnknownException) {
-                // Return ViewInfo with no columns in case the statement could not be analyzed,
-                // because the underlying table of the view could not be found.
-                columns = Collections.emptyList();
-            } else {
-                throw e;
+            // Statement could not be analyzed, because the referenced table either not found
+            // or has been updated and view definition became incompatible with the new schema (https://github.com/crate/crate/issues/14377).
+            columns = Collections.emptyList();
+            if (e instanceof ResourceUnknownException == false) {
+                analyzeError = true;
             }
         }
-        return new ViewInfo(ident, view.stmt(), columns, view.owner());
+        String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
+        return new ViewInfo(ident, viewDefinition, columns, view.owner());
     }
 }
