@@ -131,7 +131,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
             .metadata(false)
             .nodes(false)
             .local(true);
-        return client.executeLocally(ClusterStateAction.INSTANCE, requestClusterState)
+        return client.execute(ClusterStateAction.INSTANCE, requestClusterState)
             .thenApply(resp -> clusterStateRespToHttpResponse(method, resp, alloc, nodeName));
     }
 
