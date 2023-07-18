@@ -57,6 +57,30 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
         }
     }
 
+
+    /**
+     * Create a new ActionListener that maps the result using the given mapping function.
+     **/
+    default <T, E extends Exception> ActionListener<T> map(CheckedFunction<? super T, Response, E> fn) {
+        ActionListener<Response> delegate = this;
+        return new ActionListener<T>() {
+
+            @Override
+            public void onResponse(T response) {
+                try {
+                    delegate.onResponse(fn.apply(response));
+                } catch (Throwable t) {
+                    delegate.onFailure(Exceptions.toException(t));
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                delegate.onFailure(e);
+            }
+        };
+    }
+
     /**
      * Creates a listener that listens for a response (or failure) and executes the
      * corresponding consumer when the response (or failure) is received.
@@ -160,20 +184,6 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
             }
         }
         ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptionList);
-    }
-
-    /**
-     * Creates a listener that wraps another listener, mapping response values via the given mapping function and passing along
-     * exceptions to the delegate.
-     *
-     * @param listener Listener to delegate to
-     * @param fn Function to apply to listener response
-     * @param <Response> Response type of the new listener
-     * @param <T> Response type of the wrapped listener
-     * @return a listener that maps the received response and then passes it to its delegate listener
-     */
-    static <T, Response> ActionListener<Response> map(ActionListener<T> listener, CheckedFunction<Response, T, Exception> fn) {
-        return wrap(r -> listener.onResponse(fn.apply(r)), listener::onFailure);
     }
 
     /**

@@ -32,11 +32,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -146,19 +144,19 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         if (createIndexRequest != null) {
             validateSettings(createIndexRequest.settings(), state);
 
-            ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
-                response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
-                listener::onFailure
+            transportCreateIndexAction.masterOperation(
+                createIndexRequest,
+                state,
+                listener.map(resp -> new CreateTableResponse(resp.isShardsAcknowledged()))
             );
-            transportCreateIndexAction.masterOperation(createIndexRequest, state, wrappedListener);
         } else {
             validateSettings(putIndexTemplateRequest.settings(), state);
 
-            ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
-                response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
-                listener::onFailure
+            transportPutIndexTemplateAction.masterOperation(
+                putIndexTemplateRequest,
+                state,
+                listener.map(resp -> new CreateTableResponse(resp.isAcknowledged()))
             );
-            transportPutIndexTemplateAction.masterOperation(putIndexTemplateRequest, state, wrappedListener);
         }
     }
 
