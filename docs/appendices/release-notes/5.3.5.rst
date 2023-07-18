@@ -80,3 +80,9 @@ Fixes
   leave behind empty partitions if ``NULL`` or ``CHECK`` constraint on
   partitioned by column failed.
 
+- Fixed an issue which caused errors on querying ``information_schema`` tables
+  when the query of a ``VIEW`` is erroneous due to changes made to the
+  underlying tables/views. Also, added a comment to view definition in
+  ``pg_catalog.pg_views`` and ``information_schema.views`` tables to denote
+  that a ``VIEW``'s query is erroneous.
+
