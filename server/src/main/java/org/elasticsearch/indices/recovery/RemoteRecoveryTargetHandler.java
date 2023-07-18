@@ -115,7 +115,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final TransportRequestOptions options =
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build();
         final Writeable.Reader<TransportResponse.Empty> reader = in -> TransportResponse.Empty.INSTANCE;
-        final ActionListener<TransportResponse.Empty> responseListener = ActionListener.map(listener, r -> null);
+        final ActionListener<TransportResponse.Empty> responseListener = listener.map(r -> null);
         executeRetryableAction(action, request, options, responseListener, reader);
     }
 
@@ -128,7 +128,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final TransportRequestOptions options =
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionLongTimeout()).build();
         final Writeable.Reader<TransportResponse.Empty> reader = in -> TransportResponse.Empty.INSTANCE;
-        final ActionListener<TransportResponse.Empty> responseListener = ActionListener.map(listener, r -> null);
+        final ActionListener<TransportResponse.Empty> responseListener = listener.map(r -> null);
         executeRetryableAction(action, request, options, responseListener, reader);
     }
 
@@ -164,7 +164,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
                 retentionLeases,
                 mappingVersionOnPrimary);
         final Writeable.Reader<RecoveryTranslogOperationsResponse> reader = RecoveryTranslogOperationsResponse::new;
-        final ActionListener<RecoveryTranslogOperationsResponse> responseListener = ActionListener.map(listener, r -> r.localCheckpoint);
+        final ActionListener<RecoveryTranslogOperationsResponse> responseListener = listener.map(r -> r.localCheckpoint);
         executeRetryableAction(action, request, translogOpsRequestOptions, responseListener, reader);
     }
 
@@ -178,7 +178,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final TransportRequestOptions options =
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build();
         final Writeable.Reader<TransportResponse.Empty> reader = in -> TransportResponse.Empty.INSTANCE;
-        final ActionListener<TransportResponse.Empty> responseListener = ActionListener.map(listener, r -> null);
+        final ActionListener<TransportResponse.Empty> responseListener = listener.map(r -> null);
         executeRetryableAction(action, request, options, responseListener, reader);
     }
 
@@ -194,7 +194,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final TransportRequestOptions options =
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build();
         final Writeable.Reader<TransportResponse.Empty> reader = in -> TransportResponse.Empty.INSTANCE;
-        final ActionListener<TransportResponse.Empty> responseListener = ActionListener.map(listener, r -> null);
+        final ActionListener<TransportResponse.Empty> responseListener = listener.map(r -> null);
         executeRetryableAction(action, request, options, responseListener, reader);
     }
 
@@ -236,7 +236,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final RecoveryFileChunkRequest request = new RecoveryFileChunkRequest(
             recoveryId, requestSeqNo, shardId, fileMetadata, position, content, lastChunk, totalTranslogOps, throttleTimeInNanos);
         final Writeable.Reader<TransportResponse.Empty> reader = in -> TransportResponse.Empty.INSTANCE;
-        executeRetryableAction(action, request, fileChunkRequestOptions, ActionListener.map(listener, r -> null), reader);
+        executeRetryableAction(action, request, fileChunkRequestOptions, listener.map(r -> null), reader);
     }
 
     @Override

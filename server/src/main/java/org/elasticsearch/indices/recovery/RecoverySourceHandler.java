@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -91,7 +92,6 @@ import org.elasticsearch.transport.Transports;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RecoverySourceHandler handles the three phases of shard recovery, which is
@@ -228,7 +228,7 @@ public class RecoverySourceHandler {
                 logger.trace("performing sequence numbers based recovery. starting at [{}]", request.startingSeqNo());
                 startingSeqNo = request.startingSeqNo();
                 if (retentionLeaseRef.get() == null) {
-                    createRetentionLease(startingSeqNo, ActionListener.map(sendFileStep, ignored -> SendFileResult.EMPTY));
+                    createRetentionLease(startingSeqNo, sendFileStep.map(ignored -> SendFileResult.EMPTY));
                 } else {
                     sendFileStep.onResponse(SendFileResult.EMPTY);
                 }
