@@ -33,19 +33,26 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
+import io.crate.data.Input;
+import io.crate.metadata.GeneratedReference;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.expression.InputFactory;
+import io.crate.metadata.Reference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -56,7 +63,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
@@ -68,8 +74,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
     public static BatchIterator<Row> newInstance(Collection<String> fileUris,
-                                                 List<Input<?>> inputs,
-                                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
+                                                 InputFactory.Context<LineCollectorExpression<?>> ctx,
                                                  String compression,
                                                  Map<String, FileInputFactory> fileInputFactories,
                                                  Boolean shared,
@@ -79,11 +84,11 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
                                                  Settings withClauseOptions,
+                                                 ColumnIndexWriterProjection projection,
                                                  ScheduledExecutorService scheduler) {
         return new FileReadingIterator(
             fileUris,
-            inputs,
-            collectorExpressions,
+            ctx,
             compression,
             fileInputFactories,
             shared,
@@ -93,6 +98,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             parserProperties,
             inputFormat,
             withClauseOptions,
+            projection,
             scheduler);
     }
 
@@ -105,7 +111,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
     private final List<FileInput> fileInputs;
 
-    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
+    private Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private volatile Throwable killed;
     private final List<String> targetColumns;
@@ -119,15 +125,20 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private long currentLineNumber;
     @VisibleForTesting
     long watermark;
-    private final Row row;
+    private InputFactory.Context<LineCollectorExpression<?>> ctx;
+    private final ColumnIndexWriterProjection projection;
+    private Row row;
     private LineProcessor lineProcessor;
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> backOffPolicy;
 
+    // Reflection of projection.allTargetColumns() which is stored separately
+    // solely to speed up new-column check (especially for wide tables) which is done per-row for JSON.
+    private final Map<String, Reference> targetColumnsByFQN = new HashMap<>();
+
     @VisibleForTesting
     FileReadingIterator(Collection<String> fileUris,
-                        List<? extends Input<?>> inputs,
-                        Iterable<LineCollectorExpression<?>> collectorExpressions,
+                        InputFactory.Context<LineCollectorExpression<?>> ctx,
                         String compression,
                         Map<String, FileInputFactory> fileInputFactories,
                         Boolean shared,
@@ -137,15 +148,27 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         CopyFromParserProperties parserProperties,
                         FileUriCollectPhase.InputFormat inputFormat,
                         Settings withClauseOptions,
+                        @Nullable ColumnIndexWriterProjection projection,
                         ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs);
+        this.projection = projection;
+        if (projection != null) {
+            // TODO: Make projection non-nullable once RETURN SUMMARY is also migrated to no-raw.
+            for (Reference reference:projection.allTargetColumns()){
+                // We compare map keys with row columns (and they are only top level columns).
+                // However, target columns might contain sub-columns if they are CLUSTERED BY, PARTITIONED BY or PRIMARY KEY.
+                // Thus, we use fqn to protect from the case where a target sub-column name can coincide with top-level dynamically added column.
+                targetColumnsByFQN.put(reference.column().sqlFqn(), reference);
+            }
+        }
+        this.ctx = ctx;
+        this.row = new InputRow(ctx.topLevelInputs());
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
         this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
-        this.collectorExpressions = collectorExpressions;
+        this.collectorExpressions = ctx.expressions();
         this.targetColumns = targetColumns;
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
@@ -195,6 +218,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     return moveNext();
                 }
                 lineProcessor.process(line);
+                if (lineProcessor.inputType() == LineParser.InputType.JSON) {
+                    // JSON has no header, so we try to adjust target columns during regular processing.
+                    // CSV can have a header, so adjustment happens only once in readFirstLine().
+                    processRowColumns(lineProcessor.allColumns());
+                }
+
                 return true;
             } else if (currentInputUriIterator != null && currentInputUriIterator.hasNext()) {
                 advanceToNextUri(currentInput);
@@ -252,7 +281,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        Set<String> allColumns = lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        if (targetColumns.isEmpty() && allColumns != null) {
+            processRowColumns(allColumns);
+        }
     }
 
     private void closeCurrentReader() {
@@ -397,6 +429,49 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private void raiseIfKilled() {
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
+    /**
+     * Let A be a set of target columns and B be a set of row columns.
+     * A - B is set of not provided columns, for regular columns do nothing (value will be NULL), for generated take generated value, similar to INSERT INTO.
+     * TODO: B - A: set of dynamically added columns, add DynamicReference-s to projection.
+     *
+     * FOR CSV: Called only once after parsing the header.
+     * FOR JSON: Called per-row as JSON entries might be non-homogeneous.
+     */
+    private void processRowColumns(Set<String> rowColumns) {
+        boolean contextUpdated = false;
+        // Handle dynamically added columns
+        for (String columnName: rowColumns) {
+            Reference existingRef = targetColumnsByFQN.get(columnName);
+            if (existingRef == null) {
+                // TODO: Add DynamicReference to the projection's target columns and update relevant structures.
+            }
+        }
+
+        // Handle not provided columns
+        for (Map.Entry<String, Reference> entry: targetColumnsByFQN.entrySet()) {
+            if (rowColumns.contains(entry.getKey()) == false) {
+                Reference reference = entry.getValue();
+                if (reference instanceof GeneratedReference generatedReference) {
+                    // TODO: Implement a method ctx.remove(GeneratedReference), which would
+                    // remove Reference from ctx expressions and topLevelInputs.
+
+                    // Adding one by one in order to avoid creation of
+                    // intermediate collection to call ctx.add(collection) for each row.
+                    // When adding one by one, symbols are not added to topLevelInputs, doing it explicitly.
+                    Input<?> input = ctx.add(generatedReference.generatedExpression());
+                    ctx.topLevelInputs().add(input);
+                    contextUpdated = true;
+                }
+            }
+        }
+
+        if (contextUpdated) {
+            this.row = new InputRow(ctx.topLevelInputs());
+            this.collectorExpressions = ctx.expressions();
+            lineProcessor.startCollect(collectorExpressions); // Make sure new expressions get the lineContext.
         }
     }
 }

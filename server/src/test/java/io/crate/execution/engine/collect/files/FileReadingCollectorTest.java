@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
+import static io.crate.execution.engine.collect.files.FileReadingIteratorTest.createProjectionMock;
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -51,8 +53,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
@@ -233,19 +233,21 @@ public class FileReadingCollectorTest extends ESTestCase {
                                                    boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = new ArrayList<>(2);
+        List<Reference> targets = new ArrayList<>();
         Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
-        inputs.add(ctx.add(raw));
+        targets.add(raw);
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
-            //noinspection unchecked
-            sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
-            inputs.add(sourceUriFailureInput);
+            targets.add(sourceUriFailure);
         }
+
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, targets);
+        //noinspection unchecked
+        sourceUriFailureInput = ctx.topLevelInputs().size() == 2 ? (Input<String>) ctx.topLevelInputs().get(1) : null;
+
         return FileReadingIterator.newInstance(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             compression,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
@@ -255,22 +257,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
+            projection,
             THREAD_POOL.scheduler());
-    }
-
-    private static class WriteBufferAnswer implements Answer<Integer> {
-
-        private byte[] bytes;
-
-        public WriteBufferAnswer(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public Integer answer(InvocationOnMock invocation) throws Throwable {
-            byte[] buffer = (byte[]) invocation.getArguments()[0];
-            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
-            return bytes.length;
-        }
     }
 }

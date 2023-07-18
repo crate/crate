@@ -24,12 +24,14 @@ package io.crate.execution.engine.collect.files;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 public class LineParser {
 
@@ -44,25 +46,41 @@ public class LineParser {
         this.targetColumns = targetColumns;
     }
 
-    private enum InputType {
+    public enum InputType {
         CSV,
         JSON
     }
 
-    public void readFirstLine(URI currentUri,
-                              FileUriCollectPhase.InputFormat inputFormat,
-                              BufferedReader currentReader) throws IOException {
+    public InputType inputType() {
+        return inputType;
+    }
+
+    /**
+     * @return all actual columns (including non-existing in the target table) so that new columns can be added to the target columns
+     * or NULL if no need to update target columns.
+     *
+     * Also used to detect which columns doesn't have
+     */
+    @Nullable
+    public Set<String> readFirstLine(URI currentUri,
+                                     FileUriCollectPhase.InputFormat inputFormat,
+                                     BufferedReader currentReader) throws IOException {
         for (long i = 0; i < parserProperties.skipNumLines(); i++) {
             currentReader.readLine();
         }
         if (isInputCsv(inputFormat, currentUri)) {
             csvLineParser = new CSVLineParser(parserProperties, targetColumns);
-            if (parserProperties.fileHeader()) {
-                csvLineParser.parseHeader(currentReader.readLine());
-            }
             inputType = InputType.CSV;
+            if (parserProperties.fileHeader()) {
+                return Set.of(csvLineParser.parseHeader(currentReader.readLine()));
+            } else {
+                // if CSV doesn't have header, we explicitly set target columns to table columns on planning stage,
+                // no need to update context and adjust plan.
+                return null;
+            }
         } else {
             inputType = InputType.JSON;
+            return null; // JSON has no header, so we adjust target columns later during regular processing.
         }
     }
 

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -46,7 +47,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
@@ -139,11 +139,25 @@ public class CsvReaderBenchmark {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
 
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+        ctx.add(raw);
+        ColumnIndexWriterProjection dummy = new ColumnIndexWriterProjection(null,
+            null,
+            null,
+            List.of(), // TODO: pass regular references instead of raw once raw is removed/RETURN SUMMARY is migrated to no-raw.
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,false,
+            null,
+            null
+        );
         BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
             Collections.singletonList(fileUri),
-            inputs,
-            ctx.expressions(),
+            ctx,
             null,
             Map.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
@@ -154,6 +168,7 @@ public class CsvReaderBenchmark {
             CopyFromParserProperties.DEFAULT,
             CSV,
             Settings.EMPTY,
+            dummy,
             null);
 
         while (batchIterator.moveNext()) {

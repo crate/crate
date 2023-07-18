@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,6 +51,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -62,7 +64,6 @@ import org.mockito.ArgumentCaptor;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -191,14 +192,11 @@ public class FileReadingIteratorTest extends ESTestCase {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-
-
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
                 fileUris,
-                inputs,
-                ctx.expressions(),
+                ctx,
                 null,
                 Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
                 false,
@@ -208,6 +206,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 CopyFromParserProperties.DEFAULT,
                 JSON,
                 Settings.EMPTY,
+                projection,
                 THREAD_POOL.scheduler()
             ) {
 
@@ -250,14 +249,11 @@ public class FileReadingIteratorTest extends ESTestCase {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-
-
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
                 fileUris,
-                inputs,
-                ctx.expressions(),
+                ctx,
                 null,
                 Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
                 false,
@@ -267,6 +263,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 new CopyFromParserProperties(true, true, ',', 0),
                 CSV,
                 Settings.EMPTY,
+                projection,
                 THREAD_POOL.scheduler()
             ) {
                 int retry = 0;
@@ -312,14 +309,11 @@ public class FileReadingIteratorTest extends ESTestCase {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-
-
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         Supplier<BatchIterator<Row>> batchIteratorSupplier =
             () -> new FileReadingIterator(
                 fileUris,
-                inputs,
-                ctx.expressions(),
+                ctx,
                 null,
                 Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
                 false,
@@ -329,6 +323,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 new CopyFromParserProperties(true, false, ',', skipNumLines),
                 CSV,
                 Settings.EMPTY,
+                projection,
                 THREAD_POOL.scheduler()
             ) {
                 int retry = 0;
@@ -367,8 +362,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
         var fi = new FileReadingIterator(
             List.of(),
-            List.of(),
-            List.of(),
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation),
             null,
             Map.of(),
             false,
@@ -378,6 +372,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             null,
             CSV,
             Settings.EMPTY,
+            createProjectionMock(inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation), List.of()),
             scheduler
         );
         ArgumentCaptor<Long> delays = ArgumentCaptor.forClass(Long.class);
@@ -408,12 +403,10 @@ public class FileReadingIteratorTest extends ESTestCase {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         var fi = new FileReadingIterator(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             null,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
@@ -423,6 +416,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             new CopyFromParserProperties(true, false, ',', 0),
             CSV,
             Settings.EMPTY,
+            projection,
             THREAD_POOL.scheduler()
         ) {
             private boolean isThrownOnce = false;
@@ -474,12 +468,10 @@ public class FileReadingIteratorTest extends ESTestCase {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
-
-        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         return FileReadingIterator.newInstance(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             null,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
@@ -489,6 +481,17 @@ public class FileReadingIteratorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             format,
             Settings.EMPTY,
+            projection,
             THREAD_POOL.scheduler());
+    }
+
+    public static ColumnIndexWriterProjection createProjectionMock(InputFactory.Context<LineCollectorExpression<?>> ctx, List<Reference> targets) {
+        // TODO: pass regular references instead of raw once raw is removed/RETURN SUMMARY is migrated to no-raw.
+        ctx.add(targets);
+        ColumnIndexWriterProjection projection = mock(ColumnIndexWriterProjection.class);
+        // Handling not provided/dynamic is irrelevant for raw.
+        // Once raw is removed, mock will return targets.
+        when(projection.allTargetColumns()).thenReturn(List.of());
+        return projection;
     }
 }

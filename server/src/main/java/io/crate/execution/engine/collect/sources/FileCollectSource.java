@@ -28,6 +28,8 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
@@ -51,6 +53,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.execution.dsl.projection.ProjectionType.COLUMN_INDEX_WRITER;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -83,12 +87,18 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
+        Projection projection = fileUriCollectPhase.projections()
+            .stream()
+            .filter(p -> p.projectionType() == COLUMN_INDEX_WRITER) // There could be MergeCountProjection as well, filter it out.
+            .findFirst().orElse(null);
+
+        // TODO: add projection != null assertion once RETURN SUMMARY is also migrated to no raw
+
         List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
         return CompletableFuture.completedFuture(
             FileReadingIterator.newInstance(
                 fileUris,
-                ctx.topLevelInputs(),
-                ctx.expressions(),
+                ctx,
                 fileUriCollectPhase.compression(),
                 fileInputFactoryMap,
                 fileUriCollectPhase.sharedStorage(),
@@ -98,6 +108,7 @@ public class FileCollectSource implements CollectSource {
                 fileUriCollectPhase.parserProperties(),
                 fileUriCollectPhase.inputFormat(),
                 fileUriCollectPhase.withClauseOptions(),
+                projection != null ? (ColumnIndexWriterProjection) projection : null,
                 threadPool.scheduler()
             ));
     }

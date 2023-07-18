@@ -179,7 +179,7 @@ public final class CopyFromPlan implements Plan {
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
-        if (!header && copyFrom.targetColumns().isEmpty()) {
+        if (!header && copyFrom.targetColumns().isEmpty() && inputFormat != FileUriCollectPhase.InputFormat.JSON) {
             targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
         }
 
@@ -320,7 +320,23 @@ public final class CopyFromPlan implements Plan {
             List<Reference> targetColsInCorrectOrder = new ArrayList<>(targetColumns);
             Collections.sort(targetColsInCorrectOrder, Comparator.comparingInt(Reference::position));
 
-            toCollect = new ArrayList<>(targetColsInCorrectOrder);
+            if (boundedCopyFrom.targetColumns().isEmpty()) {
+                // JSON file or CSV with header and no target columns.
+                // Provide references as is, they will be adjusted.
+                toCollect = new ArrayList<>(targetColsInCorrectOrder);
+            } else {
+                // CSV without header and with concrete targets (specified or derived from table columns).
+                // We can already decide which columns are provided and which are not and handle generated columns accordingly.
+                toCollect = targetColsInCorrectOrder.stream().map(ref -> {
+                    if (ref instanceof GeneratedReference genRef) {
+                        if (boundedCopyFrom.targetColumns().contains(genRef.column().sqlFqn())) {
+                            return ref;
+                        }
+                        return genRef.generatedExpression();
+                    }
+                    return ref;
+                }).collect(Collectors.toList());
+            }
 
             InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
             Symbol clusteredByInputCol = null;
@@ -394,6 +410,10 @@ public final class CopyFromPlan implements Plan {
             int idx;
             if (partitionedByColumn instanceof GeneratedReference genRef) {
                 idx = toCollect.indexOf(genRef.generatedExpression());
+                if (idx == -1) {
+                    // could be unwrapped reference, if we adjust later on runtime.
+                    idx = toCollect.indexOf(genRef);
+                }
             } else {
                 idx = toCollect.indexOf(partitionedByColumn);
             }

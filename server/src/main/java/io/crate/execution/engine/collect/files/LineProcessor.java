@@ -24,11 +24,13 @@ package io.crate.execution.engine.collect.files;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.expression.reference.file.LineContext;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 public final class LineProcessor {
 
@@ -45,13 +47,25 @@ public final class LineProcessor {
         }
     }
 
+    public LineParser.InputType inputType() {
+        return lineParser.inputType();
+    }
+
+    /**
+     * @return top-level column names.
+     */
+    public Set<String> allColumns() {
+        return lineContext.sourceAsMap().keySet();
+    }
+
     void startWithUri(URI currentUri) {
         lineContext.resetCurrentLineNumber();
         lineContext.currentUri(currentUri);
     }
 
-    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
-        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    @Nullable
+    Set<String> readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+        return lineParser.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
     public void process(String line) throws IOException {

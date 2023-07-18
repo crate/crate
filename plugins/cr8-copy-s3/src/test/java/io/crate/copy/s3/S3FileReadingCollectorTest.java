@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -209,17 +210,16 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);
         Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
-        inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
             //noinspection unchecked
             Input<String> sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);
         }
+        ColumnIndexWriterProjection projection = createProjectionMock(ctx, List.of(raw));
         return FileReadingIterator.newInstance(
             fileUris,
-            inputs,
-            ctx.expressions(),
+            ctx,
             compression,
             Map.of(
                 S3FileInputFactory.NAME,
@@ -247,6 +247,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
+            projection,
             THREAD_POOL.scheduler());
     }
 
@@ -258,5 +259,15 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             System.arraycopy(bytes, 0, buffer, 0, bytes.length);
             return bytes.length;
         }
+    }
+
+    private static ColumnIndexWriterProjection createProjectionMock(InputFactory.Context<LineCollectorExpression<?>> ctx, List<Reference> targets) {
+        // TODO: pass regular references instead of raw once raw is removed/RETURN SUMMARY is migrated to no-raw.
+        ctx.add(targets);
+        ColumnIndexWriterProjection projection = mock(ColumnIndexWriterProjection.class);
+        // Handling not provided/dynamic is irrelevant for raw.
+        // Once raw is removed, mock will return targets.
+        when(projection.allTargetColumns()).thenReturn(List.of());
+        return projection;
     }
 }
