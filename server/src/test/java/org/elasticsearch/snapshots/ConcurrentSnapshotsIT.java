@@ -22,6 +22,7 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -312,6 +313,73 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         assertSuccessful(createSnapshotFuture);
+    }
+
+
+    @Test
+    public void test_swap_table_after_snapshot_blocked_on_data_node() throws Exception {
+        cluster().startMasterOnlyNode();
+        String dataNode = cluster().startDataOnlyNode();
+        String repoName = "r1";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        createTableWithRecord("tbl2");
+        CompletableFuture<SnapshotInfo> snapshot = startFullSnapshotBlockedOnDataNode("s1", repoName, dataNode);
+
+        execute("alter cluster swap table tbl1 to tbl2");
+        unblockNode(repoName, dataNode);
+        assertThat(snapshot).succeedsWithin(5, TimeUnit.SECONDS);
+        SnapshotInfo snapshotInfo = snapshot.join();
+        // Shards can become temporarily unavailable during a table swap, which can cause snapshots to abort
+        if (snapshotInfo.state() == SnapshotState.SUCCESS) {
+            execute("drop table tbl1");
+            execute("drop table tbl2");
+            execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
+        } else if (snapshotInfo.state() == SnapshotState.FAILED) {
+            assertThat(snapshotInfo.reason()).isEqualTo("aborted");
+        } else {
+            assertThat(snapshotInfo.shardFailures()).isNotEmpty();
+            for (SnapshotShardFailure shardFailures : snapshotInfo.shardFailures()) {
+                assertThat(shardFailures.reason()).isEqualTo("aborted");
+            }
+        }
+
+        // can still create new snapshots after
+        execute("create snapshot r1.s2 all with (wait_for_completion = true)");
+        execute("drop table tbl1");
+        execute("drop table tbl2");
+        if (randomBoolean()) {
+            execute("drop snapshot r1.s1");
+        }
+        execute("restore snapshot r1.s2 ALL with (wait_for_completion = true)");
+
+        execute("refresh table tbl1");
+        assertThat(execute("select count(*) from tbl1")).hasRows(
+            "1"
+        );
+    }
+
+    @Test
+    public void test_swap_table_after_snapshot_blocked_on_index_file() throws Exception {
+        String masterNode = cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        String repoName = "r1";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        createTableWithRecord("tbl2");
+        mockRepo(repoName, masterNode).setBlockOnWriteIndexFile();
+        CompletableFuture<SnapshotInfo> snapshot = startFullSnapshot(repoName, "s1");
+        waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(10));
+
+        execute("alter cluster swap table tbl1 to tbl2");
+        unblockNode(repoName, masterNode);
+        assertThat(snapshot)
+            .succeedsWithin(5, TimeUnit.SECONDS)
+            .satisfies(x -> assertThat(x.state()).isEqualTo(SnapshotState.SUCCESS));
+
+        execute("drop table tbl1");
+        execute("drop table tbl2");
+        execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
     }
 
     @Test
