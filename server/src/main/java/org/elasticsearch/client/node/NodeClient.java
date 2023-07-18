@@ -20,7 +20,6 @@
 package org.elasticsearch.client.node;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -59,13 +58,7 @@ public class NodeClient extends AbstractClient {
                                                                Request request,
                                                                ActionListener<Response> listener) {
 
-        executeLocally(action, request).whenComplete(listener);
-    }
-
-    public <Request extends TransportRequest,
-            Response extends TransportResponse> CompletableFuture<Response> executeLocally(ActionType<Response> action,
-                                                                                           Request request) {
-        return transportAction(action).execute(request);
+        transportAction(action).execute(request).whenComplete(listener);
     }
 
     /**

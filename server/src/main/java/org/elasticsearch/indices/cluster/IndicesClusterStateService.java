@@ -295,7 +295,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
     // overrideable by tests
     protected void updateGlobalCheckpointForShard(final ShardId shardId) {
-        client.executeLocally(GlobalCheckpointSyncAction.TYPE, new GlobalCheckpointSyncAction.Request(shardId))
+        client.execute(GlobalCheckpointSyncAction.TYPE, new GlobalCheckpointSyncAction.Request(shardId))
             .exceptionally(err -> {
                 if (ExceptionsHelper.unwrap(err, CompletionException.class, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
                     getLogger().info(new ParameterizedMessage("{} global checkpoint sync failed", shardId), err);

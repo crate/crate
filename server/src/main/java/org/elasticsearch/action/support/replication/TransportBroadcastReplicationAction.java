@@ -115,7 +115,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
 
     protected void shardExecute(Request request, ShardId shardId, ActionListener<ShardResponse> shardActionListener) {
         ShardRequest shardRequest = newShardRequest(request, shardId);
-        client.executeLocally(replicatedBroadcastShardAction, shardRequest).whenComplete(shardActionListener);
+        client.execute(replicatedBroadcastShardAction, shardRequest).whenComplete(shardActionListener);
     }
 
     /**
