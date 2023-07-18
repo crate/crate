@@ -45,8 +45,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -103,6 +101,7 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -786,29 +785,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     }
                     return false;
                 });
-    }
-
-    /**
-     * Returns list of indices with missing shards, and list of indices that are closed
-     *
-     * @param shards list of shard statuses
-     * @return list of failed and closed indices
-     */
-    private static Tuple<Set<String>, Set<String>> indicesWithMissingShards(
-        ImmutableOpenMap<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards, Metadata metadata) {
-        Set<String> missing = new HashSet<>();
-        Set<String> closed = new HashSet<>();
-        for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> entry : shards) {
-            if (entry.value.state() == ShardState.MISSING) {
-                if (metadata.hasIndex(entry.key.getIndex().getName()) &&
-                    metadata.getIndexSafe(entry.key.getIndex()).getState() == IndexMetadata.State.CLOSE) {
-                    closed.add(entry.key.getIndex().getName());
-                } else {
-                    missing.add(entry.key.getIndex().getName());
-                }
-            }
-        }
-        return new Tuple<>(missing, closed);
     }
 
     /**
@@ -1986,27 +1962,22 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         shardRepoGeneration = null;
                     }
                     final ShardSnapshotStatus shardSnapshotStatus;
-                    if (indexRoutingTable == null) {
-                        shardSnapshotStatus = new SnapshotsInProgress.ShardSnapshotStatus(null, ShardState.MISSING,
-                                "missing routing table", shardRepoGeneration);
+                    ShardRouting primary = indexRoutingTable.shard(i).primaryShard();
+                    if (readyToExecute == false || inFlightShardStates.isActive(indexName, i)) {
+                        shardSnapshotStatus = ShardSnapshotStatus.UNASSIGNED_QUEUED;
+                    } else if (primary == null || !primary.assignedToNode()) {
+                        shardSnapshotStatus = new ShardSnapshotStatus(null, ShardState.MISSING,
+                                "primary shard is not allocated", shardRepoGeneration);
+                    } else if (primary.relocating() || primary.initializing()) {
+                        shardSnapshotStatus = new ShardSnapshotStatus(
+                                primary.currentNodeId(), ShardState.WAITING, shardRepoGeneration);
+                    } else if (!primary.started()) {
+                        shardSnapshotStatus =
+                                new ShardSnapshotStatus(primary.currentNodeId(), ShardState.MISSING,
+                                        "primary shard hasn't been started yet", shardRepoGeneration);
                     } else {
-                        ShardRouting primary = indexRoutingTable.shard(i).primaryShard();
-                        if (readyToExecute == false || inFlightShardStates.isActive(indexName, i)) {
-                            shardSnapshotStatus = ShardSnapshotStatus.UNASSIGNED_QUEUED;
-                        } else if (primary == null || !primary.assignedToNode()) {
-                            shardSnapshotStatus = new ShardSnapshotStatus(null, ShardState.MISSING,
-                                    "primary shard is not allocated", shardRepoGeneration);
-                        } else if (primary.relocating() || primary.initializing()) {
-                            shardSnapshotStatus = new ShardSnapshotStatus(
-                                    primary.currentNodeId(), ShardState.WAITING, shardRepoGeneration);
-                        } else if (!primary.started()) {
-                            shardSnapshotStatus =
-                                    new ShardSnapshotStatus(primary.currentNodeId(), ShardState.MISSING,
-                                            "primary shard hasn't been started yet", shardRepoGeneration);
-                        } else {
-                            shardSnapshotStatus =
-                                    new ShardSnapshotStatus(primary.currentNodeId(), shardRepoGeneration);
-                        }
+                        shardSnapshotStatus =
+                                new ShardSnapshotStatus(primary.currentNodeId(), shardRepoGeneration);
                     }
                     builder.put(shardId, shardSnapshotStatus);
                 }
