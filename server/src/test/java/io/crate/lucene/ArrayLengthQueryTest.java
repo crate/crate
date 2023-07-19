@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
@@ -38,6 +39,7 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
@@ -231,6 +233,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             if (type.storageSupport() == null) {
                 continue;
             }
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             Object val2 = dataGenerator.get();
@@ -241,13 +246,23 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
+            String createTable = String.format(
+                Locale.ENGLISH,
+                """
+                create table "t_%s" (
+                    xs array(%s)
+                )
+                """,
+                type.getName(),
+                type.getTypeSignature().toString()
+            );
 
             try (QueryTester tester = new QueryTester.Builder(
                 createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+                createTable
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) > 4");
                 assertThat(result)

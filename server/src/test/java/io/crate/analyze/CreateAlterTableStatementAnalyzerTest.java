@@ -27,6 +27,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -84,6 +85,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -1735,5 +1737,21 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(columns).containsKeys(x);
         Reference xRef = columns.get(x);
         assertThat(xRef).isReference("x", new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
+    }
+
+
+    @Test
+    public void test_can_use_vector_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (x float_vector)");
+        assertThat(stmt.columns()).hasEntrySatisfying(
+            new ColumnIdent("x"), Asserts.isReference("x", FloatVectorType.INSTANCE)
+        );
+    }
+
+    @Test
+    public void test_cannot_use_arrays_of_float_vector() throws Exception {
+        assertThatThrownBy(() -> analyze("create table tbl (xs array(float_vector))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Arrays of float_vector are not supported");
     }
 }

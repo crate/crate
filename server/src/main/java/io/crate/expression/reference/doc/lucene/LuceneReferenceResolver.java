@@ -51,6 +51,7 @@ import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -193,6 +194,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new GeoPointColumnReference(fqn);
             case ArrayType.ID:
                 return DocCollectorExpression.create(toSourceLookup(ref));
+            case FloatVectorType.ID:
+                return new FloatVectorColumnReference(fqn);
             default:
                 throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }

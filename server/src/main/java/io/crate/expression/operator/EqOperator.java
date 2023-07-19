@@ -101,14 +101,18 @@ public final class EqOperator extends Operator<Object> {
 
     private final Signature signature;
     private final BoundSignature boundSignature;
+    private final DataType<Object> argType;
 
+    @SuppressWarnings("unchecked")
     private EqOperator(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.argType = (DataType<Object>) boundSignature.argTypes().get(0);
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "number of args must be 2";
         Object left = args[0].value();
         if (left == null) {
@@ -118,7 +122,7 @@ public final class EqOperator extends Operator<Object> {
         if (right == null) {
             return null;
         }
-        return left.equals(right);
+        return argType.compare(left, right) == 0;
     }
 
     @Override
@@ -153,7 +157,7 @@ public final class EqOperator extends Operator<Object> {
                 function,
                 ref.column().fqn(),
                 ArrayType.unnest(dataType),
-                (Collection) value,
+                (Collection<?>) value,
                 context
             );
             default -> fromPrimitive(dataType, fqn, value);
