@@ -47,7 +47,19 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed a ``NullPointerException` which was thrown, instead of using default
+- Fixed a ``NullPointerException`` which could happen if using a cross join on a
+  sub-query, where the sub-query was executed using a ``Fetch`` operator. An
+  example query::
+
+    SELECT
+      *
+    FROM
+      (SELECT a FROM tbl1 ORDER BY b DESC LIMIT 1) i,
+      tbl2
+    WHERE
+      c >= 50;
+
+- Fixed a ``NullPointerException`` which was thrown, instead of using default
   ``no compression`` behavior, when
   :ref:`compression parameter<sql-copy-to-compression>` of
   :ref:`COPY TO<sql-copy-to>` statement is set to ``null``.
