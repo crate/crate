@@ -166,7 +166,10 @@ public final class FetchRows {
             } else {
                 int readerId = FetchId.decodeReaderId(fetchId);
                 int docId = FetchId.decodeDocId(fetchId);
-                fetchedRow.cells(getReaderBucket.apply(readerId).get(docId));
+                ReaderBucket readerBucket = getReaderBucket.apply(readerId);
+                Object[] cells = readerBucket.get(docId);
+                assert cells != null : "Must have cells in readerBucket docId=" + docId + ", readerId=" + readerId;
+                fetchedRow.cells(cells);
             }
         }
         inputRow.cells(incomingCells);

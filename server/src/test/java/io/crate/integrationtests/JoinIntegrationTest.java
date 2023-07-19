@@ -1477,4 +1477,28 @@ public class JoinIntegrationTest extends IntegTestCase {
             "2| 2| 2",
             "3| 3| 3");
     }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_cross_join_on_top_of_fetch() throws Exception {
+        execute("create table tt1 (a int, b int)");
+        execute("create table tt2 (a int, b int, c int)");
+        execute("insert into tt1 (a, b) SELECT a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("insert into tt2 (a, b, c) SELECT a, a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("refresh table tt1, tt2");
+        execute("analyze");
+
+        String stmt = "SELECT * FROM tt2, (select a from tt1 order by b desc limit 1) i WHERE c >= 50";
+        assertThat(execute("explain " + stmt)).hasRows(
+            "NestedLoopJoin[CROSS]",
+            "  ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)]",
+            "  └ Rename[a] AS i",
+            "    └ Eval[a]",
+            "      └ Fetch[a, b]",
+            "        └ Limit[1::bigint;0]",
+            "          └ OrderBy[b DESC]",
+            "            └ Collect[doc.tt1 | [_fetchid, b] | true]"
+        );
+        assertThat(execute(stmt)).hasRowCount(51);
+    }
 }
