@@ -82,6 +82,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
@@ -349,6 +350,10 @@ public class DocIndexMetadata {
                     Integer length = (Integer) columnProperties.get("length");
                     assert length != null : "Length is required for bit string type";
                     return new BitStringType(length);
+
+                case FloatVectorType.NAME:
+                    Integer dimensions = (Integer) columnProperties.get("dimensions");
+                    return new FloatVectorType(dimensions);
 
                 default:
                     type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
