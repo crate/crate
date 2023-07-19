@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1496,5 +1497,31 @@ public class JoinIntegrationTest extends IntegTestCase {
             "1| 1| 1",
             "2| 2| 2",
             "3| 3| 3");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(value = 0)
+    public void test_cross_join_on_top_of_fetch() throws Exception {
+        execute("create table tt1 (a int, b int)");
+        execute("create table tt2 (a int, b int, c int)");
+        execute("insert into tt1 (a, b) SELECT a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("insert into tt2 (a, b, c) SELECT a, a, a FROM generate_series(1, 100, 1) as g (a)");
+        execute("refresh table tt1, tt2");
+        execute("analyze");
+
+        String stmt = "SELECT * FROM (select a from tt1 order by b desc limit 1) i, tt2 WHERE c >= 50";
+        assertThat(execute("explain " + stmt)).hasRows(
+            "Eval[a, a, b, c] (rows=33)",
+            "  └ NestedLoopJoin[CROSS] (rows=33)",
+            "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)] (rows=33)",
+            "    └ Rename[a] AS i (rows=1)",
+            "      └ Eval[a] (rows=1)",
+            "        └ Fetch[a, b] (rows=1)",
+            "          └ Limit[1::bigint;0] (rows=1)",
+            "            └ OrderBy[b DESC] (rows=100)",
+            "              └ Collect[doc.tt1 | [_fetchid, b] | true] (rows=100)"
+        );
+        assertThat(execute(stmt)).hasRowCount(51);
     }
 }
