@@ -37,6 +37,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
@@ -93,6 +94,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
+        .put(FloatVectorType.INSTANCE, PGArray.FLOAT4_ARRAY)
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

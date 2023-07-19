@@ -38,6 +38,7 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 
 public class EqOperatorTest extends ScalarTestCase {
 
@@ -110,6 +111,9 @@ public class EqOperatorTest extends ScalarTestCase {
     @Test
     public void test_array_equals_empty_array_on_all_types() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             // Universal values for all types, '=[]' should match 1 row for all types.
             // Also covers cases when we need to add extra generic filter to differentiate between null and empty array.
             Object[] values = new Object[] {List.of(), null};

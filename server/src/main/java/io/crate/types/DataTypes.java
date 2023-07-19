@@ -175,7 +175,8 @@ public final class DataTypes {
             entry(OidVectorType.ID, in -> OIDVECTOR),
             entry(DateType.ID, in -> DATE),
             entry(BitStringType.ID, BitStringType::new),
-            entry(JsonType.ID, in -> JsonType.INSTANCE)
+            entry(JsonType.ID, in -> JsonType.INSTANCE),
+            entry(FloatVectorType.ID, FloatVectorType::new)
         )
     );
 
@@ -428,7 +429,8 @@ public final class DataTypes {
         entry(DATE.getName(), DATE),
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
-        entry("decimal", NUMERIC)
+        entry("decimal", NUMERIC),
+        entry(FloatVectorType.INSTANCE.getName(), FloatVectorType.INSTANCE)
     );
 
     public static DataType<?> ofName(String typeName) {
@@ -453,6 +455,7 @@ public final class DataTypes {
                 case StringType.ID -> StringType.of(parameters);
                 case CharacterType.ID -> CharacterType.of(parameters);
                 case NumericType.ID -> NumericType.of(parameters);
+                case FloatVectorType.ID -> new FloatVectorType(parameters.get(0));
                 default -> throw new IllegalArgumentException(
                     "The '" + typeName + "' type doesn't support type parameters.");
             };
@@ -483,7 +486,8 @@ public final class DataTypes {
         entry("geo_shape", DataTypes.GEO_SHAPE),
         entry("object", UNTYPED_OBJECT),
         entry("nested", UNTYPED_OBJECT),
-        entry("interval", DataTypes.INTERVAL)
+        entry("interval", DataTypes.INTERVAL),
+        entry(FloatVectorType.INSTANCE.getName(), FloatVectorType.INSTANCE)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
@@ -503,7 +507,8 @@ public final class DataTypes {
         entry(GEO_SHAPE.id(), "geo_shape"),
         entry(GEO_POINT.id(), "geo_point"),
         entry(INTERVAL.id(), "interval"),
-        entry(BitStringType.ID, "bit")
+        entry(BitStringType.ID, "bit"),
+        entry(FloatVectorType.ID, FloatVectorType.INSTANCE.getName())
     );
 
     @Nullable

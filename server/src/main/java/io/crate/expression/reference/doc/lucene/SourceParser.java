@@ -21,6 +21,9 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
+import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -30,14 +33,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -50,6 +52,7 @@ import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -57,9 +60,6 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-
-import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
-import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
 
 public final class SourceParser {
 
@@ -118,7 +118,7 @@ public final class SourceParser {
     private static Object parseArray(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns) throws IOException {
-        if (type instanceof GeoPointType) {
+        if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
             ArrayList<Object> values = new ArrayList<>();
@@ -157,9 +157,12 @@ public final class SourceParser {
                 var required = requiredColumns.get(fieldName);
                 if (required == null && !includeUnknown) {
                     parser.skipChildren();
-                } else if (token == START_ARRAY &&
-                           required instanceof DataType<?> && !(required instanceof ArrayType<?>) &&
-                           !(required instanceof GeoPointType) && !(required instanceof GeoShapeType)) {
+                } else if (token == START_ARRAY
+                        && required instanceof DataType<?>
+                        && !(required instanceof ArrayType<?>)
+                        && !(required instanceof GeoPointType)
+                        && !(required instanceof FloatVectorType)
+                        && !(required instanceof GeoShapeType)) {
                     // due to a bug: https://github.com/crate/crate/issues/13990
                     parser.skipChildren();
                     values.put(fieldName, null);
