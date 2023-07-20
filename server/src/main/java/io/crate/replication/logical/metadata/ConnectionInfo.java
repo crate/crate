@@ -21,18 +21,6 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.exceptions.InvalidArgumentException;
-import io.crate.types.DataTypes;
-import io.crate.user.User;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.RemoteCluster;
-import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +30,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.RemoteCluster;
+import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
+
+import io.crate.exceptions.InvalidArgumentException;
+import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 
 public class ConnectionInfo implements Writeable {
@@ -126,11 +128,16 @@ public class ConnectionInfo implements Writeable {
         urlServer = urlServer.substring("crate://".length());
 
         int slash = urlServer.indexOf('/');
-        if (slash != -1 && slash != urlServer.length()) {
-            throw new InvalidArgumentException(
-                String.format(Locale.ENGLISH,
-                              "Database argument is not supported inside the connection string: %s", url)
-            );
+        if (slash != -1) {
+            if (slash != urlServer.length() - 1) {
+                throw new InvalidArgumentException(
+                    String.format(Locale.ENGLISH,
+                                  "Database argument \"%s\" is not supported inside the connection string: %s",
+                                  urlServer.substring(slash + 1),
+                                  url)
+                );
+            }
+            urlServer = urlServer.substring(0, slash);
         }
         slash = urlServer.length();
 
