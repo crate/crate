@@ -47,22 +47,32 @@ public class ConnectionInfoTest extends ESTestCase {
     }
 
     @Test
+    public void test_db_not_allowed() {
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate:///customdb"))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("Database argument \"customdb\" is not supported inside the connection string: crate:///customdb");
+        assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://host1:123,host2:456/customdb"))
+            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("Database argument \"customdb\" is not supported inside the connection string: crate://host1:123,host2:456/customdb");
+    }
+
+    @Test
     public void test_simple_url() {
-        var connInfo = ConnectionInfo.fromURL("crate://example.com:1234");
+        var connInfo = ConnectionInfo.fromURL("crate://example.com:1234" + (randomBoolean() ? "/" : ""));
         assertThat(connInfo.hosts()).containsExactly("example.com:1234");
         assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
     public void test_url_without_host() {
-        var connInfo = ConnectionInfo.fromURL("crate://");
+        var connInfo = ConnectionInfo.fromURL("crate://" + (randomBoolean() ? "/" : ""));
         assertThat(connInfo.hosts()).containsExactly(":4300");
         assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
 
     @Test
     public void test_url_without_port() {
-        var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123");
+        var connInfo = ConnectionInfo.fromURL("crate://123.123.123.123" + (randomBoolean() ? "/" : ""));
         assertThat(connInfo.hosts()).containsExactly("123.123.123.123:4300");
         assertThat(connInfo.settings()).isEqualTo(Settings.EMPTY);
     }
@@ -97,7 +107,8 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_safe_connection_string() {
-        var connInfoSniff = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123?" +
+        var connInfoSniff = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123" +
+            (randomBoolean() ? "/?" : "?") +
             "user=my_user&password=1234&" +
             "sslmode=disable"       // <- sslMode is ignored on SNIFF mode
         );
