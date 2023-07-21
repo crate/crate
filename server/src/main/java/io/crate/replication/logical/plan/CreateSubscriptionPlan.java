@@ -30,7 +30,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.InvalidArgumentException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -39,6 +38,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.CreateSubscriptionRequest;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.types.DataTypes;
 
@@ -75,12 +75,13 @@ public class CreateSubscriptionPlan implements Plan {
 
         var subscribingUser = connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey());
         if (subscribingUser == null || subscribingUser.isEmpty()) {
-            throw new InvalidArgumentException(
+            throw new CreateSubscriptionException(
                 String.format(Locale.ENGLISH, "Setting '%s' must be provided on CREATE SUBSCRIPTION", ConnectionInfo.USERNAME.getKey())
             );
         }
-        for (var setting : settings.names()) {
-            throw new InvalidArgumentException(
+        if (settings.names().isEmpty() == false) {
+            var setting = settings.names().iterator().next();
+            throw new CreateSubscriptionException(
                 String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
             );
         }
@@ -101,6 +102,6 @@ public class CreateSubscriptionPlan implements Plan {
         if (uri instanceof String str) {
             return str;
         }
-        throw new IllegalArgumentException("fileUri must be of type STRING. Got " + DataTypes.guessType(uri));
+        throw new CreateSubscriptionException("fileUri must be of type STRING. Got " + DataTypes.guessType(uri));
     }
 }
