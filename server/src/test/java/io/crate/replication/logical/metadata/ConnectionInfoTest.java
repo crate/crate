@@ -28,32 +28,32 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidArgumentException;
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 
 public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_url_has_valid_prefix() {
         assertThatThrownBy(() -> ConnectionInfo.fromURL("postgres:"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("The connection string must start with \"crate://\" but was: \"postgres:\"");
     }
 
     @Test
     public void test_url_is_not_empty() {
         assertThatThrownBy(() -> ConnectionInfo.fromURL(""))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("The connection string must start with \"crate://\" but was: \"\"");
     }
 
     @Test
     public void test_db_not_allowed() {
         assertThatThrownBy(() -> ConnectionInfo.fromURL("crate:///customdb"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
-            .hasMessageContaining("Database argument \"customdb\" is not supported inside the connection string: crate:///customdb");
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining("Database name \"customdb\" is not supported inside the connection string: crate:///customdb");
         assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://host1:123,host2:456/customdb"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
-            .hasMessageContaining("Database argument \"customdb\" is not supported inside the connection string: crate://host1:123,host2:456/customdb");
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining("Database name \"customdb\" is not supported inside the connection string: crate://host1:123,host2:456/customdb");
     }
 
     @Test
@@ -131,18 +131,18 @@ public class ConnectionInfoTest extends ESTestCase {
     @Test
     public void test_invalid_argument() {
         assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://?foo=bar"))
-            .isExactlyInstanceOf(InvalidArgumentException.class)
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Connection string argument 'foo' is not supported");
     }
 
     @Test
     public void test_setting_invalid_mode_raises_error_including_valid_options() {
         assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com?mode=foo"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
 
         assertThatThrownBy(() -> ConnectionInfo.fromURL("crate://example.com:5432?mode=foo"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Invalid connection mode `foo`, supported modes are: `sniff`, `pg_tunnel`");
     }
 }
