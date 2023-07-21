@@ -47,6 +47,10 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that resulted in hiding errors with the connection URL of
+  :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`, when executed from a
+  non-superuser but with `AL` privileges.
+
 - Allowed trailing ``/`` without a database name for connection URL of
   :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`.
 
