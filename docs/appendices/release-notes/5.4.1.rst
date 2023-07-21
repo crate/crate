@@ -87,6 +87,9 @@ Fixes
 - Fixed an issue which caused ``INSERT INTO`` statements to skip generated
   expression validation for partitioned columns.
 
+- Fixed an issue which caused arrays in ``IGNORED`` objects to be converted to
+  nulls.
+
 - Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
   leave behind empty partitions if ``NULL`` or ``CHECK`` constraint on
   partitioned by column failed.
