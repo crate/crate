@@ -22,10 +22,16 @@
 package io.crate.replication.logical.plan;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
+import org.mockito.Answers;
 
-import io.crate.planner.PlannerContext;
+import io.crate.data.Row;
+import io.crate.data.testing.TestingRowConsumer;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -36,9 +42,29 @@ public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest
     public void test_create_subscription_plan_checks_subscribing_user() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         CreateSubscriptionPlan plan = e.plan("CREATE SUBSCRIPTION sub CONNECTION 'crate://example.com' publication pub1");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-        assertThatThrownBy(() -> plan.executeOrFail(null, plannerContext, null, null, null))
+        assertThatThrownBy(() -> executePlan(e, plan))
             .isExactlyInstanceOf(CreateSubscriptionException.class)
             .hasMessageContaining("Setting 'user' must be provided on CREATE SUBSCRIPTION");
+    }
+
+    @Test
+    public void test_create_subscription_with_settings_not_supported() {
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        CreateSubscriptionPlan plan = e.plan("CREATE SUBSCRIPTION sub CONNECTION 'crate://example.com?user=crate' publication pub1 WITH(enabled=true)");
+        assertThatThrownBy(() -> executePlan(e, plan))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining("Settings with 'WITH' clause are not supported for CREATE SUBSCRIPTION");
+    }
+
+    private void executePlan(SQLExecutor executor, Plan plan) throws Exception {
+        TestingRowConsumer consumer = new TestingRowConsumer(true);
+        plan.execute(
+            mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
+            executor.getPlannerContext(clusterService.state()),
+            consumer,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        consumer.getResult();
     }
 }
