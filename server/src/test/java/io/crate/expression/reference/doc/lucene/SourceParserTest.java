@@ -41,6 +41,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 public class SourceParserTest extends ESTestCase {
 
@@ -276,5 +277,25 @@ public class SourceParserTest extends ESTestCase {
         var expected = new HashMap<String, Object>();
         expected.put("x", null);
         assertThat(result).isEqualTo(expected);
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/14451
+     */
+    @Test
+    public void test_nested_arrays_from_ignored_objects() {
+        SourceParser sourceParser = new SourceParser();
+        sourceParser.register(new ColumnIdent("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
+        var result = sourceParser.parse(
+            new BytesArray(
+                """
+                    {
+                        "obj" : {
+                            "x": [[1,2],[3,4]]
+                        }
+                    }
+                    """
+            ));
+        assertThat(result).isEqualTo(Map.of("obj", Map.of("x", List.of(List.of("1", "2"), List.of("3", "4")))));
     }
 }

@@ -57,6 +57,7 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import io.crate.types.UndefinedType;
 
 import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
@@ -157,9 +158,12 @@ public final class SourceParser {
                 var required = requiredColumns.get(fieldName);
                 if (required == null && !includeUnknown) {
                     parser.skipChildren();
-                } else if (token == START_ARRAY &&
-                           required instanceof DataType<?> && !(required instanceof ArrayType<?>) &&
-                           !(required instanceof GeoPointType) && !(required instanceof GeoShapeType)) {
+                } else if (token == START_ARRAY
+                           && required instanceof DataType<?>
+                           && !(required instanceof ArrayType<?>)
+                           && !(required instanceof GeoPointType)
+                           && !(required instanceof GeoShapeType)
+                           && !(required instanceof UndefinedType)) {
                     // due to a bug: https://github.com/crate/crate/issues/13990
                     parser.skipChildren();
                     values.put(fieldName, null);
