@@ -80,11 +80,9 @@ public class CreateSubscriptionPlan implements Plan {
                 String.format(Locale.ENGLISH, "Setting '%s' must be provided on CREATE SUBSCRIPTION", ConnectionInfo.USERNAME.getKey())
             );
         }
+
         if (settings.names().isEmpty() == false) {
-            var setting = settings.names().iterator().next();
-            throw new CreateSubscriptionException(
-                String.format(Locale.ENGLISH, "Setting '%s' is not support on CREATE SUBSCRIPTION", setting)
-            );
+            throw new CreateSubscriptionException("Settings with 'WITH' clause are not supported for CREATE SUBSCRIPTION");
         }
 
         var request = new CreateSubscriptionRequest(
