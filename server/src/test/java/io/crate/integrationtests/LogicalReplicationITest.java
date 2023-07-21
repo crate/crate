@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -30,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,6 +43,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -128,6 +129,26 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageContaining(
                     "User 'subscription_owner' cannot be dropped. Subscription 'sub1' needs to be dropped first.");
+    }
+
+    @Test
+    public void test_privileges_dont_hide_url_exception_for_non_superuser() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        String subscriptionOwner = "subscription_owner";
+        executeOnSubscriber("CREATE USER " + subscriptionOwner);
+        executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
+
+        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
+        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        var stmt = String.format(Locale.ENGLISH, "CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost:12345/mydb?user=%s&mode=pg_tunnel'" +
+                                                 " publication pub1", user.name());
+        assertThatThrownBy(() -> subscriberSqlExecutor.executeAs(stmt, user))
+            .isExactlyInstanceOf(CreateSubscriptionException.class)
+            .hasMessageContaining(
+                "Database name \"mydb\" is not supported inside the connection string: " +
+                "crate://localhost:12345/mydb?user=subscription_owner&mode=pg_tunnel");
     }
 
     @Test
