@@ -50,6 +50,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -208,8 +209,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 CopyFromParserProperties.DEFAULT,
                 JSON,
                 Settings.EMPTY,
-                THREAD_POOL.scheduler()
-            ) {
+                THREAD_POOL.scheduler(),
+                Version.CURRENT) {
 
                 @Override
                 BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
@@ -267,8 +268,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 new CopyFromParserProperties(true, true, ',', 0),
                 CSV,
                 Settings.EMPTY,
-                THREAD_POOL.scheduler()
-            ) {
+                THREAD_POOL.scheduler(),
+                Version.CURRENT) {
                 int retry = 0;
 
                 @Override
@@ -329,8 +330,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 new CopyFromParserProperties(true, false, ',', skipNumLines),
                 CSV,
                 Settings.EMPTY,
-                THREAD_POOL.scheduler()
-            ) {
+                THREAD_POOL.scheduler(),
+                Version.CURRENT) {
                 int retry = 0;
                 final List<String> linesToThrow = List.of("3", "2", "3", "5", "2");
                 int linesToThrowIndex = 0;
@@ -378,8 +379,8 @@ public class FileReadingIteratorTest extends ESTestCase {
             null,
             CSV,
             Settings.EMPTY,
-            scheduler
-        );
+            scheduler,
+            Version.CURRENT);
         ArgumentCaptor<Long> delays = ArgumentCaptor.forClass(Long.class);
 
         for (int i = 0; i < MAX_SOCKET_TIMEOUT_RETRIES; i++) {
@@ -423,8 +424,8 @@ public class FileReadingIteratorTest extends ESTestCase {
             new CopyFromParserProperties(true, false, ',', 0),
             CSV,
             Settings.EMPTY,
-            THREAD_POOL.scheduler()
-        ) {
+            THREAD_POOL.scheduler(),
+            Version.CURRENT) {
             private boolean isThrownOnce = false;
             final int lineToThrow = 2;
 
@@ -489,6 +490,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             format,
             Settings.EMPTY,
-            THREAD_POOL.scheduler());
+            THREAD_POOL.scheduler(),
+            Version.CURRENT);
     }
 }

@@ -38,6 +38,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import io.crate.analyze.CopyFromParserProperties;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
@@ -77,6 +78,8 @@ import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.FileIndexWriterProjection;
+import io.crate.execution.dsl.projection.FileIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
@@ -106,6 +109,7 @@ import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
+import io.crate.execution.engine.indexing.FileIndexWriterProjector;
 import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
@@ -433,6 +437,67 @@ public class ProjectionToProjectorVisitor
             );
         }
         return objectMap;
+    }
+
+    @Override
+    public Projector visitFileIndexWriterProjection(FileIndexWriterProjection projection, Context context) {
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
+        List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
+        for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
+            partitionedByInputs.add(ctx.add(partitionedBySymbol));
+        }
+        Input<?> sourceInput = ctx.add(projection.rawSource());
+//        Supplier<String> indexNameResolver =
+//            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
+        ClusterState state = clusterService.state();
+        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
+            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+
+        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+
+        UpsertResultContext upsertResultContext;
+//        if (projection instanceof FileIndexWriterReturnSummaryProjection) {
+//            upsertResultContext = UpsertResultContext.forReturnSummary(
+//                context.txnCtx,
+//                (SourceIndexWriterReturnSummaryProjection) projection,
+//                clusterService.localNode(),
+//                inputFactory);
+//        } else {
+            upsertResultContext = UpsertResultContext.forRowCount();
+    //    }
+        return new FileIndexWriterProjector(
+            clusterService,
+            nodeJobsCounter,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            context.ramAccounting,
+            threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
+            context.txnCtx,
+            nodeCtx,
+            state.metadata().settings(),
+            targetTableNumShards,
+            targetTableNumReplicas,
+            elasticsearchClient,
+            projection.inputFormat(),
+            projection.parserProperties(),
+            projection.targetColumns(),
+           // indexNameResolver,
+            projection.rawSourceReference(),
+            projection.primaryKeys(),
+            projection.clusteredBy(),
+            projection.clusteredByIdent(),
+            sourceInput,
+            ctx.expressions(),
+            projection.bulkActions(),
+            projection.excludes(),
+            projection.autoCreateIndices(),
+            projection.overwriteDuplicates(),
+            context.jobId,
+            upsertResultContext,
+            projection.failFast(),
+            projection.validation()
+        );
     }
 
     @Override

@@ -167,6 +167,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             String sourceUri = sourceUriInput.value();
             Long lineNumber = lineNumberInput.value();
 
+//            PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
+//            Object[] partedColValues = new Object[partitionedByColumns.size()];
+//            for (int i = 0; i < partitionedByColumns.size(); i++) {
+//                Reference partedCol = partitionedByColumns.get(i);
+//                partedColValues[i] = partedCol.valueType().implicitCast(partitionName.values().get(i));
+//            }
+
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
             if (shardLocation == null) {

@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
@@ -57,6 +58,8 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
+import io.crate.execution.dsl.projection.FileIndexWriterProjection;
+//import io.crate.execution.dsl.projection.FileIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
@@ -216,98 +219,157 @@ public final class CopyFromPlan implements Plan {
             partitionValues = PartitionName.decodeIdent(partitionIdent);
         }
 
+        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
+        boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
+        List<Symbol> toCollect = new ArrayList<>();
+        Projection projection;
         // need to exclude _id columns; they're auto generated and won't be available in the files being imported
         ColumnIdent clusteredBy = table.clusteredBy();
         if (DocSysColumns.ID.equals(clusteredBy)) {
             clusteredBy = null;
         }
-        List<Reference> primaryKeyRefs = table.primaryKey().stream()
-            .filter(r -> !r.equals(DocSysColumns.ID))
-            .map(table::getReference)
-            .collect(Collectors.toList());
-
-        List<Symbol> toCollect = getSymbolsRequiredForShardIdCalc(
-            primaryKeyRefs,
-            table.partitionedByColumns(),
-            clusteredBy == null ? null : table.getReference(clusteredBy)
-        );
-        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
-        final int rawOrDocIdx = toCollect.size();
-        toCollect.add(rawOrDoc);
-
-        String[] excludes = partitionedByNames.size() > 0
-            ? partitionedByNames.toArray(new String[0]) : null;
-
-        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
-        Symbol clusteredByInputCol = null;
-        if (clusteredBy != null) {
-            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
-        }
-
-        SourceIndexWriterProjection sourceIndexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
-        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
-        if (returnSummary || failFast) {
-            final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
-            toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
-            final InputColumn sourceUriFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
-            toCollect.add(SourceUriFailureExpression.getReferenceForRelation(table.ident()));
+        if (context.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_5_5_0)) {
+            // On or after 5.5 RAW means data "as is", CSV is not transformed to JSON.
+            // As a consequence, FileReadingIterator provides a Row only with general information: raw line, URI, line number and IO failure.
+            // Parsing failures of the RETURN SUMMARY cannot be collected at this stage as line parsing is not done yet.
+            Reference raw = table.getReference(DocSysColumns.RAW);
+            toCollect.add(raw);
 
-            final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
-            toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
+            if (returnSummary || failFast) {
+                final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+                toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
-            final InputColumn sourceParsingFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
-            toCollect.add(SourceParsingFailureExpression.getReferenceForRelation(table.ident()));
+                final InputColumn sourceUriFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+                toCollect.add(SourceUriFailureExpression.getReferenceForRelation(table.ident()));
 
-            if (returnSummary) {
-                List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
-                projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+                final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
+                toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
+
+                if (returnSummary) {
+                    List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
+                    projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+                }
+
+                projection = null;
+//                new FileIndexWriterReturnSummaryProjection(
+//                    table.ident(),
+//                    partitionIdent,
+//                    raw,
+//                    new InputColumn(0, raw.valueType()),
+//                    table.partitionedByColumns(),
+//                    table.primaryKey(),
+//                    clusteredBy,
+//                    boundedCopyFrom.settings(),
+//                    projectionOutputs,
+//                    table.isPartitioned(), // autoCreateIndices
+//                    sourceUriSymbol,
+//                    sourceUriFailureSymbol,
+//                    lineNumberSymbol
+//                );
+            } else {
+                projection = new FileIndexWriterProjection(
+                    table.ident(),
+                    partitionIdent,
+                    raw,
+                    new InputColumn(0, raw.valueType()),
+                    table.partitionedByColumns(),
+                    table.primaryKey(),
+                    clusteredBy,
+                    boundedCopyFrom.settings(),
+                    projectionOutputs,
+                    table.isPartitioned(), // autoCreateIndices
+                    boundedCopyFrom.inputFormat()
+                );
+            }
+        } else {
+            // Pre 5.5 handling (keep it for rolling upgrades). To be removed in 5.6.0.
+            List<Reference> primaryKeyRefs = table.primaryKey().stream()
+                .filter(r -> !r.equals(DocSysColumns.ID))
+                .map(table::getReference)
+                .collect(Collectors.toList());
+
+            toCollect = getSymbolsRequiredForShardIdCalc(
+                primaryKeyRefs,
+                table.partitionedByColumns(),
+                clusteredBy == null ? null : table.getReference(clusteredBy)
+            );
+            Reference rawOrDoc = rawOrDoc(table, partitionIdent);
+            final int rawOrDocIdx = toCollect.size();
+            toCollect.add(rawOrDoc);
+
+            String[] excludes = partitionedByNames.size() > 0
+                ? partitionedByNames.toArray(new String[0]) : null;
+
+            InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
+            Symbol clusteredByInputCol = null;
+            if (clusteredBy != null) {
+                clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
             }
 
-            sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
-                table.ident(),
-                partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
-                table.primaryKey(),
-                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
-                clusteredBy,
-                boundedCopyFrom.settings(),
-                excludes,
-                InputColumns.create(primaryKeyRefs, sourceSymbols),
-                clusteredByInputCol,
-                projectionOutputs,
-                table.isPartitioned(), // autoCreateIndices
-                sourceUriSymbol,
-                sourceUriFailureSymbol,
-                sourceParsingFailureSymbol,
-                lineNumberSymbol
-            );
-        } else {
-            sourceIndexWriterProjection = new SourceIndexWriterProjection(
-                table.ident(),
-                partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
-                table.primaryKey(),
-                InputColumns.create(table.partitionedByColumns(), sourceSymbols),
-                clusteredBy,
-                boundedCopyFrom.settings(),
-                excludes,
-                InputColumns.create(primaryKeyRefs, sourceSymbols),
-                clusteredByInputCol,
-                projectionOutputs,
-                table.isPartitioned() // autoCreateIndices
-            );
-        }
+            if (returnSummary || failFast) {
+                final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+                toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
-        // if there are partitionValues (we've had a PARTITION clause in the statement)
-        // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
-        // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
-        if (partitionValues != null) {
-            rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
+                final InputColumn sourceUriFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+                toCollect.add(SourceUriFailureExpression.getReferenceForRelation(table.ident()));
+
+                final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
+                toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
+
+                final InputColumn sourceParsingFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
+                toCollect.add(SourceParsingFailureExpression.getReferenceForRelation(table.ident()));
+
+                if (returnSummary) {
+                    List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
+                    projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
+                }
+
+                projection = new SourceIndexWriterReturnSummaryProjection(
+                    table.ident(),
+                    partitionIdent,
+                    table.getReference(DocSysColumns.RAW),
+                    new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                    table.primaryKey(),
+                    InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                    clusteredBy,
+                    boundedCopyFrom.settings(),
+                    excludes,
+                    InputColumns.create(primaryKeyRefs, sourceSymbols),
+                    clusteredByInputCol,
+                    projectionOutputs,
+                    table.isPartitioned(), // autoCreateIndices
+                    sourceUriSymbol,
+                    sourceUriFailureSymbol,
+                    sourceParsingFailureSymbol,
+                    lineNumberSymbol
+                );
+            } else {
+                projection = new SourceIndexWriterProjection(
+                    table.ident(),
+                    partitionIdent,
+                    table.getReference(DocSysColumns.RAW),
+                    new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                    table.primaryKey(),
+                    InputColumns.create(table.partitionedByColumns(), sourceSymbols),
+                    clusteredBy,
+                    boundedCopyFrom.settings(),
+                    excludes,
+                    InputColumns.create(primaryKeyRefs, sourceSymbols),
+                    clusteredByInputCol,
+                    projectionOutputs,
+                    table.isPartitioned() // autoCreateIndices
+                );
+            }
+
+            // if there are partitionValues (we've had a PARTITION clause in the statement)
+            // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
+            // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
+            if (partitionValues != null) {
+                rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
+            }
+
         }
 
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
@@ -331,7 +393,7 @@ public final class CopyFromPlan implements Plan {
 
         Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, -1, null);
         // add the projection to the plan to ensure that the outputs are correctly set to the projection outputs
-        collect.addProjection(sourceIndexWriterProjection);
+        collect.addProjection(projection);
 
         List<Projection> handlerProjections;
         if (returnSummary) {

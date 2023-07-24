@@ -98,7 +98,8 @@ public class FileCollectSource implements CollectSource {
                 fileUriCollectPhase.parserProperties(),
                 fileUriCollectPhase.inputFormat(),
                 fileUriCollectPhase.withClauseOptions(),
-                threadPool.scheduler()
+                threadPool.scheduler(),
+                clusterService.state().nodes().getMinNodeVersion()
             ));
     }
 

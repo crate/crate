@@ -34,7 +34,7 @@ public final class FileLineReferenceResolver {
     // otherwise multiple collectors would share the same state.
     private static final Map<String, Supplier<LineCollectorExpression<?>>> EXPRESSION_BUILDER =
         Map.of(
-            SourceLineExpression.COLUMN_NAME, SourceLineExpression::new,
+            RawLineExpression.COLUMN_NAME, RawLineExpression::new,
             SourceAsMapLineExpression.COLUMN_NAME, SourceAsMapLineExpression::new,
             SourceUriExpression.COLUMN_NAME, SourceUriExpression::new,
             SourceUriFailureExpression.COLUMN_NAME, SourceUriFailureExpression::new,

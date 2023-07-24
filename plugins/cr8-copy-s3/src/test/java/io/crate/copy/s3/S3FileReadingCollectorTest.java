@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -76,7 +77,7 @@ import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.expression.reference.file.SourceLineExpression;
+import io.crate.expression.reference.file.RawLineExpression;
 import io.crate.expression.reference.file.SourceUriFailureExpression;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -208,7 +209,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);
-        Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
+        Reference raw = createReference(RawLineExpression.COLUMN_NAME, DataTypes.STRING);
         inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
@@ -247,7 +248,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
-            THREAD_POOL.scheduler());
+            THREAD_POOL.scheduler(),
+            Version.CURRENT);
     }
 
     private record WriteBufferAnswer(byte[] bytes) implements Answer<Integer> {

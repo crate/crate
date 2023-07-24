@@ -24,14 +24,14 @@ package io.crate.expression.reference.file;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.doc.DocSysColumns;
 
-public class SourceLineExpression extends LineCollectorExpression<String> {
+public class RawLineExpression extends LineCollectorExpression<String> {
 
     public static final String COLUMN_NAME = DocSysColumns.RAW.name();
     private LineContext context;
 
     @Override
     public String value() {
-        return context.sourceAsString();
+        return context.rawAsString();
     }
 
     @Override

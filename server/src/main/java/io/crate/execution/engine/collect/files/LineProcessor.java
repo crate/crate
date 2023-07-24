@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.files;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.expression.reference.file.LineContext;
+import org.elasticsearch.Version;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -54,11 +55,16 @@ public final class LineProcessor {
         lineParser.readFirstLine(currentUri, inputFormat, currentReader);
     }
 
-    public void process(String line) throws IOException {
+    public void process(String line, Version minNodeVersion) throws IOException {
         lineContext.incrementCurrentLineNumber();
         lineContext.resetCurrentParsingFailure(); // Reset prev failure if there is any.
-        byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
-        lineContext.rawSource(jsonByteArray);
+        if (minNodeVersion.onOrAfter(Version.V_5_5_0)) {
+            lineContext.rawLine(line);
+        } else {
+            // TODO: Remove parsing logic and and rawSource related logic in 5.6.0
+            byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
+            lineContext.rawSource(jsonByteArray);
+        }
     }
 
     /**
