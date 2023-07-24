@@ -237,5 +237,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         HasDatabasePrivilegeFunction.register(this);
         ParseURIFunction.register(this);
         ParseURLFunction.register(this);
+
+        KnnMatch.register(this);
     }
 }

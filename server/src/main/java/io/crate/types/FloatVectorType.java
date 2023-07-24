@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -51,6 +52,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     public static final int ID = 28;
     public static final String NAME = "float_vector";
     public static final FloatVectorType INSTANCE = new FloatVectorType(1);
+    public static final VectorSimilarityFunction SIMILARITY_FUNC = VectorSimilarityFunction.EUCLIDEAN;
 
     private static final EqQuery<float[]> EQ_QUERY = new EqQuery<float[]>() {
 
