@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.Asserts;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -113,6 +114,12 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
     public void testString() throws Exception {
         Object[][] data = new Object[][]{{"Youri"}, {"Ruben"}};
         assertThat(executeAggregation(DataTypes.STRING, data), is(oneOf(data[0][0], data[1][0])));
+    }
+
+    @Test
+    public void testIP() throws Exception {
+        Object[][] data = new Object[][]{{"127.0.0.1"}, {"192.168.0.1"}};
+        Asserts.assertThat(executeAggregation(DataTypes.IP, data)).isIn(data[0][0], data[1][0]);
     }
 
     @Test
