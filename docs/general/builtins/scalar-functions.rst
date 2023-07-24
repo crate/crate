@@ -4243,6 +4243,64 @@ Special functions
 =================
 
 
+.. _scalar_knn_match:
+
+
+``knn_match(float_vector, float_vector, int)``
+----------------------------------------------
+
+The ``knn_match`` function uses a k-nearest
+neighbour (kNN) search algorithm to find vectors that are similar
+to a query vector.
+
+The first argument is the column to search.
+The second argument is the query vector.
+The third argument is the number of nearest neighbours to search and return.
+
+``knn_match(search_vector, target, k)``
+
+This function must be used within a ``WHERE`` clause targeting a table to use it
+as a predicate that searches the whole dataset of a table.
+If used *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
+virtual table instead of a physical table, the search algorithm will only
+consider the current row, not the whole dataset.
+
+Similar to the :ref:`MATCH predicate <predicates_match>`, this function affects
+the :ref:`_score <sql_administration_system_column_score>` value.
+
+An example::
+
+
+    cr> CREATE TABLE IF NOT EXISTS doc.vectors (
+    ...    xs float_vector(2)
+    ...  );
+    CREATE OK, 1 row affected (... sec)
+
+    cr> INSERT INTO doc.vectors (xs)
+    ...   VALUES
+    ...   ([3.14, 8.17]),
+    ...   ([14.3, 19.4]);
+    INSERT OK, 2 rows affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE doc.vectors;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT xs, _score FROM doc.vectors
+    ... WHERE knn_match(xs, [3.14, 8], 2)
+    ... ORDER BY _score DESC;
+    +--------------+--------------+
+    | xs           |       _score |
+    +--------------+--------------+
+    | [3.14, 8.17] | 0.9719117    |
+    | [14.3, 19.4] | 0.0039138086 |
+    +--------------+--------------+
+    SELECT 2 rows in set (... sec)
+
+
 .. _scalar-ignore3vl:
 
 ``ignore3vl(boolean)``
