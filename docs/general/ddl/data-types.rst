@@ -124,6 +124,10 @@ CrateDB supports the following data types. Scroll down for more details.
 
             'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
 
+    * - ``float_vector(n)``
+      - A fixed length vector of floating point numbers
+      - ``[3.14, 42.21]``
+
 
 .. _data-types-ranges-widths:
 
@@ -230,6 +234,10 @@ are likely to be larger due to additional metadata.
       - variable
       - Each coordinate is stored as a ``DOUBLE PRECISION`` type.
       - A ``GEO_SHAPE`` column can store different kinds of `GeoJSON geometry objects`_.
+    * - ``FLOAT_VECTOR``
+      - variable
+      - Minimum length: 1. Maximum length: 2^31-1
+      - A vector of floating point numbers.
 
 
 .. rubric:: Footnotes
@@ -2915,6 +2923,64 @@ requires an intermediate cast:
     |                       1.0 |
     |                       2.0 |
     +---------------------------+
+
+
+.. _type-float_vector:
+
+``FLOAT_VECTOR``
+================
+
+A ``float_vector`` type allows to store dense vectors of float values of fixed
+length.
+
+It support :ref:`KNN_MATCH <scalar_knn_match>` for k-nearest neighbour search.
+This allows you to find vectors in a dataset which are similar to a query
+vector.
+
+The type can't be used as an element type of a regular array. ``float_vector``
+values are defined like float arrays.
+
+An example::
+
+    cr> CREATE TABLE my_vectors (
+    ...     xs FLOAT_VECTOR(2)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_vectors (xs) VALUES ([3.14, 27.34]);
+    INSERT OK, 1 row affected (... sec)
+
+
+Inserting a value with a different dimension than declared in ``CREATE TABLE``
+results in an error.
+
+::
+
+    cr> INSERT INTO my_vectors (xs) VALUES ([3.14, 27.34, 38.4]);
+    SQLParseException[The number of vector dimensions does not match the field type]
+
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_vectors;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT * FROM my_vectors;
+    +---------------+
+    | xs            |
+    +---------------+
+    | [3.14, 27.34] |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_vectors;
+    DROP OK, 1 row affected (... sec)
 
 
 .. _data-types-geo:

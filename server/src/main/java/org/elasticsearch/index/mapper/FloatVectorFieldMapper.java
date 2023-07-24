@@ -30,7 +30,6 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
-import org.apache.lucene.index.VectorSimilarityFunction;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
@@ -81,7 +80,7 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
             fieldType.setVectorAttributes(
                 dimensions,
                 VectorEncoding.FLOAT32,
-                VectorSimilarityFunction.EUCLIDEAN
+                FloatVectorType.SIMILARITY_FUNC
             );
             var mapper = new FloatVectorFieldMapper(
                 name,

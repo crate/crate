@@ -313,8 +313,10 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
-        return other.id() == UndefinedType.ID || other.id() == GeoPointType.ID ||
-               ((other instanceof ArrayType)
+        return other.id() == UndefinedType.ID
+            || other.id() == GeoPointType.ID
+            || other.id() == FloatVectorType.ID
+            || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
     }
 
