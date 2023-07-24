@@ -27,10 +27,14 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.search.DocValueFormat;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableObject;
@@ -168,6 +172,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case DoubleType.ID:
                 return new DoubleArbitraryDocValueAggregator(arg.column().fqn());
             case IpType.ID:
+                return new ArbitraryIPDocValueAggregator(arg.column().fqn());
             case StringType.ID:
                 return new ArbitraryBinaryDocValueAggregator<>(
                     arg.column().fqn(),
@@ -266,6 +271,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
     }
 
+
     private static class ArbitraryBinaryDocValueAggregator<T> implements DocValueAggregator<MutableObject> {
 
         private final String columnName;
@@ -294,6 +300,50 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
                     ramAccounting.addBytes(dataType.valueBytes(value));
+                    state.setValue(value);
+                }
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
+            if (state.hasValue()) {
+                return state.value();
+            } else {
+                return null;
+            }
+        }
+    }
+
+    private static class ArbitraryIPDocValueAggregator implements DocValueAggregator<MutableObject> {
+
+        private final String columnName;
+
+        private SortedSetDocValues values;
+
+        public ArbitraryIPDocValueAggregator(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+            return new MutableObject();
+        }
+
+        @Override
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = reader.reader().getSortedSetDocValues(columnName);
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                if (!state.hasValue()) {
+                    long ord = values.nextOrd();
+                    BytesRef encoded = values.lookupOrd(ord);
+                    String value = (String) DocValueFormat.IP.format(encoded);
+                    ramAccounting.addBytes(RamUsageEstimator.sizeOf(value));
                     state.setValue(value);
                 }
             }

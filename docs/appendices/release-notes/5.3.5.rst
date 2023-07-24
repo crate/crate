@@ -47,6 +47,9 @@ See the :ref:`version_5.3.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a ``Failed to validate IP`` error that occurred when using the
+  ``any_value`` aggregation on a column of type ``IP``.
+
 - Improved error message when passing settings with ``WITH`` clause on a
   :ref:`CREATE SUBSCRIPTION<sql-create-subscription>` statement, which is not
   currently supported.
