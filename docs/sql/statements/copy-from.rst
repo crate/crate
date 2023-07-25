@@ -635,7 +635,7 @@ inserted records.
 |                                       | ``errors`` column.                             |               |
 +---------------------------------------+------------------------------------------------+---------------+
 | ``errors``                            | Contains detailed information about all        | ``OBJECT``    |
-|                                       | errors.                                        |               |
+|                                       | errors. Limited to at most 25 error messages.  |               |
 +---------------------------------------+------------------------------------------------+---------------+
 | ``errors[ERROR_MSG]``                 | Contains information about a type of an error. | ``OBJECT``    |
 +---------------------------------------+------------------------------------------------+---------------+
