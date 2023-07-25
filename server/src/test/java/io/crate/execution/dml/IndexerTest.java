@@ -633,7 +633,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     DataTypes.GEO_POINT,
                     DataTypes.GEO_SHAPE,
                     new BitStringType(1),
-                    FloatVectorType.INSTANCE
+                    FloatVectorType.INSTANCE_ONE
                 ))
             .stream()
             .filter(t -> t.storageSupport() != null)
