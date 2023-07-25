@@ -39,9 +39,29 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         return this;
     }
 
-    public SQLResponseAssert hasRows(String ... rows) {
+    /**
+     * Like {@link #hasRows(String...)} but if a single row contains newlines, it is treated as multiple lines.
+     **/
+    public SQLResponseAssert hasLines(String ... lines) {
         String result = TestingHelpers.printedTable(actual.rows());
         String[] resultRows = result.split("\n");
+        assertThat(resultRows).containsExactly(lines);
+        return this;
+    }
+
+    /**
+     * Assert that the response contains the given rows
+     * <ul>
+     * <li>Use {@link #hasLines(String...)} to treat newlines in a single row as separate rows.</li>
+     * <li>Use {@link #hasRows(Object[]...)} for exact object matches instead of string formatting</li>
+     * </ul>
+     **/
+    public SQLResponseAssert hasRows(String ... rows) {
+        String[] resultRows = new String[actual.rows().length];
+        for (int i = 0; i < actual.rows().length; i++) {
+            Object[] row = actual.rows()[i];
+            resultRows[i] = TestingHelpers.printRow(row);
+        }
         assertThat(resultRows).containsExactly(rows);
         return this;
     }
@@ -58,6 +78,11 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
 
     public SQLResponseAssert hasColumns(String ... names) {
         assertThat(actual.cols()).containsExactly(names);
+        return this;
+    }
+
+    public SQLResponseAssert isEmpty() {
+        assertThat(actual.rows()).isEmpty();
         return this;
     }
 }

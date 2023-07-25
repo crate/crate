@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.util.Collections;
@@ -191,7 +192,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         // Clean up metadata that does not show up in information_schema any more
         execute("DROP VIEW t1_view1, t1_view2");

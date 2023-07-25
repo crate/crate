@@ -147,10 +147,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table bar (id long) partitioned by (id)");
         ensureYellow();
         execute("select * from foo f, bar b where f.id = b.id");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         execute("select * from foo f, bar b");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
     @Test
@@ -424,7 +424,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
         execute("refresh table doc.t");
         execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "Fetch[x, y, x, y]",
             "  └ Limit[3::bigint;0]",
             "    └ OrderBy[x ASC x ASC]",
@@ -1134,7 +1134,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             FROM sys.health h, sys.cluster c
             GROUP BY 1""";
         execute(stmt);
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
     @Test
@@ -1219,7 +1219,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "NestedLoopJoin[INNER | (id = id)]",
                 "  ├ NestedLoopJoin[INNER | (id = id)]",
                 "  │  ├ Collect[doc.t1 | [id, a] | true]",
@@ -1511,7 +1511,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("analyze");
 
         String stmt = "SELECT * FROM (select a from tt1 order by b desc limit 1) i, tt2 WHERE c >= 50";
-        assertThat(execute("explain (costs false) " + stmt)).hasRows(
+        assertThat(execute("explain (costs false) " + stmt)).hasLines(
             "Eval[a, a, b, c]",
             "  └ NestedLoopJoin[CROSS]",
             "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)]",

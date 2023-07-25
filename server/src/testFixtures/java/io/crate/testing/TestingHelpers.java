@@ -111,14 +111,20 @@ public class TestingHelpers {
     }
 
     public static String printRows(Iterable<Object[]> rows) {
+        StringBuilder sb = new StringBuilder();
+        for (Object[] row : rows) {
+            sb.append(printRow(row));
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    public static String printRow(Object[] row) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(os);
-        for (Object[] row : rows) {
-            boolean first = true;
-            for (Object o : row) {
-                first = printObject(out, first, o);
-            }
-            out.print("\n");
+        boolean first = true;
+        for (Object o : row) {
+            first = printObject(out, first, o);
         }
         return os.toString();
     }

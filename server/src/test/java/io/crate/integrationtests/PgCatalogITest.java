@@ -139,14 +139,14 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
         assertThat(response).hasColumns("classoid", "description", "objoid", "objsubid");
     }
 
     @Test
     public void testPgShdescriptionTableIsEmpty() {
         execute("select * from pg_shdescription");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
         assertThat(response).hasColumns("classoid", "description", "objoid");
     }
 
@@ -316,7 +316,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void test_kepserver_regclass_cast_query() throws Exception {
         execute("select nspname from pg_namespace n, pg_class c where c.relnamespace=n.oid and c.oid='kepware'::regclass");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
     @Test
