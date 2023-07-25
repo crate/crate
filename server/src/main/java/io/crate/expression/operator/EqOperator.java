@@ -155,7 +155,7 @@ public final class EqOperator extends Operator<Object> {
                 context,
                 ref.hasDocValues(),
                 ref.indexType());
-            case ArrayType.ID -> termsAndGenericFilter(
+            case ArrayType.ID -> refEqArray(
                 function,
                 ref.column().fqn(),
                 ArrayType.unnest(dataType),
@@ -213,12 +213,12 @@ public final class EqOperator extends Operator<Object> {
         return new ConstantScoreQuery(builder.build());
     }
 
-    private static Query termsAndGenericFilter(Function function,
-                                               String column,
-                                               DataType<?> elementType, Collection<?> values,
-                                               Context context,
-                                               boolean hasDocValues,
-                                               IndexType indexType) {
+    private static Query refEqArray(Function function,
+                                    String column,
+                                    DataType<?> elementType, Collection<?> values,
+                                    Context context,
+                                    boolean hasDocValues,
+                                    IndexType indexType) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             if (elementType.id() == ObjectType.ID) {
@@ -306,7 +306,7 @@ public final class EqOperator extends Operator<Object> {
             String fqNestedColumn = fqn + '.' + key;
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
-                innerQuery = termsAndGenericFilter(
+                innerQuery = refEqArray(
                     eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context, hasDocValues, indexType);
             } else {
                 innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue(), hasDocValues, indexType);
