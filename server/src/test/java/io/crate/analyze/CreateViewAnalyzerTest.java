@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -58,14 +59,29 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CreateViewStmt createView = e.analyze("create view v1 as select * from t1");
 
         assertThat(createView.name()).isEqualTo(new RelationName(e.getSessionSettings().searchPath().currentSchema(), "v1"));
-        assertThat(createView.analyzedQuery()).isSQL("SELECT doc.t1.x");
+        assertThat(createView.analyzedQuery()).isSQL(
+            """
+            SELECT
+                doc.t1.x
+            FROM
+                doc.t1
+            """
+        );
         assertThat(createView.owner()).isEqualTo(TEST_USER);
     }
 
     @Test
     public void testCreateViewIncludingParamPlaceholder() {
         CreateViewStmt createView = e.analyze("create view v1 as select * from t1 where x = ?");
-        assertThat(createView.analyzedQuery()).isSQL("SELECT doc.t1.x WHERE (doc.t1.x = $1)");
+        assertThat(createView.analyzedQuery()).isSQL("""
+            SELECT
+                doc.t1.x
+            FROM
+                doc.t1
+            WHERE
+                (doc.t1.x = $1)
+            """
+        );
     }
 
     @Test

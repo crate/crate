@@ -21,23 +21,24 @@
 
 package io.crate.testing;
 
-import io.crate.common.collections.Ordering;
+import java.util.Collection;
+import java.util.HashSet;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.RelationFormatter;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Ordering;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 
-import java.util.Collection;
-import java.util.HashSet;
-
 public class SQLPrinter {
 
     public static String print(Object o) {
-        if (o instanceof QueriedSelectRelation) {
-            return print((QueriedSelectRelation) o);
+        if (o instanceof QueriedSelectRelation selectRelation) {
+            return RelationFormatter.format(selectRelation, Style.QUALIFIED);
         } else if (o instanceof OrderBy) {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {

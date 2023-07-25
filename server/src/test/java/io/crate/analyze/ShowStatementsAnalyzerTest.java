@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Objects;
 
@@ -56,18 +57,32 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation).isSQL(
-            "SELECT information_schema.tables.table_name AS table_name " +
-            "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
-            "AND (information_schema.tables.table_schema = 'qname')) " +
-            "ORDER BY information_schema.tables.table_name AS table_name");
+            """
+            SELECT DISTINCT
+                information_schema.tables.table_name AS table_name
+            FROM
+                information_schema.tables
+            WHERE
+                ((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname'))
+            ORDER BY
+                information_schema.tables.table_name AS table_name ASC
+            """
+        );
 
         relation = analyze("show tables");
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation).isSQL(
-            "SELECT information_schema.tables.table_name AS table_name " +
-            "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
-            "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
-            "ORDER BY information_schema.tables.table_name AS table_name");
+            """
+            SELECT DISTINCT
+                information_schema.tables.table_name AS table_name
+            FROM
+                information_schema.tables
+            WHERE
+                ((information_schema.tables.table_type = 'BASE TABLE') AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog']))))
+            ORDER BY
+                information_schema.tables.table_name AS table_name ASC
+            """
+        );
     }
 
     @Test
@@ -76,19 +91,32 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation).isSQL(
-            "SELECT information_schema.tables.table_name AS table_name " +
-            "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
-            "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
-            "ORDER BY information_schema.tables.table_name AS table_name");
+            """
+            SELECT DISTINCT
+                information_schema.tables.table_name AS table_name
+            FROM
+                information_schema.tables
+            WHERE
+                (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) AND (information_schema.tables.table_name LIKE 'likePattern'))
+            ORDER BY
+                information_schema.tables.table_name AS table_name ASC
+            """
+        );
 
         relation = analyze("show tables like '%'");
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation).isSQL(
-            "SELECT information_schema.tables.table_name AS table_name " +
-            "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND " +
-            "(NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
-            "AND (information_schema.tables.table_name LIKE '%')) " +
-            "ORDER BY information_schema.tables.table_name AS table_name");
+            """
+            SELECT DISTINCT
+                information_schema.tables.table_name AS table_name
+            FROM
+                information_schema.tables
+            WHERE
+                (((information_schema.tables.table_type = 'BASE TABLE') AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) AND (information_schema.tables.table_name LIKE '%'))
+            ORDER BY
+                information_schema.tables.table_name AS table_name ASC
+            """
+        );
     }
 
     @Test
@@ -110,45 +138,83 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         relation = analyze("show tables where table_name like '%'");
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation).isSQL(
-            "SELECT information_schema.tables.table_name AS table_name " +
-            "WHERE (((information_schema.tables.table_type = 'BASE TABLE') " +
-            "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
-            "AND (information_schema.tables.table_name LIKE '%')) " +
-            "ORDER BY information_schema.tables.table_name AS table_name");
+            """
+            SELECT DISTINCT
+                information_schema.tables.table_name AS table_name
+            FROM
+                information_schema.tables
+            WHERE
+                (((information_schema.tables.table_type = 'BASE TABLE') AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) AND (information_schema.tables.table_name LIKE '%'))
+            ORDER BY
+                information_schema.tables.table_name AS table_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowSchemasLike() throws Exception {
         AnalyzedRelation relation = analyze("show schemas like '%'");
-        assertThat(relation).isSQL("SELECT information_schema.schemata.schema_name " +
-                                    "WHERE (information_schema.schemata.schema_name LIKE '%') " +
-                                    "ORDER BY information_schema.schemata.schema_name");
+        assertThat(relation).isSQL(
+            """
+            SELECT
+                information_schema.schemata.schema_name
+            FROM
+                information_schema.schemata
+            WHERE
+                (information_schema.schemata.schema_name LIKE '%')
+            ORDER BY
+                information_schema.schemata.schema_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowSchemasWhere() throws Exception {
         AnalyzedRelation relation = analyze("show schemas where schema_name = 'doc'");
-        assertThat(relation).isSQL("SELECT information_schema.schemata.schema_name " +
-                                    "WHERE (information_schema.schemata.schema_name = 'doc') " +
-                                    "ORDER BY information_schema.schemata.schema_name");
+        assertThat(relation).isSQL(
+            """
+            SELECT
+                information_schema.schemata.schema_name
+            FROM
+                information_schema.schemata
+            WHERE
+                (information_schema.schemata.schema_name = 'doc')
+            ORDER BY
+                information_schema.schemata.schema_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowSchemas() throws Exception {
         AnalyzedRelation relation = analyze("show schemas");
-        assertThat(relation).isSQL("SELECT information_schema.schemata.schema_name " +
-                                    "ORDER BY information_schema.schemata.schema_name");
+        assertThat(relation).isSQL("""
+            SELECT
+                information_schema.schemata.schema_name
+            FROM
+                information_schema.schemata
+            ORDER BY
+                information_schema.schemata.schema_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowColumnsLike() throws Exception {
         AnalyzedRelation relation = analyze("show columns from schemata in information_schema like '%'");
         assertThat(relation).isSQL(
-            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-            " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.table_schema = 'information_schema'))" +
-            " AND (information_schema.columns.column_name LIKE '%'))" +
-            " ORDER BY information_schema.columns.column_name");
+            """
+            SELECT
+                information_schema.columns.column_name,
+                information_schema.columns.data_type
+            FROM
+                information_schema.columns
+            WHERE
+                (((information_schema.columns.table_name = 'schemata') AND (information_schema.columns.table_schema = 'information_schema')) AND (information_schema.columns.column_name LIKE '%'))
+            ORDER BY
+                information_schema.columns.column_name ASC
+            """
+        );
     }
 
     @Test
@@ -156,32 +222,54 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedRelation relation = analyze("show columns in schemata from information_schema"
                                             + " where column_name = 'id'");
         assertThat(relation).isSQL(
-            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-            " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.table_schema = 'information_schema'))" +
-            " AND (information_schema.columns.column_name = 'id'))" +
-            " ORDER BY information_schema.columns.column_name");
+            """
+            SELECT
+                information_schema.columns.column_name,
+                information_schema.columns.data_type
+            FROM
+                information_schema.columns
+            WHERE
+                (((information_schema.columns.table_name = 'schemata') AND (information_schema.columns.table_schema = 'information_schema')) AND (information_schema.columns.column_name = 'id'))
+            ORDER BY
+                information_schema.columns.column_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowColumnsLikeWithoutSpecifiedSchema() throws Exception {
         AnalyzedRelation relation = analyze("show columns in schemata like '%'");
         assertThat(relation).isSQL(
-            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-            " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.table_schema = 'doc'))" +
-            " AND (information_schema.columns.column_name LIKE '%'))" +
-            " ORDER BY information_schema.columns.column_name");
+            """
+            SELECT
+                information_schema.columns.column_name,
+                information_schema.columns.data_type
+            FROM
+                information_schema.columns
+            WHERE
+                (((information_schema.columns.table_name = 'schemata') AND (information_schema.columns.table_schema = 'doc')) AND (information_schema.columns.column_name LIKE '%'))
+            ORDER BY
+                information_schema.columns.column_name ASC
+            """
+        );
     }
 
     @Test
     public void testShowColumnsFromOneTable() throws Exception {
         AnalyzedRelation relation = analyze("show columns in schemata");
         assertThat(relation).isSQL(
-            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-            " WHERE ((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.table_schema = 'doc'))" +
-            " ORDER BY information_schema.columns.column_name");
+            """
+            SELECT
+                information_schema.columns.column_name,
+                information_schema.columns.data_type
+            FROM
+                information_schema.columns
+            WHERE
+                ((information_schema.columns.table_name = 'schemata') AND (information_schema.columns.table_schema = 'doc'))
+            ORDER BY
+                information_schema.columns.column_name ASC
+            """
+        );
     }
 
     @Test

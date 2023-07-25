@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -239,8 +240,18 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testSelectDistinctWithGroupBy() {
         QueriedSelectRelation relation = analyze("select distinct max(id) from users group by name order by 1");
         assertThat(relation.isDistinct()).isEqualTo(true);
-        assertThat(relation)
-            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)");
+        assertThat(relation).isSQL(
+            """
+            SELECT DISTINCT
+                max(doc.users.id)
+            FROM
+                doc.users
+            GROUP BY
+                doc.users.name
+            ORDER BY
+                max(doc.users.id) ASC
+            """
+        );
     }
 
     @Test
@@ -248,9 +259,20 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation =
             analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
         assertThat(relation.isDistinct()).isEqualTo(true);
-        assertThat(relation)
-            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name " +
-                  "ORDER BY max(doc.users.id) LIMIT 5::bigint OFFSET 10::bigint");
+        assertThat(relation).isSQL(
+            """
+            SELECT DISTINCT
+                max(doc.users.id)
+            FROM
+                doc.users
+            GROUP BY
+                doc.users.name
+            ORDER BY
+                max(doc.users.id) ASC
+            LIMIT 5::bigint
+            OFFSET 10::bigint
+            """
+        );
     }
 
     @Test
@@ -260,8 +282,19 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     "  inner join users_multi_pk on users.id = users_multi_pk.id " +
                     "group by users.name order by 1");
         assertThat(relation.isDistinct()).isEqualTo(true);
-        assertThat(relation)
-            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)");
+        assertThat(relation).isSQL(
+            """
+            SELECT DISTINCT
+                max(doc.users.id)
+            FROM
+                doc.users
+                INNER JOIN doc.users_multi_pk ON (doc.users.id = doc.users_multi_pk.id)
+            GROUP BY
+                doc.users.name
+            ORDER BY
+                max(doc.users.id) ASC
+            """
+        );
     }
 
     @Test
@@ -270,10 +303,42 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                             "  select * from users order by name limit 10" +
                                             ") t group by name order by 1");
         assertThat(relation.isDistinct()).isEqualTo(true);
-        assertThat(relation)
-            .isSQL("SELECT max(t.id) " +
-                  "GROUP BY t.name " +
-                  "ORDER BY max(t.id)");
+        assertThat(relation).isSQL(
+            """
+            SELECT DISTINCT
+                max(t.id)
+            FROM
+                (
+                    SELECT
+                        doc.users.id,
+                        doc.users.other_id,
+                        doc.users.name,
+                        doc.users.text,
+                        doc.users.no_index,
+                        doc.users.details,
+                        doc.users.address,
+                        doc.users.awesome,
+                        doc.users.counters,
+                        doc.users.friends,
+                        doc.users.tags,
+                        doc.users.bytes,
+                        doc.users.shorts,
+                        doc.users.date,
+                        doc.users.shape,
+                        doc.users.ints,
+                        doc.users.floats
+                    FROM
+                        doc.users
+                    ORDER BY
+                        doc.users.name ASC
+                    LIMIT 10::bigint
+                ) AS t
+            GROUP BY
+                t.name
+            ORDER BY
+                max(t.id) ASC
+            """
+        );
     }
 
     @Test

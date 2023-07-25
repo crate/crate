@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -594,8 +595,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         AnalyzedRelation relation = executor.analyze("select distinct name, id from users group by id, name");
-        assertThat(relation)
-            .isSQL("SELECT doc.users.name, doc.users.id GROUP BY doc.users.id, doc.users.name");
+        assertThat(relation).isSQL(
+            """
+            SELECT DISTINCT
+                doc.users.name,
+                doc.users.id
+            FROM
+                doc.users
+            GROUP BY
+                doc.users.id,
+                doc.users.name
+            """
+        );
     }
 
     @Test

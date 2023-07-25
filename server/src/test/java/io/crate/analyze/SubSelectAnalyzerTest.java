@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -150,14 +151,63 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "limit 10");
-        assertThat(relation)
-                   .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint");
+        assertThat(relation).isSQL(
+            """
+            SELECT
+                t1.a,
+                t1.i,
+                t2.b,
+                t2.i
+            FROM
+                (
+                    SELECT
+                        doc.t1.a,
+                        doc.t1.i
+                    FROM
+                        doc.t1
+                    ORDER BY
+                        doc.t1.a ASC
+                    LIMIT 5::bigint
+                ) AS t1
+                LEFT JOIN (
+                    SELECT
+                        doc.t2.b,
+                        doc.t2.i
+                    FROM
+                        doc.t2
+                    WHERE
+                        (doc.t2.b > '10')
+                ) AS t2 ON (t1.i = t2.i)
+            WHERE
+                ((t1.a > '50') AND (t2.b > '100'))
+            LIMIT 10::bigint
+            """
+        );
         assertThat(relation.joinPairs().get(0).condition())
                    .isSQL("(t1.i = t2.i)");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
-                   .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
-                   .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation()).isSQL(
+            """
+            SELECT
+                doc.t1.a,
+                doc.t1.i
+            FROM
+                doc.t1
+            ORDER BY
+                doc.t1.a ASC
+            LIMIT 5::bigint
+            """
+        );
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation()).isSQL(
+            """
+            SELECT
+                doc.t2.b,
+                doc.t2.i
+            FROM
+                doc.t2
+            WHERE
+                (doc.t2.b > '10')
+            """
+        );
     }
 
     @Test
@@ -168,14 +218,64 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "order by 2 limit 10");
-        assertThat(relation)
-            .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint");
+        assertThat(relation).isSQL(
+            """
+            SELECT
+                t1.a,
+                t1.i,
+                t2.b,
+                t2.i
+            FROM
+                (
+                    SELECT
+                        doc.t1.a,
+                        doc.t1.i
+                    FROM
+                        doc.t1
+                    ORDER BY
+                        doc.t1.a ASC
+                    LIMIT 5::bigint
+                ) AS t1
+                LEFT JOIN (
+                    SELECT
+                        doc.t2.b,
+                        doc.t2.i
+                    FROM
+                        doc.t2
+                    WHERE
+                        (doc.t2.b > '10')
+                ) AS t2 ON (t1.i = t2.i)
+            WHERE
+                ((t1.a > '50') AND (t2.b > '100'))
+            ORDER BY
+                t1.i ASC
+            LIMIT 10::bigint
+            """
+        );
         assertThat(relation.joinPairs().get(0).condition())
             .isSQL("(t1.i = t2.i)");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
-            .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
-            .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation()).isSQL(
+            """
+            SELECT
+                doc.t1.a,
+                doc.t1.i
+            FROM
+                doc.t1
+            ORDER BY
+                doc.t1.a ASC
+            LIMIT 5::bigint
+            """
+        );
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation()).isSQL(
+            """
+            SELECT
+                doc.t2.b,
+                doc.t2.i
+            FROM
+                doc.t2
+            WHERE
+                (doc.t2.b > '10')
+            """);
     }
 
     @Test
