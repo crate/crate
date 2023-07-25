@@ -112,6 +112,12 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void testIP() throws Exception {
+        Object[][] data = new Object[][]{{"127.0.0.1"}, {"192.168.0.1"}};
+        assertThat(executeAggregation(DataTypes.IP, data)).isIn(data[0][0], data[1][0]);
+    }
+
+    @Test
     public void testBoolean() throws Exception {
         Object[][] data = new Object[][]{{true}, {false}};
         assertThat(executeAggregation(DataTypes.BOOLEAN, data)).isIn(data[0][0], data[1][0]);
