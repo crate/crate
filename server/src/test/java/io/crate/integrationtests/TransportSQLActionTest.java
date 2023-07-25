@@ -1991,9 +1991,11 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
 
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
-            assertThat(resp2.rows()[0])
-                .as("primary key lookup output must match regular select output for type " + type)
-                .contains(resp1.rows()[0]);
+            assertThat(resp2.rows()[0][0]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][0]);
+            assertThat(resp2.rows()[0][1]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][1]);
+            assertThat(ObjectType.UNTYPED.sanitizeValue(resp2.rows()[0][2]))
+                .usingComparator(ObjectType.UNTYPED)
+                .isEqualTo(ObjectType.UNTYPED.sanitizeValue(resp1.rows()[0][2]));
 
             if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
                 // should use doc-values/query-without-fetch execution path due to order + limit
