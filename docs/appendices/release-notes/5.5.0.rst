@@ -100,7 +100,8 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Limited the amount of errors returned by ``RETURN SUMMARY`` of ``COPY FROM``
+  to prevent running into circuit breaker errors due to memory constraints.
 
 
 Administration and Operations

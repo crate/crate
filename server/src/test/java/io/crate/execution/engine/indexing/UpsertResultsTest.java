@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,6 +31,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.data.Row;
+import io.crate.execution.engine.indexing.UpsertResults.Result;
 import io.crate.testing.TestingHelpers;
 
 public class UpsertResultsTest {
@@ -99,5 +101,15 @@ public class UpsertResultsTest {
         UpsertResults upsertResults = new UpsertResults();
         upsertResults.addResult("file:///t5.json", null, 5);
         assertThat(UpsertResults.resultsToFailure(upsertResults).getMessage(), is("Job killed. \n[URI: file:///t5.json, ERRORS: {}]"));
+    }
+
+    @Test
+    public void test_error_messages_are_limited_to_25() throws Exception {
+        UpsertResults upsertResults = new UpsertResults();
+        for (int i = 0; i < 30; i++) {
+            upsertResults.addResult("dummyUri", "error-" + i, i);
+        }
+        Result result = upsertResults.getResultSafe("dummyUri");
+        assertThat(result.errors).hasSize(25);
     }
 }
