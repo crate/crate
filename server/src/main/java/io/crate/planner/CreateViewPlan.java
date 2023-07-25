@@ -102,6 +102,8 @@ public final class CreateViewPlan implements Plan {
                                                                String formattedQuery,
                                                                boolean replaceExisting) {
         RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx, schemas);
+        // we need to enrich ALL UDF-s, tables without schema in the formattedQuery
+        // with their actual schemas.
         Query query = (Query) SqlParser.createStatement(formattedQuery);
         if (replaceExisting) {
             new EnsureNoSelfReference(viewName, txnCtx.sessionSettings().searchPath())

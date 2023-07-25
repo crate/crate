@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -53,6 +54,20 @@ public class ViewsITest extends IntegTestCase {
                 .collect(Collectors.joining(", "));
             execute(String.format("DROP VIEW %s", views));
         }
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_view_works_after_modifying_search_path() {
+        execute("create table doc.t1 (x int)");
+        execute("create table custom.t2 (y int)");
+        execute("insert into doc.t1 (x) values (1)");
+        execute("insert into custom.t2 (y) values (1)");
+        refresh();
+        execute("create view view_schema.v1 as select * from t1 CROSS JOIN custom.t2");
+        sqlExecutor.setSearchPath("crate"); // Keep this search_path for the following statement.
+        execute("select * from view_schema.v1");
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
