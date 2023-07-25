@@ -1511,16 +1511,16 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("analyze");
 
         String stmt = "SELECT * FROM (select a from tt1 order by b desc limit 1) i, tt2 WHERE c >= 50";
-        assertThat(execute("explain " + stmt)).hasRows(
-            "Eval[a, a, b, c] (rows=33)",
-            "  └ NestedLoopJoin[CROSS] (rows=33)",
-            "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)] (rows=33)",
-            "    └ Rename[a] AS i (rows=1)",
-            "      └ Eval[a] (rows=1)",
-            "        └ Fetch[a, b] (rows=1)",
-            "          └ Limit[1::bigint;0] (rows=1)",
-            "            └ OrderBy[b DESC] (rows=100)",
-            "              └ Collect[doc.tt1 | [_fetchid, b] | true] (rows=100)"
+        assertThat(execute("explain (costs false) " + stmt)).hasRows(
+            "Eval[a, a, b, c]",
+            "  └ NestedLoopJoin[CROSS]",
+            "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)]",
+            "    └ Rename[a] AS i",
+            "      └ Eval[a]",
+            "        └ Fetch[a, b]",
+            "          └ Limit[1::bigint;0]",
+            "            └ OrderBy[b DESC]",
+            "              └ Collect[doc.tt1 | [_fetchid, b] | true]"
         );
         assertThat(execute(stmt)).hasRowCount(51);
     }
