@@ -94,7 +94,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
-        .put(FloatVectorType.INSTANCE, PGArray.FLOAT4_ARRAY)
+        .put(FloatVectorType.INSTANCE_ONE, PGArray.FLOAT4_ARRAY)
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

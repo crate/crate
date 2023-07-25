@@ -101,7 +101,7 @@ public class IndicesModule extends AbstractModule {
         mappers.put(ObjectMapper.CONTENT_TYPE, new ObjectMapper.TypeParser());
         mappers.put(GeoPointFieldMapper.CONTENT_TYPE, new GeoPointFieldMapper.TypeParser());
         mappers.put(BitStringFieldMapper.CONTENT_TYPE, new BitStringFieldMapper.TypeParser());
-        mappers.put(FloatVectorType.INSTANCE.getName(), new FloatVectorFieldMapper.TypeParser());
+        mappers.put(FloatVectorType.INSTANCE_ONE.getName(), new FloatVectorFieldMapper.TypeParser());
         mappers.put(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
 
         if (ShapesAvailability.JTS_AVAILABLE && ShapesAvailability.SPATIAL4J_AVAILABLE) {
