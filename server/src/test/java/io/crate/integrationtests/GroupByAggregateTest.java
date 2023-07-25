@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -1336,7 +1337,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table m.tbl");
         execute("analyze");
         execute("explain (costs false) select distinct id from m.tbl limit 2");
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "LimitDistinct[2::bigint;0 | [id]]",
             "  └ Collect[m.tbl | [id] | true]"
         );
@@ -1374,7 +1375,7 @@ public class GroupByAggregateTest extends IntegTestCase {
 
 
         execute("explain (costs false) select name, count(x), count(x) from doc.tbl group by name");
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "Eval[name, count(x), count(x)]",
             "  └ GroupHashAggregate[name | count(x)]",
             "    └ Collect[doc.tbl | [x, name] | true]"

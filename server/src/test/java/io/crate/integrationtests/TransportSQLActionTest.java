@@ -1754,10 +1754,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select * from tbl where obj['b'] = 10");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
 
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
-        assertThat(response).hasRows("");
+        assertThat(response).isEmpty();
     }
 
 

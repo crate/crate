@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Collectors;
@@ -68,9 +69,12 @@ public class ViewsITest extends IntegTestCase {
         }
         assertThat(execute("select * from v1")).hasRows("1");
         assertThat(execute("select view_definition from information_schema.views")).hasRows(
-                "SELECT *",
-                "FROM \"t1\"",
-                "WHERE \"x\" > 0");
+            """
+            SELECT *
+            FROM "t1"
+            WHERE "x" > 0
+            """
+        );
         execute("drop view v1");
         for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);

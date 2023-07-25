@@ -76,7 +76,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ));
         execute("refresh table doc.tbl");
         execute("explain (costs false) select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
-        assertThat(response).hasRows(
+        assertThat(response).hasLines(
             "Rename[i, name] AS t",
             "  └ Fetch[ord AS i, name]",
             "    └ Limit[20::bigint;0]",

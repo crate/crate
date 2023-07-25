@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -33,13 +34,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseHashJoins(0)
@@ -403,7 +404,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("refresh table a, b");
         String stmt = "SELECT count(*) FROM a "
             + "WHERE EXISTS (SELECT 1 FROM b where a.f1 = b.f1 and a.f2 = b.f2 and b.f3 ='c') and a.f3 IN ('a','b','c')";
-        assertThat(execute("explain (costs false)" + stmt)).hasRows(
+        assertThat(execute("explain (costs false)" + stmt)).hasLines(
             "HashAggregate[count(*)]",
             "  └ Filter[EXISTS (SELECT 1 FROM (doc.b))]",
             "    └ CorrelatedJoin[f1, f2, (SELECT 1 FROM (doc.b))]",
