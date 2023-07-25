@@ -83,6 +83,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.IpType;
 import io.crate.types.ObjectType;
 
@@ -631,7 +632,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 List.of(
                     DataTypes.GEO_POINT,
                     DataTypes.GEO_SHAPE,
-                    new BitStringType(1)
+                    new BitStringType(1),
+                    FloatVectorType.INSTANCE
                 ))
             .stream()
             .filter(t -> t.storageSupport() != null)

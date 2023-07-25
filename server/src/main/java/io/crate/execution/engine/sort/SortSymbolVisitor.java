@@ -61,6 +61,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
@@ -154,7 +155,9 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 columnIdent.fqn(),
                 fieldComparatorSource,
                 context.reverseFlag);
-        } else if (ref.valueType().equals(DataTypes.IP) || ref.valueType().id() == BitStringType.ID) {
+        } else if (ref.valueType().equals(DataTypes.IP)
+                || ref.valueType().id() == BitStringType.ID
+                || ref.valueType().id() == FloatVectorType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             return mappedSortField(

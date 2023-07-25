@@ -54,6 +54,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
@@ -174,6 +175,16 @@ public class DataTypeTesting {
                         bitSet.set(i, random.nextBoolean());
                     }
                     return (T) new BitString(bitSet, length);
+                };
+
+            case FloatVectorType.ID:
+                return () -> {
+                    int length = type.characterMaximumLength();
+                    float[] result = new float[length];
+                    for (int i = 0; i < length; i++) {
+                        result[i] = random.nextFloat();
+                    }
+                    return (T) result;
                 };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());

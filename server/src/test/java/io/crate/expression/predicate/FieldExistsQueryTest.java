@@ -38,6 +38,7 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 
 public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -106,6 +107,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_null_does_not_match_empty_arrays() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
                 " (xs array(" + type.getName() + "))";
@@ -116,6 +120,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_off() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
@@ -155,6 +162,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_not_null_does_not_match_empty_arrays() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             // including geo_shape
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
@@ -166,6 +176,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_off() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
