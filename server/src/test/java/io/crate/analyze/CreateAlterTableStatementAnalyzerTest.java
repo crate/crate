@@ -1744,7 +1744,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_can_use_vector_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (x float_vector)");
         assertThat(stmt.columns()).hasEntrySatisfying(
-            new ColumnIdent("x"), Asserts.isReference("x", FloatVectorType.INSTANCE)
+            new ColumnIdent("x"), Asserts.isReference("x", FloatVectorType.INSTANCE_ONE)
         );
     }
 
