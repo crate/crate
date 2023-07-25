@@ -805,8 +805,8 @@ attribute filtering*.
 **cluster.routing.allocation.include.***
   | *Runtime:*  ``yes``
 
-  Only :ref:`allocate shards <gloss-shard-allocation>` on nodes where one of
-  the specified values matches the attribute.
+  Only :ref:`allocate shards <gloss-shard-allocation>` on nodes where at least
+  **one** of the specified values matches the attribute.
 
   For example::
 
@@ -817,8 +817,8 @@ attribute filtering*.
 **cluster.routing.allocation.exclude.***
   | *Runtime:*  ``yes``
 
-  Only :ref:`allocate shards <gloss-shard-allocation>` on nodes where none of
-  the specified values matches the attribute.
+  Only :ref:`allocate shards <gloss-shard-allocation>` on nodes where **none**
+  of the specified values matches the attribute.
 
   For example::
 
@@ -829,9 +829,8 @@ attribute filtering*.
 **cluster.routing.allocation.require.***
   | *Runtime:*  ``yes``
 
-  Used to specify a number of rules, which all MUST match for a node in order
-  to :ref:`allocate a shard  <gloss-shard-allocation>` on it. This is in
-  contrast to include which will include a node if ANY rule matches.
+  Used to specify a number of rules, which **all** of them must match for a node
+  in order to :ref:`allocate a shard  <gloss-shard-allocation>` on it.
 
 
 .. _conf-routing-allocation-disk:
