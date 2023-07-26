@@ -1026,7 +1026,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "id" INTEGER,
-                   "g" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape') INDEX USING QUADTREE WITH (
+                   "g" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))' INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.123,
                       precision = '123.0m'
                    )
@@ -1109,7 +1109,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                       "c2" INTEGER
                    ),
                    "int_col" INTEGER NOT NULL,
-                   "long_col" BIGINT GENERATED ALWAYS AS _cast(30, 'bigint'),
+                   "long_col" BIGINT GENERATED ALWAYS AS 30,
                    "analyzed_col" TEXT INDEX USING FULLTEXT WITH (
                       analyzer = 'simple'
                    ),

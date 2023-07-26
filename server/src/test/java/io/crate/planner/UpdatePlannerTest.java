@@ -27,11 +27,11 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -201,7 +201,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
             "Limit[2::bigint;0::bigint] (rows=1)",
             "  └ MultiPhase (rows=1)",
             "    └ HashAggregate[count(id)] (rows=1)",
-            "      └ Collect[doc.users | [id] | (id = ANY(_cast((SELECT unnest([1, 2, 3, 4]) FROM (empty_row)), 'array(bigint)')))] (rows=unknown)",
+            "      └ Collect[doc.users | [id] | (id = ANY((SELECT unnest([1, 2, 3, 4]) FROM (empty_row))))] (rows=unknown)",
             "    └ OrderBy[unnest([1, 2, 3, 4]) ASC] (rows=unknown)",
             "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
             "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
