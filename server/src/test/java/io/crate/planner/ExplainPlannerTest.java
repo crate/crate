@@ -31,7 +31,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -181,7 +180,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = 1662740986992");
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
-            "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
+            "Collect[doc.ts1 | [ts] | (ts = 1662740986992::bigint)]"
         );
     }
 

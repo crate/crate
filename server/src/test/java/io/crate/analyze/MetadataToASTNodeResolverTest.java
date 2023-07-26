@@ -466,7 +466,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"col1\" TEXT,\n" +
                      "   \"col2\" INTEGER DEFAULT 2,\n" +
                      "   \"col3\" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),\n" +
-                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT _cast(current_timestamp(3), 'timestamp without time zone')\n" +
+                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT current_timestamp(3)\n" +
                      ")\n" +
                      "CLUSTERED INTO 4 SHARDS\n" +
                      "WITH (\n" +
@@ -524,7 +524,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
         CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
         assertThat(
             SqlFormatter.formatSql(node),
-            Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')")
+            Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))")
         );
     }
 }

@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -1649,7 +1650,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueriedSelectRelation stmt = executor.analyze("select * from users where floats ~ 'foo'");
-        assertThat(stmt.where()).isSQL("(_cast(doc.users.floats, 'text') ~ 'foo')");
+        assertThat(stmt.where()).isSQL("(doc.users.floats ~ 'foo')");
     }
 
     @Test
@@ -1658,7 +1659,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueriedSelectRelation stmt = executor.analyze("select * from users where floats ~* 'foo'");
-        assertThat(stmt.where()).isSQL("(_cast(doc.users.floats, 'text') ~* 'foo')");
+        assertThat(stmt.where()).isSQL("(doc.users.floats ~* 'foo')");
     }
 
     @Test
@@ -2195,7 +2196,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "order by 2, 3");
         assertThat(relation.having()).isNotNull();
         assertThat(relation.having())
-            .isSQL("(NOT (_cast(collect_set(sys.shards.recovery['size']['percent']), 'array(double precision)') = [100.0]))");
+            .isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))");
     }
 
     @Test

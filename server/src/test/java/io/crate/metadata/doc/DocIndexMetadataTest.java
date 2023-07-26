@@ -1642,7 +1642,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         Reference reference = md.references().get(new ColumnIdent("g"));
         assertThat(reference.valueType()).isEqualTo(DataTypes.GEO_SHAPE);
         GeneratedReference genRef = (GeneratedReference) reference;
-        assertThat(genRef.formattedGeneratedExpression()).isEqualTo("_cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')");
+        assertThat(genRef.formattedGeneratedExpression()).isEqualTo("'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))'");
     }
 
     @Test
@@ -1651,7 +1651,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         Reference reference = md.references().get(new ColumnIdent("g"));
         assertThat(reference.valueType()).isEqualTo(DataTypes.GEO_SHAPE);
         assertThat(reference.defaultExpression().toString(Style.UNQUALIFIED))
-            .isEqualTo("{\"coordinates\"=[[[5.0, 5.0], [5.0, 30.0], [30.0, 30.0], [30.0, 5.0], [5.0, 5.0]]], \"type\"='Polygon'}");
+            .isEqualTo("'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))'");
     }
 
     @Test

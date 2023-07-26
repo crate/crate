@@ -127,7 +127,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name from users where _id = 1");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1} | (_cast(_id, 'integer') = 1)]");
+            "Get[doc.users | name | DocKeys{1} | (_id = 1)]");
     }
 
     @Test
@@ -1427,7 +1427,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         CountPlan plan = e.plan("select count(*) from tbl where 'a' = ANY(xs)");
-        assertThat(plan.countPhase().where()).isSQL("(_cast('a', 'text(1)') = ANY(doc.tbl.xs))");
+        assertThat(plan.countPhase().where()).isSQL("('a' = ANY(doc.tbl.xs))");
     }
 
     @Test

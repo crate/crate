@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -235,20 +236,22 @@ public class ShowIntegrationTest extends IntegTestCase {
                 ")");
         execute("show create table test_generated_column");
         assertFirstRow().startsWith(
-            "CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
-            "   \"day1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"day2\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
-            "   \"day3\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"day4\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-            "   \"col1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS \"ts\" + CAST(1 AS bigint),\n" +
-            "   \"col2\" TEXT GENERATED ALWAYS AS _cast((\"ts\" + CAST(1 AS bigint)), 'text'),\n" +
-            "   \"col3\" TEXT GENERATED ALWAYS AS _cast((\"ts\" + CAST(1 AS bigint)), 'text'),\n" +
-            "   \"name\" TEXT GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
-            "   \"ts\" TIMESTAMP WITH TIME ZONE,\n" +
-            "   \"user\" OBJECT(DYNAMIC) AS (\n" +
-            "      \"name\" TEXT\n" +
-            "   )\n" +
-            ")");
+            """
+            CREATE TABLE IF NOT EXISTS "doc"."test_generated_column" (
+               "day1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "day2" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts") INDEX OFF,
+               "day3" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "day4" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
+               "col1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "col2" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "col3" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "name" TEXT GENERATED ALWAYS AS concat("user"['name'], 'foo'),
+               "ts" TIMESTAMP WITH TIME ZONE,
+               "user" OBJECT(DYNAMIC) AS (
+                  "name" TEXT
+               )
+            """
+        );
     }
 
     @Test

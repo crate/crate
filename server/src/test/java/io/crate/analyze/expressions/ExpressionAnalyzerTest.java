@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -261,7 +262,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsAreCastedToLiteralType() {
         Function symbol = (Function) executor.asSymbol("doc.t2.i = 1.1");
-        assertThat(symbol).isSQL("(_cast(doc.t2.i, 'double precision') = 1.1)");
+        assertThat(symbol).isSQL("(doc.t2.i = 1.1)");
+        assertThat(symbol).isFunction(
+            EqOperator.NAME,
+            lhs -> {
+                assertThat(lhs).isFunction("_cast");
+                assertThat(lhs.valueType()).isEqualTo(DataTypes.DOUBLE);
+            },
+            rhs -> assertThat(rhs).isLiteral(1.1)
+        );
     }
 
     @Test

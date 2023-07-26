@@ -387,20 +387,18 @@ public class Function implements Symbol, Cloneable {
     private void printCastFunction(StringBuilder builder, Style style) {
         var name = signature.getName().name();
         assert arguments.size() == 2 : "Expecting 2 arguments for function " + name;
-        var targetType = arguments.get(1).valueType();
-        builder
-            .append(name)
-            .append("(")
-            .append(arguments().get(0).toString(style));
         if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
-            builder
-                .append(", ")
-                .append(arguments.get(1).toString(style));
+            builder.append(arguments().get(0).toString(style));
         } else {
-            builder.append(" AS ")
-                .append(targetType.toString());
+            var targetType = arguments.get(1).valueType();
+            builder
+                .append(name)
+                .append("(")
+                .append(arguments().get(0).toString(style))
+                .append(" AS ")
+                .append(targetType.toString())
+                .append(")");
         }
-        builder.append(")");
     }
 
     private void printExtract(StringBuilder builder, Style style) {
