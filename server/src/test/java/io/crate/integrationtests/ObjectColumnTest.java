@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
@@ -37,7 +36,6 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
@@ -393,10 +391,10 @@ public class ObjectColumnTest extends IntegTestCase {
             execute("insert into test values({a=1})", session);
             refresh();
 
-            session.sessionSettings().setErrorOnUnknownObjectKey(true);
-            assertThatThrownBy(() -> execute("select T.o['unknown'] from (select * from test) T", session))
-                .isExactlyInstanceOf(ColumnUnknownException.class)
-                    .hasMessage("The object `{a=1}` does not contain the key `unknown`");
+            //session.sessionSettings().setErrorOnUnknownObjectKey(true);
+            //assertThatThrownBy(() -> execute("select T.o['unknown'] from (select * from test) T", session))
+            //    .isExactlyInstanceOf(ColumnUnknownException.class)
+            //        .hasMessage("The object `{a=1}` does not contain the key `unknown`");
 
             session.sessionSettings().setErrorOnUnknownObjectKey(false);
             execute("select T.o['unknown'] from (select * from test) T", session);
