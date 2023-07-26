@@ -21,9 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -35,6 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -63,26 +63,29 @@ public class SysClusterSettingsTest extends IntegTestCase {
     public void testSetResetGlobalSetting() throws Exception {
         execute("set global persistent stats.enabled = false");
         execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rows()[0][0], is(false));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
 
         execute("reset global stats.enabled");
         execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
 
         execute("set global transient stats = { enabled = true, jobs_log_size = 3, operations_log_size = 4 }");
         execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
                 "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rows()[0][0], is(true));
-        assertThat(response.rows()[0][1], is(3));
-        assertThat(response.rows()[0][2], is(4));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+        assertThat(response.rows()[0][1]).isEqualTo(3);
+        assertThat(response.rows()[0][2]).isEqualTo(4);
 
         execute("reset global stats");
         execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size']," +
                 "settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(response.rows()[0][2], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
+        assertThat(response.rows()[0][1]).isEqualTo(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat(response.rows()[0][2]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
 
         execute("set global transient \"indices.breaker.query.limit\" = '20mb'");
         execute("select settings from sys.cluster");
@@ -93,15 +96,15 @@ public class SysClusterSettingsTest extends IntegTestCase {
     public void testResetPersistent() throws Exception {
 
         execute("select settings['bulk']['request_timeout'] from sys.cluster");
-        assertThat(response.rows()[0][0], is("42s")); // configured via nodeSettings
+        assertThat(response.rows()[0][0]).isEqualTo("42s"); // configured via nodeSettings
 
         execute("set global persistent bulk.request_timeout = '59s'");
         execute("select settings['bulk']['request_timeout'] from sys.cluster");
-        assertThat(response.rows()[0][0], is("59s"));
+        assertThat(response.rows()[0][0]).isEqualTo("59s");
 
         execute("reset global bulk.request_timeout");
         execute("select settings['bulk']['request_timeout'] from sys.cluster");
-        assertThat(response.rows()[0][0], is("42s"));
+        assertThat(response.rows()[0][0]).isEqualTo("42s");
     }
 
     @Test
@@ -175,7 +178,7 @@ public class SysClusterSettingsTest extends IntegTestCase {
     @Test
     public void testReadChangedElasticsearchSetting() {
         execute("set global transient indices.recovery.max_bytes_per_sec = ?",
-            new Object[]{"100kb"});
+                new Object[]{"100kb"});
         execute("select settings from sys.cluster");
         assertSettingsValue(
             INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(),
@@ -193,20 +196,20 @@ public class SysClusterSettingsTest extends IntegTestCase {
         var clusterService = cluster().getInstance(ClusterInfoService.class);
         Field f1 = clusterService.getClass().getDeclaredField("updateFrequency");
         f1.setAccessible(true);
-        assertThat(f1.get(clusterService), is(TimeValue.timeValueSeconds(45)));
+        assertThat(f1.get(clusterService)).isEqualTo(TimeValue.timeValueSeconds(45));
     }
 
     private void assertSettingsDefault(Setting<?> esSetting) {
         assertSettingsValue(esSetting.getKey(), esSetting.getDefault(Settings.EMPTY));
     }
 
+    @SuppressWarnings("unchecked")
     private void assertSettingsValue(String key, Object expectedValue) {
         Map<String, Object> settingMap = (Map<String, Object>) response.rows()[0][0];
         List<String> settingPath = List.of(key.split("\\."));
         for (int i = 0; i < settingPath.size() - 1; i++) {
             settingMap = (Map<String, Object>) settingMap.get(settingPath.get(i));
         }
-        assertThat(settingMap.get(settingPath.get(settingPath.size() - 1)), is(expectedValue));
+        assertThat(settingMap.get(settingPath.get(settingPath.size() - 1))).isEqualTo(expectedValue);
     }
-
 }
