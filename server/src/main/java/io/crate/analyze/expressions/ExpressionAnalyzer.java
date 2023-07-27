@@ -163,6 +163,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -707,7 +708,20 @@ public class ExpressionAnalyzer {
                                                                  List.of(),
                                                                  operation,
                                                                  context.errorOnUnknownObjectKey());
-                        if (base instanceof Reference) {
+                        var baseType = ArrayType.unnest(base.valueType());
+                        if (baseType instanceof ObjectType objectType) {
+                            if (objectType.resolveInnerType(parts).id() != UndefinedType.ID) {
+                                return allocateFunction(
+                                    SubscriptFunction.NAME,
+                                    List.of(
+                                        node.base().accept(this, context),
+                                        node.index().accept(this, context)
+                                    ),
+                                    context
+                                );
+                            }
+                        }
+                        if (base instanceof Reference || base instanceof ScopedSymbol) {
                             throw e;
                         }
                         return allocateFunction(
