@@ -35,7 +35,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
     static final int ID = 1;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_data_nodes' " +
-                                              "(or the deprecated `gateway.recovery_after_nodes` setting)" +
+                                              "(or the deprecated 'gateway.recovery_after_nodes' setting) " +
                                               "must be equal to the maximum/expected number of (data) nodes in the cluster.";
 
     @Inject
