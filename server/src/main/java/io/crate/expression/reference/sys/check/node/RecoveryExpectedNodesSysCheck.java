@@ -34,8 +34,8 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 1;
-    private static final String DESCRIPTION = "It has been detected that the 'gateway.expected_data_nodes' setting" +
-                                              "(or the deprecated `gateway.recovery_after_nodes` setting) is not" +
+    private static final String DESCRIPTION = "It has been detected that the 'gateway.expected_data_nodes' setting " +
+                                              "(or the deprecated 'gateway.recovery_after_nodes' setting) is not " +
                                               "configured or it does not match the actual number of (data) nodes in the cluster.";
 
     @Inject
