@@ -125,6 +125,13 @@ changes. However, to properly test the documentation, you must follow the
 instructions in the section, `Build the docs with Gradle (including full
 doctests)`_.
 
+Link checker
+------------
+
+Sphinx includes a link checker, which will also validate the documentation on CI.
+You can run it on your local documentation tree by invoking::
+
+    $ bin/sphinx linkcheck
 
 Troubleshoot
 ------------
