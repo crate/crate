@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -30,11 +31,13 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.BooleanIndexer;
@@ -67,6 +70,18 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                     value ? 1 : 0);
             }
             return new TermQuery(new Term(field, indexedValue(value)));
+        }
+
+        @Override
+        public Query setQuery(String field, Collection<Boolean> values, boolean hasDocValues, IndexType indexType) {
+            if (hasDocValues) {
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    // TODO: need a null check?
+                    values.stream().mapToLong(v -> v ? 1 : 0).toArray());
+            }
+            // TODO: double check
+            return new TermInSetQuery(field, values.stream().map(BytesRefs::toBytesRef).toList());
         }
 
         @Override

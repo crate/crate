@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,6 +31,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.search.TermInSetQuery;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -76,6 +78,17 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                     return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(value.bitSet().toByteArray()));
                 }
                 return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+            }
+
+            @Override
+            public Query setQuery(String field,
+                                  Collection<BitString> values,
+                                  boolean hasDocValues,
+                                  IndexType indexType) {
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowSetQuery(field, values.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toArray(BytesRef[]::new));
+                }
+                return new TermInSetQuery(field, values.stream().map(v -> new BytesRef(v.bitSet().toByteArray())).toList());
             }
 
             @Override
