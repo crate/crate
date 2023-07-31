@@ -49,10 +49,10 @@ create a ``keystore``.
 Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
- - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
- - Set ``ssl.transport.mode`` to ``on``.
- - :ref:`ssl_configure_keystore`
- - (Optional) :ref:`ssl_configure_truststore`
+- Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
+- Set ``ssl.transport.mode`` to ``on``.
+- :ref:`ssl_configure_keystore`
+- (Optional) :ref:`ssl_configure_truststore`
 
 .. NOTE::
 
