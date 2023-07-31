@@ -21,7 +21,16 @@
 
 package io.crate.metadata.view;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -30,15 +39,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentParser.Token;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 
 public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -111,6 +115,11 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             {
                 builder.field("stmt", view.stmt());
                 builder.field("owner", view.owner());
+                builder.startArray("searchpath");
+                for (String schema : view.searchPath().showPath()) {
+                    builder.value(schema);
+                }
+                builder.endArray();
             }
             builder.endObject();
         }
@@ -128,6 +137,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
                         String stmt = null;
                         String owner = null;
+                        SearchPath searchPath = null;
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("stmt".equals(parser.currentName())) {
                                 parser.nextToken();
@@ -137,11 +147,24 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
                                 parser.nextToken();
                                 owner = parser.textOrNull();
                             }
+                            if ("searchpath".equals(parser.currentName())) {
+                                List<String> paths = new ArrayList<>();
+                                parser.nextToken();
+                                while (parser.nextToken() != Token.END_ARRAY) {
+                                    paths.add(parser.text());
+                                }
+                                searchPath = SearchPath.createSearchPathFrom(paths.toArray(String[]::new));
+                            }
                         }
                         if (stmt == null) {
                             throw new ElasticsearchParseException("failed to parse views, expected field 'stmt' in object");
                         }
-                        views.put(viewName, new ViewMetadata(stmt, owner));
+                        ViewMetadata viewMetadata = new ViewMetadata(
+                            stmt,
+                            owner,
+                            searchPath == null ? SearchPath.pathWithPGCatalogAndDoc() : searchPath
+                        );
+                        views.put(viewName, viewMetadata);
                     }
                 }
             }
@@ -177,16 +200,21 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     }
 
     /**
+     * @param searchPath
      * @return A copy of the ViewsMetadata with the new view added (or replaced in case it already existed)
      */
-    public static ViewsMetadata addOrReplace(@Nullable ViewsMetadata prevViews, RelationName name, String query, @Nullable String owner) {
+    public static ViewsMetadata addOrReplace(@Nullable ViewsMetadata prevViews,
+                                             RelationName name,
+                                             String query,
+                                             @Nullable String owner,
+                                             SearchPath searchPath) {
         HashMap<String, ViewMetadata> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();
         } else {
             queryByName = new HashMap<>(prevViews.viewByName);
         }
-        queryByName.put(name.fqn(), new ViewMetadata(query, owner));
+        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath));
         return new ViewsMetadata(queryByName);
     }
 
