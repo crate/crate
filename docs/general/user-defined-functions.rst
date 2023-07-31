@@ -151,7 +151,7 @@ This would overload the ``my_multiply`` function with more arguments::
 .. CAUTION::
 
     It is considered bad practice to create functions that have the same name
-    as the CrateDB built-in functions!
+    as the CrateDB built-in functions.
 
 .. NOTE::
 
@@ -161,7 +161,7 @@ This would overload the ``my_multiply`` function with more arguments::
 
     **Therefore a built-in function with the same name as a user-defined
     function will hide the latter, even if it contains a different set of
-    arguments!** However, such functions can still be called if the schema name
+    arguments.** However, such functions can still be called if the schema name
     is explicitly provided.
 
 .. _udf-determinism:
