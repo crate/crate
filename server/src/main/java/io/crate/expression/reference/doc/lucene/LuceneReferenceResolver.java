@@ -82,7 +82,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         final ColumnIdent column = ref.column();
         switch (column.name()) {
             case DocSysColumns.Names.RAW:
-                if (column.isTopLevel()) {
+                if (column.isRoot()) {
                     return new RawCollectorExpression();
                 }
                 throw new UnsupportedFeatureException("_raw expression does not support subscripts: " + column);
@@ -115,7 +115,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                     result,
                     indexName,
                     partitionColumns,
-                    column.isTopLevel() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
+                    column.isRoot() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
                 );
             }
 

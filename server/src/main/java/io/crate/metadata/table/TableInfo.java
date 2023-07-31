@@ -28,9 +28,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterState;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
@@ -90,7 +89,7 @@ public interface TableInfo extends RelationInfo {
      * Elements can be null if the column itself is unknown.
      **/
     default Iterable<Reference> getParents(ColumnIdent column) {
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             return Collections.emptyList();
         }
         return () -> new Iterator<Reference>() {
@@ -99,7 +98,7 @@ public interface TableInfo extends RelationInfo {
 
             @Override
             public boolean hasNext() {
-                return !current.isTopLevel();
+                return !current.isRoot();
             }
 
             @Override

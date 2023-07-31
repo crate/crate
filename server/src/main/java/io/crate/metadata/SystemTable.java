@@ -82,7 +82,7 @@ public final class SystemTable<T> implements TableInfo {
             ? (state, routingProvider, sessionSettings) -> Routing.forTableOnSingleNode(name, state.nodes().getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
-            .filter(x -> x.column().isTopLevel())
+            .filter(x -> x.column().isRoot())
             .toList();
         this.expressions = expressions;
         this.primaryKeys = primaryKeys;

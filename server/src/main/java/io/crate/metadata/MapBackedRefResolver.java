@@ -21,10 +21,10 @@
 
 package io.crate.metadata;
 
+import java.util.Map;
+
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
-
-import java.util.Map;
 
 public final class MapBackedRefResolver implements ReferenceResolver<NestableInput<?>> {
 
@@ -40,7 +40,7 @@ public final class MapBackedRefResolver implements ReferenceResolver<NestableInp
     }
 
     static NestableInput lookupMapWithChildTraversal(Map<ColumnIdent, NestableInput> implByColumn, ColumnIdent column) {
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             return implByColumn.get(column);
         }
         NestableInput<?> rootImpl = implByColumn.get(column.getRoot());

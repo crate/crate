@@ -79,7 +79,7 @@ public class TableFunctionCollectSource implements CollectSource {
             ref -> {
                 for (int i = 0; i < columns.size(); i++) {
                     String column = columns.get(i);
-                    if (ref.column().isTopLevel() && ref.column().name().equals(column)) {
+                    if (ref.column().isRoot() && ref.column().name().equals(column)) {
                         return new RowCollectExpression(i);
                     }
                 }
