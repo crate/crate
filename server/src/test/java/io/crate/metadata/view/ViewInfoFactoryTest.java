@@ -22,17 +22,14 @@
 package io.crate.metadata.view;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Provider;
 import org.junit.Test;
 
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.metadata.RelationName;
@@ -44,19 +41,17 @@ public class ViewInfoFactoryTest {
 
     @Test
     public void create_view_throws_exception_view_is_created_with_hint_in_statement() {
-        Provider<RelationAnalyzer> analyzerProvider = mock(Provider.class);
-        when(analyzerProvider.get()).thenThrow(
-            new ConversionException(new ArrayType<>(TimestampType.INSTANCE_WITHOUT_TZ), TimestampType.INSTANCE_WITHOUT_TZ)
-        );
-        ViewInfoFactory factory = new ViewInfoFactory(analyzerProvider);
+        ViewInfoFactory factory = new ViewInfoFactory(() -> {
+            throw new ConversionException(new ArrayType<>(TimestampType.INSTANCE_WITHOUT_TZ), TimestampType.INSTANCE_WITHOUT_TZ);
+        });
 
-        ViewsMetadata viewsMetadata = mock(ViewsMetadata.class);
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc()));
+        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc());
+        ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, viewsMetadata)).build();
+            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, views)).build();
 
         // `definition` col includes a hint about an error in the view's query
         ViewInfo viewInfo = factory.create(ident, state);
@@ -66,21 +61,20 @@ public class ViewInfoFactoryTest {
     @Test
     public void create_view_throws_ResourceUnknownException_view_is_created_without_hint_in_statement() {
         //TODO: Add hint on ResourceUnknownException as well, once https://github.com/crate/crate/issues/14382 is fixed.
-        Provider<RelationAnalyzer> analyzerProvider = mock(Provider.class);
-        when(analyzerProvider.get()).thenThrow(new RelationsUnknown(List.of()));
-        ViewInfoFactory factory = new ViewInfoFactory(analyzerProvider);
+        ViewInfoFactory factory = new ViewInfoFactory(() -> {
+            throw new RelationsUnknown(List.of());
+        });
 
-        ViewsMetadata viewsMetadata = mock(ViewsMetadata.class);
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc()));
+        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc());
+        ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, viewsMetadata)).build();
+            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, views)).build();
 
         // `definition` col includes a hint about an error in the view's query
         ViewInfo viewInfo = factory.create(ident, state);
         assertThat(viewInfo.definition()).isEqualTo(statement);
     }
-
 }
