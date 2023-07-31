@@ -33,7 +33,6 @@ import org.elasticsearch.common.inject.Provider;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
@@ -65,10 +64,13 @@ public class ViewInfoFactory {
         List<Reference> columns;
         boolean analyzeError = false;
         try {
+            CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
+            transactionContext.sessionSettings().setSearchPath(view.searchPath());
             AnalyzedRelation relation = analyzerProvider.get().analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
-                CoordinatorTxnCtx.systemTransactionContext(),
-                ParamTypeHints.EMPTY);
+                transactionContext,
+                ParamTypeHints.EMPTY
+            );
             final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
             int position = 1;
             for (var field : relation.outputs()) {
@@ -84,9 +86,7 @@ public class ViewInfoFactory {
             // Statement could not be analyzed, because the referenced table either not found
             // or has been updated and view definition became incompatible with the new schema (https://github.com/crate/crate/issues/14377).
             columns = Collections.emptyList();
-            if (e instanceof ResourceUnknownException == false) {
-                analyzeError = true;
-            }
+            analyzeError = true;
         }
         String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
         return new ViewInfo(ident, viewDefinition, columns, view.owner());
