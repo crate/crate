@@ -128,16 +128,21 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     }
 
     @Override
-    public float[] sanitizeValue(Object value) {
+    public float[] sanitizeValue(Object obj) {
         // Value is stored as list in _raw/xcontent/json
-        if (value instanceof List<?> values) {
+        if (obj instanceof List<?> values) {
             float[] result = new float[values.size()];
             for (int i = 0; i < result.length; i++) {
-                result[i] = ((Number) values.get(i)).floatValue();
+                var value = values.get(i);
+                if (value == null) {
+                    throw new UnsupportedOperationException("null values are not allowed for " + NAME);
+                } else {
+                    result[i] = ((Number) value).floatValue();
+                }
             }
             return result;
         }
-        return (float[]) value;
+        return (float[]) obj;
     }
 
     @Override
