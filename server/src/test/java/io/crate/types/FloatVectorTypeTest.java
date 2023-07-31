@@ -21,10 +21,28 @@
 
 package io.crate.types;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.ArrayList;
+
+import org.junit.Test;
+
 public class FloatVectorTypeTest extends DataTypeTestCase<float[]> {
 
     @Override
     public DataType<float[]> getType() {
         return new FloatVectorType(4);
+    }
+
+    @Test
+    public void test_cannot_insert_nulls_into_float_vector() {
+        var floatVectorType = new FloatVectorType(3);
+        var insertValues = new ArrayList<>(3); // List.of() doesn't allow nulls
+        insertValues.add(1.1);
+        insertValues.add(null);
+        insertValues.add(2.2);
+        assertThatThrownBy(() -> floatVectorType.sanitizeValue(insertValues))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("null values are not allowed for float_vector");
     }
 }
