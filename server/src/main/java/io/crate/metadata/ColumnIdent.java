@@ -33,12 +33,11 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
@@ -128,7 +127,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      */
     public static ColumnIdent getChildSafe(ColumnIdent parent, String name) {
         validateObjectKey(name);
-        return getChild(parent, name);
+        return parent.getChild(name);
     }
 
     /**
@@ -147,17 +146,11 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         }
     }
 
-    public static ColumnIdent getChild(ColumnIdent parent, String name) {
-        if (parent.isTopLevel()) {
-            return new ColumnIdent(parent.name, name);
+    public ColumnIdent getChild(String childName) {
+        if (isTopLevel()) {
+            return new ColumnIdent(this.name, childName);
         }
-        ArrayList<String> childPath = new ArrayList<>(parent.path);
-        childPath.add(name);
-        return new ColumnIdent(parent.name, childPath);
-    }
-
-    public ColumnIdent getChild(String name) {
-        return ColumnIdent.getChild(this, name);
+        return new ColumnIdent(this.name, Lists2.concat(path, childName));
     }
 
     /**
@@ -431,14 +424,6 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
             return name;
         } else {
             return path.get(path.size() - 1);
-        }
-    }
-
-    public ColumnIdent append(String childName) {
-        if (path.isEmpty()) {
-            return new ColumnIdent(name, childName);
-        } else {
-            return new ColumnIdent(name, Lists2.concat(path, childName));
         }
     }
 
