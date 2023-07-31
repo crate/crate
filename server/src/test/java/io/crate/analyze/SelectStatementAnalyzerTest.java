@@ -2972,4 +2972,29 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().get(0)).isVoidReference(new ColumnIdent("o", "unknown_key"), new RelationName(null, "alias"));
     }
+
+    @Test
+    public void test_can_use_subscript_on_aliased_functions_shadowing_columns() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table t (obj array(object as (x int)))")
+            .build();
+        QueriedSelectRelation relation = executor.analyze(
+            "select obj['x'] from (select unnest(obj) as obj from t) tbl");
+
+        assertThat(relation.outputs()).satisfiesExactly(
+            output -> assertThat(output.valueType()).isEqualTo(DataTypes.INTEGER)
+        );
+    }
+
+    @Test
+    public void test_subscript_on_aliased_object_gets_optimized_to_reference() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table t (obj array(object as (x int)))")
+            .build();
+        QueriedSelectRelation relation = executor.analyze(
+            "select obj['x'] from (select obj as obj from t) tbl");
+        assertThat(relation.outputs()).satisfiesExactly(
+            output -> assertThat(output.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER))
+        );
+    }
 }
