@@ -47,6 +47,10 @@ See the :ref:`version_5.3.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries against views to evaluate the view
+  definition with the current search path. This could cause issues if the
+  search path diverged. The fix only applies to newly created views.
+
 - Fixed a ``Failed to validate IP`` error that occurred when using the
   ``any_value`` aggregation on a column of type ``IP``.
 

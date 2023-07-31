@@ -21,23 +21,23 @@
 
 package io.crate.expression;
 
-import io.crate.data.Row;
-import io.crate.metadata.ColumnIdent;
-import io.crate.types.DataType;
+import static io.crate.common.collections.Maps.getByPath;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.crate.common.collections.Maps.getByPath;
+import io.crate.data.Row;
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataType;
 
 
 public final class ValueExtractors {
 
     public static Object fromMap(Map<String, Object> map, ColumnIdent column) {
         Object o = map.get(column.name());
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             return o;
         }
         if (o instanceof Map) {

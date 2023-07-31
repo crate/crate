@@ -34,11 +34,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
@@ -83,7 +82,7 @@ public final class SystemTable<T> implements TableInfo {
             ? (state, routingProvider, sessionSettings) -> Routing.forTableOnSingleNode(name, state.nodes().getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
-            .filter(x -> x.column().isTopLevel())
+            .filter(x -> x.column().isRoot())
             .toList();
         this.expressions = expressions;
         this.primaryKeys = primaryKeys;
@@ -355,11 +354,11 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public <U> ObjectBuilder<T, P> add(String column, DataType<U> type, Function<T, U> getProperty) {
-            return add(new Column<>(baseColumn.append(column), type, getProperty));
+            return add(new Column<>(baseColumn.getChild(column), type, getProperty));
         }
 
         public ObjectBuilder<T, P> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
-            return add(new DynamicColumn<>(baseColumn.append(column), leafType, getObject));
+            return add(new DynamicColumn<>(baseColumn.getChild(column), leafType, getObject));
         }
 
         @Override
@@ -369,11 +368,11 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public <U> ObjectArrayBuilder<U, T, ObjectBuilder<T, P>> startObjectArray(String column, Function<T, ? extends Collection<U>> getItems) {
-            return new ObjectArrayBuilder<>(this, baseColumn.append(column), getItems);
+            return new ObjectArrayBuilder<>(this, baseColumn.getChild(column), getItems);
         }
 
         public ObjectBuilder<T, ObjectBuilder<T, P>> startObject(String column) {
-            return new ObjectBuilder<>(this, baseColumn.append(column), objectIsNull);
+            return new ObjectBuilder<>(this, baseColumn.getChild(column), objectIsNull);
         }
 
         public P endObject() {
@@ -471,7 +470,7 @@ public final class SystemTable<T> implements TableInfo {
         public <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(String column,
                                                                         DataType<U> type,
                                                                         Function<ItemType, U> getProperty) {
-            return add(new Column<>(baseColumn.append(column), type, getProperty));
+            return add(new Column<>(baseColumn.getChild(column), type, getProperty));
         }
 
 
@@ -514,7 +513,7 @@ public final class SystemTable<T> implements TableInfo {
 
         @Nullable
         public NestableInput<?> getChild(String name) {
-            var factory = expressions.get(column.append(name));
+            var factory = expressions.get(column.getChild(name));
             return factory == null ? null : factory.create();
         }
     }

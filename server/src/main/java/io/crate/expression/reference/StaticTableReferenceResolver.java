@@ -51,7 +51,7 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
         if (factory != null) {
             return factory.create();
         }
-        if (columnIdent.isTopLevel()) {
+        if (columnIdent.isRoot()) {
             return null;
         }
         return getImplementationByRootTraversal(factories, columnIdent);

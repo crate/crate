@@ -137,6 +137,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
@@ -610,7 +611,12 @@ public class SQLExecutor {
         public Builder addView(RelationName name, String query) {
             ClusterState prevState = clusterService.state();
             ViewsMetadata newViews = ViewsMetadata.addOrReplace(
-                prevState.metadata().custom(ViewsMetadata.TYPE), name, query, user == null ? null : user.name());
+                prevState.metadata().custom(ViewsMetadata.TYPE),
+                name,
+                query,
+                user == null ? null : user.name(),
+                SearchPath.createSearchPathFrom(searchPath)
+            );
 
             Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
             ClusterState newState = ClusterState.builder(prevState)

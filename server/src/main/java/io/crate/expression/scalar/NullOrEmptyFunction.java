@@ -116,7 +116,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
                 .setMinimumNumberShouldMatch(1);
             for (var entry : objectType.innerTypes().entrySet()) {
                 String childColumn = entry.getKey();
-                Reference childRef = context.getRef(ref.column().append(childColumn));
+                Reference childRef = context.getRef(ref.column().getChild(childColumn));
                 if (childRef == null) {
                     return null;
                 }
