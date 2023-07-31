@@ -153,11 +153,26 @@ public class DataTypeTesting {
                 };
 
             case ObjectType.ID:
-                Supplier<?> innerValueGenerator = getDataGenerator(randomType());
+                ObjectType objectType = (ObjectType) type;
+                final Map<String, Supplier<?>> typeGen;
+                if (objectType.innerTypes().isEmpty()) {
+                    typeGen = Map.of("x", getDataGenerator(randomType()));
+                } else {
+                    typeGen = new HashMap<>();
+                    for (var entry : objectType.innerTypes().entrySet()) {
+                        String columnName = entry.getKey();
+                        DataType<?> innerType = entry.getValue();
+                        typeGen.put(columnName, getDataGenerator(innerType));
+                    }
+                }
                 return () -> {
                     // Can't use immutable Collections.singletonMap; insert-analyzer mutates the map
                     HashMap<String, Object> map = new HashMap<>();
-                    map.put("x", innerValueGenerator.get());
+                    for (var entry : typeGen.entrySet()) {
+                        String column = entry.getKey();
+                        Supplier<?> valueGenerator = entry.getValue();
+                        map.put(column, valueGenerator.get());
+                    }
                     return (T) map;
                 };
 

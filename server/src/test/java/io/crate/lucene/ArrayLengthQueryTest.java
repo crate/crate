@@ -230,11 +230,17 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             // This is temporary as long as interval is not fully implemented
-            if (type.storageSupport() == null) {
+            if (type.storageSupport() == null || type instanceof FloatVectorType) {
                 continue;
             }
-            if (type instanceof FloatVectorType) {
-                continue;
+            if (type instanceof ObjectType objectType) {
+                DataType<?> innerType = DataTypeTesting.randomType();
+                while (innerType instanceof FloatVectorType || innerType instanceof ObjectType) {
+                    innerType = DataTypeTesting.randomType();
+                }
+                type = ObjectType.builder()
+                    .setInnerType("x", innerType)
+                    .build();
             }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
@@ -254,7 +260,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 )
                 """,
                 type.getName(),
-                type.getTypeSignature().toString()
+                type.id() == ObjectType.ID ? "object (dynamic)" : type.getTypeSignature().toString()
             );
 
             try (QueryTester tester = new QueryTester.Builder(
