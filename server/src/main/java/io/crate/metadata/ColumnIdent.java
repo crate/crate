@@ -151,8 +151,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         if (parent.isTopLevel()) {
             return new ColumnIdent(parent.name, name);
         }
-        ArrayList<String> childPath = new ArrayList<>();
-        childPath.addAll(parent.path);
+        ArrayList<String> childPath = new ArrayList<>(parent.path);
         childPath.add(name);
         return new ColumnIdent(parent.name, childPath);
     }

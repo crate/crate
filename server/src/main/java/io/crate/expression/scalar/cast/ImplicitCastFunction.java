@@ -136,8 +136,8 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
             return argument;
         }
 
-        if (argument instanceof Input) {
-            Object value = ((Input<?>) argument).value();
+        if (argument instanceof Input<?> input) {
+            Object value = input.value();
             try {
                 return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
             } catch (ConversionException e) {
