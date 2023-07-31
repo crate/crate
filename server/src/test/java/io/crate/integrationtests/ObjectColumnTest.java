@@ -345,7 +345,7 @@ public class ObjectColumnTest extends IntegTestCase {
             execute("explain select a['u'] = 123 from t", session);
         }
         // make sure that a['u'] is kept as requested.
-        assertThat(printedTable(response.rows())).contains("[(123 = _cast(a['u'], 'integer'))]");
+        assertThat(printedTable(response.rows())).contains("[(123 = a['u'])]");
     }
 
     @Test

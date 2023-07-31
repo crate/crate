@@ -44,6 +44,7 @@ import io.crate.common.annotations.NotThreadSafe;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
@@ -136,32 +137,32 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
      * in {@link #table}
      */
     private boolean resolveMissing = false;
+    private final EvaluatingNormalizer normalizer;
+    private final CoordinatorTxnCtx txnCtx;
 
     public TableElementsAnalyzer(RelationName tableName,
                                  CoordinatorTxnCtx txnCtx,
                                  NodeContext nodeCtx,
                                  ParamTypeHints paramTypeHints) {
-        this.table = null;
-        this.tableName = tableName;
-        this.expressionAnalyzer = new ExpressionAnalyzer(
-            txnCtx,
-            nodeCtx,
-            paramTypeHints,
-            this,
-            null
-        );
-        this.expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-        this.columnAnalyzer = new ColumnAnalyzer();
-        this.peekColumns = new PeekColumns();
-        this.toSymbol = x -> expressionAnalyzer.convert(x, expressionContext);
+        this(null, tableName, txnCtx, nodeCtx, paramTypeHints);
     }
 
     public TableElementsAnalyzer(DocTableInfo table,
                                  CoordinatorTxnCtx txnCtx,
                                  NodeContext nodeCtx,
                                  ParamTypeHints paramTypeHints) {
+        this(table, table.ident(), txnCtx, nodeCtx, paramTypeHints);
+    }
+
+    private TableElementsAnalyzer(@Nullable DocTableInfo table,
+                                 RelationName tableName,
+                                 CoordinatorTxnCtx txnCtx,
+                                 NodeContext nodeCtx,
+                                 ParamTypeHints paramTypeHints) {
         this.table = table;
-        this.tableName = table.ident();
+        this.tableName = tableName;
+        this.txnCtx = txnCtx;
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         this.expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,
@@ -532,6 +533,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
                 Symbol defaultSymbol = expressionAnalyzer.convert(defaultExpression, expressionContext);
                 builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
+                // only used to validate; result is not used to preserve functions like `current_timestamp`
+                normalizer.normalize(builder.defaultExpression, txnCtx);
                 RefVisitor.visitRefs(builder.defaultExpression, x -> {
                     throw new UnsupportedOperationException(
                         "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
@@ -570,6 +573,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             } else {
                 builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
             }
+            // only used to validate; result is not used to preserve functions like `current_timestamp`
+            normalizer.normalize(builder.generated, txnCtx);
         }
 
         private void processConstraint(RefBuilder builder, ColumnConstraint<Expression> constraint) {

@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -659,7 +660,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .as("Must not collect `x`")
             .hasOperators(
                 "MultiPhase",
-                "  └ Collect[doc.users | [name] | (id = ANY(_cast((SELECT a FROM (doc.t1)), 'array(bigint)')))]",
+                "  └ Collect[doc.users | [name] | (id = ANY((SELECT a FROM (doc.t1))))]",
                 "  └ Eval[a]",
                 "    └ OrderBy[a ASC]",
                 "      └ Collect[doc.t1 | [a] | (x > 10)]"

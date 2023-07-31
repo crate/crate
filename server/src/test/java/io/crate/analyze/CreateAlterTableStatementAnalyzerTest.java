@@ -1264,7 +1264,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "id={default_expr=_cast(3.5, 'integer'), position=1, type=integer}");
+                   "id={default_expr=3.5, position=1, type=integer}");
     }
 
     @Test
@@ -1293,7 +1293,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "arr={inner={default_expr=_cast([1, 2], 'array(bigint)'), position=1, type=long}, type=array}");
+            "arr={inner={default_expr=[1, 2], position=1, type=long}, type=array}");
     }
 
     @Test
@@ -1308,8 +1308,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
         assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "p={default_expr=_cast([0, 0], 'geo_point'), position=1, type=geo_point}, " +
-            "s={default_expr=_cast('LINESTRING (0 0, 1 1)', 'geo_shape'), position=2, tree=geohash, type=geo_shape}");
+            "p={default_expr=[0, 0], position=1, type=geo_point}, " +
+            "s={default_expr='LINESTRING (0 0, 1 1)', position=2, tree=geohash, type=geo_shape}");
     }
 
     @Test
