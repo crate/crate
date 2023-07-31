@@ -234,7 +234,7 @@ public class DocIndexMetadata {
         } else {
             ref = new GeneratedReference(simpleRef, generatedExpression, null);
         }
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             columns.add(ref);
         } else {
             nestedColumns.add(ref);
@@ -273,7 +273,7 @@ public class DocIndexMetadata {
             generatedColumnReferencesBuilder.add((GeneratedReference) info);
         }
 
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             columns.add(info);
         } else {
             nestedColumns.add(info);

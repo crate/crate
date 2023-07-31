@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -52,6 +50,7 @@ import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;
@@ -180,7 +179,7 @@ public class Indexer {
                     return NestableCollectExpression.constant(null);
                 }
             }
-            if (column.isTopLevel()) {
+            if (column.isRoot()) {
                 if (targetColumns.contains(ref)) {
                     return NestableCollectExpression.constant(null);
                 }
@@ -588,7 +587,7 @@ public class Indexer {
             }
             for (var entry : synthetics.entrySet()) {
                 ColumnIdent column = entry.getKey();
-                if (!column.isTopLevel()) {
+                if (!column.isRoot()) {
                     continue;
                 }
                 Synthetic synthetic = entry.getValue();
@@ -738,7 +737,7 @@ public class Indexer {
         }
         List<Reference> newColumns = new ArrayList<>(columns);
         for (var synthetic : undeterministic) {
-            if (synthetic.ref.column().isTopLevel() && !newColumns.contains(synthetic.ref)) {
+            if (synthetic.ref.column().isRoot() && !newColumns.contains(synthetic.ref)) {
                 newColumns.add(synthetic.ref);
             }
         }
@@ -749,7 +748,7 @@ public class Indexer {
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
         int numExtra = (int) undeterministic.stream()
-            .filter(x -> x.ref().column().isTopLevel())
+            .filter(x -> x.ref().column().isRoot())
             .count();
         Object[] result = new Object[insertValues.length + numExtra];
         System.arraycopy(insertValues, 0, result, 0, insertValues.length);
@@ -757,7 +756,7 @@ public class Indexer {
         int i = 0;
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
-            if (column.isTopLevel()) {
+            if (column.isRoot()) {
                 result[insertValues.length + i] = synthetic.input.value();
                 i++;
             } else {

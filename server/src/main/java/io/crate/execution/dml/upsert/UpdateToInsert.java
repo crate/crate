@@ -179,7 +179,7 @@ public final class UpdateToInsert {
             Reference existingRef = table.getReference(column);
             if (existingRef == null) {
                 Reference reference = table.getDynamic(column, true, errorOnUnknownObjectKey);
-                if (column.isTopLevel()) {
+                if (column.isRoot()) {
                     columns.add(reference);
                     this.updateColumns.add(reference);
                 } else {
@@ -217,7 +217,7 @@ public final class UpdateToInsert {
             if (updateIdx >= 0) {
                 Symbol symbol = updateAssignments[updateIdx];
                 Object value = symbol.accept(eval, values).value();
-                assert ref.column().isTopLevel()
+                assert ref.column().isRoot()
                     : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
             } else {
@@ -227,7 +227,7 @@ public final class UpdateToInsert {
         for (int i = 0; i < updateColumns.size(); i++) {
             Reference updateColumn = updateColumns.get(i);
             ColumnIdent column = updateColumn.column();
-            if (column.isTopLevel()) {
+            if (column.isRoot()) {
                 // Handled in previous loop over the columns
                 continue;
             }
@@ -248,7 +248,7 @@ public final class UpdateToInsert {
         for (int pkIndex = 0; pkIndex < pkSize; pkIndex++) {
             ColumnIdent pk = table.primaryKey().get(pkIndex);
             Object value;
-            if (pk.isTopLevel()) {
+            if (pk.isRoot()) {
                 int valuesIdx = Reference.indexOf(columns, pk);
                 assert valuesIdx > -1 : "Primary key column must exist in columns";
                 value = insertValues[valuesIdx];

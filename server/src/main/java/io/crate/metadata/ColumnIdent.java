@@ -147,7 +147,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     }
 
     public ColumnIdent getChild(String childName) {
-        if (isTopLevel()) {
+        if (isRoot()) {
             return new ColumnIdent(this.name, childName);
         }
         return new ColumnIdent(this.name, Lists2.concat(path, childName));
@@ -312,7 +312,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * person --&gt; person
      */
     public ColumnIdent getRoot() {
-        if (isTopLevel()) {
+        if (isRoot()) {
             return this;
         }
         return new ColumnIdent(name());
@@ -327,7 +327,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * For external exposure use {@link #sqlFqn()}.
      */
     public String fqn() {
-        if (isTopLevel()) {
+        if (isRoot()) {
             return name;
         }
         StringJoiner stringJoiner = new StringJoiner(".");
@@ -363,7 +363,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     /**
      * @return true if this is a top level column, otherwise false
      */
-    public boolean isTopLevel() {
+    public boolean isRoot() {
         return path.isEmpty();
     }
 
