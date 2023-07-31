@@ -59,8 +59,7 @@ public class ViewInfoFactoryTest {
     }
 
     @Test
-    public void create_view_throws_ResourceUnknownException_view_is_created_without_hint_in_statement() {
-        //TODO: Add hint on ResourceUnknownException as well, once https://github.com/crate/crate/issues/14382 is fixed.
+    public void test_view_definition_contains_corrupted_hint_if_analyzer_throws_ResourceUnknownException() {
         ViewInfoFactory factory = new ViewInfoFactory(() -> {
             throw new RelationsUnknown(List.of());
         });
@@ -75,6 +74,6 @@ public class ViewInfoFactoryTest {
 
         // `definition` col includes a hint about an error in the view's query
         ViewInfo viewInfo = factory.create(ident, state);
-        assertThat(viewInfo.definition()).isEqualTo(statement);
+        assertThat(viewInfo.definition()).isEqualTo("/* Corrupted view, needs fix */\n" + statement);
     }
 }
