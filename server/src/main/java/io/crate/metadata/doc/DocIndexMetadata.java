@@ -234,7 +234,7 @@ public class DocIndexMetadata {
         } else {
             ref = new GeneratedReference(simpleRef, generatedExpression, null);
         }
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             columns.add(ref);
         } else {
             nestedColumns.add(ref);
@@ -273,7 +273,7 @@ public class DocIndexMetadata {
             generatedColumnReferencesBuilder.add((GeneratedReference) info);
         }
 
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             columns.add(info);
         } else {
             nestedColumns.add(info);
@@ -417,18 +417,18 @@ public class DocIndexMetadata {
         return IndexType.FULLTEXT;
     }
 
-    private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
-        if (ident == null) {
+    private static ColumnIdent columnIdent(@Nullable ColumnIdent parent, String name) {
+        if (parent == null) {
             return new ColumnIdent(name);
         }
-        return ColumnIdent.getChild(ident, name);
+        return parent.getChild(name);
     }
 
     /**
      * extracts index definitions as well
      */
     @SuppressWarnings("unchecked")
-    private void internalExtractColumnDefinitions(@Nullable ColumnIdent columnIdent,
+    private void internalExtractColumnDefinitions(@Nullable ColumnIdent parent,
                                                   @Nullable Map<String, Object> propertiesMap) {
         if (propertiesMap == null) {
             return;
@@ -441,7 +441,8 @@ public class DocIndexMetadata {
         for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
-            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+            String columnName = columnEntry.getKey();
+            ColumnIdent newIdent = columnIdent(parent, columnName);
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
@@ -776,12 +777,12 @@ public class DocIndexMetadata {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
+    private Map<ColumnIdent, String> getAnalyzers(@Nullable ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
         MapBuilder<ColumnIdent, String> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
             DataType<?> columnDataType = getColumnDataType(columnProperties);
-            ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
+            ColumnIdent newIdent = columnIdent(columnIdent, columnEntry.getKey());
             columnProperties = furtherColumnProperties(columnProperties);
             if (columnDataType.id() == ObjectType.ID
                 || (columnDataType.id() == ArrayType.ID

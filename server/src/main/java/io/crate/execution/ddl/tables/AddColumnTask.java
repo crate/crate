@@ -127,7 +127,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         List<Reference> newColumns = new ArrayList<>();
         boolean anyMissing = false;
         for (var newColumn : request.references()) {
-            if (newColumn.column().isTopLevel()) {
+            if (newColumn.column().isRoot()) {
                 newColumns.add(newColumn);
             } else {
                 ColumnIdent parent = newColumn.column();

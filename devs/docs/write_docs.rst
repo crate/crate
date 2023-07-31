@@ -77,6 +77,12 @@ You can also ``export`` ``ITEST_FILE_NAME_FILTER`` to your shell environment
 (e.g., export ITEST_FILE_NAME_FILTER=filename.rst``) if you want to set the
 value for the remainder of your terminal session.
 
+.. TIP::
+
+    If you receive an exception like ``java.lang.IllegalStateException: jar hell!``,
+    it might be coming from outdated builds in your working tree. Resolving the
+    situation mostly works by running ``./gradlew clean``.
+
 
 Reset the docs build
 --------------------
@@ -119,6 +125,13 @@ changes. However, to properly test the documentation, you must follow the
 instructions in the section, `Build the docs with Gradle (including full
 doctests)`_.
 
+Link checker
+------------
+
+Sphinx includes a link checker, which will also validate the documentation on CI.
+You can run it on your local documentation tree by invoking::
+
+    $ bin/sphinx linkcheck
 
 Troubleshoot
 ------------

@@ -157,7 +157,7 @@ public class SymbolVisitors {
         public Void visitField(ScopedSymbol field, Void context) {
             if (haystack.contains(field)) {
                 consumer.accept((T) field);
-            } else if (!field.column().isTopLevel()) {
+            } else if (!field.column().isRoot()) {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = field.column().getRoot();
                 for (T t : haystack) {
@@ -173,7 +173,7 @@ public class SymbolVisitors {
         public Void visitReference(Reference ref, Void context) {
             if (haystack.contains(ref)) {
                 consumer.accept((T) ref);
-            } else if (!ref.column().isTopLevel()) {
+            } else if (!ref.column().isRoot()) {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = ref.column().getRoot();
                 for (T t : haystack) {

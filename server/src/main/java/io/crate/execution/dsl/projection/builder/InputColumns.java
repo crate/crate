@@ -31,9 +31,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
@@ -299,7 +298,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Nullable
     private static Symbol tryCreateSubscriptOnRoot(Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
-        if (column.isTopLevel()) {
+        if (column.isRoot()) {
             return null;
         }
         ColumnIdent root = column.getRoot();
