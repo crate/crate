@@ -21,15 +21,18 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isDocTable;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -56,5 +59,23 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
         QueriedSelectRelation queriedDocTable = (QueriedSelectRelation) ((AnalyzedView) query.from().get(0)).relation();
         assertThat(queriedDocTable.groupBy()).satisfiesExactly(isReference("name"));
         assertThat(queriedDocTable.from()).satisfiesExactly(isDocTable(new RelationName("doc", "t1")));
+    }
+
+    @Test
+    public void test_anylze_with_changed_search_path() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table custom.t2 (name string, x int)")
+            .addTable("create table doc.t2 (name string, x int)")
+            .setSearchPath("custom")
+            .addView(new RelationName("doc", "v1"), "select name, count(*) from t2 group by name")
+            .build();
+        e.getSessionSettings().setSearchPath("foobar");
+        QueriedSelectRelation relation = e.analyze("select * from doc.v1");
+        List<AnalyzedRelation> sources = relation.from();
+        assertThat(sources).satisfiesExactly(
+            from -> assertThat(from.relationName()).isEqualTo(new RelationName("doc", "v1")));
+        AnalyzedView viewQuery = (AnalyzedView) sources.get(0);
+        assertThat(((QueriedSelectRelation) viewQuery.relation()).from()).satisfiesExactly(
+            from -> assertThat(from.relationName()).isEqualTo(new RelationName("custom", "t2")));
     }
 }

@@ -21,23 +21,24 @@
 
 package io.crate.metadata.view;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.RelationsUnknown;
-import io.crate.metadata.RelationName;
-import io.crate.types.ArrayType;
-import io.crate.types.TimestampType;
+import java.util.List;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Provider;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.RelationsUnknown;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
+import io.crate.types.ArrayType;
+import io.crate.types.TimestampType;
 
 public class ViewInfoFactoryTest {
 
@@ -52,7 +53,7 @@ public class ViewInfoFactoryTest {
         ViewsMetadata viewsMetadata = mock(ViewsMetadata.class);
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null));
+        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc()));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
             .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, viewsMetadata)).build();
@@ -72,7 +73,7 @@ public class ViewInfoFactoryTest {
         ViewsMetadata viewsMetadata = mock(ViewsMetadata.class);
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null));
+        when(viewsMetadata.getView(ident)).thenReturn(new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc()));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
             .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, viewsMetadata)).build();
