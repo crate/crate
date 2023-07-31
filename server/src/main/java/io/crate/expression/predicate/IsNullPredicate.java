@@ -166,7 +166,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .setMinimumNumberShouldMatch(1);
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
-                    Reference childRef = context.getRef(ref.column().append(childColumn));
+                    Reference childRef = context.getRef(ref.column().getChild(childColumn));
                     if (childRef == null) {
                         return null;
                     }
