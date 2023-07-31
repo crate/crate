@@ -21,9 +21,8 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -38,7 +37,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
 
 public final class TransportCreateViewAction extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
 
@@ -90,7 +91,12 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                                 Metadata.builder(currentState.metadata())
                                     .putCustom(
                                         ViewsMetadata.TYPE,
-                                        ViewsMetadata.addOrReplace(views, request.name(), request.query(), request.owner()))
+                                        ViewsMetadata.addOrReplace(
+                                            views,
+                                            request.name(),
+                                            request.query(),
+                                            request.owner(),
+                                            request.searchPath()))
                                     .build()
                             ).build();
                     }
