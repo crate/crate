@@ -99,27 +99,31 @@ The same can be done when deleting a row::
 Known limitations
 =================
 
- - The ``_seq_no`` and ``_primary_term`` columns can only be used when
-   specifying the whole primary key in a query. For example, the query below is
-   not possible with our used testing data because ``type`` is not declared as
-   a primary key and results in an error::
+- The ``_seq_no`` and ``_primary_term`` columns can only be used when
+  specifying the whole primary key in a query. For example, the query below is
+  not possible with the database schema used for testing, because ``type`` is
+  not declared as a primary key::
 
-    cr> DELETE FROM sensors WHERE type = 'DHT11'
-    ...   AND "_seq_no" = 3
-    ...   AND "_primary_term" = 1;
-    UnsupportedFeatureException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
+      cr> DELETE FROM sensors WHERE type = 'DHT11'
+      ...   AND "_seq_no" = 3
+      ...   AND "_primary_term" = 1;
+      UnsupportedFeatureException["_seq_no" and "_primary_term" columns can only be used
+      together in the WHERE clause with equals comparisons and if there are also equals
+      comparisons on primary key columns]
 
- - In order to use the optimistic concurrency control mechanism both the
-   ``_seq_no`` and ``_primary_term`` columns need to be specified. It is not
-   possible to only specify one of them. For example, the query below will
-   result in an error::
+- In order to use the optimistic concurrency control mechanism, both the
+  ``_seq_no`` and ``_primary_term`` columns need to be specified. It is not
+  possible to only specify one of them. For example, the query below will
+  result in an error::
 
-    cr> DELETE FROM sensors WHERE id = 'ID1' AND "_seq_no" = 3;
-    VersioningValidationException["_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons and if there are also equals comparisons on primary key columns]
+      cr> DELETE FROM sensors WHERE id = 'ID1' AND "_seq_no" = 3;
+      VersioningValidationException["_seq_no" and "_primary_term" columns can only be used
+      together in the WHERE clause with equals comparisons and if there are also equals
+      comparisons on primary key columns]
 
 .. NOTE::
 
-   Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
+   Both ``DELETE`` and ``UPDATE`` commands will return a row count of ``0``, if
    the given required version does not match the actual version of the relevant
    row.
 
