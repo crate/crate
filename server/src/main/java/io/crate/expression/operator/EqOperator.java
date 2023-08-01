@@ -300,7 +300,7 @@ public final class EqOperator extends Operator<Object> {
             preFilters++;
             boolBuilder.add(innerQuery, BooleanClause.Occur.MUST);
         }
-        if (preFilters == value.size()) {
+        if (preFilters > 0 && preFilters == value.size()) {
             return boolBuilder.build();
         } else {
             Query genericEqFilter = genericFunctionFilter(eq, context);
