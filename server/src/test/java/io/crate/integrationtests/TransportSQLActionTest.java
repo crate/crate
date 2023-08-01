@@ -374,8 +374,8 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testSqlRequestWithFilter() throws Exception {
         execute("create table test (id string primary key)");
         execute("insert into test (id) values ('id1'), ('id2')");
@@ -607,8 +607,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("124| bar1");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testSelectToRoutedRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
@@ -1512,7 +1512,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertEquals(response.rowCount(), 0L);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertAndCopyHaveSameIdGeneration() throws Exception {
         execute("create table t (" +
@@ -1785,8 +1784,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void test_primary_key_lookup_with_param_that_requires_cast_to_column_type() throws Exception {
         execute("create table tbl (ts timestamp with time zone primary key, path text primary key)");
         execute("INSERT INTO tbl (ts, path) VALUES ('2017-06-21T00:00:00.000000Z', 'c1')");
@@ -1801,8 +1800,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void test_primary_key_lookups_returns_inserted_records() throws Exception {
         int numKeys = randomIntBetween(1, 3);
         Random random = RandomizedContext.current().getRandom();
