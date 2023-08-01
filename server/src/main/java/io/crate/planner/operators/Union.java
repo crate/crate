@@ -134,8 +134,8 @@ public class Union implements LogicalPlan {
             left,
             right,
             mergePhase,
-            limit,
-            offset,
+            LimitAndOffset.NO_LIMIT,
+            LimitAndOffset.NO_OFFSET,
             lhs.outputs().size(),
             LimitAndOffset.NO_LIMIT,
             leftResultDesc.orderBy()
