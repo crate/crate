@@ -107,4 +107,5 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Changed permissions on ``sys.jobs`` and ``sys.jobs_log`` to allow users with
+  the ``AL`` privileges to see entries from other users.
