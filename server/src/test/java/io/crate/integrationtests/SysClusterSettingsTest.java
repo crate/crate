@@ -25,10 +25,12 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterInfoService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
@@ -39,9 +41,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
 @IntegTestCase.ClusterScope
@@ -52,6 +56,11 @@ public class SysClusterSettingsTest extends IntegTestCase {
         Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.getKey(), "42s");
         return builder.build();
+    }
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return Lists2.concat(super.nodePlugins(), TestPluginWithArchivedSetting.class);
     }
 
     @After
@@ -199,6 +208,21 @@ public class SysClusterSettingsTest extends IntegTestCase {
         assertThat(f1.get(clusterService)).isEqualTo(TimeValue.timeValueSeconds(45));
     }
 
+    @Test
+    public void test_archived_setting_can_be_reset() throws Exception {
+        execute("set global transient \"archived.cluster.routing.allocation.disk.watermark.low\"=\"70%\"");
+        var clusterService = cluster().getMasterNodeInstance(ClusterService.class);
+        assertThat(clusterService.getClusterSettings().get("archived.cluster.routing.allocation.disk.watermark.low"))
+            .isNotNull();
+        assertThat(clusterService.state().metadata().settings().get("archived.cluster.routing.allocation.disk.watermark.low"))
+            .isEqualTo("70%");
+
+        execute("reset global \"archived.cluster.routing.allocation.disk.watermark.low\"");
+        clusterService = cluster().getMasterNodeInstance(ClusterService.class);
+        assertThat(clusterService.state().metadata().settings().get("archived.cluster.routing.allocation.disk.watermark.low"))
+            .isNull();
+    }
+
     private void assertSettingsDefault(Setting<?> esSetting) {
         assertSettingsValue(esSetting.getKey(), esSetting.getDefault(Settings.EMPTY));
     }
@@ -211,5 +235,28 @@ public class SysClusterSettingsTest extends IntegTestCase {
             settingMap = (Map<String, Object>) settingMap.get(settingPath.get(i));
         }
         assertThat(settingMap.get(settingPath.get(settingPath.size() - 1))).isEqualTo(expectedValue);
+    }
+
+    public static class TestPluginWithArchivedSetting extends Plugin {
+
+        public TestPluginWithArchivedSetting() {}
+
+        @Override
+        public Settings additionalSettings() {
+            return Settings.builder()
+                .put("archived.cluster.routing.allocation.disk.watermark.low", "80%")
+                .build();
+        }
+
+        @Override
+        public List<Setting<?>> getSettings() {
+            return List.of(
+                new Setting<>("archived.cluster.routing.allocation.disk.watermark.low", "85%",
+                              s -> s,
+                              value -> {},
+                              DataTypes.STRING,
+                              Setting.Property.Dynamic, Setting.Property.NodeScope, Setting.Property.Exposed)
+            );
+        }
     }
 }
