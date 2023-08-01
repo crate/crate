@@ -47,6 +47,10 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``SET SESSION`` statements to fail for settings
+  that are both session settings and global settings, like
+  ``statement_timeout``.
+
 - Fixed an issue that caused a ``object_column = {}`` query to not match if the
   object column doesn't have any child columns.
 
