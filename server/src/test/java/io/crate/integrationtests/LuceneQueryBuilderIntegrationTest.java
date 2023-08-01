@@ -36,6 +36,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.DataTypeTesting;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.types.DataType;
 
@@ -424,5 +425,191 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where [1, 2] = any(obj['xs'])"))
             .as("query doesn't match")
             .hasRowCount(0L);
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_eq_queries_with_index_on_and_column_store_true() {
+        execute(
+            """
+                    create table t (
+                        a bit(2),
+                        b double,
+                        c float,
+                        d ip,
+                        e string,
+                        f boolean,
+                        g int,
+                        h long,
+                        i string index using fulltext
+                    )
+                """
+        );
+        String firstRow = "(B'01', 1.1, 1.1, '1.1.1.1', 'a', false, 1, 1, 'a')";
+        String expectedFirstRow = "B'01'| 1.1| 1.1| 1.1.1.1| a| false| 1| 1| a";
+        String secondRow = "(B'10', 1.2, 1.2, '1.1.1.2', 'b', true,  2, 2, 'b')";
+        String expectedSecondRow = "B'10'| 1.2| 1.2| 1.1.1.2| b| true| 2| 2| b";
+        execute("insert into t values " + firstRow + ", " + secondRow);
+        refresh();
+
+        // EqQuery.termQuery
+        assertThat(execute("select * from t where a = B'01'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where i = 'a'")).hasRows(expectedFirstRow);
+
+        // EqQuery.RangeQuery
+        //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where i > 'a'")).hasRows(expectedSecondRow);
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_eq_queries_with_index_off_and_column_store_true() {
+        execute(
+            """
+                    create table t (
+                        a bit(2) index off,
+                        b double index off,
+                        c float index off,
+                        d ip index off,
+                        e string index off,
+                        f boolean index off,
+                        g int index off,
+                        h long index off
+                    )
+                """
+        );
+        String firstRow = "(B'01', 1.1, 1.1, '1.1.1.1', 'a', false, 1, 1)";
+        String expectedFirstRow = "B'01'| 1.1| 1.1| 1.1.1.1| a| false| 1| 1";
+        String secondRow = "(B'10', 1.2, 1.2, '1.1.1.2', 'b', true,  2, 2)";
+        String expectedSecondRow = "B'10'| 1.2| 1.2| 1.1.1.2| b| true| 2| 2";
+        execute("insert into t values " + firstRow + ", " + secondRow);
+        refresh();
+
+        // EqQuery.termQuery
+        assertThat(execute("select * from t where a = B'01'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
+        //assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
+
+        // EqQuery.RangeQuery
+        //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_eq_queries_with_index_off_and_column_store_false() {
+        execute(
+            """
+                    create table t (
+                        a bit(2) index off,
+                        b double index off storage with (columnstore=false),
+                        c float index off storage with (columnstore=false),
+                        d ip index off,
+                        e string index off storage with (columnstore=false),
+                        f boolean index off,
+                        g int index off storage with (columnstore=false),
+                        h long index off storage with (columnstore=false)
+                    )
+                """
+        );
+        String firstRow = "(B'01', 1.1, 1.1, '1.1.1.1', 'a', false, 1, 1)";
+        String expectedFirstRow = "B'01'| 1.1| 1.1| 1.1.1.1| a| false| 1| 1";
+        String secondRow = "(B'10', 1.2, 1.2, '1.1.1.2', 'b', true,  2, 2)";
+        String expectedSecondRow = "B'10'| 1.2| 1.2| 1.1.1.2| b| true| 2| 2";
+        execute("insert into t values " + firstRow + ", " + secondRow);
+        refresh();
+
+        // EqQuery.termQuery
+        assertThat(execute("select * from t where a = B'01'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
+        //assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
+
+        // EqQuery.RangeQuery
+        //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_eq_queries_with_index_on_and_column_store_false() {
+        execute(
+            """
+                    create table t (
+                        a bit(2),
+                        b double storage with (columnstore=false),
+                        c float storage with (columnstore=false),
+                        d ip,
+                        e string storage with (columnstore=false),
+                        f boolean,
+                        g int storage with (columnstore=false),
+                        h long storage with (columnstore=false),
+                        i text index using fulltext storage with (columnstore=false)
+                    )
+                """
+        );
+        String firstRow = "(B'01', 1.1, 1.1, '1.1.1.1', 'a', false, 1, 1, 'a')";
+        String expectedFirstRow = "B'01'| 1.1| 1.1| 1.1.1.1| a| false| 1| 1| a";
+        String secondRow = "(B'10', 1.2, 1.2, '1.1.1.2', 'b', true,  2, 2, 'b')";
+        String expectedSecondRow = "B'10'| 1.2| 1.2| 1.1.1.2| b| true| 2| 2| b";
+        execute("insert into t values " + firstRow + ", " + secondRow);
+        refresh();
+
+        // EqQuery.termQuery
+        assertThat(execute("select * from t where a = B'01'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where i = 'a'")).hasRows(expectedFirstRow);
+
+        // EqQuery.RangeQuery
+        //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where i > 'a'")).hasRows(expectedSecondRow);
     }
 }
