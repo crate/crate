@@ -21,8 +21,6 @@
 
 package io.crate.types;
 
-import java.util.Collection;
-
 import org.apache.lucene.search.Query;
 
 import io.crate.metadata.IndexType;
@@ -33,8 +31,6 @@ import io.crate.metadata.IndexType;
 public interface EqQuery<T> {
 
     Query exactQuery(String field, T value, boolean hasDocValues, IndexType indexType);
-
-    Query setQuery(String field, Collection<T> values, boolean hasDocValues, IndexType indexType);
 
     Query rangeQuery(String field,
                      T lowerTerm,

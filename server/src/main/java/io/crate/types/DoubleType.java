@@ -24,7 +24,6 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.function.Function;
 
 import org.apache.lucene.document.DoubleField;
@@ -65,19 +64,6 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                     return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.doubleToSortableLong(value));
                 } else if (isIndexed) {
                     return DoublePoint.newExactQuery(field, value);
-                }
-                return null;
-            }
-
-            @Override
-            public Query setQuery(String field, Collection<Double> values, boolean hasDocValues, IndexType indexType) {
-                boolean isIndexed = indexType != IndexType.NONE;
-                if (hasDocValues && isIndexed) {
-                    return DoubleField.newSetQuery(field, values.stream().mapToDouble(Double::doubleValue).toArray());
-                } else if (hasDocValues) {
-                    return SortedNumericDocValuesField.newSlowSetQuery(field, values.stream().mapToLong(NumericUtils::doubleToSortableLong).toArray());
-                } else if (isIndexed) {
-                    return DoublePoint.newSetQuery(field, values.stream().mapToDouble(Double::doubleValue).toArray());
                 }
                 return null;
             }

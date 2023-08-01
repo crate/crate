@@ -23,7 +23,6 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Collection;
 import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
@@ -67,22 +66,6 @@ public class IpType extends DataType<String> implements Streamer<String> {
                     return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(InetAddressPoint.encode(InetAddresses.forString(value))));
                 } else if (isIndexed) {
                     return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
-                }
-                return null;
-            }
-
-            @Override
-            public Query setQuery(String field, Collection<String> values, boolean hasDocValues, IndexType indexType) {
-                boolean isIndexed = indexType != IndexType.NONE;
-                if (hasDocValues && isIndexed) {
-                    return new IndexOrDocValuesQuery(
-                        InetAddressPoint.newSetQuery(field, values.stream().map(InetAddresses::forString).toArray(InetAddress[]::new)),
-                        SortedSetDocValuesField.newSlowSetQuery(field, values.stream().map(v -> new BytesRef(InetAddressPoint.encode(InetAddresses.forString(v)))).toArray(BytesRef[]::new))
-                    );
-                } else if (hasDocValues) {
-                    return SortedSetDocValuesField.newSlowSetQuery(field, values.stream().map(v -> new BytesRef(InetAddressPoint.encode(InetAddresses.forString(v)))).toArray(BytesRef[]::new));
-                } else if (isIndexed) {
-                    return InetAddressPoint.newSetQuery(field, values.stream().map(InetAddresses::forString).toArray(InetAddress[]::new));
                 }
                 return null;
             }

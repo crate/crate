@@ -34,7 +34,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.search.TermInSetQuery;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -79,20 +78,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
         true,
         true,
         new EqQuery<Object>() {
+
             @Override
             public Query exactQuery(String field, Object value, boolean hasDocValues, IndexType indexType) {
                 if (indexType == IndexType.PLAIN && hasDocValues) {
                     return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
                 }
                 return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
-            }
-
-            @Override
-            public Query setQuery(String field, Collection<Object> values, boolean hasDocValues, IndexType indexType) {
-                if (indexType == IndexType.PLAIN && hasDocValues) {
-                    return SortedSetDocValuesField.newSlowSetQuery(field, values.stream().map(BytesRefs::toBytesRef).toArray(BytesRef[]::new));
-                }
-                return new TermInSetQuery(field, values.stream().map(BytesRefs::toBytesRef).toList());
             }
 
             @Override
