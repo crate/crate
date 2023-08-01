@@ -21,6 +21,15 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
@@ -35,14 +44,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class SetSessionPlan implements Plan {
 
@@ -69,19 +70,21 @@ public class SetSessionPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
 
-        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
-                                                                              plannerContext.nodeContext(),
-                                                                              x,
-                                                                              params,
-                                                                              subQueryResults);
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            x,
+            params,
+            subQueryResults
+        );
 
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
         Assignment<Symbol> assignment = settings.get(0);
         String settingName = eval.apply(assignment.columnName()).toString();
-        validateSetting(settingName);
         SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(settingName);
         if (sessionSetting == null) {
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
+            ensureNotGlobalSetting(settingName);
         } else {
             sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
         }
@@ -89,12 +92,13 @@ public class SetSessionPlan implements Plan {
     }
 
     @VisibleForTesting
-    static void validateSetting(String settingName) {
+    static void ensureNotGlobalSetting(String settingName) {
         List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
         if (nameParts.size() != 0) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
-                                                             settingName));
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
+                settingName));
         }
     }
 }
