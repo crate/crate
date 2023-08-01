@@ -21,6 +21,7 @@
 
 package io.crate.metadata.settings;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.LOGGER_SETTINGS_PREFIX;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -143,6 +144,7 @@ public final class CrateSettings {
     }
 
     private static boolean isLoggingSetting(String name) {
-        return name.startsWith("logger.");
+        return name.startsWith(LOGGER_SETTINGS_PREFIX);
+    }
     }
 }
