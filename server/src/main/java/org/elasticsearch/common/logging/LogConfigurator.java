@@ -19,6 +19,8 @@
 
 package org.elasticsearch.common.logging;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.LOGGER_SETTINGS_PREFIX;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -264,7 +266,7 @@ public class LogConfigurator {
             // do not set a log level for a logger named level (from the default log setting)
             .filter(s -> s.getKey().equals(Loggers.LOG_DEFAULT_LEVEL_SETTING.getKey()) == false).forEach(s -> {
                 final Level level = s.get(settings);
-                Loggers.setLevel(LogManager.getLogger(s.getKey().substring("logger.".length())), level);
+                Loggers.setLevel(LogManager.getLogger(s.getKey().substring(LOGGER_SETTINGS_PREFIX.length())), level);
             });
     }
 
