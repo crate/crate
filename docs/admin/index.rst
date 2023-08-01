@@ -26,3 +26,4 @@ database administrator.
     logical-replication
     discovery
     udc
+    ../cli-tools
