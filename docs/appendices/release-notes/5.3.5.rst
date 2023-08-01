@@ -47,6 +47,9 @@ See the :ref:`version_5.3.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Allowed user to :ref:`RESET<ref-set>` cluster settings with ``archived.``
+  prefix.
+
 - Fixed an issue that could lead to a ``class_cast_exception`` when using a
   subscript expression on an aliased expression that shadows another column. For
   example::
