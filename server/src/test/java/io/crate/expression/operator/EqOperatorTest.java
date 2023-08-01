@@ -26,12 +26,14 @@ import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.lucene.GenericFunctionQuery;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
@@ -141,5 +143,27 @@ public class EqOperatorTest extends ScalarTestCase {
     public void test_terms_query_on__id_encodes_ids() throws Exception {
         Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"));
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
+    }
+
+    @Test
+    public void test_terms_query_on_empty_object() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (obj object)");
+        builder.indexValue("obj", Map.of());
+        builder.indexValue("obj", null);
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("obj = {}");
+            assertThat(query)
+                .isExactlyInstanceOf(GenericFunctionQuery.class)
+                .hasToString("(obj = {})");
+
+            assertThat(tester.runQuery("obj", "obj = {}")).containsExactly(
+                Map.of()
+            );
+        }
     }
 }
