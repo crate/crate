@@ -229,7 +229,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (field, eqQuery, value, haDocValues, indexType) -> eqQuery.exactQuery(field, value, haDocValues, indexType),
+        EqOperator.NAME, (field, eqQuery, value, haDocValues, indexType) -> eqQuery.termQuery(field, value, haDocValues, indexType),
         GteOperator.NAME, (field, eqQuery, value, hasDocValues, indexType) ->
                 eqQuery.rangeQuery(field, value, null, true, false, hasDocValues, indexType),
         GtOperator.NAME, (field, eqQuery, value, hasDocValues, indexType) ->

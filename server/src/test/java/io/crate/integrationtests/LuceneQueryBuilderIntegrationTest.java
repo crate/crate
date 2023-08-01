@@ -464,12 +464,13 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where i = 'a'")).hasRows(expectedFirstRow);
 
         // EqQuery.RangeQuery
+        //UnsupportedFunctionException: Unknown function: (mgjihphcgyjgklnrovd.t.a > B'01'), no overload found for matching argument types: (bit, bit). Possible candidates: op_>(byte, byte):boolean, op_>(boolean, boolean):boolean, op_>(character, character):boolean, op_>(text, text):boolean, op_>(ip, ip):boolean, op_>(double precision, double precision):boolean, op_>(real, real):boolean, op_>(smallint, smallint):boolean, op_>(integer, integer):boolean, op_>(interval, interval):boolean, op_>(bigint, bigint):boolean, op_>(timestamp with time zone, timestamp with time zone):boolean, op_>(timestamp without time zone, timestamp without time zone):boolean, op_>(date, date):boolean
         //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where i > 'a'")).hasRows(expectedSecondRow);
@@ -504,18 +505,19 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
-        //assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
 
         // EqQuery.RangeQuery
+        // UnsupportedFunctionException: Unknown function
         //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
     }
@@ -549,7 +551,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where b = 1.1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where c = 1.1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where d = '1.1.1.1'")).hasRows(expectedFirstRow);
-        //assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
+        assertThat(execute("select * from t where e = 'a'")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where f = false")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where g = 1")).hasRows(expectedFirstRow);
         assertThat(execute("select * from t where h = 1")).hasRows(expectedFirstRow);
@@ -558,9 +560,9 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
     }
@@ -605,9 +607,9 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         //assertThat(execute("select * from t where a > B'01'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where b > 1.1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where c > 1.1")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where d > '1.1.1.1'")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where e > 'a'")).hasRows(expectedSecondRow);
-        //assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
+        assertThat(execute("select * from t where f > false")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where g > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where h > 1")).hasRows(expectedSecondRow);
         assertThat(execute("select * from t where i > 'a'")).hasRows(expectedSecondRow);

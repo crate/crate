@@ -56,7 +56,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         new EqQuery<Float>() {
 
             @Override
-            public Query exactQuery(String field, Float value, boolean hasDocValues, IndexType indexType) {
+            public Query termQuery(String field, Float value, boolean hasDocValues, IndexType indexType) {
                 boolean isIndexed = indexType != IndexType.NONE;
                 if (hasDocValues && isIndexed) {
                     return FloatField.newExactQuery(field, value);

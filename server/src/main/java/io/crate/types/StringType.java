@@ -80,11 +80,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
         new EqQuery<Object>() {
 
             @Override
-            public Query exactQuery(String field, Object value, boolean hasDocValues, IndexType indexType) {
+            public Query termQuery(String field, Object value, boolean hasDocValues, IndexType indexType) {
                 if (indexType == IndexType.PLAIN && hasDocValues) {
                     return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
+                } else if (indexType != IndexType.NONE) {
+                    return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+                } else {
+                    return null;
                 }
-                return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
             }
 
             @Override
@@ -103,15 +106,17 @@ public class StringType extends DataType<String> implements Streamer<String> {
                         includeLower,
                         includeUpper
                     );
+                } else if (indexType != null && upperTerm != null && lowerTerm != null) {
+                    return new TermRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                } else {
+                    return null;
                 }
-                return new TermRangeQuery(
-                    field,
-                    BytesRefs.toBytesRef(lowerTerm),
-                    BytesRefs.toBytesRef(upperTerm),
-                    includeLower,
-                    includeUpper
-                );
-
             }
         }
     ) {

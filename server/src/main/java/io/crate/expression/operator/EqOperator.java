@@ -269,7 +269,7 @@ public final class EqOperator extends Operator<Object> {
         if (eqQuery == null) {
             return null;
         }
-        return ((EqQuery<Object>) eqQuery).exactQuery(column, value, hasDocValues, indexType);
+        return ((EqQuery<Object>) eqQuery).termQuery(column, value, hasDocValues, indexType);
     }
 
     /**

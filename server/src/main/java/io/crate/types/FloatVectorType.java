@@ -40,6 +40,7 @@ import io.crate.Streamer;
 import io.crate.execution.dml.FloatVectorIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnDefinition;
@@ -57,7 +58,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     private static final EqQuery<float[]> EQ_QUERY = new EqQuery<float[]>() {
 
         @Override
-        public Query termQuery(String field, float[] value) {
+        public Query termQuery(String field, float[] value, boolean hasDocValues, IndexType indexType) {
             return null;
         }
 
@@ -67,7 +68,8 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                                 float[] upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
+                                boolean hasDocValues,
+                                IndexType indexType) {
             return null;
         }
     };

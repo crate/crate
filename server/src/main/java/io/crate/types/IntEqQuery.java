@@ -31,7 +31,7 @@ import io.crate.metadata.IndexType;
 public class IntEqQuery implements EqQuery<Number> {
 
     @Override
-    public Query exactQuery(String field, Number value, boolean hasDocValues, IndexType indexType) {
+    public Query termQuery(String field, Number value, boolean hasDocValues, IndexType indexType) {
         boolean isIndexed = indexType != IndexType.NONE;
         if (hasDocValues && isIndexed) {
             return IntField.newExactQuery(field, value.intValue());

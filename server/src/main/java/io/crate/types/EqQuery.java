@@ -30,7 +30,7 @@ import io.crate.metadata.IndexType;
  **/
 public interface EqQuery<T> {
 
-    Query exactQuery(String field, T value, boolean hasDocValues, IndexType indexType);
+    Query termQuery(String field, T value, boolean hasDocValues, IndexType indexType);
 
     Query rangeQuery(String field,
                      T lowerTerm,

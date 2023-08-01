@@ -31,7 +31,7 @@ import io.crate.metadata.IndexType;
 public class LongEqQuery implements EqQuery<Long> {
 
     @Override
-    public Query exactQuery(String field, Long value, boolean hasDocValues, IndexType indexType) {
+    public Query termQuery(String field, Long value, boolean hasDocValues, IndexType indexType) {
         boolean isIndexed = indexType != IndexType.NONE;
         if (hasDocValues && isIndexed) {
             return LongField.newExactQuery(field, value);

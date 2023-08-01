@@ -71,7 +71,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         new EqQuery<BitString>() {
 
             @Override
-            public Query exactQuery(String field, BitString value, boolean hasDocValues, IndexType indexType) {
+            public Query termQuery(String field, BitString value, boolean hasDocValues, IndexType indexType) {
                 if (hasDocValues) {
                     return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(value.bitSet().toByteArray()));
                 }

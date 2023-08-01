@@ -55,7 +55,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
         new EqQuery<String>() {
 
             @Override
-            public Query exactQuery(String field, String value, boolean hasDocValues, IndexType indexType) {
+            public Query termQuery(String field, String value, boolean hasDocValues, IndexType indexType) {
                 boolean isIndexed = indexType != IndexType.NONE;
                 if (hasDocValues && isIndexed) {
                     return new IndexOrDocValuesQuery(
@@ -85,6 +85,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
                     var lowerAddress = InetAddresses.forString(lowerTerm);
                     lower = includeLower ? lowerAddress : InetAddressPoint.nextUp(lowerAddress);
                 }
+                includeLower = true; // lowerAddress has been adjusted
 
                 InetAddress upper;
                 if (upperTerm == null) {
@@ -93,21 +94,23 @@ public class IpType extends DataType<String> implements Streamer<String> {
                     var upperAddress = InetAddresses.forString(upperTerm);
                     upper = includeUpper ? upperAddress : InetAddressPoint.nextDown(upperAddress);
                 }
+                includeUpper = true; // upperAddress has been adjusted
+
                 boolean isIndexed = indexType != IndexType.NONE;
                 if (hasDocValues && isIndexed) {
                     return new IndexOrDocValuesQuery(
                         InetAddressPoint.newRangeQuery(field, lower, upper),
                         SortedSetDocValuesField.newSlowRangeQuery(
                             field,
-                            new BytesRef(InetAddressPoint.encode(InetAddresses.forString(lowerTerm))),
-                            new BytesRef(InetAddressPoint.encode(InetAddresses.forString(upperTerm))),
+                            new BytesRef(InetAddressPoint.encode(lower)),
+                            new BytesRef(InetAddressPoint.encode(upper)),
                             includeLower,
                             includeUpper));
                 } else if (hasDocValues) {
                     return SortedSetDocValuesField.newSlowRangeQuery(
                         field,
-                        new BytesRef(InetAddressPoint.encode(InetAddresses.forString(lowerTerm))),
-                        new BytesRef(InetAddressPoint.encode(InetAddresses.forString(upperTerm))),
+                        new BytesRef(InetAddressPoint.encode(lower)),
+                        new BytesRef(InetAddressPoint.encode(upper)),
                         includeLower,
                         includeUpper);
                 } else if (isIndexed) {

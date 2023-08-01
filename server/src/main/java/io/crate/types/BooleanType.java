@@ -59,11 +59,11 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
 
         @Override
-        public Query exactQuery(String field, Boolean value, boolean hasDocValues, IndexType indexType) {
+        public Query termQuery(String field, Boolean value, boolean hasDocValues, IndexType indexType) {
+            assert value != null: "Cannot perform = NULL, IS NULL should be used";
             if (hasDocValues) {
                 return SortedNumericDocValuesField.newSlowExactQuery(
                     field,
-                    // TODO: need a null check?
                     value ? 1 : 0);
             }
             return new TermQuery(new Term(field, indexedValue(value)));
@@ -78,6 +78,9 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 boolean hasDocValues,
                                 IndexType indexType) {
             if (hasDocValues) {
+                if (lowerTerm == null || upperTerm == null) {
+                    return null;
+                }
                 return SortedNumericDocValuesField.newSlowRangeQuery(
                     field,
                     lowerTerm ? 1 : 0,

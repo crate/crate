@@ -56,7 +56,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         new EqQuery<Double>() {
 
             @Override
-            public Query exactQuery(String field, Double value, boolean hasDocValues, IndexType indexType) {
+            public Query termQuery(String field, Double value, boolean hasDocValues, IndexType indexType) {
                 boolean isIndexed = indexType != IndexType.NONE;
                 if (hasDocValues && isIndexed) {
                     return DoubleField.newExactQuery(field, value);
