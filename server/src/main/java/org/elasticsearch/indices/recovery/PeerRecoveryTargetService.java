@@ -200,7 +200,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
     protected void reestablishRecovery(final StartRecoveryRequest request, final String reason, TimeValue retryAfter) {
         final long recoveryId = request.recoveryId();
         LOGGER.trace("will try to reestablish recovery with id [{}] in [{}] (reason [{}])", recoveryId, retryAfter, reason);
-        threadPool.schedule(new RecoveryRunner(recoveryId, request), retryAfter, ThreadPool.Names.GENERIC);
+        threadPool.scheduleUnlessShuttingDown(retryAfter, ThreadPool.Names.GENERIC, new RecoveryRunner(recoveryId, request));
     }
 
     private void doRecovery(final long recoveryId, final StartRecoveryRequest preExistingRequest) {
@@ -263,7 +263,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         }
     }
 
-
     /**
      * Prepare the start recovery request.
      *
@@ -311,7 +310,6 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             metadataSnapshot = Store.MetadataSnapshot.EMPTY;
         }
         LOGGER.trace("{} local file count [{}]", recoveryTarget.shardId(), metadataSnapshot.size());
-
         request = new StartRecoveryRequest(
             recoveryTarget.shardId(),
             recoveryTarget.indexShard().routingEntry().allocationId().getId(),
