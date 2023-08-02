@@ -58,7 +58,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     private static final EqQuery<float[]> EQ_QUERY = new EqQuery<>() {
 
         @Override
-        public Query termQuery(String field, float[] value) {
+        public Query termQuery(String field, float[] value, boolean hasDocValues, boolean isIndexed) {
             return null;
         }
 
@@ -68,7 +68,8 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                                 float[] upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
+                                boolean hasDocValues,
+                                boolean isIndexed) {
             return null;
         }
     };

@@ -77,6 +77,7 @@ png
 pq
 prepending
 Quadtree
+queryable
 readonly
 realtime
 rebalance

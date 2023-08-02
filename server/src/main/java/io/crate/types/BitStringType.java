@@ -67,7 +67,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         new EqQuery<BitString>() {
 
             @Override
-            public Query termQuery(String field, BitString value) {
+            public Query termQuery(String field, BitString value, boolean hasDocValues, boolean isIndexed) {
                 return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
             }
 
@@ -77,7 +77,8 @@ public final class BitStringType extends DataType<BitString> implements Streamer
                                     BitString upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 return null;
             }
         }

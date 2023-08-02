@@ -632,18 +632,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_comparison_with_and_without_docvalues() {
-        Query query = convert("x > 10");
-        assertThat(query)
-                .hasToString("x:[11 TO 2147483647]")
-                .isExactlyInstanceOf(IndexOrDocValuesQuery.class);
-        query = convert("x_no_docvalues > 10");
-        assertThat(query)
-                .hasToString("x_no_docvalues:[11 TO 2147483647]")
-                .isNotInstanceOf(IndexOrDocValuesQuery.class);
-    }
-
-    @Test
     public void test_array_not_any_with_and_without_docvalues() {
         Query query = convert("10 != ANY(y_array)");
         assertThat(query)
@@ -705,5 +693,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(query).hasToString(String.format("+(+*:* -(+%s:s +%s:t)) #FieldExistsQuery [field=%s]", oid, oid, oid));
             assertThat(tester.runQuery("a", "a != any(['s'])")).containsExactly("t");
         }
+    }
+    @Test
+    public void test_eq_object_with_undefined_key() {
+        Query query = convert("obj = {x=1, y=2, z=3}"); // z undefined
+        assertThat(query).hasToString("+obj.x:[1 TO 1] +obj.y:[2 TO 2] #(obj = {\"x\"=1, \"y\"=2, \"z\"=3})");
     }
 }

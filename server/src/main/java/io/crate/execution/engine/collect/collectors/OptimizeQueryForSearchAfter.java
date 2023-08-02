@@ -33,6 +33,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
@@ -82,20 +83,48 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(eqQuery.rangeQuery(storageIdent, null, value, false, true, ref.hasDocValues()),
-                                         BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(
+                            eqQuery.rangeQuery(
+                                storageIdent,
+                                null,
+                                value,
+                                false,
+                                true,
+                                ref.hasDocValues(),
+                                ref.indexType() != IndexType.NONE),
+                            BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(eqQuery.rangeQuery(storageIdent, value, null, true, false, ref.hasDocValues()),
-                                         BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(
+                            eqQuery.rangeQuery(
+                                storageIdent,
+                                value,
+                                null,
+                                true,
+                                false,
+                                ref.hasDocValues(),
+                                ref.indexType() != IndexType.NONE),
+                            BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
                         orderQuery = eqQuery.rangeQuery(
-                                storageIdent, value, null, false, false, ref.hasDocValues());
+                                storageIdent,
+                                value,
+                                null,
+                                false,
+                                false,
+                                ref.hasDocValues(),
+                                ref.indexType() != IndexType.NONE);
                     } else {
                         orderQuery = eqQuery.rangeQuery(
-                                storageIdent, null, value, false, false, ref.hasDocValues());
+                            storageIdent,
+                            null,
+                            value,
+                            false,
+                            false,
+                            ref.hasDocValues(),
+                            ref.indexType() != IndexType.NONE);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
