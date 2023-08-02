@@ -28,6 +28,7 @@ import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -81,13 +82,37 @@ public final class CmpOperator extends Operator<Object> {
         String field = ref.storageIdent();
         return switch (functionName) {
             case GtOperator.NAME -> eqQuery.rangeQuery(
-                    field, value, null, false, false, ref.hasDocValues());
+                field,
+                value,
+                null,
+                false,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
             case GteOperator.NAME -> eqQuery.rangeQuery(
-                    field, value, null, true, false, ref.hasDocValues());
-            case LtOperator.NAME ->
-                    eqQuery.rangeQuery(field, null, value, false, false, ref.hasDocValues());
-            case LteOperator.NAME ->
-                    eqQuery.rangeQuery(field, null, value, false, true, ref.hasDocValues());
+                field,
+                value,
+                null,
+                true,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
+            case LtOperator.NAME -> eqQuery.rangeQuery(
+                field,
+                null,
+                value,
+                false,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
+            case LteOperator.NAME -> eqQuery.rangeQuery(
+                field,
+                null,
+                value,
+                false,
+                true,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
             default -> throw new IllegalArgumentException(functionName + " is not a supported comparison operator");
         };
     }

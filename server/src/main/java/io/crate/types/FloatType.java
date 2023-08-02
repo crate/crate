@@ -54,7 +54,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         new EqQuery<Float>() {
 
             @Override
-            public Query termQuery(String field, Float value) {
+            public Query termQuery(String field, Float value, boolean hasDocValues, boolean isIndexed) {
                 return FloatPoint.newExactQuery(field, value);
             }
 
@@ -64,7 +64,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                                     Float upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 float lower;
                 if (lowerTerm == null) {
                     lower = Float.NEGATIVE_INFINITY;

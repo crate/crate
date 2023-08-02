@@ -56,7 +56,6 @@ import io.crate.expression.scalar.NumTermsPerDocQuery;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -81,6 +80,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
 
 public final class EqOperator extends Operator<Object> {
 
@@ -137,25 +137,35 @@ public final class EqOperator extends Operator<Object> {
         }
         DataType<?> dataType = ref.valueType();
         if (dataType.id() != ObjectType.ID && dataType.id() != ArrayType.ID && ref.indexType() == IndexType.NONE) {
-            throw new IllegalArgumentException(
-                "Cannot search on field [" + fqn + "] since it is not indexed.");
+            // gradually allowing un-indexed columns to be searchable: https://github.com/crate/crate/issues/14407
+            if (dataType.id() != IntegerType.ID) {
+                throw new IllegalArgumentException(
+                    "Cannot search on field [" + fqn + "] since it is not indexed.");
+            }
         }
         return switch (dataType.id()) {
-            case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
+            case ObjectType.ID -> refEqObject(
+                function,
+                ref.column(),
+                (ObjectType) dataType,
+                (Map<String, Object>) value,
+                context
+            );
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
                 storageIdentifier,
                 ArrayType.unnest(dataType),
                 (Collection<?>) value,
-                context
-            );
-            default -> fromPrimitive(dataType, storageIdentifier, value);
+                context,
+                ref.hasDocValues(),
+                ref.indexType());
+            default -> fromPrimitive(dataType, storageIdentifier, value, ref.hasDocValues(), ref.indexType());
         };
     }
 
     @Nullable
     @SuppressWarnings("unchecked")
-    public static Query termsQuery(String column, DataType<?> type, Collection<?> values) {
+    public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
             return null;
@@ -182,15 +192,23 @@ public final class EqOperator extends Operator<Object> {
                 column,
                 nonNullValues.stream().map(x -> new BytesRef(((BitString) x).bitSet().toByteArray())).toList()
             );
-            default -> booleanShould(column, type, nonNullValues);
+            default -> booleanShould(column, type, nonNullValues, hasDocValues, indexType);
         };
     }
 
     @Nullable
-    private static Query booleanShould(String column, DataType<?> type, Collection<?> values) {
+    private static Query booleanShould(String column,
+                                       DataType<?> type,
+                                       Collection<?> values,
+                                       boolean hasDocValues,
+                                       IndexType indexType) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         for (var term : values) {
-            builder.add(EqOperator.fromPrimitive(type, column, term), Occur.SHOULD);
+            var fromPrimitive = EqOperator.fromPrimitive(type, column, term, hasDocValues, indexType);
+            if (fromPrimitive == null) {
+                return null;
+            }
+            builder.add(fromPrimitive, Occur.SHOULD);
         }
         return new ConstantScoreQuery(builder.build());
     }
@@ -199,7 +217,13 @@ public final class EqOperator extends Operator<Object> {
         return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
     }
 
-    private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
+    private static Query termsAndGenericFilter(Function function,
+                                               String column,
+                                               DataType<?> elementType,
+                                               Collection<?> values,
+                                               Context context,
+                                               boolean hasDocValues,
+                                               IndexType indexType) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             if (elementType.id() == ObjectType.ID) {
@@ -230,7 +254,7 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values);
+            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
@@ -240,8 +264,9 @@ public final class EqOperator extends Operator<Object> {
         return filterClauses.build();
     }
 
+    @Nullable
     @SuppressWarnings("unchecked")
-    public static Query fromPrimitive(DataType<?> type, String column, Object value) {
+    public static Query fromPrimitive(DataType<?> type, String column, Object value, boolean hasDocValues, IndexType indexType) {
         if (column.equals(DocSysColumns.ID.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
@@ -250,7 +275,7 @@ public final class EqOperator extends Operator<Object> {
         if (eqQuery == null) {
             return null;
         }
-        return ((EqQuery<Object>) eqQuery).termQuery(column, value);
+        return ((EqQuery<Object>) eqQuery).termQuery(column, value, hasDocValues, indexType != IndexType.NONE);
     }
 
     /**
@@ -269,28 +294,28 @@ public final class EqOperator extends Operator<Object> {
      * </pre>
      **/
     private static Query refEqObject(Function eq,
-                                     String fqn,
+                                     ColumnIdent columnIdent,
                                      ObjectType type,
                                      Map<String, Object> value,
-                                     LuceneQueryBuilder.Context context) {
+                                     Context context) {
         BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
         int preFilters = 0;
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             String key = entry.getKey();
             DataType<?> innerType = type.innerType(key);
-            if (innerType == null) {
+            if (innerType == UndefinedType.INSTANCE) {
                 // could be a nested object or not part of meta data; skip pre-filtering
                 continue;
             }
-            String fqNestedColumn = fqn + '.' + key;
-            var columnIdent = ColumnIdent.fromPath(fqNestedColumn);
-            var nestedRef = context.getRef(columnIdent);
-            var nestedStorageIdentifier = nestedRef != null ? nestedRef.storageIdent() : columnIdent.fqn();
+            ColumnIdent childColumn = columnIdent.getChild(key);
+            var childRef = context.getRef(childColumn);
+            var nestedStorageIdentifier = childRef != null ? childRef.storageIdent() : childColumn.fqn();
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
-                innerQuery = termsAndGenericFilter(eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context);
+                innerQuery = termsAndGenericFilter(
+                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
             } else {
-                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue());
+                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
             }
             if (innerQuery == null) {
                 continue;

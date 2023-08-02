@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.lucene.GenericFunctionQuery;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
@@ -141,7 +142,13 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_terms_query_on__id_encodes_ids() throws Exception {
-        Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"));
+        Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
+        assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
+        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);
+        assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
+        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.NONE);
+        assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
+        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.NONE);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
     }
 

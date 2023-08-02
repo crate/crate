@@ -68,7 +68,7 @@ public final class AnyEqOperator extends AnyOperator {
             return new MatchNoDocsQuery("column does not exist in this index");
         }
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
-        return EqOperator.termsQuery(columnName, innerType, values);
+        return EqOperator.termsQuery(columnName, innerType, values, probe.hasDocValues(), probe.indexType());
     }
 
     @Override
@@ -85,7 +85,12 @@ public final class AnyEqOperator extends AnyOperator {
             // [1, 2] = any(nested_array_ref)
             return arrayLiteralEqAnyArray(any, candidates, probe.value(), context);
         }
-        return EqOperator.fromPrimitive(ArrayType.unnest(candidates.valueType()), candidates.storageIdent(), probe.value());
+        return EqOperator.fromPrimitive(
+            ArrayType.unnest(candidates.valueType()),
+            candidates.storageIdent(),
+            probe.value(),
+            candidates.hasDocValues(),
+            candidates.indexType());
     }
 
     private static Query arrayLiteralEqAnyArray(Function function,
@@ -97,8 +102,9 @@ public final class AnyEqOperator extends AnyOperator {
         Query termsQuery = EqOperator.termsQuery(
             candidates.storageIdent(),
             ArrayType.unnest(candidates.valueType()),
-            terms
-        );
+            terms,
+            candidates.hasDocValues(),
+            candidates.indexType());
         Query genericFunctionFilter = LuceneQueryBuilder.genericFunctionFilter(function, context);
         if (termsQuery == null) {
             return genericFunctionFilter;

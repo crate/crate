@@ -28,12 +28,21 @@ import org.apache.lucene.search.Query;
  **/
 public interface EqQuery<T> {
 
-    Query termQuery(String field, T value);
+    // NOTE: cannot utilize IndexOrDocValuesQuery since it is counted as 2 clauses
+    // (one for indexQuery and the other for dvQuery) causing TooManyClauses exception
+    // when exceeding the limit (indices.query.bool.max_clause_count).
+    // https://github.com/crate/crate/pull/14527#discussion_r1295569395
+    Query termQuery(String field, T value, boolean hasDocValues, boolean isIndexed);
 
+    // NOTE: cannot utilize IndexOrDocValuesQuery since it is counted as 2 clauses
+    // (one for indexQuery and the other for dvQuery) causing TooManyClauses exception
+    // when exceeding the limit (indices.query.bool.max_clause_count).
+    // https://github.com/crate/crate/pull/14527#discussion_r1295569395
     Query rangeQuery(String field,
                      T lowerTerm,
                      T upperTerm,
                      boolean includeLower,
                      boolean includeUpper,
-                     boolean hasDocValues);
+                     boolean hasDocValues,
+                     boolean isIndexed);
 }

@@ -46,6 +46,11 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused querying on un-indexed columns to return empty
+  results. The expected behaviour was to have an exception thrown but as part
+  of this fix, un-indexed columns as well as columns without doc-values are now
+  queryable.
+
 - Fixed an issue that caused ``UNION`` to throw ``SQLParseExceptions`` instead
   of ``AmbiguousColumnExceptions``, when 2 or more columns are assigned the
   same name. e.g.::
