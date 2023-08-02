@@ -38,8 +38,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.testing.UseRandomizedOptimizerRules;
-
 public class DynamicMappingUpdateITest extends IntegTestCase {
 
     @Rule
@@ -229,7 +227,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute_update_stmt_results_in_dynamic_mapping_updates();
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_update_partitioned_table_results_in_dynamic_mapping_updates() {
         execute("create table t (id int primary key) partitioned by (id) with (column_policy='dynamic')");

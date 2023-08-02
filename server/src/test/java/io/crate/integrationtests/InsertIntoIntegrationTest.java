@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -38,23 +39,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.metadata.PartitionName;
-import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
@@ -851,7 +852,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
@@ -1377,8 +1377,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat((String) response.rows()[0][0]).isEqualTo("{\"id\":0,\"ts\":\"2015-01-01\"}");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
         execute("create table t (x int, y int, z as x + y primary key)");
         ensureYellow();
@@ -1387,8 +1387,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(execute("select * from t where z = 3").rowCount()).isEqualTo(1L);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
     public void testInsertIntoTableWithNestedPrimaryKeyFromQuery() throws Exception {
         execute("create table t (o object as (ot object as (x int primary key)))");
         ensureYellow();

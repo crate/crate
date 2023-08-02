@@ -183,7 +183,6 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_correlated_subquery_used_in_virtual_table_with_union() {
         String stmt = """
@@ -199,11 +198,11 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 4
             """;
         execute(stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "Špik\n" +
-            "Špik\n" +
-            "Škrlatica\n" +
-            "Škrlatica\n"
+        assertThat(response).hasRows(
+            "Špik",
+            "Špik",
+            "Škrlatica",
+            "Škrlatica"
         );
     }
 

@@ -93,8 +93,8 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         assertThat((long) response.rows()[0][1], is(2L));
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
+    @UseRandomizedOptimizerRules(0) // depends on primary key lookup
     public void testInsertEmtpyStringRoutingIsRealtime() throws Exception {
         execute("create table t (i int primary key, c string primary key, a int)" +
                 " clustered by (c) with (refresh_interval=-1)");

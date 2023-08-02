@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
@@ -38,7 +39,6 @@ import org.junit.Test;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class ObjectColumnTest extends IntegTestCase {
 
@@ -140,7 +140,6 @@ public class ObjectColumnTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(0);
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testAddColumnToStrictObject() throws Exception {
         this.setup.setUpObjectTable();

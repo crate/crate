@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -33,7 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends IntegTestCase {
@@ -277,30 +277,30 @@ public class UnionIntegrationTest extends IntegTestCase {
         ));
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_union_with_group_by_and_order_plus_limit_and_offset() {
         execute(
-            "SELECT\n" +
-            "    id,\n" +
-            "    max(num) AS num\n" +
-            "FROM\n" +
-            "    unnest(ARRAY['index_1', 'index_1'], ARRAY[1, 4]) AS t (id, num)\n" +
-            "GROUP BY id\n" +
-            "UNION ALL\n" +
-            "SELECT\n" +
-            "    id,\n" +
-            "    max(num) AS num\n" +
-            "FROM\n" +
-            "    unnest(ARRAY['index_2', 'index_2'], ARRAY[2, 3]) AS t (id, num)\n" +
-            "GROUP BY id ORDER BY num ASC\n" +
-            "LIMIT 100 offset 1;\n"
+            """
+            SELECT
+                id,
+                max(num) AS num
+            FROM
+                unnest(ARRAY['index_1', 'index_1'], ARRAY[1, 4]) AS t (id, num)
+            GROUP BY id
+            UNION ALL
+            SELECT
+                id,
+                max(num) AS num
+            FROM
+                unnest(ARRAY['index_2', 'index_2'], ARRAY[2, 3]) AS t (id, num)
+            GROUP BY id
+            ORDER BY num ASC
+            LIMIT 100 offset 1
+            """
         );
-        assertThat(
-            printedTable(response.rows()),
-            is("index_1| 4\n")
+        assertThat(response).hasRows(
+            "index_1| 4"
         );
-
     }
 
     @Test
