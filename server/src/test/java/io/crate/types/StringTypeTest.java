@@ -29,15 +29,19 @@ import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.SessionSettings;
 
-public class StringTypeTest extends ESTestCase {
+public class StringTypeTest extends DataTypeTestCase<String> {
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
+    @Override
+    public DataType<String> getType() {
+        return StringType.of(randomIntBetween(1, 40));
+    }
 
     @Test
     public void test_implicit_cast_boolean_to_text() {
@@ -107,17 +111,6 @@ public class StringTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
         in.setVersion(Version.V_4_1_0);
         assertThat(DataTypes.fromStream(in)).isEqualTo(StringType.INSTANCE);
-    }
-
-    @Test
-    public void test_text_type_with_length_serialization_roundtrip() throws IOException {
-        var actualType = StringType.of(1);
-
-        var out = new BytesStreamOutput();
-        DataTypes.toStream(actualType, out);
-
-        var in = out.bytes().streamInput();
-        assertThat(DataTypes.fromStream(in)).isEqualTo(actualType);
     }
 
     @Test
