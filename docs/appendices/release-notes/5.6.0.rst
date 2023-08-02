@@ -85,4 +85,4 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Allowed un-indexed columns or columns without doc-values to be queryable.

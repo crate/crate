@@ -29,7 +29,7 @@ import org.apache.lucene.search.Query;
 public class LongEqQuery implements EqQuery<Long> {
 
     @Override
-    public Query termQuery(String field, Long value) {
+    public Query termQuery(String field, Long value, boolean hasDocValues, boolean isIndexed) {
         return LongPoint.newExactQuery(field, value);
     }
 
@@ -39,7 +39,8 @@ public class LongEqQuery implements EqQuery<Long> {
                             Long upperTerm,
                             boolean includeLower,
                             boolean includeUpper,
-                            boolean hasDocValues) {
+                            boolean hasDocValues,
+                            boolean isIndexed) {
         long lower = lowerTerm == null
             ? Long.MIN_VALUE
             : (includeLower ? lowerTerm : lowerTerm + 1);

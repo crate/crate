@@ -34,6 +34,7 @@ import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -68,7 +69,16 @@ public final class AnyNeqOperator extends AnyOperator {
             if (value == null) {
                 continue;
             }
-            andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), columnName, value), BooleanClause.Occur.MUST);
+            var fromPrimitive = EqOperator.fromPrimitive(
+                probe.valueType(),
+                probe.column().fqn(),
+                value,
+                probe.hasDocValues(),
+                probe.indexType());
+            if (fromPrimitive == null) {
+                return null;
+            }
+            andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
         return new BooleanQuery.Builder()
@@ -99,11 +109,24 @@ public final class AnyNeqOperator extends AnyOperator {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            eqQuery.rangeQuery(columnName, value, null, false, false, candidates.hasDocValues()),
+            eqQuery.rangeQuery(
+                columnName, value,
+                null,
+                false,
+                false,
+                candidates.hasDocValues(),
+                candidates.indexType() != IndexType.NONE),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            eqQuery.rangeQuery(columnName, null, value, false, false, candidates.hasDocValues()),
+            eqQuery.rangeQuery(
+                columnName,
+                null,
+                value,
+                false,
+                false,
+                candidates.hasDocValues(),
+                candidates.indexType() != IndexType.NONE),
             BooleanClause.Occur.SHOULD
         );
         return query.build();
