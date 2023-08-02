@@ -57,7 +57,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
 
         @Override
-        public Query termQuery(String field, Boolean value) {
+        public Query termQuery(String field, Boolean value, boolean hasDocValues, boolean isIndexed) {
             return new TermQuery(new Term(field, indexedValue(value)));
         }
 
@@ -67,7 +67,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
+                                boolean hasDocValues,
+                                boolean isIndexed) {
             return new TermRangeQuery(
                 field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
         }

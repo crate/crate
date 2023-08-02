@@ -78,7 +78,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         new EqQuery<Object>() {
 
             @Override
-            public Query termQuery(String field, Object value) {
+            public Query termQuery(String field, Object value, boolean hasDocValues, boolean isIndexed) {
                 return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
             }
 
@@ -88,7 +88,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                     Object upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 return new TermRangeQuery(
                     field,
                     BytesRefs.toBytesRef(lowerTerm),

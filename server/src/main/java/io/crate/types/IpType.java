@@ -51,7 +51,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
         new EqQuery<String>() {
 
             @Override
-            public Query termQuery(String field, String value) {
+            public Query termQuery(String field, String value, boolean hasDocValues, boolean isIndexed) {
                 return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
             }
 
@@ -61,7 +61,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                     String upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 InetAddress lower;
                 if (lowerTerm == null) {
                     lower = InetAddressPoint.MIN_VALUE;

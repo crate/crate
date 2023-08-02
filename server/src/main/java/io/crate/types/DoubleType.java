@@ -55,7 +55,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         new EqQuery<Double>() {
 
             @Override
-            public Query termQuery(String field, Double value) {
+            public Query termQuery(String field, Double value, boolean hasDocValues, boolean isIndexed) {
                 return DoublePoint.newExactQuery(field, value);
             }
 
@@ -65,7 +65,8 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                                     Double upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
                 double lower;
                 if (lowerTerm == null) {
                     lower = Double.NEGATIVE_INFINITY;
