@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -200,6 +201,22 @@ public class DataTypeTesting {
                         result[i] = random.nextFloat();
                     }
                     return (T) result;
+                };
+
+            case ArrayType.ID:
+                ArrayType<?> arrayType = (ArrayType<?>) type;
+                Supplier<?> elementGenerator = getDataGenerator(arrayType.innerType());
+                return () -> {
+                    int length = random.nextInt(21);
+                    ArrayList<Object> values = new ArrayList<>(length);
+                    for (int i = 0; i < length; i++) {
+                        if (random.nextInt(30) == 0) {
+                            values.add(null);
+                        } else {
+                            values.add(elementGenerator.get());
+                        }
+                    }
+                    return (T) values;
                 };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());

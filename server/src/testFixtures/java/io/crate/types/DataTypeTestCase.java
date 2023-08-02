@@ -200,7 +200,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         streamer.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        assertThat(streamer.readValueFrom(in)).isEqualTo(value);
+        assertThat(type.compare(streamer.readValueFrom(in), value)).isEqualTo(0);
         assertThat(streamer.readValueFrom(in)).isNull();
     }
 }
