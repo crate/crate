@@ -37,6 +37,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -71,12 +72,14 @@ import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.FileParsingProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
@@ -123,6 +126,8 @@ import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.file.CsvColumnExtractingExpression;
+import io.crate.expression.reference.file.JsonColumnExtractingExpression;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import io.crate.expression.symbol.Literal;
@@ -138,6 +143,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.operation.collect.files.CSVLineParser;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -433,6 +439,29 @@ public class ProjectionToProjectorVisitor
             );
         }
         return objectMap;
+    }
+
+    @Override
+    public Projector visitFileParsingProjection(FileParsingProjection projection, Context context) {
+        List<String> targetColumns = projection.allTargetColumns().stream().map(Reference::toString).collect(Collectors.toList());
+        CSVLineParser csvLineParser = new CSVLineParser(projection.copyFromParserProperties(), targetColumns);
+
+        InputFactory.Context<CollectExpression<Row, ?>> ctxForRefs = inputFactory.ctxForRefs(
+            context.txnCtx,
+            ref -> getExpression(ref, projection.inputFormat(), csvLineParser)
+        );
+        ctxForRefs.add(projection.allTargetColumns());
+
+        return new InputRowProjector(ctxForRefs.topLevelInputs(), ctxForRefs.expressions());
+    }
+
+    private static CollectExpression<Row, ?> getExpression(Reference ref,
+                                                           FileUriCollectPhase.InputFormat inputFormat,
+                                                           CSVLineParser csvLineParser) {
+        return switch (inputFormat) {
+            case JSON -> new JsonColumnExtractingExpression(ref.column());
+            case CSV -> new CsvColumnExtractingExpression(ref.column(), ref.valueType(), csvLineParser);
+        };
     }
 
     @Override

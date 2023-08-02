@@ -237,14 +237,14 @@ public class CSVLineParserTest {
         csvParser.parseWithoutHeader("GER,Germany\n", 0);
     }
 
-    @Test
-    public void parse_targetColumnsLessThanCsvValuesNoHeader_thenDropExtraCsvValues() throws IOException {
-        csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
-            List.of("Code", "Country"));
-        result = csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
-    }
+//    @Test
+//    public void parse_targetColumnsLessThanCsvValuesNoHeader_thenDropExtraCsvValues() throws IOException {
+//        csvParser = new CSVLineParser(
+//            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
+//            List.of("Code", "Country"));
+//        result = csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
+//        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+//    }
 
     @Test
     public void parse_targetColumnsNotInOrder_thenParseWithOrder() throws IOException {

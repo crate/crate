@@ -34,9 +34,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class CSVLineParser {
 
@@ -132,5 +134,30 @@ public class CSVLineParser {
         }
         jsonBuilder.endObject().close();
         return out.toByteArray();
+    }
+
+    public Map<String, Object> rowAsMapWithoutHeader(String row) throws IOException {
+        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        int i = 0;
+        // CSV parser prepares a map so that validation of items amount is done once and also values can be accessed quickly.
+        // TODO: Actually reuse/share map per-expression.
+        Map<String, Object> rowAsMap = new HashMap<>();
+        while (iterator.hasNext()) {
+            if (i >= columnNamesArray.length) {
+                break;
+            }
+            var key = columnNamesArray[i];
+            var value = iterator.next();
+            i++;
+            if (key != null) {
+                rowAsMap.put(key, value);
+            }
+        }
+        if (columnNamesArray.length > i) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Expected %d values, " +
+                "encountered %d. This is not allowed when there " +
+                "is no header provided)",columnNamesArray.length, i));
+        }
+        return rowAsMap;
     }
 }

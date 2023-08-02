@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -154,7 +155,8 @@ public class JsonReaderBenchmark {
             CopyFromParserProperties.DEFAULT,
             JSON,
             Settings.EMPTY,
-            null);
+            null,
+            Version.CURRENT);
 
         while (batchIterator.moveNext()) {
             blackhole.consume(batchIterator.currentElement().get(0));

@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -255,7 +256,8 @@ public class FileReadingCollectorTest extends ESTestCase {
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
-            THREAD_POOL.scheduler());
+            THREAD_POOL.scheduler(),
+            Version.CURRENT);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

@@ -58,6 +58,10 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
+    public R visitFileParsingProjection(FileParsingProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
+
     public R visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, C context) {
         return visitProjection(projection, context);
     }

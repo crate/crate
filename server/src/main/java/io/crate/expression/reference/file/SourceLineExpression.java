@@ -31,7 +31,7 @@ public class SourceLineExpression extends LineCollectorExpression<String> {
 
     @Override
     public String value() {
-        return context.sourceAsString();
+        return context.rawAsString();
     }
 
     @Override
