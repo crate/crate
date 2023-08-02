@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
@@ -41,6 +41,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
+import org.jetbrains.annotations.Nullable;
 
 /** A {@link FieldMapper} for numeric types: byte, short, int, long, float and double. */
 public class NumberFieldMapper extends FieldMapper {
@@ -126,12 +127,16 @@ public class NumberFieldMapper extends FieldMapper {
                                      boolean indexed,
                                      boolean docValued,
                                      boolean stored) {
-                if (indexed) {
-                    onField.accept(new FloatPoint(name, value.floatValue()));
-                }
-                if (docValued) {
-                    onField.accept(new SortedNumericDocValuesField(name,
-                        NumericUtils.floatToSortableInt(value.floatValue())));
+                if (indexed && docValued) {
+                    onField.accept(new FloatField(name, value.floatValue(), Store.NO));
+                } else {
+                    if (indexed) {
+                        onField.accept(new FloatPoint(name, value.floatValue()));
+                    }
+                    if (docValued) {
+                        onField.accept(new SortedNumericDocValuesField(name,
+                            NumericUtils.floatToSortableInt(value.floatValue())));
+                    }
                 }
                 if (stored) {
                     onField.accept(new StoredField(name, value.floatValue()));
