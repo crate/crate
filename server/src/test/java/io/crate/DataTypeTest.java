@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
@@ -36,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -55,28 +52,6 @@ import io.crate.types.TimeTZType;
 import io.crate.types.UndefinedType;
 
 public class DataTypeTest extends ESTestCase {
-
-    @Test
-    public void testStreaming() throws Exception {
-        String s1 = "hello";
-        BytesStreamOutput out = new BytesStreamOutput();
-        Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, s1);
-        StreamInput in = out.bytes().streamInput();
-        String b2 = (String) streamer.readValueFrom(in);
-        assertEquals(s1, b2);
-    }
-
-    @Test
-    public void testStreamingNull() throws Exception {
-        String s1 = null;
-        BytesStreamOutput out = new BytesStreamOutput();
-        Streamer streamer = DataTypes.STRING.streamer();
-        streamer.writeValueTo(out, s1);
-        StreamInput in = out.bytes().streamInput();
-        String s2 = (String) streamer.readValueFrom(in);
-        assertNull(s2);
-    }
 
     @Test
     public void testForValueWithList() {
