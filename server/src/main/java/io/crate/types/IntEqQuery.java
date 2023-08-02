@@ -23,14 +23,19 @@ package io.crate.types;
 
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 
 public class IntEqQuery implements EqQuery<Number> {
 
     @Override
-    public Query termQuery(String field, Number value) {
-        return IntPoint.newExactQuery(field, value.intValue());
+    public Query termQuery(String field, Number value, boolean hasDocValues, boolean isIndexed) {
+        if (isIndexed) {
+            return IntPoint.newExactQuery(field, value.intValue());
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowExactQuery(field, value.intValue());
+        }
+        return null;
     }
 
     @Override
@@ -39,7 +44,8 @@ public class IntEqQuery implements EqQuery<Number> {
                             Number upperTerm,
                             boolean includeLower,
                             boolean includeUpper,
-                            boolean hasDocValues) {
+                            boolean hasDocValues,
+                            boolean isIndexed) {
         int lower = Integer.MIN_VALUE;
         if (lowerTerm != null) {
             lower = includeLower ? lowerTerm.intValue() : lowerTerm.intValue() + 1;
@@ -48,11 +54,12 @@ public class IntEqQuery implements EqQuery<Number> {
         if (upperTerm != null) {
             upper = includeUpper ? upperTerm.intValue() : upperTerm.intValue() - 1;
         }
-        Query indexquery = IntPoint.newRangeQuery(field, lower, upper);
-        if (hasDocValues) {
-            return new IndexOrDocValuesQuery(
-                    indexquery, SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        if (isIndexed) {
+            return IntPoint.newRangeQuery(field, lower, upper);
         }
-        return indexquery;
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        }
+        return null;
     }
 }
