@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
 
 import java.lang.reflect.Field;
@@ -32,6 +32,7 @@ import java.util.Map;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.gateway.GatewayService;
@@ -45,7 +46,6 @@ import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
 @IntegTestCase.ClusterScope
@@ -250,13 +250,14 @@ public class SysClusterSettingsTest extends IntegTestCase {
 
         @Override
         public List<Setting<?>> getSettings() {
-            return List.of(
-                new Setting<>("archived.cluster.routing.allocation.disk.watermark.low", "85%",
-                              s -> s,
-                              value -> {},
-                              DataTypes.STRING,
-                              Setting.Property.Dynamic, Setting.Property.NodeScope, Setting.Property.Exposed)
+            Setting<String> diskWatermarkLow = Setting.simpleString(
+                "archived.cluster.routing.allocation.disk.watermark.low",
+                "85%",
+                Property.Dynamic,
+                Property.NodeScope,
+                Property.Exposed
             );
+            return List.of(diskWatermarkLow);
         }
     }
 }
