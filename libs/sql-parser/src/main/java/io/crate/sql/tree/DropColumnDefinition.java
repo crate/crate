@@ -38,7 +38,7 @@ public class DropColumnDefinition<T> extends TableElement<T> {
         return name;
     }
 
-    public boolean isIfExists() {
+    public boolean ifExists() {
         return ifExists;
     }
 
