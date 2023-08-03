@@ -6,7 +6,7 @@ Altering tables
 
 .. NOTE::
 
-   ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.
+   ``ALTER COLUMN`` action is not currently supported.
    See :ref:`appendix-compatibility`.
 
 .. rubric:: Table of contents

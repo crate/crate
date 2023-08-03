@@ -78,8 +78,7 @@ sharding, replication and routing of data, and does not support inheritance.
 Alter table
 -----------
 
-``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
-:ref:`sql-alter-table`).
+``ALTER COLUMN`` action is not currently supported (see :ref:`sql-alter-table`).
 
 
 .. _appendix-compat-sys-info:
