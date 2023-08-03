@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,6 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
@@ -338,7 +338,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(selectedObject.get("another_new_col")).isEqualTo("1970-01-01T00:00:00");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();

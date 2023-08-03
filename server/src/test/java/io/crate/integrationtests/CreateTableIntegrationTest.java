@@ -43,7 +43,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-import io.crate.testing.UseRandomizedOptimizerRules;
 
 public class CreateTableIntegrationTest extends IntegTestCase {
 
@@ -52,7 +51,6 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         executeCreateTableThreaded("create table if not exists t (name string) with (number_of_replicas = 0)");
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void testCreatePartitionedTableIfNotExistsConcurrently() throws Throwable {
         executeCreateTableThreaded("create table if not exists t " +
@@ -148,7 +146,6 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
     }
 
-    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_constraint_on_generated_column() {
         execute(

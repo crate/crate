@@ -47,6 +47,8 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Updated the bundled OpenJDK to 20.0.2+9
+
 - Allowed user to :ref:`RESET<ref-set>` cluster settings with ``archived.``
   prefix.
 
