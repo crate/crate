@@ -45,8 +45,8 @@ Version 5.5.0 - Unreleased
 Breaking Changes
 ================
 
-None
-
+- Added ``CURRENT_DATE``, ``CURRENT_TIME`` and ``CURRENT_TIMESTAMP`` to
+  non-reserved keywords.
 
 Deprecations
 ============
