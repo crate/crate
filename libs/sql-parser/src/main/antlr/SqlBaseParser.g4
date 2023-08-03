@@ -838,7 +838,10 @@ nonReserved
     | CONNECTION
     | COPY
     | CURRENT
+    | CURRENT_DATE
     | CURRENT_SCHEMA
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
     | CURSOR
     | DANGLING
     | DAY
