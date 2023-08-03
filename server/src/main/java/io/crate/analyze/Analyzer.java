@@ -44,6 +44,7 @@ import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
@@ -130,6 +131,7 @@ public class Analyzer {
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
+    private final AlterTableDropColumnAnalyzer alterTableDropColumnAnalyzer;
     private final InsertAnalyzer insertAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
@@ -154,7 +156,7 @@ public class Analyzer {
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
-     *                         {@link io.crate.metadata.view.InternalViewInfoFactory} and we want to keep only a single
+     *                         {@link io.crate.metadata.view.ViewInfoFactory} and we want to keep only a single
      *                         instance of the class
      */
     @Inject
@@ -175,6 +177,7 @@ public class Analyzer {
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
+        this.alterTableDropColumnAnalyzer = new AlterTableDropColumnAnalyzer(schemas, nodeCtx);
         this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -279,6 +282,14 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, Analysis context) {
             return alterTableAddColumnAnalyzer.analyze(
                 (AlterTableAddColumn<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableDropColumnStatement(AlterTableDropColumn<?> node, Analysis context) {
+            return alterTableDropColumnAnalyzer.analyze(
+                (AlterTableDropColumn<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }

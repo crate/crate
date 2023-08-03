@@ -439,6 +439,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_drop_column() {
+        analyze("alter table users drop column floats");
+        assertAskedForTable(Privilege.Type.DDL, "doc.users");
+    }
+
+    @Test
     public void testOpenCloseTable() throws Exception {
         analyze("alter table users close");
         assertAskedForTable(Privilege.Type.DDL, "doc.users");
