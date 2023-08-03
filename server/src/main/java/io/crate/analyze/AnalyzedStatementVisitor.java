@@ -236,6 +236,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(alterTableAddColumn, context);
     }
 
+    public R visitAlterTableDropColumn(AnalyzedAlterTableDropColumn alterTableDropColumn, C context) {
+        return visitDDLStatement(alterTableDropColumn, context);
+    }
+
     public R visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint, C context) {
         return visitDDLStatement(dropCheckConstraint, context);
     }
