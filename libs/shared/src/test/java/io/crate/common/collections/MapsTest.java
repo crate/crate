@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -68,5 +69,20 @@ public class MapsTest {
 
         Maps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
         assertThat(m).isEqualTo(Map.of("o", Map.of("x", Map.of("y", 10))));
+    }
+
+    @Test
+    public void test_concat_multimap() {
+        HashMap<String, Set<String>> m1 = new HashMap<>();
+        m1.put("a", Set.of("x"));
+
+        HashMap<String, Set<String>> m2 = new HashMap<>();
+        m2.put("a", Set.of("y"));
+        m2.put("b", Set.of("z"));
+
+        var result = Maps.concatMultiMap(m1, m2);
+        System.out.println("result = " + result);
+
+
     }
 }

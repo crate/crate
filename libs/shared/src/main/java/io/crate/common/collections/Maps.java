@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -49,6 +50,34 @@ public final class Maps {
         result.putAll(m1);
         result.putAll(m2);
         return Collections.unmodifiableMap(result);
+    }
+
+    public static <K, V> Map<K, Set<V>> concatMultiMap(Map<K, Set<V>> m1, Map<K, Set<V>> m2) {
+        if (m1.isEmpty()) {
+            return m2;
+        }
+        if (m2.isEmpty()) {
+            return m1;
+        }
+       var result = new HashMap<K, Set<V>>();
+        for (var entry : m1.entrySet()) {
+            var key = entry.getKey();
+            var m1Values = entry.getValue();
+            var m2Values = m2.get(key);
+            if (m1Values == null && m2Values == null) {
+                result.put(key, null);
+            } else if (m1Values == null) {
+                result.put(key, m2Values);
+            } else if (m2Values == null) {
+                result.put(key, m1Values);
+            } else {
+                result.put(key, Sets.union(m1Values, m2Values));
+            }
+        }
+        for (var key : Sets.difference(m2.keySet(), result.keySet())) {
+            result.put(key, m2.get(key));
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")

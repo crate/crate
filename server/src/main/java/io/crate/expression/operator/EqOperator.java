@@ -193,6 +193,10 @@ public final class EqOperator extends Operator<Object> {
         return new ConstantScoreQuery(builder.build());
     }
 
+    public static Function of(Symbol first, Symbol second) {
+        return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
+    }
+
     private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {

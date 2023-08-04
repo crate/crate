@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
@@ -41,6 +42,7 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Insert;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
@@ -72,6 +74,11 @@ public class PlanStats {
         this.txnCtx = txnCtx;
         this.tableStats = tableStats;
         this.visitor = new StatsVisitor(nodeContext, txnCtx, tableStats, memo);
+    }
+
+    @Nullable
+    public Memo memo() {
+        return visitor.memo;
     }
 
     public PlanStats withMemo(Memo memo) {
@@ -136,6 +143,43 @@ public class PlanStats {
         }
 
         @Override
+        public Stats visitJoinPlan(JoinPlan join, Void context) {
+            return visitAbstractJoinPlan(join, context);
+        }
+
+        @Override
+        public Stats visitHashJoin(HashJoin join, Void context) {
+            return visitAbstractJoinPlan(join, context);
+        }
+
+        public Stats visitAbstractJoinPlan(AbstractJoinPlan join, Void context) {
+            var lhsStats = join.lhs().accept(this, context);
+            var rhsStats = join.rhs().accept(this, context);
+            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(),
+                                                                         rhsStats.statsByColumn());
+            if (lhsStats.numDocs() == -1
+                || lhsStats.sizeInBytes() == -1
+                || rhsStats.numDocs() == -1
+                || rhsStats.sizeInBytes() == -1) {
+                return new Stats(-1, -1, statsByColumn);
+            }
+            long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
+            long sizeInBytes =
+                (numRows * lhsStats.averageSizePerRowInBytes())
+                + (numRows * rhsStats.averageSizePerRowInBytes());
+
+            Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
+            long estimatedNumRows = SelectivityFunctions.estimateNumRows(
+                nodeContext,
+                txnCtx,
+                joinStats,
+                join.joinCondition(),
+                null
+            );
+            return joinStats.withNumDocs(estimatedNumRows);
+        }
+
+        @Override
         public Stats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
@@ -164,33 +208,6 @@ public class PlanStats {
                 txnCtx,
                 joinStats,
                 joinCondition,
-                null
-            );
-            return joinStats.withNumDocs(estimatedNumRows);
-        }
-
-        @Override
-        public Stats visitHashJoin(HashJoin join, Void context) {
-            var lhsStats = join.lhs().accept(this, context);
-            var rhsStats = join.rhs().accept(this, context);
-            Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(), rhsStats.statsByColumn());
-            if (lhsStats.numDocs() == -1
-                || lhsStats.sizeInBytes() == -1
-                || rhsStats.numDocs() == -1
-                || rhsStats.sizeInBytes() == -1) {
-                return new Stats(-1, -1, statsByColumn);
-            }
-            long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
-            long sizeInBytes =
-                (numRows * lhsStats.averageSizePerRowInBytes())
-                + (numRows * rhsStats.averageSizePerRowInBytes());
-
-            Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
-            long estimatedNumRows = SelectivityFunctions.estimateNumRows(
-                nodeContext,
-                txnCtx,
-                joinStats,
-                join.joinCondition(),
                 null
             );
             return joinStats.withNumDocs(estimatedNumRows);
