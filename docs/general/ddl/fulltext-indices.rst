@@ -323,3 +323,21 @@ and will override the tokenizer with ``mypattern``.
     DROP OK, 1 row affected (... sec)
     cr> drop ANALYZER e2;
     DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_a;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_b1;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_b2;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_c;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_d;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_e;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE table_f;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE documents_a;
+    DROP OK, 1 row affected (... sec)
+    cr> drop TABLE documents_b;
+    DROP OK, 1 row affected (... sec)
