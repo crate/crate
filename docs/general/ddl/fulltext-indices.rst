@@ -175,6 +175,11 @@ Composite indices can include nested columns within object columns as well::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. NOTE::
+
+    If ``plain`` index method is used, this internally translates to
+    ``fulltext with (analyzer = 'keyword')``.
+
 .. _sql-ddl-custom-analyzer:
 
 .. _create_custom_analyzer:
@@ -313,7 +318,7 @@ and will override the tokenizer with ``mypattern``.
    detailed information on the available analyzers.
 
 
-.. hide: Drop created custom analyzers::
+.. hide: Drop created tables and custom analyzers::
 
     cr> drop ANALYZER myanalyzer;
     DROP OK, 1 row affected (... sec)
