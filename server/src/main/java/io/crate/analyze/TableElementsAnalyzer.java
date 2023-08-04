@@ -673,6 +673,10 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             builder.indexProperties = indexDefinition.properties().map(toSymbol);
             builder.indexSources = Lists2.map(indexDefinition.columns(), toSymbol);
             builder.indexType = IndexType.of(builder.indexMethod);
+            if (builder.indexSources.size() > 1 && builder.indexType != IndexType.FULLTEXT) {
+                throw new IllegalArgumentException("Cannot use 'plain' index method for composite index: " + name +
+                                                   ", only 'fulltext' is allowed");
+            }
             return null;
         }
 

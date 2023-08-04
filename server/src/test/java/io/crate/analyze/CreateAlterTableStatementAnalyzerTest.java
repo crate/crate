@@ -462,6 +462,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void test_cannot_use_plain_index_on_multiple_columns() {
+        assertThatThrownBy(() -> e.analyze("create table t (a int, b int, index pl_a_b using plain (a, b))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use 'plain' index method for composite index: pl_a_b, only 'fulltext' is allowed");
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithArray() {
         BoundCreateTable analysis = analyze(

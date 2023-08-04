@@ -175,6 +175,11 @@ Composite indices can include nested columns within object columns as well::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. NOTE::
+
+    Only ``fulltext`` index method is supported for composite indices.
+
+
 .. _sql-ddl-custom-analyzer:
 
 .. _create_custom_analyzer:

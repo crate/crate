@@ -47,4 +47,6 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Disallowed usage of ``plain`` index method for
+  :ref:`composite indices <sql-ddl-composite-index>`. Previously, when ``plain``
+  was used, it was silently converted, internally, to `fulltext.

@@ -341,8 +341,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " )," +
                       " index col_d_a_ft using fulltext (col_d['a']) with (" +
                       "  analyzer= 'custom_analyzer'" +
-                      " )," +
-                      " index col_a_col_b_plain using plain (col_a, col_b)" +
+                      " )" +
                       ") " +
                       "clustered into 5 shards " +
                       "with (" +
@@ -368,9 +367,6 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   ),\n" +
                      "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
                      "      analyzer = 'custom_analyzer'\n" +
-                     "   ),\n" +
-                     "   INDEX \"col_a_col_b_plain\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
-                     "      analyzer = 'keyword'\n" +
                      "   )\n" +
                      ")\n" +
                      "CLUSTERED INTO 5 SHARDS\n" +
