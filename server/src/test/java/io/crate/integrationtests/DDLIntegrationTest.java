@@ -299,11 +299,8 @@ public class DDLIntegrationTest extends IntegTestCase {
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
-
-        Asserts.assertSQLError(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Cannot search on field [quote] since it is not indexed.");
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertThat(response).hasRows(quote);
     }
 
     @Test
