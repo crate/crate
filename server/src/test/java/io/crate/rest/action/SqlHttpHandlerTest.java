@@ -38,8 +38,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -106,7 +106,7 @@ public class SqlHttpHandlerTest {
         when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
 
         var mockedSqlOperations = mock(Sessions.class);
-        when(mockedSqlOperations.createSession(null, dummyUser)).thenReturn(mockedSession);
+        when(mockedSqlOperations.newSession(null, dummyUser)).thenReturn(mockedSession);
 
         var mockedRequest = mock(FullHttpRequest.class);
         when(mockedRequest.headers()).thenReturn(new DefaultHttpHeaders());

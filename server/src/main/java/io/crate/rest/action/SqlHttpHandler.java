@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -46,6 +44,7 @@ import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
@@ -219,10 +218,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         User authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.createSession(defaultSchema, authenticatedUser);
+            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
         } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sqlOperations.createSession(defaultSchema, authenticatedUser);
+            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
         }
         this.session = session;
         return session;

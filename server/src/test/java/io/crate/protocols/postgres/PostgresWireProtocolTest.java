@@ -46,11 +46,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.SecureString;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -163,7 +162,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void test_channel_is_flushed_after_receiving_flush_request() throws Exception {
         Sessions sqlOperations = mock(Sessions.class);
         Session session = mock(Session.class);
-        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
+        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
@@ -196,11 +195,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
         var mockedSqlOperations = mock(Sessions.class);
         AtomicReference<Session> sessionRef = new AtomicReference<>();
-        when(mockedSqlOperations.createSession(Mockito.anyString(), Mockito.any())).thenAnswer(new Answer<Session>() {
+        when(mockedSqlOperations.newSession(Mockito.anyString(), Mockito.any())).thenAnswer(new Answer<Session>() {
 
             @Override
             public Session answer(InvocationOnMock invocation) throws Throwable {
-                var session = sqlOperations.createSession(
+                var session = sqlOperations.newSession(
                     invocation.getArgument(0, String.class),
                     invocation.getArgument(1, User.class)
                 );
@@ -528,7 +527,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPasswordMessageAuthenticationProcess() throws Exception {
         var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
+        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
@@ -578,7 +577,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testSessionCloseOnTerminationMessage() throws Exception {
         Sessions sqlOperations = mock(Sessions.class);
         Session session = mock(Session.class);
-        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
+        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
@@ -723,7 +722,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).thenReturn(future);
         var sessionSettings = new CoordinatorSessionSettings(User.CRATE_USER);
         when(session.sessionSettings()).thenReturn(sessionSettings);
-        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
+        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(session);
         DescribeResult describeResult = mock(DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(Mockito.anyChar(), Mockito.anyString())).thenReturn(describeResult);
