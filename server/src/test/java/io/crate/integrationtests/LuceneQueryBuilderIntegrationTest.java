@@ -304,6 +304,26 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void testWhereNotEqualAnyWithLargeArrayForStringType() throws Exception {
+        // Test overriding of default value 8192 for indices.query.bool.max_clause_count
+        execute("create table t1 (id text) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table t2 (id text) clustered into 2 shards with (number_of_replicas = 0)");
+        ensureYellow();
+
+        int bulkSize = NUMBER_OF_BOOLEAN_CLAUSES;
+        Object[][] bulkArgs = new Object[bulkSize][];
+        for (int i = 0; i < bulkSize; i++) {
+            bulkArgs[i] = new Object[]{i};
+        }
+        execute("insert into t1 (id) values (?)", bulkArgs);
+        execute("insert into t2 (id) values (1)");
+        execute("refresh table t1, t2");
+
+        execute("select count(*) from t2 where id != any(select id from t1)");
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
+    }
+
+    @Test
     public void testWhereNotEqualAnyWithLargeArray() throws Exception {
         // Test overriding of default value 8192 for indices.query.bool.max_clause_count
         execute("create table t1 (id integer) clustered into 2 shards with (number_of_replicas = 0)");
