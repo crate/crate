@@ -940,7 +940,7 @@ public class SQLExecutor {
     }
 
     public Session createSession() {
-        return sqlOperations.createSession(
+        return sqlOperations.newSession(
             sessionSettings.currentSchema(),
             sessionSettings.authenticatedUser()
         );

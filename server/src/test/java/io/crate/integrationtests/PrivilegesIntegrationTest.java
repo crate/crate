@@ -68,7 +68,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private Session testUserSession(String defaultSchema) {
         User user = userLookup.findUser(TEST_USERNAME);
         assertThat(user).isNotNull();
-        return sqlOperations.createSession(defaultSchema, user);
+        return sqlOperations.newSession(defaultSchema, user);
     }
 
     @Override

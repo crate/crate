@@ -437,7 +437,7 @@ public class PostgresWireProtocol {
         try {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sessions.createSession(database, authenticatedUser);
+            session = sessions.newSession(database, authenticatedUser);
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);

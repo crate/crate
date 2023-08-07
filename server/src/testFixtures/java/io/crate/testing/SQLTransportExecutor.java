@@ -260,14 +260,14 @@ public class SQLTransportExecutor {
     }
 
     public Session newSession() {
-        return clientProvider.sqlOperations().createSession(
+        return clientProvider.sqlOperations().newSession(
             searchPath.currentSchema(),
             User.CRATE_USER
         );
     }
 
     public SQLResponse executeAs(String stmt, User user) {
-        try (Session session = clientProvider.sqlOperations().createSession(null, user)) {
+        try (Session session = clientProvider.sqlOperations().newSession(null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
     }

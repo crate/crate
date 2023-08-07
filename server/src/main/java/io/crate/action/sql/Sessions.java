@@ -121,7 +121,7 @@ public class Sessions {
         });
     }
 
-    private Session createSession(CoordinatorSessionSettings sessionSettings) {
+    private Session newSession(CoordinatorSessionSettings sessionSettings) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
@@ -142,11 +142,7 @@ public class Sessions {
         return session;
     }
 
-    public Session newSystemSession() {
-        return createSession(CoordinatorSessionSettings.systemDefaults());
-    }
-
-    public Session createSession(@Nullable String defaultSchema, User authenticatedUser) {
+    public Session newSession(@Nullable String defaultSchema, User authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
             sessionSettings = new CoordinatorSessionSettings(authenticatedUser);
@@ -155,7 +151,11 @@ public class Sessions {
         }
         sessionSettings.statementTimeout(defaultStatementTimeout);
         sessionSettings.memoryLimit(memoryLimit);
-        return createSession(sessionSettings);
+        return newSession(sessionSettings);
+    }
+
+    public Session newSystemSession() {
+        return newSession(CoordinatorSessionSettings.systemDefaults());
     }
 
     /**

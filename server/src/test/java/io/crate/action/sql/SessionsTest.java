@@ -92,10 +92,10 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         UserLookup userLookup = () -> List.of(User.CRATE_USER);
         NodeContext nodeCtx = new NodeContext(functions, userLookup);
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.createSession("doc", User.of("Arthur"));
+        Session session1 = sessions.newSession("doc", User.of("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.createSession("doc", User.of("Trillian"));
+        Session session2 = sessions.newSession("doc", User.of("Trillian"));
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(User.CRATE_USER)).hasSize(2);
@@ -119,11 +119,11 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         Sessions sessions = newSessions(nodeCtx);
 
         User arthur = User.of("Arthur");
-        Session session1 = sessions.createSession("doc", arthur);
+        Session session1 = sessions.newSession("doc", arthur);
         session1.cursors.add("c1", newCursor());
 
         User trillian = User.of("Trillian");
-        Session session2 = sessions.createSession("doc", trillian);
+        Session session2 = sessions.newSession("doc", trillian);
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(arthur)).hasSize(1);
@@ -147,7 +147,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             new TableStats()
         );
-        Session session = sessions.createSession("doc", User.CRATE_USER);
+        Session session = sessions.newSession("doc", User.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
             .isEqualTo(TimeValue.timeValueSeconds(30));
     }

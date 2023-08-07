@@ -40,12 +40,12 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
 
     protected Session createSuperUserSession() {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.createSession(null, User.CRATE_USER);
+        return sqlOperations.newSession(null, User.CRATE_USER);
     }
 
     private Session createUserSession() {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.createSession(null, User.of("normal"));
+        return sqlOperations.newSession(null, User.of("normal"));
     }
 
     @Before
@@ -76,7 +76,7 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
         UserLookup userLookup = cluster().getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
-        try (Session session = sqlOperations.createSession(null, user)) {
+        try (Session session = sqlOperations.newSession(null, user)) {
             return execute(stmt, null, session);
         }
     }
