@@ -1024,6 +1024,15 @@ be allowed to utilize off heap buffers.
 
     Using ``off-heap`` is considered **experimental**.
 
+.. _memory.operation_limit:
+
+**memory.operation_limit**
+   | *Default:* ``0``
+   | *Runtime:* ``yes``
+
+Default value for the :ref:`memory.operation_limit
+session setting <conf-session-memory-operation-limit>`. Changing the cluster
+setting will only affect new sessions, not existing sessions.
 
 Query circuit breaker
 ---------------------

@@ -88,6 +88,25 @@ Supported session settings
   The value is an ``INTERVAL`` with a maximum of ``2147483647`` milliseconds.
   That's roughly 24 days.
 
+.. _conf-session-memory-operation-limit:
+
+**memory.operation_limit**
+   | *Default:* ``0``
+   | *Modifiable:* ``yes``
+
+This is an experimental expert setting defining the maximal amount of memory in
+bytes that an individual operation can consume before triggering an error.
+
+``0`` means unlimited. In that case only the global circuit breaker limits
+apply.
+
+There is no 1:1 mapping from SQL statement to operation. Some SQL statements
+have no corresponding operation. Other SQL statements can have more than one
+operation. You can use the :ref:`sys.operations <sys-operations>` view to get
+some insights, but keep in mind that both, operations which are used to execute
+a query, and their name could change with any release, including hotfix
+releases.
+
 .. _conf-session-enable-hashjoin:
 
 **enable_hashjoin**

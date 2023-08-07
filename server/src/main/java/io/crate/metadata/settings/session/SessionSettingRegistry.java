@@ -35,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
+import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
@@ -103,6 +104,19 @@ public class SessionSettingRegistry {
         () -> "0",
         "The maximum duration of any statement before it gets killed. Infinite/disabled if 0",
         DataTypes.INTERVAL
+    );
+
+    static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
+        Sessions.MEMORY_LIMIT.getKey(),
+        input -> {},
+        inputs -> {
+            return DataTypes.INTEGER.implicitCast(inputs[0]);
+        },
+        CoordinatorSessionSettings::memoryLimit,
+        settings -> Integer.toString(settings.memoryLimitInBytes()),
+        () -> "0",
+        "Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",
+        DataTypes.INTEGER
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -205,7 +219,8 @@ public class SessionSettingRegistry {
             )
             .put(APPLICATION_NAME.name(), APPLICATION_NAME)
             .put(DATE_STYLE.name(), DATE_STYLE)
-            .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT);
+            .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
+            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
