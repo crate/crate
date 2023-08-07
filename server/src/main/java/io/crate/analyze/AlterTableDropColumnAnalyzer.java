@@ -21,8 +21,19 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -52,7 +63,67 @@ class AlterTableDropColumnAnalyzer {
             txnCtx.sessionSettings().sessionUser(),
             txnCtx.sessionSettings().searchPath());
 
-        var analyzer = new TableElementsAnalyzer(tableInfo, txnCtx, nodeCtx, paramTypeHints);
-        return analyzer.analyze(alterTable);
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            txnCtx,
+            nodeCtx,
+            paramTypeHints,
+            new NameFieldProvider(new DocTableRelation(tableInfo)),
+            null
+        );
+        var expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        List<Reference> dropColumns = new ArrayList<>(alterTable.tableElements().size());
+
+        for (var dropColumnDefinition : alterTable.tableElements()) {
+            Expression name = dropColumnDefinition.name();
+            try {
+                dropColumns.add((Reference) expressionAnalyzer.convert(name, expressionContext));
+            } catch (ColumnUnknownException e) {
+                if (dropColumnDefinition.ifExists() == false) {
+                    throw e;
+                }
+            }
+        }
+        validate(tableInfo, dropColumns);
+
+        return new AnalyzedAlterTableDropColumn(tableInfo, dropColumns);
+    }
+
+    private static void validate(DocTableInfo tableInfo, List<Reference> dropColumns) {
+        var generatedColRefs = new HashSet<>();
+        for (var genRef : tableInfo.generatedColumns()) {
+            generatedColRefs.addAll(genRef.referencedReferences());
+        }
+        var leftOverCols = tableInfo.columns().stream().map(Reference::column).collect(Collectors.toSet());
+
+        for (int i = 0 ; i < dropColumns.size(); i++) {
+            var refToDrop = dropColumns.get(i);
+            var colToDrop = refToDrop.column();
+
+            if (tableInfo.primaryKey().contains(colToDrop)) {
+                throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                                                        "is part of the PRIMARY KEY is not allowed");
+            }
+
+            if (tableInfo.clusteredBy().equals(colToDrop)) {
+                throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                                                        "is used in 'CLUSTERED BY' is not allowed");
+            }
+
+            if (tableInfo.isPartitioned() && tableInfo.partitionedBy().contains(colToDrop)) {
+                throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                                                        "is part of the 'PARTITIONED BY' columns is not allowed");
+            }
+
+            if (generatedColRefs.contains(refToDrop)) {
+                throw new UnsupportedOperationException(
+                    "Dropping column: " + colToDrop.sqlFqn() + " which is used to produce values for " +
+                    "generated column is not allowed");
+            }
+            leftOverCols.remove(colToDrop);
+        }
+
+        if (leftOverCols.isEmpty()) {
+            throw new UnsupportedOperationException("Dropping all columns of a table is not allowed");
+        }
     }
 }

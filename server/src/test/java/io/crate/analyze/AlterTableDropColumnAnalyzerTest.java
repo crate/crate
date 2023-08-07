@@ -29,15 +29,11 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.data.Row;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.execution.ddl.tables.DropColumnRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -46,25 +42,14 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
     private SQLExecutor e;
 
-    private DropColumnRequest analyze(String stmt) {
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-        AnalyzedAlterTableDropColumn analyze = e.analyze(stmt);
-        return analyze.bind(
-            plannerContext.nodeContext(),
-            plannerContext.transactionContext(),
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
-    }
-
     @Test
     public void test_drop_simple_column() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t (a int, b int)")
             .build();
 
-        DropColumnRequest d = analyze("ALTER TABLE t DROP COLUMN a");
-        assertThat(d.references()).satisfiesExactly(
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a");
+        assertThat(d.columns()).satisfiesExactly(
             r -> assertThat(r).isReference("a"));
     }
 
@@ -74,9 +59,9 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("create table t (a int, b int, c int)")
             .build();
 
-        DropColumnRequest d = analyze("ALTER TABLE t DROP COLUMN a, DROP b");
-        assertThat(d.relationName().name()).isEqualTo("t");
-        assertThat(d.references()).satisfiesExactly(
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a, DROP b");
+        assertThat(d.table().ident().name()).isEqualTo("t");
+        assertThat(d.columns()).satisfiesExactly(
             r -> assertThat(r).isReference("a"),
             r -> assertThat(r).isReference("b"));
     }
@@ -87,11 +72,11 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("create table t (a int, o object AS (oo object AS(ooa int, oob long)))")
             .build();
 
-        DropColumnRequest d = analyze("ALTER TABLE t DROP COLUMN o['oo']['ooa']");
-        assertThat(d.relationName().name()).isEqualTo("t");
-        assertThat(d.references()).satisfiesExactly(
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']['ooa']");
+        assertThat(d.table().ident().name()).isEqualTo("t");
+        assertThat(d.columns()).satisfiesExactly(
             r -> assertThat(r).isReference(
-                new ColumnIdent("o", List.of("oo", "ooa")), d.relationName(), DataTypes.INTEGER));
+                new ColumnIdent("o", List.of("oo", "ooa")), d.table().ident(), DataTypes.INTEGER));
     }
 
     @Test
@@ -101,14 +86,14 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))")
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t1 DROP COLUMN d"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN d"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column d unknown");
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t2 DROP COLUMN o['ob']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['ob']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column o['ob'] unknown");
-        assertThatThrownBy(() -> analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooc']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooc']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column o['oo']['ooc'] unknown");
     }
@@ -120,21 +105,21 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("create table t2 (o object AS (oa int, oo object AS(ooa int, oob int)))")
             .build();
 
-        DropColumnRequest d1 = analyze("ALTER TABLE t1 DROP COLUMN IF EXISTS d, DROP IF EXISTS e");
-        assertThat(d1.relationName().name()).isEqualTo("t1");
-        assertThat(d1.references()).isEmpty();
+        AnalyzedAlterTableDropColumn d1 = e.analyze("ALTER TABLE t1 DROP COLUMN IF EXISTS d, DROP IF EXISTS e");
+        assertThat(d1.table().ident().name()).isEqualTo("t1");
+        assertThat(d1.columns()).isEmpty();
 
-        var d2 = analyze("ALTER TABLE t1 DROP COLUMN b, DROP IF EXISTS d");
-        assertThat(d2.relationName().name()).isEqualTo("t1");
-        assertThat(d2.references()).satisfiesExactly(
+        AnalyzedAlterTableDropColumn d2 = e.analyze("ALTER TABLE t1 DROP COLUMN b, DROP IF EXISTS d");
+        assertThat(d2.table().ident().name()).isEqualTo("t1");
+        assertThat(d2.columns()).satisfiesExactly(
             r -> assertThat(r).isReference("b"));
 
-        var d3 = analyze("ALTER TABLE t2 DROP COLUMN o['oa'], DROP COLUMN IF EXISTS o['ob'], " +
+        AnalyzedAlterTableDropColumn d3 = e.analyze("ALTER TABLE t2 DROP COLUMN o['oa'], DROP COLUMN IF EXISTS o['ob'], " +
                          "DROP o['oo']['ooa'], DROP IF EXISTS o['oo']['ooc']");
-        assertThat(d3.relationName().name()).isEqualTo("t2");
-        assertThat(d3.references()).satisfiesExactly(
-            r -> assertThat(r).isReference(new ColumnIdent("o", "oa"), d3.relationName(), DataTypes.INTEGER),
-            r -> assertThat(r).isReference(new ColumnIdent("o", List.of("oo", "ooa")), d3.relationName(), DataTypes.INTEGER));
+        assertThat(d3.table().ident().name()).isEqualTo("t2");
+        assertThat(d3.columns()).satisfiesExactly(
+            r -> assertThat(r).isReference(new ColumnIdent("o", "oa"), d3.table().ident(), DataTypes.INTEGER),
+            r -> assertThat(r).isReference(new ColumnIdent("o", List.of("oo", "ooa")), d3.table().ident(), DataTypes.INTEGER));
     }
 
     @Test
@@ -143,7 +128,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("create table t (a int, b int, c int)")
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t DROP COLUMN a, DROP b, DROP COLUMN c"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN a, DROP b, DROP COLUMN c"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
                 .hasMessage("Dropping all columns of a table is not allowed");
     }
@@ -152,7 +137,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     public void test_drop_column_from_system_table_is_not_allowed() {
         e = SQLExecutor.builder(clusterService).build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE sys.shards DROP COLUMN foobar"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE sys.shards DROP COLUMN foobar"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
                 "operations, as it is read-only.");
@@ -165,11 +150,11 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int))) CLUSTERED BY (o['oo']['ooa'])")
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t1 DROP COLUMN a"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP COLUMN a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: a which is used in 'CLUSTERED BY' is not allowed");
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: o['oo']['ooa'] which is used in 'CLUSTERED BY' is not allowed");
     }
@@ -182,7 +167,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE parted partition (date = 1395874800000) DROP COLUMN name"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE parted partition (date = 1395874800000) DROP COLUMN name"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping a column from a single partition is not supported");
     }
@@ -197,10 +182,10 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
                                  new PartitionName(new RelationName("doc", "t2"), singletonList("1")).asIndexName())
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE parted DROP COLUMN date"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE parted DROP COLUMN date"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: date which is part of the 'PARTITIONED BY' columns is not allowed");
-        assertThatThrownBy(() -> analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: o['oo']['ooa'] which is part of the 'PARTITIONED BY' columns is not allowed");
     }
@@ -213,14 +198,14 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .build();
 
         // id is also part of clustered by, but pk is checked first
-        assertThatThrownBy(() -> analyze("ALTER TABLE users_multi_pk DROP COLUMN id"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE users_multi_pk DROP COLUMN id"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: id which is part of the PRIMARY KEY is not allowed");
-        assertThatThrownBy(() -> analyze("ALTER TABLE users_multi_pk DROP name"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE users_multi_pk DROP name"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: name which is part of the PRIMARY KEY is not allowed");
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP COLUMN o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: o['oo']['ooa'] which is part of the PRIMARY KEY is not allowed");
     }
@@ -232,11 +217,11 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable("CREATE TABLE t1(o object AS (oo object AS(ooa int)), b generated always as (o['oo']['ooa'] + 1))")
             .build();
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t DROP a"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP a"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: a which is used to produce values for generated column is not allowed");
 
-        assertThatThrownBy(() -> analyze("ALTER TABLE t1 DROP o['oo']['ooa']"))
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: o['oo']['ooa'] which is used to produce values for generated column is not allowed");
     }
