@@ -341,7 +341,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIteratorAccountsUsedMemory() {
-        RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"));
+        RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccounting, 32),

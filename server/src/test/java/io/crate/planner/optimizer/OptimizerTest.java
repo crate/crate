@@ -45,7 +45,8 @@ public class OptimizerTest {
             SearchPath.pathWithPGCatalogAndDoc(),
             true,
             Set.of(MergeFilters.class),
-            true
+            true,
+            0
         );
 
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),

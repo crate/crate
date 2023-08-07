@@ -26,17 +26,18 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.Analyzer;
 import io.crate.common.unit.TimeValue;
@@ -70,6 +71,10 @@ public class Sessions {
         Setting.Property.Exposed
     );
 
+    public static final Setting<Integer> MEMORY_LIMIT = Setting.intSetting(
+        "memory.operation_limit", 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
+
+
     private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
 
     private final NodeContext nodeCtx;
@@ -85,6 +90,7 @@ public class Sessions {
 
     private volatile boolean disabled;
     private volatile TimeValue defaultStatementTimeout;
+    private volatile int memoryLimit;
 
 
     @Inject
@@ -105,8 +111,13 @@ public class Sessions {
         this.tableStats = tableStats;
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
-        clusterService.getClusterSettings().addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
+        this.memoryLimit = MEMORY_LIMIT.get(settings);
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
+        clusterSettings.addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
             this.defaultStatementTimeout = statementTimeout;
+        });
+        clusterSettings.addSettingsUpdateConsumer(MEMORY_LIMIT, newLimit -> {
+            this.memoryLimit = newLimit;
         });
     }
 
@@ -143,6 +154,7 @@ public class Sessions {
             sessionSettings = new CoordinatorSessionSettings(authenticatedUser, defaultSchema);
         }
         sessionSettings.statementTimeout(defaultStatementTimeout);
+        sessionSettings.memoryLimit(memoryLimit);
         return createSession(sessionSettings);
     }
 
