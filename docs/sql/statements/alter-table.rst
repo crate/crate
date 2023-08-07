@@ -192,7 +192,8 @@ It's possible to drop multiple columns at once.
     It's not allowed to drop a column which is part of a
     :ref:`PRIMARY KEY <primary_key_constraint>`, used in
     :ref:`CLUSTERED BY column <gloss-clustered-by-column>`,
-    used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>` or is
+    used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>`,
+    used in an :ref:`named index<named-index-column>` or is
     referenced in a :ref:`generated column <ddl-generated-columns-expressions>`.
 
 .. NOTE::

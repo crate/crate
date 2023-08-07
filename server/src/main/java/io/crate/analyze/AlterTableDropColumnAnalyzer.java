@@ -99,6 +99,13 @@ class AlterTableDropColumnAnalyzer {
             var refToDrop = dropColumns.get(i);
             var colToDrop = refToDrop.column();
 
+            for (var indexRef : tableInfo.indexColumns()) {
+                if (indexRef.columns().contains(refToDrop)) {
+                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                                                            "is part of INDEX: " + indexRef.toString() +
+                                                            " is not allowed");
+                }
+            }
             if (tableInfo.primaryKey().contains(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the PRIMARY KEY is not allowed");

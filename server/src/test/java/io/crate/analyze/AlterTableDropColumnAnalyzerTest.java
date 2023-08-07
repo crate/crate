@@ -67,6 +67,17 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void test_drop_column_part_of_simple_index() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a int, b text INDEX USING fulltext)")
+            .build();
+
+        AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
+        assertThat(d.columns()).satisfiesExactly(
+            r -> assertThat(r).isReference("b"));
+    }
+
+    @Test
     public void test_drop_sub_column() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t (a int, o object AS (oo object AS(ooa int, oob long)))")
@@ -224,5 +235,21 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP o['oo']['ooa']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: o['oo']['ooa'] which is used to produce values for generated column is not allowed");
+    }
+
+    @Test
+    public void test_drop_column_used_in_a_named_index() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t1(a text, b text, INDEX ft USING fulltext(a, b))")
+            .addTable("CREATE TABLE t2(a text, b text, INDEX ft USING fulltext(b))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t1 DROP b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: b which is part of INDEX: ft is not allowed");
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP b"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping column: b which is part of INDEX: ft is not allowed");
     }
 }
