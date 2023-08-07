@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
@@ -53,6 +52,11 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.recovery.BlobRecoveryHandler;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
 
 /**
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
@@ -71,21 +75,23 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final RecoverySettings recoverySettings;
+    private final BlobTransferTarget blobTransferTarget;
+    private final BlobIndicesService blobIndicesService;
 
     final OngoingRecoveries ongoingRecoveries = new OngoingRecoveries();
 
-    // CRATE_PATCH: used to register BlobRecoverySourceHandler
-    private final List<RecoverySourceHandlerProvider> recoverySourceHandlerProviders = new ArrayList<>();
-
-    @Inject
     public PeerRecoverySourceService(TransportService transportService,
                                      IndicesService indicesService,
                                      ClusterService clusterService,
-                                     RecoverySettings recoverySettings) {
+                                     RecoverySettings recoverySettings,
+                                     BlobTransferTarget blobTransferTarget,
+                                     BlobIndicesService blobIndicesService) {
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.recoverySettings = recoverySettings;
+        this.blobTransferTarget = blobTransferTarget;
+        this.blobIndicesService = blobIndicesService;
         // When the target node wants to start a peer recovery it sends a START_RECOVERY request to the source
         // node. Upon receiving START_RECOVERY, the source node will initiate the peer recovery.
         transportService.registerRequestHandler(Actions.START_RECOVERY, ThreadPool.Names.GENERIC, StartRecoveryRequest::new,
@@ -331,7 +337,6 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
             }
 
             private RecoveryHandlers createRecoverySourceHandler(StartRecoveryRequest request, IndexShard shard) {
-                RecoverySourceHandler handler;
                 final RemoteRecoveryTargetHandler recoveryTarget = new RemoteRecoveryTargetHandler(
                     request.recoveryId(),
                     request.shardId(),
@@ -340,49 +345,33 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
                     recoverySettings,
                     throttleTime -> shard.recoveryStats().addThrottleTime(throttleTime));
 
-                // CRATE_PATCH: used to inject BlobRecoveryHandler
                 int recoveryChunkSizeInBytes = recoverySettings.getChunkSize().bytesAsInt();
-                handler = getCustomRecoverySourceHandler(
-                    shard,
-                    recoveryTarget,
-                    request,
-                    recoveryChunkSizeInBytes
-                );
-
-                if (handler != null) {
-                    return new RecoveryHandlers(handler, recoveryTarget);
+                RecoverySourceHandler handler;
+                if (BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
+                    handler = new BlobRecoveryHandler(
+                        shard,
+                        recoveryTarget,
+                        request,
+                        recoveryChunkSizeInBytes,
+                        recoverySettings.getMaxConcurrentFileChunks(),
+                        recoverySettings.getMaxConcurrentOperations(),
+                        transportService,
+                        blobTransferTarget,
+                        blobIndicesService
+                    );
                 } else {
-                    return new RecoveryHandlers(
-                        new RecoverySourceHandler(
-                            shard,
-                            recoveryTarget,
-                            shard.getThreadPool(),
-                            request,
-                            recoveryChunkSizeInBytes,
-                            recoverySettings.getMaxConcurrentFileChunks(),
-                            recoverySettings.getMaxConcurrentOperations()),
-                        recoveryTarget);
+                    handler = new RecoverySourceHandler(
+                        shard,
+                        recoveryTarget,
+                        shard.getThreadPool(),
+                        request,
+                        recoveryChunkSizeInBytes,
+                        recoverySettings.getMaxConcurrentFileChunks(),
+                        recoverySettings.getMaxConcurrentOperations()
+                    );
                 }
+                return new RecoveryHandlers(handler, recoveryTarget);
             }
         }
-    }
-
-    @Nullable
-    private RecoverySourceHandler getCustomRecoverySourceHandler(IndexShard shard,
-                                                                 RemoteRecoveryTargetHandler recoveryTarget,
-                                                                 StartRecoveryRequest request,
-                                                                 int recoveryChunkSizeInBytes) {
-        for (RecoverySourceHandlerProvider recoverySourceHandlerProvider : recoverySourceHandlerProviders) {
-            RecoverySourceHandler handler = recoverySourceHandlerProvider.get(
-                shard, request, recoveryTarget, recoveryChunkSizeInBytes);
-            if (handler != null) {
-                return handler;
-            }
-        }
-        return null;
-    }
-
-    public void registerRecoverySourceHandlerProvider(RecoverySourceHandlerProvider provider) {
-        recoverySourceHandlerProviders.add(provider);
     }
 }
