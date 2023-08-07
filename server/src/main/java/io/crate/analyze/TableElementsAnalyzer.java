@@ -71,7 +71,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.EnsureNoMatchPredicate;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AlterTableAddColumn;
-import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
@@ -83,7 +82,6 @@ import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
@@ -410,15 +408,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         return new AnalyzedAlterTableAddColumn(table, columns, checks);
     }
 
-    public AnalyzedAlterTableDropColumn analyze(AlterTableDropColumn<Expression> alterTable) {
-        assert table != null : "Must use CTOR that sets the DocTableInfo instance";
-        List<DropColumnDefinition<Expression>> tableElements = alterTable.tableElements();
-        for (var dropColumnDefinition : tableElements) {
-            dropColumnDefinition.accept(peekColumns, null);
-        }
-        return new AnalyzedAlterTableDropColumn(table, columns);
-    }
-
     private void ensureValidPartitionColumn(Optional<ClusteredBy<Symbol>> clusteredBy, ColumnIdent partitionColumnIdent, RefBuilder column) {
         if (partitionColumnIdent.isSystemColumn()) {
             throw new IllegalArgumentException("Cannot use system column `" + partitionColumnIdent + "` in PARTITIONED BY clause");
@@ -498,28 +487,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             ColumnType<Expression> type = columnDefinition.type();
             DataType<?> dataType = type == null ? DataTypes.UNDEFINED : DataTypeAnalyzer.convert(type);
             addColumn(columnName, dataType);
-            return null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Void visitDropColumnDefinition(DropColumnDefinition<?> node, Void context) {
-            assert table != null : "Must use CTOR that sets the DocTableInfo instance for ALTER TABLE ADD COLUMN";
-            DropColumnDefinition<Expression> columnDefinition = (DropColumnDefinition<Expression>) node;
-            Expression name = columnDefinition.name();
-            resolveMissing = true;
-            Symbol columnSymbol = expressionAnalyzer.convert(name, expressionContext);
-            resolveMissing = false;
-            ColumnIdent columnName = Symbols.pathFromSymbol(columnSymbol);
-            Reference reference = table.getReference(columnName);
-            if (reference == null) {
-                if (node.ifExists() == false) {
-                    throw new ColumnUnknownException(columnName, table.ident());
-                } else {
-                    return null; // skip column, don't add it to the list
-                }
-            }
-            addColumn(columnName, reference.valueType());
             return null;
         }
 
