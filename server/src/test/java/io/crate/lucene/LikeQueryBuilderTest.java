@@ -117,4 +117,18 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("vchar_name:Trillian*");
         assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
     }
+
+    @Test
+    public void test_like_on_index_off_column_falls_back_to_generic_query() {
+        Query query = convert("text_no_index LIKE '%abc%'");
+        assertThat(query).hasToString("(text_no_index LIKE '%abc%')");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
+    public void test_ilike_on_index_off_column_falls_back_to_generic_query() {
+        Query query = convert("text_no_index ILIKE '%abc%'");
+        assertThat(query).hasToString("(text_no_index ILIKE '%abc%')");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
 }
