@@ -173,7 +173,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 // Validation is done before creating an index in order to ensure
                 // that no "bad partitions" will be left behind in case of validation failure.
                 if (item instanceof IndexItem indexItem) {
-                    constraintsChecker.accept(indexNameResolver.get(), indexItem);
+                    constraintsChecker.accept(indexName, indexItem);
                 }
                 shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
