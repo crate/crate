@@ -48,7 +48,8 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
                 new MemoryCircuitBreaker(
                     new ByteSizeValue(10, ByteSizeUnit.BYTES),
                     1.01,
-                    LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+                    LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                0
             ));
 
         assertThatThrownBy(() -> RowGenerator.range(0, 3).forEach(rowAccounting::accountForAndMaybeBreak))
@@ -62,7 +63,8 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                0
             ), 0);
 
         assertThatThrownBy(
@@ -77,7 +79,8 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                0
             ),
             2);
 
