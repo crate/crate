@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -96,7 +97,7 @@ public class LikeOperator extends Operator<String> {
         Object value = literal.value();
         assert value instanceof String
             : "LikeOperator is registered for string types. Value must be a string";
-        return caseSensitivity.likeQuery(ref.column().fqn(), (String) value);
+        return caseSensitivity.likeQuery(ref.column().fqn(), (String) value, ref.indexType() != IndexType.NONE);
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
