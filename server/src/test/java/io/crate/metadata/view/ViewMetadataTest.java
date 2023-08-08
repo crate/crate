@@ -50,6 +50,16 @@ public class ViewMetadataTest {
             assertThat(fromStream.owner()).isEqualTo(viewMetadata.owner());
         }
         try (BytesStreamOutput out = new BytesStreamOutput()) {
+            out.setVersion(Version.V_5_3_4);
+            viewMetadata.writeTo(out);
+            StreamInput in = out.bytes().streamInput();
+            in.setVersion(Version.V_5_3_4);
+            ViewMetadata fromStream = ViewMetadata.of(in);
+            assertThat(fromStream.searchPath()).isEqualTo(SearchPath.pathWithPGCatalogAndDoc());
+            assertThat(fromStream.stmt()).isEqualTo(viewMetadata.stmt());
+            assertThat(fromStream.owner()).isEqualTo(viewMetadata.owner());
+        }
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.setVersion(Version.V_5_4_1);
             viewMetadata.writeTo(out);
             StreamInput in = out.bytes().streamInput();
