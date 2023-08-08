@@ -51,7 +51,9 @@ public class CsvColumnExtractingExpression implements CollectExpression<Row, Obj
     @Override
     public Object value() {
         if (rowAsMap == null) {
-            return null;
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH, "Cannot read column %s from non-existent row", columnIdent.fqn())
+            );
         }
         return type.implicitCast(ValueExtractors.fromMap(rowAsMap, columnIdent));
     }
@@ -59,15 +61,18 @@ public class CsvColumnExtractingExpression implements CollectExpression<Row, Obj
 
     @Override
     public void setNextRow(Row row) {
-        // TODO: Share some context (and rowAsMap) for all expressions.
-        // Reset it after consuming each row, similar to LineContext.startCollect
-        try {
-            rowAsMap = csvLineParser.rowAsMapWithoutHeader((String) row.materialize()[0]);
-        } catch (IOException e) {
-            // TODO: Enrich transformed row with IOFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
-            throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
-        } catch (Exception e) {
-            // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
+        String line = (String) row.materialize()[0];
+        if (line != null) {
+            // TODO: Share some context (and rowAsMap) for all expressions.
+            // Reset it after consuming each row, similar to LineContext.startCollect
+            try {
+                rowAsMap = csvLineParser.rowAsMapWithoutHeader(line);
+            } catch (IOException e) {
+                // TODO: Enrich transformed row with IOFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
+                throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
+            } catch (Exception e) {
+                // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
+            }
         }
     }
 }

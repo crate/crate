@@ -34,6 +34,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 
 public class JsonColumnExtractingExpression implements CollectExpression<Row, Object> {
 
@@ -48,7 +49,9 @@ public class JsonColumnExtractingExpression implements CollectExpression<Row, Ob
     @Override
     public Object value() {
         if (rowAsMap == null) {
-            return null;
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH, "Cannot read column %s from non-existent row", columnIdent.fqn())
+            );
         }
         return ValueExtractors.fromMap(rowAsMap, columnIdent);
     }
@@ -56,18 +59,21 @@ public class JsonColumnExtractingExpression implements CollectExpression<Row, Ob
 
     @Override
     public void setNextRow(Row row) {
-        // TODO: Share some context (and rowAsMap) for all expressions.
-        // Reset it after consuming each row, similar to LineContext.startCollect
-        try {
-            // preserve the order of the rawSource
-            ParsedXContent parsedXContent = XContentHelper.convertToMap(
-                new BytesArray(((String) row.materialize()[0]).getBytes(StandardCharsets.UTF_8)),
-                true, XContentType.JSON
-            );
-            rowAsMap = (LinkedHashMap<String, Object>) parsedXContent.map();
-        } catch (ElasticsearchParseException | NotXContentException e) {
-            // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
-            throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
+        String line = (String) row.materialize()[0];
+        if (line != null) {
+            // TODO: Share some context (and rowAsMap) for all expressions.
+            // Reset it after consuming each row, similar to LineContext.startCollect
+            try {
+                // preserve the order of the rawSource
+                ParsedXContent parsedXContent = XContentHelper.convertToMap(
+                    new BytesArray(line.getBytes(StandardCharsets.UTF_8)),
+                    true, XContentType.JSON
+                );
+                rowAsMap = (LinkedHashMap<String, Object>) parsedXContent.map();
+            } catch (ElasticsearchParseException | NotXContentException e) {
+                // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
+                throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
+            }
         }
     }
 }
