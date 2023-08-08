@@ -1,7 +1,7 @@
-.. _version_5.4.2:
+.. _version_5.3.6:
 
 ==========================
-Version 5.4.2 - Unreleased
+Version 5.3.6 - Unreleased
 ==========================
 
 .. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
@@ -10,18 +10,18 @@ Version 5.4.2 - Unreleased
 
 .. NOTE::
 
-    In development. 5.4.2 isn't released yet. These are the release notes for
+    In development. 5.3.6 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.4.2.
+    before you upgrade to 5.3.6.
 
     We recommend that you upgrade to the latest 5.3 release before moving to
-    5.4.2.
+    5.3.6.
 
-    A rolling upgrade from 5.3.x to 5.4.2 is supported.
+    A rolling upgrade from 5.2.x to 5.3.4 or 5.3.6 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -40,12 +40,11 @@ Version 5.4.2 - Unreleased
 .. contents::
    :local:
 
-See the :ref:`version_5.4.0` release notes for a full list of changes in the
-5.4 series.
-
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
 
 Fixes
 =====
 
-- Fixed an issue that led to serialization errors on a rolling upgrade to 5.4.1
+- Fixed an issue that led to serialization errors on a rolling upgrade to 5.3.5
   if the cluster contained user defined views.
