@@ -25,6 +25,7 @@ import java.io.IOException;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -36,14 +37,26 @@ public record ViewMetadata(
         @Nullable String owner,
         SearchPath searchPath) implements Writeable {
 
-    ViewMetadata(StreamInput in) throws IOException {
-        this(in.readString(), in.readOptionalString(), SearchPath.createSearchPathFrom(in));
+    public static ViewMetadata of(StreamInput in) throws IOException {
+        String stmt = in.readString();
+        String owner = in.readOptionalString();
+        SearchPath searchPath;
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
+            searchPath = SearchPath.createSearchPathFrom(in);
+        } else {
+            searchPath = SearchPath.pathWithPGCatalogAndDoc();
+        }
+        return new ViewMetadata(stmt, owner, searchPath);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(stmt);
         out.writeOptionalString(owner);
-        searchPath.writeTo(out);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
+            searchPath.writeTo(out);
+        }
     }
 }
