@@ -56,7 +56,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         int numViews = in.readVInt();
         viewByName = new HashMap<>(numViews);
         for (int i = 0; i < numViews; i++) {
-            viewByName.put(in.readString(), new ViewMetadata(in));
+            viewByName.put(in.readString(), ViewMetadata.of(in));
         }
     }
 
