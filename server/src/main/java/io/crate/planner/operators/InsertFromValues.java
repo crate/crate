@@ -268,9 +268,8 @@ public class InsertFromValues implements LogicalPlan {
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
         for (Row row : rows) {
-            Item item = grouper.apply(shardedRequests, row, true);
-
             try {
+                Item item = grouper.apply(shardedRequests, row, true);
                 // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                 // constraintsChecker is also used in grouper.apply but only for partitioned tables.
                 // We keep the check below so that insert from values into regular tables doesn't send invalid values to the shards and fails early.
