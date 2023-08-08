@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyNotLikeOperator;
@@ -66,10 +67,13 @@ public class LikeOperators {
         SENSITIVE {
 
             @Override
-            public Query likeQuery(String fqColumn, String pattern) {
-                String luceneWildcard = convertSqlLikeToLuceneWildcard(pattern);
-                Term term = new Term(fqColumn, luceneWildcard);
-                return new WildcardQuery(term);
+            public Query likeQuery(String fqColumn, String pattern, boolean isIndexed) {
+                if (isIndexed) {
+                    String luceneWildcard = convertSqlLikeToLuceneWildcard(pattern);
+                    Term term = new Term(fqColumn, luceneWildcard);
+                    return new WildcardQuery(term);
+                }
+                return null;
             }
 
             @Override
@@ -81,10 +85,13 @@ public class LikeOperators {
         INSENSITIVE {
 
             @Override
-            public Query likeQuery(String fqColumn, String pattern) {
-                String regex = patternToRegex(pattern);
-                Term term = new Term(fqColumn, regex);
-                return new CrateRegexQuery(term, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            public Query likeQuery(String fqColumn, String pattern, boolean isIndexed) {
+                if (isIndexed) {
+                    String regex = patternToRegex(pattern);
+                    Term term = new Term(fqColumn, regex);
+                    return new CrateRegexQuery(term, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                }
+                return null;
             }
 
             @Override
@@ -93,7 +100,8 @@ public class LikeOperators {
             }
         };
 
-        public abstract Query likeQuery(String fqColumn, String pattern);
+        @Nullable
+        public abstract Query likeQuery(String fqColumn, String pattern, boolean isIndexed);
 
         public abstract int patternFlags();
     }
