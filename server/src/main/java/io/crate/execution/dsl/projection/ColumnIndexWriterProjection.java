@@ -45,6 +45,7 @@ import java.util.function.Function;
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final boolean ignoreDuplicateKeys;
+    private final boolean overwriteDuplicateKeys;
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> allTargetColumns;
     /**
@@ -69,6 +70,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> allTargetColumns,
                                        boolean ignoreDuplicateKeys,
+                                       boolean overwriteDuplicateKeys,
                                        Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<Symbol> partitionedBySymbols,
@@ -85,6 +87,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.allTargetColumns = allTargetColumns;
         this.partitionedBySymbols = partitionedBySymbols;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
+        this.overwriteDuplicateKeys = overwriteDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.clusteredBySymbol = clusteredBySymbol;
         this.outputs = outputs;
@@ -111,6 +114,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         }
 
         ignoreDuplicateKeys = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+            overwriteDuplicateKeys = in.readBoolean();
+        } else {
+            overwriteDuplicateKeys = false; // default value used in COPY FROM.
+        }
         if (in.readBoolean()) {
             int mapSize = in.readVInt();
             onDuplicateKeyAssignments = new HashMap<>(mapSize);
@@ -168,7 +176,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return allTargetColumns;
     }
 
-
+    public boolean overwriteDuplicateKeys() {
+        return overwriteDuplicateKeys;
+    }
 
     public boolean isIgnoreDuplicateKeys() {
         return ignoreDuplicateKeys;
@@ -198,7 +208,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments) &&
                allTargetColumns.equals(that.allTargetColumns) &&
                Objects.equals(outputs, that.outputs) &&
-               Objects.equals(returnValues, that.returnValues);
+               Objects.equals(returnValues, that.returnValues) &&
+               overwriteDuplicateKeys == that.overwriteDuplicateKeys;
     }
 
     @Override
@@ -207,7 +218,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                             onDuplicateKeyAssignments,
                             allTargetColumns,
                             outputs,
-                            returnValues);
+                            returnValues,
+                            ignoreDuplicateKeys);
     }
 
     @Override
@@ -222,6 +234,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         }
 
         out.writeBoolean(ignoreDuplicateKeys);
+        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
+            out.writeBoolean(overwriteDuplicateKeys);
+        }
         if (onDuplicateKeyAssignments == null) {
             out.writeBoolean(false);
         } else {
@@ -268,6 +283,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             primaryKeys,
             allTargetColumns,
             ignoreDuplicateKeys,
+            overwriteDuplicateKeys,
             boundOnDuplicateKeyAssignments,
             (List<Symbol>) ids(),
             partitionedBySymbols,

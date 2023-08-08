@@ -70,6 +70,7 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().primaryKey(),
             statement.columns(),
             statement.isIgnoreDuplicateKeys(),
+            false, // Irrelevant for insert from sub-query
             statement.onDuplicateKeyAssignments(),
             statement.primaryKeySymbols(),
             statement.partitionedBySymbols(),

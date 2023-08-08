@@ -81,13 +81,14 @@ public class ColumnIndexWriterProjector implements Projector {
                                       List<Input<?>> insertInputs,
                                       List<? extends CollectExpression<Row, ?>> collectExpressions,
                                       boolean ignoreDuplicateKeys,
+                                      boolean overwriteDuplicateKeys,
                                       @Nullable Map<Reference, Symbol> onConflictAssignmentsByRef,
                                       int bulkActions,
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
                                       UUID jobId
                                       ) {
-        RowShardResolver rowShardResolver = new RowShardResolver(
+        final RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
             : "number of insert inputs must be equal to the number of columns";
@@ -103,10 +104,18 @@ public class ColumnIndexWriterProjector implements Projector {
             onConflictAssignments = convert.sources();
         }
 
+        DuplicateKeyAction duplicateKeyAction = DuplicateKeyAction.UPDATE_OR_FAIL; // Common fallback for insert from sub-query and COPY FROM.
+        if (ignoreDuplicateKeys) {
+            assert overwriteDuplicateKeys == false : "Only one of ignore/overwrite duplicate keys can be true";
+            duplicateKeyAction = DuplicateKeyAction.IGNORE;
+        } else if (overwriteDuplicateKeys) {
+            assert ignoreDuplicateKeys == false : "Only one of ignore/overwrite duplicate keys can be true";
+            duplicateKeyAction = DuplicateKeyAction.OVERWRITE;
+        }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
-            ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
+            duplicateKeyAction,
             true, // continueOnErrors
             onConflictColumns,
             columnReferences.toArray(new Reference[columnReferences.size()]),

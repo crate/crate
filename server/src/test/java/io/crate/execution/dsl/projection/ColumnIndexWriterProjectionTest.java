@@ -65,6 +65,7 @@ public class ColumnIndexWriterProjectionTest {
             List.of(),
             targetColumns,
             false,
+            false,
             Collections.emptyMap(),
             List.of(),
             List.of(),
