@@ -136,7 +136,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         RowCellsAccountingWithEstimators rowAccounting =
             new RowCellsAccountingWithEstimators(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
-                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker),
+                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
 
         Projector projector = getProjector(rowAccounting, 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);

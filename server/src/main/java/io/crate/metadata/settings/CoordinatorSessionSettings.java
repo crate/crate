@@ -49,11 +49,19 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private TimeValue statementTimeout;
 
     public CoordinatorSessionSettings(User authenticatedUser, String ... searchPath) {
-        this(authenticatedUser, authenticatedUser, SearchPath.createSearchPathFrom(searchPath), true, Set.of(), true);
+        this(authenticatedUser, authenticatedUser, searchPath);
     }
 
     public CoordinatorSessionSettings(User authenticatedUser, User sessionUser, String ... searchPath) {
-        this(authenticatedUser, sessionUser, SearchPath.createSearchPathFrom(searchPath), true, Set.of(), true);
+        this(
+            authenticatedUser,
+            sessionUser,
+            SearchPath.createSearchPathFrom(searchPath),
+            true,
+            Set.of(),
+            true,
+            0
+        );
     }
 
     public CoordinatorSessionSettings(User authenticatedUser,
@@ -61,13 +69,15 @@ public class CoordinatorSessionSettings extends SessionSettings {
                                       SearchPath searchPath,
                                       boolean hashJoinsEnabled,
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
-                                      boolean errorOnUnknownObjectKey) {
-        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey);
+                                      boolean errorOnUnknownObjectKey,
+                                      int memoryLimit) {
+        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit);
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
+        this.memoryLimit = memoryLimit;
     }
 
     public User sessionUser() {
@@ -131,5 +141,9 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     public void statementTimeout(TimeValue statementTimeout) {
         this.statementTimeout = statementTimeout;
+    }
+
+    public void memoryLimit(int memoryLimit) {
+        this.memoryLimit = memoryLimit;
     }
 }

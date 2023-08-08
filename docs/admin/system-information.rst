@@ -190,6 +190,7 @@ information about the currently applied cluster settings.
     | settings['memory']                                                                | object       |
     | settings['memory']['allocation']                                                  | object       |
     | settings['memory']['allocation']['type']                                          | text         |
+    | settings['memory']['operation_limit']                                             | integer      |
     | settings['overload_protection']                                                   | object       |
     | settings['overload_protection']['dml']                                            | object       |
     | settings['overload_protection']['dml']['initial_concurrency']                     | integer      |
