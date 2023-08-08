@@ -344,10 +344,25 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromWithInvalidGivenGeneratedColumn() throws Exception {
         execute("create table quotes (" +
                 " id int," +
-                " quote as cast(id as string)" +
+                " quote as cast(id as string)," +
+                " obj object as (a object as (b int as id))" +
                 ")");
-        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertThat(response).hasRowCount(0L);
+        // 4 scenarios when provided value doesn't match computation:
+        //   1. provided incorrect not-null top-level value
+        //   2. provided incorrect null top-level value
+        //   3. provided incorrect not-null sub-column value
+        //   4. provided incorrect null sub-column value
+        // Scenarios 2 and 4 testing that we don't treat null as "no value, generate it ourselves".
+        Path path = tmpFileWithLines(Arrays.asList(
+            """
+                {"id": 1, "quote": "test", "obj":{"a":{"b":1}}}
+                {"id": 2, "quote": null,   "obj":{"a":{"b":2}}}
+                {"id": 3, "quote": "3",    "obj":{"a":{"b":4}}}
+                {"id": 4, "quote": "4",    "obj":{"a":{"b":null}}}
+            """
+        ));
+        execute("copy quotes from ? with (shared=true)", new Object[] { path.toUri().toString() + "*.json"});
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
