@@ -721,8 +721,10 @@ public class ExpressionAnalyzer {
                                 );
                             }
                         }
-                        if (base instanceof Reference || base instanceof ScopedSymbol) {
-                            throw e;
+                        if (context.errorOnUnknownObjectKey()) {
+                            if (base instanceof Reference || base instanceof ScopedSymbol) {
+                                throw e;
+                            }
                         }
                         return allocateFunction(
                             SubscriptFunction.NAME,

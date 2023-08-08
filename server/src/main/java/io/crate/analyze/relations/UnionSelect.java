@@ -21,13 +21,16 @@
 
 package io.crate.analyze.relations;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.NotNull;
 
 import org.elasticsearch.common.UUIDs;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -37,6 +40,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 public class UnionSelect implements AnalyzedRelation {
 
@@ -58,9 +62,14 @@ public class UnionSelect implements AnalyzedRelation {
         for (int i = 0; i < fieldsFromLeft.size(); i++) {
             Symbol field = fieldsFromLeft.get(i);
             Symbol rightField = right.outputs().get(i);
-            DataType<?> type = field.valueType().precedes(rightField.valueType())
-                ? field.valueType()
-                : rightField.valueType();
+            DataType<?> type;
+            if (field.valueType().id() == ObjectType.ID) {
+                type = new UnionObjectType((ObjectType) field.valueType(), (ObjectType) rightField.valueType());
+            } else {
+                type = field.valueType().precedes(rightField.valueType())
+                    ? field.valueType()
+                    : rightField.valueType();
+            }
             outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
         }
         this.outputs = List.copyOf(outputs);
@@ -108,5 +117,42 @@ public class UnionSelect implements AnalyzedRelation {
 
     public boolean isDistinct() {
         return isDistinct;
+    }
+
+    /**
+     * This class helps resolve object output's sub-columns of UnionSelect by allowing to search both left and right tables.
+     * Except when resolving the sub-columns, this should be identical to 'left' object.
+     * Ex)
+     *      create table v1 (obj object as (a int))
+     *      create table v2 (obj object as (b int))
+     *      select obj['a'], obj['b'] from v1 union all select obj from v2
+     */
+    @VisibleForTesting
+    static final class UnionObjectType extends ObjectType {
+
+        private final ObjectType left;
+        private final ObjectType right;
+
+        private UnionObjectType(StreamInput in) throws IOException {
+            super(in);
+            throw new IllegalStateException("UnionObjectType must not be streamed.");
+        }
+
+        @VisibleForTesting
+        UnionObjectType(ObjectType left, ObjectType right) {
+            super(left.innerTypes());
+            this.left = left;
+            this.right = right;
+        }
+
+        /**
+         * Searches left object type first then falls back to right object type.
+         */
+        @Override
+        public DataType<?> resolveInnerType(List<String> path) {
+            var fromLeft = left.resolveInnerType(path);
+            var fromRight = right.resolveInnerType(path);
+            return fromLeft.precedes(fromRight) ? fromLeft : fromRight;
+        }
     }
 }

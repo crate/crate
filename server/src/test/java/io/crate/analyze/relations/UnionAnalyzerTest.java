@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.relations;
 
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isLiteral;
@@ -34,7 +34,9 @@ import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.analyze.relations.UnionSelect;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
@@ -197,7 +199,10 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
-        ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.STRING).build();
+        UnionSelect.UnionObjectType expectedType = new UnionSelect.UnionObjectType(
+            ObjectType.builder().setInnerType("col", DataTypes.STRING).build(),
+            ObjectType.builder().setInnerType("col", DataTypes.INTEGER).build());
+
         Asserts.assertThat(union.outputs())
             .as("Output type is object(col::text) because text has higher precedence than int")
             .satisfiesExactly(isField("obj", expectedType));

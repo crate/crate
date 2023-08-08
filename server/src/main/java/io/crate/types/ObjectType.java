@@ -102,7 +102,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         this(Map.of());
     }
 
-    private ObjectType(Map<String, DataType<?>> innerTypes) {
+    protected ObjectType(Map<String, DataType<?>> innerTypes) {
         this.innerTypes = innerTypes;
     }
 
