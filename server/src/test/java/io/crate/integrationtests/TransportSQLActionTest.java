@@ -2198,4 +2198,16 @@ public class TransportSQLActionTest extends IntegTestCase {
             .toList();
         assertThat(sorted).containsExactlyElementsOf(resultOrder);
     }
+
+    @Test
+    public void test_operation_limit_cancels_query_if_using_too_much_memory() throws Exception {
+        try (var session = sqlExecutor.newSession()) {
+            execute("set session memory.operation_limit = 2", session);
+            assertThat(session.sessionSettings().memoryLimitInBytes()).isEqualTo(2);
+
+            Asserts.assertSQLError(() -> execute("select distinct name from sys.nodes", session))
+                .hasMessageContaining("\"collect: 0\" reached operation memory limit.")
+                .hasMessageEndingWith("Limit: 2b");
+        }
+    }
 }

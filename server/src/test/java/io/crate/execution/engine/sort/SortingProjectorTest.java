@@ -115,7 +115,7 @@ public class SortingProjectorTest extends ESTestCase {
         RowCellsAccountingWithEstimators rowAccounting =
             new RowCellsAccountingWithEstimators(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
-                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker),
+                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
 
         Projector projector = createProjector(rowAccounting, 1, 0);

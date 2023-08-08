@@ -14,8 +14,15 @@ Released on 2023-08-04.
     We recommend that you upgrade to the latest 5.3 release before moving to
     5.3.5.
 
-    A rolling upgrade from 5.2.x to 5.3.5 is supported.
     Before upgrading, you should `back up your data`_.
+
+
+.. WARNING::
+
+    A rolling upgrade from 5.3.x to 5.3.5 is **not** supported if your cluster
+    contains view definitions.
+    If you want to do a rolling upgrade, skip 5.3.5 and upgrade to 5.3.6 or
+    5.4.2.
 
 .. WARNING::
 
