@@ -205,9 +205,9 @@ public final class MappingUtil {
 
     @SuppressWarnings("unchecked")
     public static void mergeConstraints(Map<String, Object> meta,
-                                         List<Reference> references,
-                                         IntArrayList pKeyIndices,
-                                         Map<String, String> checkConstraints) {
+                                        List<Reference> references,
+                                        IntArrayList pKeyIndices,
+                                        Map<String, String> checkConstraints) {
 
         // CHECK
         if (checkConstraints.isEmpty() == false) {

@@ -24,6 +24,7 @@ package io.crate.testing;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.AbstractThrowableAssert;
+import org.elasticsearch.transport.RemoteTransportException;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
@@ -66,6 +67,15 @@ public final class SQLErrorAssert extends AbstractThrowableAssert<SQLErrorAssert
             )
             .isEqualTo(errorCode);
         assertThat(httpError.httpResponseStatus()).isEqualTo(httpResponseCode);
+        return this;
+    }
+
+    public SQLErrorAssert hasMessageContaining(String msg) {
+        var actualErrorMsg = actual.getMessage();
+        if (actual instanceof RemoteTransportException) {
+            actualErrorMsg = actual.getCause().getMessage();
+        }
+        assertThat(actualErrorMsg).contains(msg);
         return this;
     }
 }
