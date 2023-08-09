@@ -1174,14 +1174,14 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t(id, a, b) values(2, 22, 222)");
         execute("insert into t(id, a, b) values(3, 33, 333)");
         execute("refresh table t");
-        execute("select * from t");
+        execute("select * from t order by id");
         assertThat(response).hasRows(
             "1| 11| 111",
             "2| 22| 222",
             "3| 33| 333");
 
         execute("alter table t drop column a");
-        execute("select * from t");
+        execute("select * from t order by id");
         assertThat(response).hasRows(
             "1| 111",
             "2| 222",
