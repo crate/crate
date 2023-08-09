@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
@@ -38,6 +36,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;

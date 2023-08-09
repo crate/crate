@@ -56,7 +56,7 @@ public class SimpleReference implements Reference {
 
     protected final int position;
     protected final long oid;
-    protected final boolean isDropped;
+    protected boolean isDropped;
 
     protected final ReferenceIdent ident;
     protected final ColumnPolicy columnPolicy;
@@ -236,6 +236,11 @@ public class SimpleReference implements Reference {
     @Override
     public boolean isDropped() {
         return isDropped;
+    }
+
+    @Override
+    public void setDropped() {
+        this.isDropped = true;
     }
 
     @Nullable

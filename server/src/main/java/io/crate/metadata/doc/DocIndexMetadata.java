@@ -478,6 +478,9 @@ public class DocIndexMetadata {
             long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
 
             boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
+            if (isDropped) {
+                continue; // skip column
+            }
 
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {

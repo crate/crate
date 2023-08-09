@@ -227,6 +227,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         merged.mappedFieldType = toMerge.mappedFieldType;
         merged.fieldType = toMerge.fieldType;
         merged.copyTo = toMerge.copyTo;
+        merged.isDropped = toMerge.isDropped();
         return merged;
     }
 
