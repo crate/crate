@@ -123,4 +123,14 @@ public class AnyLikeOperatorTest extends ScalarTestCase {
         assertEvaluate("not 'A' like any (['A', 'B'])", false);
         assertEvaluate("not 'A' ilike any (['a', 'b'])", false);
     }
+
+    @Test
+    public void test_patterns_on_right_arg() {
+        assertNormalize("'foobar' like any (['%bar'])", isLiteral(true));
+        assertNormalize("'bar' like any (['_ar'])", isLiteral(true));
+        assertNormalize("'foobar' like any (['%o_a%'])", isLiteral(true));
+        assertNormalize("'fOobAR' ilike any (['%BaR'])", isLiteral(true));
+        assertNormalize("'BaR' ilike any (['_ar'])", isLiteral(true));
+        assertNormalize("'foobar' ilike any (['%O_a%'])", isLiteral(true));
+    }
 }

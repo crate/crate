@@ -131,4 +131,18 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("(text_no_index ILIKE '%abc%')");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
+
+    @Test
+    public void test_not_like_any_on_index_off_column_falls_back_to_generic_query() {
+        Query query = convert("text_no_index not LIKE any(['%abc%'])");
+        assertThat(query).hasToString("(text_no_index NOT LIKE ANY(['%abc%']))");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
+    public void test_ilike_any_on_index_off_column_falls_back_to_generic_query() {
+        Query query = convert("text_no_index ILIKE any(['%abc%'])");
+        assertThat(query).hasToString("(text_no_index ILIKE ANY(['%abc%']))");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
 }

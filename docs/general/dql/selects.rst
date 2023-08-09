@@ -563,6 +563,23 @@ operator::
     +---------------------+------------------------------+
     SELECT 1 row in set (... sec)
 
+For ``LIKE ANY`` operators, the patterns can be provided on either sides::
+
+    cr> select name from locations where name ILIKE ANY(['al%', 'ar%']) order
+    ... by name asc;
+    +---------------------+
+    | name                |
+    +---------------------+
+    | Aldebaran           |
+    | Algol               |
+    | Allosimanius Syneca |
+    | Alpha Centauri      |
+    | Altair              |
+    | Argabuthon          |
+    | Arkintoofle Minor   |
+    +---------------------+
+    SELECT 7 rows in set (... sec)
+
 This query passes a literal array value to the ``ANY`` operator::
 
     cr> select name, inhabitants['interests'] from locations

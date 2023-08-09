@@ -56,7 +56,9 @@ public final class AnyNotLikeOperator extends AnyOperator {
 
     @Override
     boolean matches(Object probe, Object candidate) {
-        return !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
+        // Accept both sides of arguments to be patterns
+        return !LikeOperators.matches((String) probe, (String) candidate, caseSensitivity) &&
+               !LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
     }
 
     @Override
