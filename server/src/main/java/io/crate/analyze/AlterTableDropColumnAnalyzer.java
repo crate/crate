@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -42,7 +43,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.Expression;
 
-class AlterTableDropColumnAnalyzer {
+public class AlterTableDropColumnAnalyzer {
 
     private final Schemas schemas;
     private final NodeContext nodeCtx;
@@ -73,33 +74,31 @@ class AlterTableDropColumnAnalyzer {
             null
         );
         var expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-        List<Reference> dropColumns = new ArrayList<>(alterTable.tableElements().size());
+        List<DropColumn> dropColumns = new ArrayList<>(alterTable.tableElements().size());
 
         for (var dropColumnDefinition : alterTable.tableElements()) {
             Expression name = dropColumnDefinition.name();
             try {
-                dropColumns.add((Reference) expressionAnalyzer.convert(name, expressionContext));
+                var colRefToDrop = (Reference) expressionAnalyzer.convert(name, expressionContext);
+                dropColumns.add(new DropColumn(colRefToDrop, dropColumnDefinition.ifExists()));
             } catch (ColumnUnknownException e) {
                 if (dropColumnDefinition.ifExists() == false) {
                     throw e;
                 }
             }
         }
-        validate(tableInfo, dropColumns);
+        dropColumns = validateDynamic(tableInfo, dropColumns);
+        validateStatic(tableInfo, dropColumns);
 
         return new AnalyzedAlterTableDropColumn(tableInfo, dropColumns);
     }
 
-    private static void validate(DocTableInfo tableInfo, List<Reference> dropColumns) {
-        var generatedColRefs = new HashSet<>();
-        for (var genRef : tableInfo.generatedColumns()) {
-            generatedColRefs.addAll(genRef.referencedReferences());
-        }
-        var leftOverCols = tableInfo.columns().stream().map(Reference::column).collect(Collectors.toSet());
-        Set<ColumnIdent> uniqueSet = new HashSet<>(dropColumns.size());
 
+    /** Validate restrictions based on properties that cannot change */
+    private static void validateStatic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
+        Set<ColumnIdent> uniqueSet = new HashSet<>(dropColumns.size());
         for (int i = 0 ; i < dropColumns.size(); i++) {
-            var refToDrop = dropColumns.get(i);
+            var refToDrop = dropColumns.get(i).ref();
             var colToDrop = refToDrop.column();
 
             if (uniqueSet.contains(colToDrop)) {
@@ -126,16 +125,41 @@ class AlterTableDropColumnAnalyzer {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the 'PARTITIONED BY' columns is not allowed");
             }
+        }
+    }
+
+    /** Validate restrictions based on properties that change and need to be rechecked during execution*/
+    public static List<DropColumn> validateDynamic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
+        var generatedColRefs = new HashSet<>();
+        for (var genRef : tableInfo.generatedColumns()) {
+            generatedColRefs.addAll(genRef.referencedReferences());
+        }
+        var leftOverCols = tableInfo.columns().stream().map(Reference::column).collect(Collectors.toSet());
+        ArrayList<DropColumn> validatedDropCols = new ArrayList<>(dropColumns.size());
+
+        for (int i = 0 ; i < dropColumns.size(); i++) {
+            var refToDrop = dropColumns.get(i).ref();
+            var colToDrop = refToDrop.column();
+
+            for (var indexRef : tableInfo.indexColumns()) {
+                if (indexRef.columns().contains(refToDrop)) {
+                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
+                                                            "is part of INDEX: " + indexRef + " is not allowed");
+                }
+            }
+
             if (generatedColRefs.contains(refToDrop)) {
                 throw new UnsupportedOperationException(
                     "Dropping column: " + colToDrop.sqlFqn() + " which is used to produce values for " +
                     "generated column is not allowed");
             }
             leftOverCols.remove(colToDrop);
+            validatedDropCols.add(new DropColumn(refToDrop, dropColumns.get(i).ifExists()));
         }
 
         if (leftOverCols.isEmpty()) {
             throw new UnsupportedOperationException("Dropping all columns of a table is not allowed");
         }
+        return validatedDropCols;
     }
 }

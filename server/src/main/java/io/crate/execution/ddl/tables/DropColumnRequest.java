@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -29,16 +31,15 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
 
     private final RelationName relationName;
-    private final List<Reference> colsToDrop;
+    private final List<DropColumn> colsToDrop;
 
     public DropColumnRequest(@NotNull RelationName relationName,
-                             @NotNull List<Reference> colsToDrop) {
+                             @NotNull List<DropColumn> colsToDrop) {
         this.relationName = relationName;
         this.colsToDrop = colsToDrop;
     }
@@ -46,14 +47,14 @@ public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
     public DropColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
-        this.colsToDrop = in.readList(Reference::fromStream);
+        this.colsToDrop = in.readList(DropColumn::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        out.writeCollection(colsToDrop, Reference::toStream);
+        out.writeCollection(colsToDrop);
     }
 
     @NotNull
@@ -62,7 +63,7 @@ public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
     }
 
     @NotNull
-    public List<Reference> references() {
+    public List<DropColumn> colsToDrop() {
         return this.colsToDrop;
     }
 }
