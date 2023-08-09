@@ -72,6 +72,8 @@ public interface Reference extends Symbol {
 
     boolean isDropped();
 
+    void setDropped();
+
     boolean hasDocValues();
 
     @Nullable
