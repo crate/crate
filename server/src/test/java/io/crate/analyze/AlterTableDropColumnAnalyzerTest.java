@@ -50,7 +50,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a");
         assertThat(d.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference("a"));
+            r -> assertThat(r.ref()).isReference("a"));
     }
 
     @Test
@@ -62,8 +62,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a, DROP b");
         assertThat(d.table().ident().name()).isEqualTo("t");
         assertThat(d.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference("a"),
-            r -> assertThat(r).isReference("b"));
+            dc -> assertThat(dc.ref()).isReference("a"),
+            dc -> assertThat(dc.ref()).isReference("b"));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference("b"));
+            dc -> assertThat(dc.ref()).isReference("b"));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']['ooa']");
         assertThat(d.table().ident().name()).isEqualTo("t");
         assertThat(d.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference(
+            dc -> assertThat(dc.ref()).isReference(
                 new ColumnIdent("o", List.of("oo", "ooa")), d.table().ident(), DataTypes.INTEGER));
     }
 
@@ -123,14 +123,14 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         AnalyzedAlterTableDropColumn d2 = e.analyze("ALTER TABLE t1 DROP COLUMN b, DROP IF EXISTS d");
         assertThat(d2.table().ident().name()).isEqualTo("t1");
         assertThat(d2.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference("b"));
+            dc -> assertThat(dc.ref()).isReference("b"));
 
         AnalyzedAlterTableDropColumn d3 = e.analyze("ALTER TABLE t2 DROP COLUMN o['oa'], DROP COLUMN IF EXISTS o['ob'], " +
                          "DROP o['oo']['ooa'], DROP IF EXISTS o['oo']['ooc']");
         assertThat(d3.table().ident().name()).isEqualTo("t2");
         assertThat(d3.columns()).satisfiesExactly(
-            r -> assertThat(r).isReference(new ColumnIdent("o", "oa"), d3.table().ident(), DataTypes.INTEGER),
-            r -> assertThat(r).isReference(new ColumnIdent("o", List.of("oo", "ooa")), d3.table().ident(), DataTypes.INTEGER));
+            dc -> assertThat(dc.ref()).isReference(new ColumnIdent("o", "oa"), d3.table().ident(), DataTypes.INTEGER),
+            dc -> assertThat(dc.ref()).isReference(new ColumnIdent("o", List.of("oo", "ooa")), d3.table().ident(), DataTypes.INTEGER));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     @Test
     public void test_drop_clustered_by_column_is_not_allowed() throws Exception {
         e = SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE t1 (a int) CLUSTERED BY (a)")
+            .addTable("CREATE TABLE t1 (a int, b int) CLUSTERED BY (a)")
             .addTable("CREATE TABLE t2 (o object AS(oo object AS(ooa int))) CLUSTERED BY (o['oo']['ooa'])")
             .build();
 
