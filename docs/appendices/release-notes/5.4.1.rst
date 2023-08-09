@@ -116,6 +116,16 @@ Fixes
 - Fixed an issue that caused ``LIKE``/``ILIKE`` operators on ``INDEX OFF``
   columns to return empty results.
 
+- Fixed an issue that caused ``LIKE ANY``/``ILIKE ANY`` operators to accept
+  only left arguments as patterns. Both arguments can now be patterns, e.g. ::
+
+    SELECT 'a' LIKE ANY(['a%']);
+    +-------+
+    | false |
+    +-------+
+    | FALSE | -- true will be returned after the fix
+    +-------+
+
 - Fixed an issue which caused ``INSERT INTO ... SELECT ...`` statements to
   leave behind empty partitions if ``NULL`` or ``CHECK`` constraint on
   partitioned by column failed.
