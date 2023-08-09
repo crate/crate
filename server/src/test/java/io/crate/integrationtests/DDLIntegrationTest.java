@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -392,7 +393,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_alter_table_add_column_succedds_because_check_constaint_refers_to_self_columns() {
+    public void test_alter_table_add_column_succeeds_because_check_constaint_refers_to_self_columns() {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
@@ -1147,5 +1148,49 @@ public class DDLIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
+    }
+
+    @Test
+    public void test_alter_table_drop_simple_column() {
+        execute("create table t(id integer primary key, a integer, b integer)");
+        execute("insert into t(id, a, b) values(1, 11, 111)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 11| 111");
+
+        execute("alter table t drop column a");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 111");
+        Asserts.assertSQLError(() -> execute("select a from t"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column a unknown");
+    }
+
+    @Test
+    public void test_alter_partitioned_table_drop_simple_column() {
+        execute("create table t(id integer primary key, a integer, b integer) partitioned by(id)");
+        execute("insert into t(id, a, b) values(1, 11, 111)");
+        execute("insert into t(id, a, b) values(2, 22, 222)");
+        execute("insert into t(id, a, b) values(3, 33, 333)");
+        execute("refresh table t");
+        execute("select * from t order by id");
+        assertThat(response).hasRows(
+            "1| 11| 111",
+            "2| 22| 222",
+            "3| 33| 333");
+
+        execute("alter table t drop column a");
+        execute("select * from t order by id");
+        assertThat(response).hasRows(
+            "1| 111",
+            "2| 222",
+            "3| 333");
+        execute("select * from t where id = 2");
+        assertThat(response).hasRows("2| 222");
+        Asserts.assertSQLError(() -> execute("select a from t"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column a unknown");
     }
 }
