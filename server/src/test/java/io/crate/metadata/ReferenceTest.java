@@ -168,6 +168,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
+            .doesNotContainKey("dropped")
             .containsEntry("doc_values", "false")
             .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
@@ -186,6 +187,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mapping)
                 .containsEntry("position", 1)
                 .containsEntry("type", "float")
+                .doesNotContainKey("dropped")
                 .containsEntry("doc_values", "false")
                 .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
@@ -204,6 +206,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("type", "keyword")
+            .doesNotContainKey("dropped")
             .containsEntry("default_expr", "'foo'")
             .hasSize(3);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();

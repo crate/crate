@@ -234,6 +234,9 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public void setDropped() {}
+
+    @Override
     public boolean hasDocValues() {
         return ref.hasDocValues();
     }
