@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -189,11 +190,14 @@ public class SessionSettingRegistry {
             .put(STANDARD_CONFORMING_STRINGS,
                  new SessionSetting<>(
                      STANDARD_CONFORMING_STRINGS,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
-                         throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
+                     objects -> {
+                         if (objects.length != 1) {
+                             throw new IllegalArgumentException(STANDARD_CONFORMING_STRINGS + " should have only one argument.");
+                         }
+                         validateStandardConformingStrings(objectsToStringArray(objects)[0]);
                      },
+                     Function.identity(),
+                     (s, v) -> {},
                      s -> "on",
                      () -> "on",
                      "Causes '...' strings to treat backslashes literally.",
@@ -276,6 +280,12 @@ public class SessionSettingRegistry {
                     throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
                                                        dateStyle + "\". Valid values include: [\"ISO\"].");
             }
+        }
+    }
+
+    private static void validateStandardConformingStrings(String str) {
+        if (BooleanType.INSTANCE.implicitCast(str) == Boolean.FALSE) {
+            throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
         }
     }
 }
