@@ -21,14 +21,19 @@
 
 package io.crate.analyze;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 
-public record AnalyzedAlterTableDropColumn(DocTableInfo table, List<Reference> columns) implements DDLStatement {
+public record AnalyzedAlterTableDropColumn(DocTableInfo table, List<DropColumn> columns) implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
@@ -37,5 +42,17 @@ public record AnalyzedAlterTableDropColumn(DocTableInfo table, List<Reference> c
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
+    }
+
+    public record DropColumn(Reference ref, boolean ifExists) {
+        public static void toStream(StreamOutput out, DropColumn dropColumn) throws IOException {
+            out.writeVInt(dropColumn.ref.symbolType().ordinal());
+            dropColumn.ref.writeTo(out);
+            out.writeBoolean(dropColumn.ifExists);
+        }
+
+        public static DropColumn fromStream(StreamInput in) throws IOException {
+            return new DropColumn((Reference) SymbolType.VALUES.get(in.readVInt()).newInstance(in), in.readBoolean());
+        }
     }
 }

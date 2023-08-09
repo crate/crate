@@ -79,6 +79,7 @@ public class AlterTableOperation {
     private final TransportAlterTableAction transportAlterTableAction;
     private final TransportDropConstraintAction transportDropConstraintAction;
     private final TransportAddColumnAction transportAddColumnAction;
+    private final TransportDropColumnAction transportDropColumnAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
@@ -100,6 +101,7 @@ public class AlterTableOperation {
                                TransportAlterTableAction transportAlterTableAction,
                                TransportDropConstraintAction transportDropConstraintAction,
                                TransportAddColumnAction transportAddColumnAction,
+                               TransportDropColumnAction transportDropColumnAction,
                                Sessions sessions,
                                IndexScopedSettings indexScopedSettings,
                                LogicalReplicationService logicalReplicationService) {
@@ -113,6 +115,7 @@ public class AlterTableOperation {
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
         this.transportAddColumnAction = transportAddColumnAction;
+        this.transportDropColumnAction = transportDropColumnAction;
         this.transportDropConstraintAction = transportDropConstraintAction;
         this.sessions = sessions;
         this.indexScopedSettings = indexScopedSettings;
@@ -137,6 +140,10 @@ public class AlterTableOperation {
             });
         }
         return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
+    }
+
+    public CompletableFuture<Long> executeAlterTableDropColumn(DropColumnRequest dropColumnRequest) {
+        return transportDropColumnAction.execute(dropColumnRequest).thenApply(resp -> -1L);
     }
 
     private CompletableFuture<Long> getRowCount(RelationName ident) {
