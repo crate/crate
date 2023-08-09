@@ -46,20 +46,20 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.LoadedRules;
 
-public class SessionSettingRegistryTest {
+public class SessionSettingRegistryTest extends ESTestCase {
 
-    private CoordinatorSessionSettings sessionSettings = CoordinatorSessionSettings.systemDefaults();
-    private NodeContext nodeCtx = createNodeContext();
-    private Function<Symbol, Object> eval = s -> SymbolEvaluator.evaluateWithoutParams(
+    private static final CoordinatorSessionSettings SESSION_SETTINGS = CoordinatorSessionSettings.systemDefaults();
+    private static final NodeContext NODE_CTX = createNodeContext();
+    private static final Function<Symbol, Object> EVAL = s -> SymbolEvaluator.evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
-        nodeCtx,
+        NODE_CTX,
         s
     );
 
     @Test
     public void test_max_index_keys_session_setting_cannot_be_changed() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
-        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("32"), eval))
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("32"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"max_index_keys\" cannot be changed.");
     }
@@ -67,7 +67,7 @@ public class SessionSettingRegistryTest {
     @Test
     public void test_server_version_num_session_setting_cannot_be_changed() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION_NUM);
-        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("100000"), eval))
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("100000"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"server_version_num\" cannot be changed.");
     }
@@ -75,7 +75,7 @@ public class SessionSettingRegistryTest {
     @Test
     public void test_server_version_session_setting_cannot_be_changed() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION);
-        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("10.0"), eval))
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("10.0"), EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"server_version\" cannot be changed.");
     }
@@ -91,53 +91,53 @@ public class SessionSettingRegistryTest {
     @Test
     public void testHashJoinSessionSetting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.HASH_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionSettings::hashJoinsEnabled, setting, true);
+        assertBooleanNonEmptySetting(SESSION_SETTINGS::hashJoinsEnabled, setting, true);
     }
 
     @Test
     public void testSettingErrorOnUnknownObjectKey() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertBooleanNonEmptySetting(sessionSettings::errorOnUnknownObjectKey, setting, true);
+        assertBooleanNonEmptySetting(SESSION_SETTINGS::errorOnUnknownObjectKey, setting, true);
     }
 
     @Test
     public void test_search_path_session_setting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get("search_path");
         assertThat(setting.defaultValue(),is("doc"));
-        setting.apply(sessionSettings, generateInput("a_schema"), eval);
-        assertThat(setting.getValue(sessionSettings),is("a_schema"));
-        setting.apply(sessionSettings, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), eval);
-        assertThat(setting.getValue(sessionSettings),is("a_schema, pg_catalog, b_schema, c_schema"));
+        setting.apply(SESSION_SETTINGS, generateInput("a_schema"), EVAL);
+        assertThat(setting.getValue(SESSION_SETTINGS), is("a_schema"));
+        setting.apply(SESSION_SETTINGS, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), EVAL);
+        assertThat(setting.getValue(SESSION_SETTINGS), is("a_schema, pg_catalog, b_schema, c_schema"));
     }
 
     @Test
     public void test_date_style_session_setting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.DATE_STYLE.name());
         assertThat(setting.defaultValue(),is("ISO"));
-        setting.apply(sessionSettings, generateInput("iso"), eval);
-        assertThat(sessionSettings.dateStyle(), is("ISO"));
-        setting.apply(sessionSettings, generateInput("MDY"), eval);
-        assertThat(sessionSettings.dateStyle(), is("ISO"));
-        setting.apply(sessionSettings, generateInput("ISO, MDY"), eval);
-        assertThat(sessionSettings.dateStyle(), is("ISO"));
+        setting.apply(SESSION_SETTINGS, generateInput("iso"), EVAL);
+        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
+        setting.apply(SESSION_SETTINGS, generateInput("MDY"), EVAL);
+        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
+        setting.apply(SESSION_SETTINGS, generateInput("ISO, MDY"), EVAL);
+        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
         assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(sessionSettings, generateInput("ISO, YDM"), eval),
+                     () -> setting.apply(SESSION_SETTINGS, generateInput("ISO, YDM"), EVAL),
                      "Invalid value for parameter \"datestyle\": \"YDM\". Valid values include: [\"ISO\"].");
         assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(sessionSettings, generateInput("German,ISO"), eval),
+                     () -> setting.apply(SESSION_SETTINGS, generateInput("German,ISO"), EVAL),
                      "Invalid value for parameter \"datestyle\": \"GERMAN\". Valid values include: [\"ISO\"].");
         assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(sessionSettings, generateInput("SQL, MDY"), eval),
+                     () -> setting.apply(SESSION_SETTINGS, generateInput("SQL, MDY"), EVAL),
                      "Invalid value for parameter \"datestyle\": \"SQL\". Valid values include: [\"ISO\"].");
     }
 
     @Test
     public void test_statement_timeout_max_value() throws Exception {
         var statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
-        statementTimeout.apply(sessionSettings, generateInput("24 days"), eval);
-        assertThat(sessionSettings.statementTimeout()).isEqualTo(TimeValue.timeValueMillis(2073600000L));
+        statementTimeout.apply(SESSION_SETTINGS, generateInput("24 days"), EVAL);
+        assertThat(SESSION_SETTINGS.statementTimeout()).isEqualTo(TimeValue.timeValueMillis(2073600000L));
 
-        assertThatThrownBy(() -> statementTimeout.apply(sessionSettings, generateInput("25 days"), eval))
+        assertThatThrownBy(() -> statementTimeout.apply(SESSION_SETTINGS, generateInput("25 days"), EVAL))
             .isExactlyInstanceOf(ArithmeticException.class)
             .hasMessage("Value cannot fit in an int: 2160000000");
     }
@@ -145,27 +145,27 @@ public class SessionSettingRegistryTest {
     @Test
     public void test_statement_timeout_accepts_int() throws Exception {
         var statementTimeout = SessionSettingRegistry.STATEMENT_TIMEOUT;
-        statementTimeout.apply(sessionSettings, List.of(Literal.of(200)), eval);
+        statementTimeout.apply(SESSION_SETTINGS, List.of(Literal.of(200)), EVAL);
     }
 
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
         assertThat(contextBooleanSupplier.get(), is(defaultValue));
-        sessionSetting.apply(sessionSettings, generateInput("true"), eval);
+        sessionSetting.apply(SESSION_SETTINGS, generateInput("true"), EVAL);
         assertThat(contextBooleanSupplier.get(), is(true));
-        sessionSetting.apply(sessionSettings, generateInput("false"), eval);
+        sessionSetting.apply(SESSION_SETTINGS, generateInput("false"), EVAL);
         assertThat(contextBooleanSupplier.get(), is(false));
-        sessionSetting.apply(sessionSettings, generateInput("TrUe"), eval);
+        sessionSetting.apply(SESSION_SETTINGS, generateInput("TrUe"), EVAL);
         assertThat(contextBooleanSupplier.get(), is(true));
         try {
-            sessionSetting.apply(sessionSettings, generateInput(""), eval);
+            sessionSetting.apply(SESSION_SETTINGS, generateInput(""), EVAL);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));
         }
         try {
-            sessionSetting.apply(sessionSettings, generateInput("invalid", "input"), eval);
+            sessionSetting.apply(SESSION_SETTINGS, generateInput("invalid", "input"), EVAL);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));

@@ -139,7 +139,7 @@ public final class Booleans {
         int len = input.size();
         boolean[] array = new boolean[len];
         for (int i = 0; i < len; i++) {
-            array[i] = (Boolean) Objects.requireNonNull(input.get(i));
+            array[i] = Objects.requireNonNull(input.get(i));
         }
         return array;
     }
