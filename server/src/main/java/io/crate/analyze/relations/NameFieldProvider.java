@@ -21,15 +21,16 @@
 
 package io.crate.analyze.relations;
 
+import java.util.List;
+import java.util.Locale;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Resolves QualifiedNames to Fields considering only one AnalyzedRelation
