@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.analyze.SymbolEvaluator;
@@ -81,11 +82,21 @@ public class SessionSettingRegistryTest extends ESTestCase {
     }
 
     @Test
-    public void test_standard_confirming_strings_session_setting_cannot_be_changed() {
+    public void test_standard_confirming_strings_session_setting_cannot_be_set_to_false() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
-        assertThatThrownBy(() -> setting.apply(sessionSettings, generateInput("no"), eval))
+        var value = generateInput(randomFrom("no", "false", "0", "no"));
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, value, EVAL))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("\"standard_conforming_strings\" cannot be changed.");
+    }
+
+    @Test
+    public void test_standard_confirming_strings_session_setting_invalid_values() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.STANDARD_CONFORMING_STRINGS);
+        var value = generateInput("invalid");
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, value, EVAL))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Can't convert \"invalid\" to boolean");
     }
 
     @Test
