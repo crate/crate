@@ -444,23 +444,29 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitFileParsingProjection(FileParsingProjection projection, Context context) {
         List<String> targetColumns = projection.allTargetColumns().stream().map(Reference::toString).collect(Collectors.toList());
+        // CSVLineParser internally uses ObjectReader which is thread safe and can be reused in different expressions.
         CSVLineParser csvLineParser = new CSVLineParser(projection.copyFromParserProperties(), targetColumns);
 
         InputFactory.Context<CollectExpression<Row, ?>> ctxForRefs = inputFactory.ctxForRefs(
             context.txnCtx,
-            ref -> getExpression(ref, projection.inputFormat(), csvLineParser)
+            ref -> getExpression(ref,
+                projection.inputFormat(),
+                csvLineParser,
+                projection
+            )
         );
         ctxForRefs.add(projection.allTargetColumns());
 
-        return new InputRowProjector(ctxForRefs.topLevelInputs(), ctxForRefs.expressions());
+        return new FileParsingProjector(ctxForRefs);
     }
 
     private static CollectExpression<Row, ?> getExpression(Reference ref,
                                                            FileUriCollectPhase.InputFormat inputFormat,
-                                                           CSVLineParser csvLineParser) {
+                                                           CSVLineParser csvLineParser,
+                                                           FileParsingProjection fileParsingProjection) {
         return switch (inputFormat) {
-            case JSON -> new JsonColumnExtractingExpression(ref.column());
-            case CSV -> new CsvColumnExtractingExpression(ref.column(), ref.valueType(), csvLineParser);
+            case JSON -> new JsonColumnExtractingExpression(ref.column(), fileParsingProjection);
+            case CSV -> new CsvColumnExtractingExpression(ref.column(), ref.valueType(), csvLineParser, fileParsingProjection);
         };
     }
 

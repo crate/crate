@@ -27,6 +27,8 @@ import java.util.Objects;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -36,16 +38,19 @@ import io.crate.metadata.Reference;
 
 public class FileParsingProjection extends Projection {
 
+    private final RelationName relationName;
     private final List<Reference> allTargetColumns;
     private final List<? extends Symbol> outputs;
     private final FileUriCollectPhase.InputFormat inputFormat;
     private final CopyFromParserProperties copyFromParserProperties;
 
 
-    public FileParsingProjection(List<Reference> allTargetColumns,
+    public FileParsingProjection(RelationName relationName,
+                                 List<Reference> allTargetColumns,
                                  FileUriCollectPhase.InputFormat inputFormat,
                                  CopyFromParserProperties copyFromParserProperties,
                                  List<? extends Symbol> outputs) {
+        this.relationName = relationName;
         this.allTargetColumns = allTargetColumns;
         this.inputFormat = inputFormat;
         this.copyFromParserProperties = copyFromParserProperties;
@@ -53,6 +58,7 @@ public class FileParsingProjection extends Projection {
     }
 
     FileParsingProjection(StreamInput in) throws IOException {
+        relationName = new RelationName(in);
         allTargetColumns = in.readList(Reference::fromStream);
         inputFormat = in.readEnum(FileUriCollectPhase.InputFormat.class);
         copyFromParserProperties = new CopyFromParserProperties(in);
@@ -61,6 +67,7 @@ public class FileParsingProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        relationName.writeTo(out);
         out.writeCollection(allTargetColumns, Reference::toStream);
         out.writeEnum(inputFormat);
         copyFromParserProperties.writeTo(out);
@@ -94,23 +101,32 @@ public class FileParsingProjection extends Projection {
         return outputs;
     }
 
+    public RelationName tableIdent() {
+        return relationName;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FileParsingProjection that = (FileParsingProjection) o;
-        return allTargetColumns.equals(that.allTargetColumns) &&
-            inputFormat.equals(that.inputFormat) &&
-            copyFromParserProperties.equals(that.copyFromParserProperties);
+        return relationName.equals(that.relationName) &&
+               allTargetColumns.equals(that.allTargetColumns) &&
+               inputFormat.equals(that.inputFormat) &&
+               copyFromParserProperties.equals(that.copyFromParserProperties);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(),
+            relationName,
             allTargetColumns,
             inputFormat,
             copyFromParserProperties
         );
     }
 
+    public void addNewColumn(DynamicReference newColumn) {
+        this.allTargetColumns.add(newColumn);
+    }
 }

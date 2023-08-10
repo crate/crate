@@ -246,6 +246,10 @@ public final class CopyFromPlan implements Plan {
             Reference raw = table.getReference(DocSysColumns.RAW);
             toCollect.add(raw);
 
+            // Line number is needed not only for RETURN SUMMARY
+            // but for regular COPY FROM as well in order to detect first line/header and handle it specifically.
+            toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
+
             if (returnSummary || failFast) {
                 //TODO: handle RETURN SUMMARY
                 fileParsingProjection = null;
@@ -282,6 +286,7 @@ public final class CopyFromPlan implements Plan {
                 List<Symbol> outputs = InputColumns.create(targetColsInCorrectOrder, sourceSymbols);
 
                 fileParsingProjection = new FileParsingProjection(
+                    table.ident(),
                     targetColsInCorrectOrder,
                     boundedCopyFrom.inputFormat(),
                     CopyFromParserProperties.of(boundedCopyFrom.settings()),

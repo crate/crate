@@ -22,9 +22,11 @@
 package io.crate.expression.reference.file;
 
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.FileParsingProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.server.xcontent.ParsedXContent;
 import io.crate.server.xcontent.XContentHelper;
 import org.elasticsearch.ElasticsearchParseException;
@@ -34,15 +36,18 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
-public class JsonColumnExtractingExpression implements CollectExpression<Row, Object> {
+public class JsonColumnExtractingExpression extends FileParsingExpression {
 
     private final ColumnIdent columnIdent;
 
     private LinkedHashMap<String, Object> rowAsMap;
 
-    public JsonColumnExtractingExpression(ColumnIdent columnIdent) {
+    public JsonColumnExtractingExpression(ColumnIdent columnIdent, FileParsingProjection fileParsingProjection) {
+        super(fileParsingProjection);
         this.columnIdent = columnIdent;
     }
 
@@ -56,11 +61,12 @@ public class JsonColumnExtractingExpression implements CollectExpression<Row, Ob
         return ValueExtractors.fromMap(rowAsMap, columnIdent);
     }
 
-
     @Override
     public void setNextRow(Row row) {
-        String line = (String) row.materialize()[0];
+        Object[] values = row.materialize();
+        String line = (String) values[0];
         if (line != null) {
+            Long lineNumber = (Long) values[1];
             // TODO: Share some context (and rowAsMap) for all expressions.
             // Reset it after consuming each row, similar to LineContext.startCollect
             try {
@@ -70,6 +76,9 @@ public class JsonColumnExtractingExpression implements CollectExpression<Row, Ob
                     true, XContentType.JSON
                 );
                 rowAsMap = (LinkedHashMap<String, Object>) parsedXContent.map();
+                if (lineNumber == 1) {
+                    finalizeTargetColumns(rowAsMap.keySet());
+                }
             } catch (ElasticsearchParseException | NotXContentException e) {
                 // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
                 throw new RuntimeException("JSON parser error: " + e.getMessage(), e);

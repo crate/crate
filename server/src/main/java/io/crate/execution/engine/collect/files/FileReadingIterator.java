@@ -222,8 +222,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             return moveNext();
         } catch (Exception e) {
             // This is only for Versions [4.7.2 - 5.5.0)
-            // To be removed in 5.5.0.
-            // From 5.5.0 parsing is done in projector.
+            // TODO: Remove BWC code in 5.6.0.
             lineProcessor.setParsingFailure(e.getMessage());
             return true;
         }

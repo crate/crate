@@ -22,18 +22,18 @@
 package io.crate.expression.reference.file;
 
 import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.dsl.projection.FileParsingProjection;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.operation.collect.files.CSVLineParser;
 import io.crate.types.DataType;
 
 import java.io.IOException;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Supplier;
 
-public class CsvColumnExtractingExpression implements CollectExpression<Row, Object> {
-
+public class CsvColumnExtractingExpression extends FileParsingExpression {
     private final CSVLineParser csvLineParser;
     private final ColumnIdent columnIdent;
     private final DataType<?> type;
@@ -42,7 +42,9 @@ public class CsvColumnExtractingExpression implements CollectExpression<Row, Obj
 
     public CsvColumnExtractingExpression(ColumnIdent columnIdent,
                                          DataType<?> type,
-                                         CSVLineParser csvLineParser) {
+                                         CSVLineParser csvLineParser,
+                                         FileParsingProjection fileParsingProjection) {
+        super(fileParsingProjection);
         this.columnIdent = columnIdent;
         this.type = type;
         this.csvLineParser = csvLineParser;
@@ -58,19 +60,28 @@ public class CsvColumnExtractingExpression implements CollectExpression<Row, Obj
         return type.implicitCast(ValueExtractors.fromMap(rowAsMap, columnIdent));
     }
 
-
     @Override
     public void setNextRow(Row row) {
-        String line = (String) row.materialize()[0];
+        Object[] values = row.materialize();
+        String line = (String) values[0];
         if (line != null) {
-            // TODO: Share some context (and rowAsMap) for all expressions.
-            // Reset it after consuming each row, similar to LineContext.startCollect
+            Long lineNumber = (Long) values[1];
             try {
-                rowAsMap = csvLineParser.rowAsMapWithoutHeader(line);
-            } catch (IOException e) {
-                // TODO: Enrich transformed row with IOFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
-                throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
+                if (fileParsingProjection.copyFromParserProperties().fileHeader()) {
+                    if (lineNumber == 1) {
+                        String[] headerColumns = csvLineParser.parseHeader(line);
+                        finalizeTargetColumns(Arrays.asList(headerColumns));
+                    } else {
+                        rowAsMap = csvLineParser.rowAsMapWithHeader(line);
+                    }
+                } else {
+                    // TODO: Share some context (and rowAsMap) for all expressions.
+                    // Reset it after consuming each row, similar to LineContext.startCollect
+                    rowAsMap = csvLineParser.rowAsMapWithoutHeader(line);
+                }
             } catch (Exception e) {
+                // parseHeader can throw IOException but we treat it as a parsing failure because data is already read.
+                // Only generic IOExceptions happening on file reading close a reader and reported in uriFailure column.
                 // TODO: Enrich transformed row with parsingFailure for RETURN SUMMARY case. Used to be done in FileReadingIterator.
             }
         }

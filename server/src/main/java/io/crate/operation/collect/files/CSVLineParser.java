@@ -69,7 +69,7 @@ public class CSVLineParser {
             .with(csvSchema);
     }
 
-    public void parseHeader(String header) throws IOException {
+    public String[] parseHeader(String header) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
         iterator.readAll(headerKeyList);
         columnNamesArray = new String[headerKeyList.size()];
@@ -84,6 +84,7 @@ public class CSVLineParser {
         if (keySet.size() != headerKeyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
+        return columnNamesArray;
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
@@ -157,6 +158,31 @@ public class CSVLineParser {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Expected %d values, " +
                 "encountered %d. This is not allowed when there " +
                 "is no header provided)",columnNamesArray.length, i));
+        }
+        return rowAsMap;
+    }
+
+    public Map<String, Object> rowAsMapWithHeader(String row) throws IOException {
+        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        // CSV parser prepares a map so that validation of items amount is done once and also values can be accessed quickly.
+        // TODO: Actually reuse/share map per-expression.
+        Map<String, Object> rowAsMap = new HashMap<>();
+        int i = 0, j = 0;
+        while (iterator.hasNext()) {
+            if (i >= headerKeyList.size()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Number of values exceeds " +
+                    "number of keys in csv file"));
+            }
+            if (columnNamesArray.length == j || i >= columnNamesArray.length) {
+                break;
+            }
+            var key = columnNamesArray[i];
+            var value = iterator.next();
+            i++;
+            if (key != null) {
+                rowAsMap.put(key, value);
+                j++;
+            }
         }
         return rowAsMap;
     }
