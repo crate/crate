@@ -536,15 +536,31 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        List<Input<?>> insertInputs = new ArrayList<>(projection.allTargetColumns().size());
 
-        List<Symbol> columnSymbols = InputColumns.create(
-            projection.allTargetColumns(),
-            new InputColumns.SourceSymbols(projection.allTargetColumns()));
+        Supplier<List<Input<?>>> insertInputsSupplier = () -> {
+            List<Input<?>> insertInputs = new ArrayList<>(projection.allTargetColumns().size());
 
-        for (Symbol symbol : columnSymbols) {
-            insertInputs.add(ctx.add(symbol));
-        }
+            List<Symbol> columnSymbols = InputColumns.create(
+                projection.allTargetColumns(),
+                new InputColumns.SourceSymbols(projection.allTargetColumns()));
+
+            for (Symbol symbol : columnSymbols) {
+                // It's safe to call supplier multiple times.
+                // 'ctx.add' doesn't create duplicate instance of RowCollectExpression for the same index as visitInputColumn caches them in map.
+                insertInputs.add(ctx.add(symbol));
+            }
+            return insertInputs;
+        };
+
+        Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier = () -> {
+            for (Symbol symbol : projection.allTargetColumns()) {
+                // It's safe to call supplier multiple times.
+                // 'ctx.add' doesn't create duplicate instance of RowCollectExpression for the same index as visitInputColumn caches them in map.
+                ctx.add(symbol);
+            }
+            return ctx.expressions();
+        };
+
         ClusterState state = clusterService.state();
         Settings tableSettings = TableSettingsResolver.get(state.metadata(),
             projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
@@ -581,9 +597,9 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.allTargetColumns(),
-            insertInputs,
-            ctx.expressions(),
+            () -> projection.allTargetColumns().toArray(new Reference[projection.allTargetColumns().size()]),
+            insertInputsSupplier,
+            expressionsSupplier,
             projection.isIgnoreDuplicateKeys(),
             projection.overwriteDuplicateKeys(),
             projection.onDuplicateKeyAssignments(),

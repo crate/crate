@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import io.crate.metadata.Reference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -114,7 +115,8 @@ public class ShardingUpsertExecutor
                            RowShardResolver rowShardResolver,
                            ItemFactory<ShardUpsertRequest.Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
-                           List<? extends CollectExpression<Row, ?>> expressions,
+                           Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                          // Supplier<Reference[]> columnReferencesSupplier,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
                            ElasticsearchClient elasticsearchClient,
@@ -140,7 +142,8 @@ public class ShardingUpsertExecutor
             constraintsChecker,
             rowShardResolver,
             indexNameResolver,
-            expressions,
+            expressionsSupplier,
+          //  columnReferencesSupplier,
             itemFactory,
             autoCreateIndices,
             upsertResultContext);

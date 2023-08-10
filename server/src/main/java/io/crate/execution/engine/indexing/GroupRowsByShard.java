@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 
 
 import io.crate.execution.dml.IndexItem;
+import io.crate.metadata.Reference;
 import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +57,8 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private static final Logger LOGGER = LogManager.getLogger(GroupRowsByShard.class);
 
     private final RowShardResolver rowShardResolver;
-    private final List<? extends CollectExpression<Row, ?>> expressions;
+    private final Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier;
+   // private final Supplier<Reference[]> columnReferencesSupplier;
     private final List<? extends CollectExpression<Row, ?>> sourceInfoExpressions;
     private final ItemFactory<TItem> itemFactory;
     private final Supplier<String> indexNameResolver;
@@ -75,18 +77,17 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
-                            List<? extends CollectExpression<Row, ?>> expressions,
+                            Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                           // Supplier<Reference[]> columnReferencesSupplier,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices,
                             UpsertResultContext upsertContext) {
-        assert expressions instanceof RandomAccess
-            : "expressions should be a RandomAccess list for zero allocation iterations";
-
         this.clusterService = clusterService;
         this.constraintsChecker = constraintsChecker;
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
-        this.expressions = expressions;
+        this.expressionsSupplier = expressionsSupplier;
+       // this.columnReferencesSupplier = columnReferencesSupplier;
         this.sourceInfoExpressions = upsertContext.getSourceInfoExpressions();
         this.itemFactory = itemFactory;
         this.itemFailureRecorder = upsertContext.getItemFailureRecorder();
@@ -100,14 +101,16 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
                             Supplier<String> indexNameResolver,
-                            List<? extends CollectExpression<Row, ?>> expressions,
+                            Supplier<List<? extends CollectExpression<Row, ?>>> expressionsSupplier,
+                          //  Supplier<Reference[]> columnReferencesSupplier,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
              constraintsChecker,
              rowShardResolver,
              indexNameResolver,
-             expressions,
+             expressionsSupplier,
+            // columnReferencesSupplier,
              itemFactory,
              autoCreateIndices,
              UpsertResultContext.forRowCount());
@@ -157,6 +160,10 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         }
         try {
             rowShardResolver.setNextRow(spareRow);
+            var expressions = expressionsSupplier.get();
+            assert expressions instanceof RandomAccess
+                : "expressions should be a RandomAccess list for zero allocation iterations";
+
             for (int i = 0; i < expressions.size(); i++) {
                 expressions.get(i).setNextRow(spareRow);
             }
