@@ -443,9 +443,8 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFileParsingProjection(FileParsingProjection projection, Context context) {
-        List<String> targetColumns = projection.allTargetColumns().stream().map(Reference::toString).collect(Collectors.toList());
         // CSVLineParser internally uses ObjectReader which is thread safe and can be reused in different expressions.
-        CSVLineParser csvLineParser = new CSVLineParser(projection.copyFromParserProperties(), targetColumns);
+        CSVLineParser csvLineParser = new CSVLineParser(projection.copyFromParserProperties(), projection.userTargets());
 
         InputFactory.Context<CollectExpression<Row, ?>> ctxForRefs = inputFactory.ctxForRefs(
             context.txnCtx,

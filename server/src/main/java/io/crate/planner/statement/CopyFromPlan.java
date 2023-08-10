@@ -290,6 +290,7 @@ public final class CopyFromPlan implements Plan {
                     targetColsInCorrectOrder,
                     boundedCopyFrom.inputFormat(),
                     CopyFromParserProperties.of(boundedCopyFrom.settings()),
+                    boundedCopyFrom.targetColumns(),
                     outputs
                 );
 

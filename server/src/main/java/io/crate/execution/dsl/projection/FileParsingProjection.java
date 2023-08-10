@@ -40,18 +40,25 @@ public class FileParsingProjection extends Projection {
 
     private final RelationName relationName;
     private final List<Reference> allTargetColumns;
+    private final List<String> userTargets;
     private final List<? extends Symbol> outputs;
     private final FileUriCollectPhase.InputFormat inputFormat;
     private final CopyFromParserProperties copyFromParserProperties;
 
 
+    /**
+     * @param userTargets is not neccesary aligned with allTargetColumns.
+     * It's specified by a user and can be empty list for CSV with header whereas (initial) allTargetColumns would be table columns.
+     */
     public FileParsingProjection(RelationName relationName,
                                  List<Reference> allTargetColumns,
                                  FileUriCollectPhase.InputFormat inputFormat,
                                  CopyFromParserProperties copyFromParserProperties,
+                                 List<String> userTargets,
                                  List<? extends Symbol> outputs) {
         this.relationName = relationName;
         this.allTargetColumns = allTargetColumns;
+        this.userTargets = userTargets;
         this.inputFormat = inputFormat;
         this.copyFromParserProperties = copyFromParserProperties;
         this.outputs = outputs;
@@ -60,6 +67,7 @@ public class FileParsingProjection extends Projection {
     FileParsingProjection(StreamInput in) throws IOException {
         relationName = new RelationName(in);
         allTargetColumns = in.readList(Reference::fromStream);
+        userTargets = in.readStringList();
         inputFormat = in.readEnum(FileUriCollectPhase.InputFormat.class);
         copyFromParserProperties = new CopyFromParserProperties(in);
         outputs = Symbols.listFromStream(in);
@@ -69,6 +77,7 @@ public class FileParsingProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         relationName.writeTo(out);
         out.writeCollection(allTargetColumns, Reference::toStream);
+        out.writeStringCollection(userTargets);
         out.writeEnum(inputFormat);
         copyFromParserProperties.writeTo(out);
         Symbols.toStream(outputs, out);
@@ -103,6 +112,10 @@ public class FileParsingProjection extends Projection {
 
     public RelationName tableIdent() {
         return relationName;
+    }
+
+    public List<String> userTargets() {
+        return userTargets;
     }
 
     @Override
