@@ -175,7 +175,7 @@ Parameters
   | *Type:*    ``text``
   | *Required*
 
-  An absolute or relative path to the directory where CreateDB will store
+  An absolute or relative path to the directory where CrateDB will store
   snapshots. If the path is relative, CrateDB will append it to the first entry
   in the :ref:`path.repo <path.repo>` setting.
 
