@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.Test;
@@ -251,5 +252,16 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t2 DROP b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Dropping column: b which is part of INDEX: ft is not allowed");
+    }
+
+    @Test
+    public void add_multiple_columns_adding_same_name_primitive_throws_an_exception() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE t (o object AS(oo object AS(ooa int, oob int)))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP o['oo']['ooa'], DROP o['oo']['oob'], DROP o['oo']['ooa']"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Column \"o['oo']['ooa']\" specified more than once");
     }
 }

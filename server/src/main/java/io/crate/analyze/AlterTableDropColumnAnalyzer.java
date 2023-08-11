@@ -24,6 +24,7 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
@@ -32,6 +33,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -93,20 +95,24 @@ public class AlterTableDropColumnAnalyzer {
 
     /** Validate restrictions based on properties that cannot change */
     private static void validateStatic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
+        Set<ColumnIdent> uniqueSet = new HashSet<>(dropColumns.size());
         for (int i = 0 ; i < dropColumns.size(); i++) {
             var refToDrop = dropColumns.get(i).ref();
             var colToDrop = refToDrop.column();
+
+            if (uniqueSet.contains(colToDrop)) {
+                throw new IllegalArgumentException("Column \"" + colToDrop.sqlFqn() + "\" specified more than once");
+            }
+            uniqueSet.add(colToDrop);
 
             if (tableInfo.primaryKey().contains(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the PRIMARY KEY is not allowed");
             }
-
             if (tableInfo.clusteredBy().equals(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is used in 'CLUSTERED BY' is not allowed");
             }
-
             if (tableInfo.isPartitioned() && tableInfo.partitionedBy().contains(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the 'PARTITIONED BY' columns is not allowed");
