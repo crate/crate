@@ -164,6 +164,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -678,9 +679,11 @@ public class ExpressionAnalyzer {
             List<String> parts = subscriptContext.parts();
 
             if (qualifiedName == null) {
-                Symbol base = node.base().accept(this, context);
-                Symbol index = node.index().accept(this, context);
-                return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
+                return tryAllocateSubscriptFunction(
+                    node.base().accept(this, context),
+                    node.index().accept(this, context),
+                    subscriptContext,
+                    context);
             } else {
                 // Detect and process partial quoted subscript expression
                 var columnName = qualifiedName.getSuffix();
@@ -708,32 +711,11 @@ public class ExpressionAnalyzer {
                                                                  List.of(),
                                                                  operation,
                                                                  context.errorOnUnknownObjectKey());
-                        var baseType = ArrayType.unnest(base.valueType());
-                        if (baseType instanceof ObjectType objectType) {
-                            if (objectType.resolveInnerType(parts).id() != UndefinedType.ID) {
-                                return allocateFunction(
-                                    SubscriptFunction.NAME,
-                                    List.of(
-                                        node.base().accept(this, context),
-                                        node.index().accept(this, context)
-                                    ),
-                                    context
-                                );
-                            }
-                        }
-                        if (context.errorOnUnknownObjectKey()) {
-                            if (base instanceof Reference || base instanceof ScopedSymbol) {
-                                throw e;
-                            }
-                        }
-                        return allocateFunction(
-                            SubscriptFunction.NAME,
-                            List.of(
-                                node.base().accept(this, context),
-                                node.index().accept(this, context)
-                            ),
-                            context
-                        );
+                        return tryAllocateSubscriptFunction(
+                            node.base().accept(this, context),
+                            node.index().accept(this, context),
+                            subscriptContext,
+                            context);
                     } catch (ColumnUnknownException e2) {
                         throw e;
                     }
@@ -1306,6 +1288,29 @@ public class ExpressionAnalyzer {
             }
         }
         return null;
+    }
+
+    private Symbol tryAllocateSubscriptFunction(Symbol base,
+                                                Symbol index,
+                                                SubscriptContext subscriptContext,
+                                                ExpressionAnalysisContext expressionAnalysisContext) {
+        if (index.valueType().id() != StringType.ID) {
+            return allocateFunction(
+                SubscriptFunction.NAME,
+                List.of(base, index),
+                expressionAnalysisContext);
+        }
+        var baseType = ArrayType.unnest(base.valueType());
+        if (baseType instanceof ObjectType objectType) {
+            if (expressionAnalysisContext.errorOnUnknownObjectKey() == false ||
+                objectType.resolveInnerType(subscriptContext.parts()).id() != UndefinedType.ID) {
+                return allocateFunction(
+                    SubscriptFunction.NAME,
+                    List.of(base, index),
+                    expressionAnalysisContext);
+            }
+        }
+        throw ColumnUnknownException.ofUnknownRelation("Column " + base + "[" + index + "]" + " unknown");
     }
 
     private static class Comparison {
