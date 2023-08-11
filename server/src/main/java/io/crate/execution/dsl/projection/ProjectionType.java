@@ -47,7 +47,8 @@ public enum ProjectionType {
     LIMIT_DISTINCT(LimitDistinctProjection::new),
     CORRELATED_JOIN(in -> {
         throw new UnsupportedOperationException("Cannot stream correlated join projection");
-    });
+    }),
+    FILE_INDEX_WRITER(FileIndexWriterProjection::new);
 
     private final Projection.ProjectionFactory<?> factory;
 

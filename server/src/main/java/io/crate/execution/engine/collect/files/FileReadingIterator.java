@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,7 +80,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
                                                  Settings withClauseOptions,
-                                                 ScheduledExecutorService scheduler) {
+                                                 ScheduledExecutorService scheduler,
+                                                 Version minNodeVersion) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -93,7 +95,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
             parserProperties,
             inputFormat,
             withClauseOptions,
-            scheduler);
+            scheduler,
+            minNodeVersion);
     }
 
 
@@ -123,6 +126,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private LineProcessor lineProcessor;
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> backOffPolicy;
+    private final Version minNodeVersion;
 
     @VisibleForTesting
     FileReadingIterator(Collection<String> fileUris,
@@ -137,7 +141,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         CopyFromParserProperties parserProperties,
                         FileUriCollectPhase.InputFormat inputFormat,
                         Settings withClauseOptions,
-                        ScheduledExecutorService scheduler) {
+                        ScheduledExecutorService scheduler,
+                        Version minNodeVersion) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
@@ -152,6 +157,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         initCollectorState();
         this.scheduler = scheduler;
         this.backOffPolicy = BackoffPolicy.exponentialBackoff(TimeValue.ZERO, MAX_SOCKET_TIMEOUT_RETRIES).iterator();
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
@@ -194,7 +200,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     closeCurrentReader();
                     return moveNext();
                 }
-                lineProcessor.process(line);
+                lineProcessor.process(line, minNodeVersion);
                 return true;
             } else if (currentInputUriIterator != null && currentInputUriIterator.hasNext()) {
                 advanceToNextUri(currentInput);
@@ -215,6 +221,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
             return moveNext();
         } catch (Exception e) {
+            // This is only for Versions [4.7.2 - 5.5.0)
+            // TODO: Remove BWC code in 5.6.0
             lineProcessor.setParsingFailure(e.getMessage());
             return true;
         }
@@ -252,7 +260,14 @@ public class FileReadingIterator implements BatchIterator<Row> {
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        if (minNodeVersion.before(Version.V_5_5_0)) {
+            // TODO: remove this after 5.6.0.
+            lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        } else {
+            for (long i = 0; i < parserProperties.skipNumLines(); i++) {
+                currentReader.readLine();
+            }
+        }
     }
 
     private void closeCurrentReader() {

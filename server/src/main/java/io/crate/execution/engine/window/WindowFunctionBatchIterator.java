@@ -119,7 +119,7 @@ public final class WindowFunctionBatchIterator {
         );
     }
 
-    private static Object[] materializeWithSpare(Row row, int numWindowFunctions) {
+    public static Object[] materializeWithSpare(Row row, int numWindowFunctions) {
         Object[] cells = new Object[row.numColumns() + numWindowFunctions];
         for (int i = 0; i < row.numColumns(); i++) {
             cells[i] = row.get(i);

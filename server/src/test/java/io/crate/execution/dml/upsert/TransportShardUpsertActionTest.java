@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -205,7 +206,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -227,7 +228,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -273,7 +274,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -295,7 +296,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            () -> new SimpleReference[]{ID_REF},
             null,
             UUID.randomUUID(),
             false
@@ -329,7 +330,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{dynamicRefConvertedToSimpleRef},
+            () -> new SimpleReference[]{dynamicRefConvertedToSimpleRef},
             null,
             UUID.randomUUID(),
             false
@@ -358,7 +359,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 DuplicateKeyAction.UPDATE_OR_FAIL,
                 false,
                 null,
-                new SimpleReference[]{ID_REF},
+                () -> new SimpleReference[]{ID_REF},
                 null,
                 UUID.randomUUID(),
                 false

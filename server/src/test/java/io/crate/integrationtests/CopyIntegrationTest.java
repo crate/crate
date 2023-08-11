@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,6 +47,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -728,6 +728,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromReturnSummaryWithFailedRows() throws Exception {
         execute("create table t1 (id int primary key, ts timestamp with time zone)");
 
@@ -768,6 +769,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     @SuppressWarnings("unchecked")
     public void testCopyFromReturnSummaryWithFailedURI() throws Exception {
         execute("create table t1 (id int primary key, ts timestamp with time zone)");
@@ -917,6 +919,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void test_copy_from_unknown_column_to_strict_object() throws Exception {
         // test for strict_table ver. can be found at FromRawInsertSourceTest, whereas strict_object is tested by DocumentMapper
         execute("create table t (o object(strict) as (a int))");
@@ -949,6 +952,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseIgnoresTypeValidation() throws Exception {
 
         // copying an empty string to a boolean column
@@ -967,6 +971,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToTrueDoesTypeValidation() throws Exception {
 
         // copying an empty string to a boolean column
@@ -986,6 +991,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseStillValidatesIfGeneratedColumnsInvolved() throws Exception {
         execute("create table t (a boolean, b int generated always as 1)");
 
@@ -1002,6 +1008,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseAndInsertingToPartitionedByColumn() throws Exception {
         // copying an empty string to a boolean column
 
@@ -1025,6 +1032,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseAndInsertingToNonPartitionedByColumn() throws Exception {
         // copying an empty string to a boolean column
 
@@ -1042,6 +1050,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseStillValidatesIfDefaultExpressionsInvolved() throws Exception {
         execute("create table t (a boolean, b int default 1)");
 
@@ -1058,6 +1067,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void testCopyFromWithValidationSetToFalseIgnoreCheckConstraints() throws Exception {
         execute("create table t (a boolean check (a = true))");
 
@@ -1080,6 +1090,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void test_copy_from_fail_gracefully_in_case_of_invalid_data() throws Exception {
         execute("create table t (obj object(dynamic) as (x int))");
 

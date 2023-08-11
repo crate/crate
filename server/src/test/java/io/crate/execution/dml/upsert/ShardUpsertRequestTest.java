@@ -79,7 +79,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
-            missingAssignmentColumns,
+            () -> missingAssignmentColumns,
             null,
             jobId,
             false
@@ -131,7 +131,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
-            missingAssignmentColumns,
+            () -> missingAssignmentColumns,
             null,
             jobId,
             false
@@ -183,7 +183,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
                 DuplicateKeyAction.UPDATE_OR_FAIL,
                 false,
                 assignmentColumns,
-                missingAssignmentColumns,
+                () -> missingAssignmentColumns,
                 null,
                 jobId,
                 false

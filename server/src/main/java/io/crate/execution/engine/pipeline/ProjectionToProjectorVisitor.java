@@ -77,6 +77,7 @@ import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.FileIndexWriterProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
@@ -106,6 +107,7 @@ import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
+import io.crate.execution.engine.indexing.FileIndexWriterProjector;
 import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
@@ -433,6 +435,48 @@ public class ProjectionToProjectorVisitor
             );
         }
         return objectMap;
+    }
+
+    @Override
+    public Projector visitFileIndexWriterProjection(FileIndexWriterProjection projection, Context context) {
+        ClusterState state = clusterService.state();
+        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
+            projection.tableIdent(), !projection.partitionedByColumns().isEmpty());
+
+        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
+        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+
+        UpsertResultContext upsertResultContext = UpsertResultContext.forRowCount();
+
+        return new FileIndexWriterProjector(
+            clusterService,
+            nodeJobsCounter,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            context.ramAccounting,
+            threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
+            context.txnCtx,
+            nodeCtx,
+            state.metadata().settings(),
+            targetTableNumShards,
+            targetTableNumReplicas,
+            elasticsearchClient,
+            projection.copyFromParserProperties(),
+            projection.inputFormat(),
+            projection.tableIdent(),
+            projection.partitionIdent(),
+            projection.targetColumns(),
+            projection.userTargets(),
+            projection.partitionedByColumns(),
+            projection.primaryKeyColumns(),
+            projection.clusteredByColumn(),
+            inputFactory,
+            projection.bulkActions(),
+            projection.autoCreateIndices(),
+            projection.overwriteDuplicates(),
+            context.jobId,
+            upsertResultContext
+        );
     }
 
     @Override

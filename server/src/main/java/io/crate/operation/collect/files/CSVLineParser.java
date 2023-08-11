@@ -34,9 +34,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class CSVLineParser {
 
@@ -45,9 +47,11 @@ public class CSVLineParser {
     private String[] columnNamesArray;
     private final List<String> targetColumns;
     private final ObjectReader csvReader;
+    private final boolean header;
 
     public CSVLineParser(CopyFromParserProperties properties, List<String> columns) {
         targetColumns = columns;
+        this.header = properties.fileHeader();
         if (!properties.fileHeader()) {
             columnNamesArray = new String[targetColumns.size()];
             for (int i = 0; i < targetColumns.size(); i++) {
@@ -67,7 +71,11 @@ public class CSVLineParser {
             .with(csvSchema);
     }
 
-    public void parseHeader(String header) throws IOException {
+    public boolean header() {
+        return header;
+    }
+
+    public String[] parseHeader(String header) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
         iterator.readAll(headerKeyList);
         columnNamesArray = new String[headerKeyList.size()];
@@ -82,6 +90,7 @@ public class CSVLineParser {
         if (keySet.size() != headerKeyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
+        return columnNamesArray;
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
@@ -132,5 +141,53 @@ public class CSVLineParser {
         }
         jsonBuilder.endObject().close();
         return out.toByteArray();
+    }
+
+    public Map<String, Object> rowAsMapWithoutHeader(String row) throws IOException {
+        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        int i = 0;
+        // CSV parser prepares a map so that validation of items amount is done once and also values can be accessed quickly.
+        Map<String, Object> rowAsMap = new HashMap<>();
+        while (iterator.hasNext()) {
+            if (i >= columnNamesArray.length) {
+                break;
+            }
+            var key = columnNamesArray[i];
+            var value = iterator.next();
+            i++;
+            if (key != null) {
+                rowAsMap.put(key, value);
+            }
+        }
+        if (columnNamesArray.length > i) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Expected %d values, " +
+                "encountered %d. This is not allowed when there " +
+                "is no header provided)",columnNamesArray.length, i));
+        }
+        return rowAsMap;
+    }
+
+    public Map<String, Object> rowAsMapWithHeader(String row) throws IOException {
+        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        // CSV parser prepares a map so that validation of items amount is done once and also values can be accessed quickly.
+        Map<String, Object> rowAsMap = new HashMap<>();
+        int i = 0, j = 0;
+        while (iterator.hasNext()) {
+            if (i >= headerKeyList.size()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Number of values exceeds " +
+                    "number of keys in csv file"));
+            }
+            if (columnNamesArray.length == j || i >= columnNamesArray.length) {
+                break;
+            }
+            var key = columnNamesArray[i];
+            var value = iterator.next();
+            i++;
+            if (key != null) {
+                rowAsMap.put(key, value);
+                j++;
+            }
+        }
+        return rowAsMap;
     }
 }

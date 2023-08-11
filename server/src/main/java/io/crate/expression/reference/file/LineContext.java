@@ -38,15 +38,23 @@ import java.util.Map;
 
 public class LineContext {
 
+    @Deprecated
     private byte[] rawSource;
+    private String rawLine;
     private LinkedHashMap<String, Object> parsedSource;
     private String currentUri;
     private String currentUriFailure;
     private String currentParsingFailure;
     private long currentLineNumber = 0;
 
+    /**
+     * Depending on Version, _raw refers either to rawLine (data as is) or rawSource (pre-processed data).
+     */
     @Nullable
-    String sourceAsString() {
+    String rawAsString() {
+        if (rawLine != null) {
+            return rawLine;
+        }
         if (rawSource != null) {
             char[] chars = new char[rawSource.length];
             int len = UnicodeUtil.UTF8toUTF16(rawSource, 0, rawSource.length, chars);
@@ -81,6 +89,13 @@ public class LineContext {
 
     public void rawSource(byte[] bytes) {
         this.rawSource = bytes;
+        this.rawLine = null;
+        this.parsedSource = null;
+    }
+
+    public void rawLine(String rawLine) {
+        this.rawLine = rawLine;
+        this.rawSource = null;
         this.parsedSource = null;
     }
 
