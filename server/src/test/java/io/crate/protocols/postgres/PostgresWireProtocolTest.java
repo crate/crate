@@ -182,7 +182,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         };
 
         ByteBuf buffer = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
         ClientMessages.sendParseMessage(buffer, "", "select ?", new int[0]);
         ClientMessages.sendFlush(buffer);
 
@@ -219,7 +219,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
         ClientMessages.sendParseMessage(buffer, "S1", "select ?, ?", new int[0]); // no type hints for parameters
 
         List<Object> params = Arrays.asList(10, 20);
@@ -248,7 +248,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         {
             ByteBuf buffer = Unpooled.buffer();
 
-            ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+            ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
             ClientMessages.sendParseMessage(buffer,
                 "S1",
                 "select ? in (1, 2, 3)",
@@ -308,7 +308,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         {
             ByteBuf buffer = Unpooled.buffer();
 
-            ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+            ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
             ClientMessages.sendParseMessage(buffer, "S1", "select ? in (1, 2, 3)", new int[0]);
             channel.writeInbound(buffer);
             channel.releaseInbound();
@@ -372,7 +372,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         {
             ByteBuf buffer = Unpooled.buffer();
 
-            ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+            ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
             ClientMessages.sendParseMessage(buffer, "S1", "SELECT name FROM users", new int[0]);
             channel.writeInbound(buffer);
             channel.releaseInbound();
@@ -499,7 +499,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buf = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(buf, "doc", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(buf, "crate", Map.of("user", "crate"));
         channel.writeInbound(buf);
         channel.releaseInbound();
 
@@ -552,7 +552,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         ByteBuf respBuf;
         ByteBuf buffer = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
         channel.writeInbound(buffer);
 
         respBuf = channel.readOutbound();
@@ -591,7 +591,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(buffer, "crate", Map.of("user", "crate"));
         ClientMessages.sendTermination(buffer);
         channel.writeInbound(buffer);
         channel.releaseInbound();
@@ -766,7 +766,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private static void sendStartupMessage(EmbeddedChannel channel) {
         ByteBuf startupMsg = Unpooled.buffer();
-        ClientMessages.sendStartupMessage(startupMsg, "db", Map.of("user", "crate"));
+        ClientMessages.sendStartupMessage(startupMsg, "crate", Map.of("user", "crate"));
         channel.writeInbound(startupMsg);
         channel.releaseInbound();
     }

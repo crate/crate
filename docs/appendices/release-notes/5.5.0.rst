@@ -48,6 +48,12 @@ Breaking Changes
 - Added ``CURRENT_DATE``, ``CURRENT_TIME`` and ``CURRENT_TIMESTAMP`` to
   non-reserved keywords.
 
+- Changed the behavior of PostgreSQL wire protocol connections: Instead of using
+  the database name provided in the connection as the ``search_path``, CrateDB
+  now uses the provided ``search_path`` session setting. This change is in line
+  with PostgreSQL and improves tool compatibility. To set the search_path, one
+  can now e.g. use the JDBC driver's ``currentSchema`` property.
+
 Deprecations
 ============
 
