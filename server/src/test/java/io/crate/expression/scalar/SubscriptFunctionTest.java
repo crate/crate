@@ -111,7 +111,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> assertEvaluate("{}['y']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `y`");
+            .hasMessageContaining("Column {}['y'] unknown");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{}['y']");
     }

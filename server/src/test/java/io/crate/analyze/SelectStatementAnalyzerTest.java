@@ -2687,7 +2687,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> executor.analyze("SELECT ''::OBJECT['x']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `x`");
+            .hasMessageContaining("Column cast('' AS object)['x'] unknown");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         var analyzed = executor.analyze("SELECT ''::OBJECT['x']");
         assertThat(analyzed.outputs()).hasSize(1);

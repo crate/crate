@@ -92,6 +92,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.ObjectKeyFinder;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -163,8 +164,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -1294,22 +1293,28 @@ public class ExpressionAnalyzer {
                                                 Symbol index,
                                                 SubscriptContext subscriptContext,
                                                 ExpressionAnalysisContext expressionAnalysisContext) {
-        if (index.valueType().id() != StringType.ID) {
+        if (ObjectKeyFinder.find(base, index) || !expressionAnalysisContext.errorOnUnknownObjectKey()) {
             return allocateFunction(
                 SubscriptFunction.NAME,
                 List.of(base, index),
                 expressionAnalysisContext);
         }
-        var baseType = ArrayType.unnest(base.valueType());
-        if (baseType instanceof ObjectType objectType) {
-            if (expressionAnalysisContext.errorOnUnknownObjectKey() == false ||
-                objectType.resolveInnerType(subscriptContext.parts()).id() != UndefinedType.ID) {
-                return allocateFunction(
-                    SubscriptFunction.NAME,
-                    List.of(base, index),
-                    expressionAnalysisContext);
-            }
-        }
+//        if (index.valueType().id() != StringType.ID) {
+//            return allocateFunction(
+//                SubscriptFunction.NAME,
+//                List.of(base, index),
+//                expressionAnalysisContext);
+//        }
+//        var baseType = ArrayType.unnest(base.valueType());
+//        if (baseType instanceof ObjectType objectType) {
+//            if (expressionAnalysisContext.errorOnUnknownObjectKey() == false ||
+//                objectType.resolveInnerType(subscriptContext.parts()).id() != UndefinedType.ID) {
+//                return allocateFunction(
+//                    SubscriptFunction.NAME,
+//                    List.of(base, index),
+//                    expressionAnalysisContext);
+//            }
+//        }
         throw ColumnUnknownException.ofUnknownRelation("Column " + base + "[" + index + "]" + " unknown");
     }
 
