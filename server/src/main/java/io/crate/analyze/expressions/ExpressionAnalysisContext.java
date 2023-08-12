@@ -42,12 +42,12 @@ public class ExpressionAnalysisContext {
     private boolean hasAggregates;
     private boolean allowEagerNormalize = true;
     private boolean parentIsOrderSensitive = true;
-    private final boolean errorOnUnknownObjectKey;
+    private final SessionSettings sessionSettings;
 
     private Map<String, Window> windows = Map.of();
 
     public ExpressionAnalysisContext(SessionSettings sessionSettings) {
-        this.errorOnUnknownObjectKey = sessionSettings.errorOnUnknownObjectKey();
+        this.sessionSettings = sessionSettings;
     }
 
     void indicateAggregates() {
@@ -83,7 +83,7 @@ public class ExpressionAnalysisContext {
     }
 
     public boolean errorOnUnknownObjectKey() {
-        return errorOnUnknownObjectKey;
+        return sessionSettings.errorOnUnknownObjectKey();
     }
 
     /**
