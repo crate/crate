@@ -164,6 +164,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -1293,28 +1294,18 @@ public class ExpressionAnalyzer {
                                                 Symbol index,
                                                 SubscriptContext subscriptContext,
                                                 ExpressionAnalysisContext expressionAnalysisContext) {
-        if (ObjectKeyFinder.find(base, index) || !expressionAnalysisContext.errorOnUnknownObjectKey()) {
+        if (index.valueType().id() != StringType.ID) {
             return allocateFunction(
                 SubscriptFunction.NAME,
                 List.of(base, index),
                 expressionAnalysisContext);
         }
-//        if (index.valueType().id() != StringType.ID) {
-//            return allocateFunction(
-//                SubscriptFunction.NAME,
-//                List.of(base, index),
-//                expressionAnalysisContext);
-//        }
-//        var baseType = ArrayType.unnest(base.valueType());
-//        if (baseType instanceof ObjectType objectType) {
-//            if (expressionAnalysisContext.errorOnUnknownObjectKey() == false ||
-//                objectType.resolveInnerType(subscriptContext.parts()).id() != UndefinedType.ID) {
-//                return allocateFunction(
-//                    SubscriptFunction.NAME,
-//                    List.of(base, index),
-//                    expressionAnalysisContext);
-//            }
-//        }
+        if (new ObjectKeyFinder(subscriptContext).find(base, index) || !expressionAnalysisContext.errorOnUnknownObjectKey()) {
+            return allocateFunction(
+                SubscriptFunction.NAME,
+                List.of(base, index),
+                expressionAnalysisContext);
+        }
         throw ColumnUnknownException.ofUnknownRelation("Column " + base + "[" + index + "]" + " unknown");
     }
 

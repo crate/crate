@@ -119,6 +119,8 @@ public class UnionSelect implements AnalyzedRelation {
         return isDistinct;
     }
 
+
+    // TODO: instead of UnionObjectType, can simply contain duplicate in List<Symbol> and when there are duplicates, check the precedence or return left obj.
     /**
      * This class helps resolve object output's sub-columns of UnionSelect by allowing to search both left and right tables.
      * Except when resolving the sub-columns, this should be identical to 'left' object.

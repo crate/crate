@@ -21,19 +21,25 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.analyze.SubscriptContext;
 import io.crate.expression.scalar.arithmetic.MapFunction;
+import io.crate.metadata.Reference;
+import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 public class ObjectKeyFinder extends SymbolVisitor<Symbol, Boolean> {
 
-    private static final ObjectKeyFinder INSTANCE = new ObjectKeyFinder();
+    //private static final ObjectKeyFinder INSTANCE = new ObjectKeyFinder();
+    private final SubscriptContext subscriptContext;
 
     /**
      * Returns true if the object key is found.
      */
-    public static boolean find (Symbol base, Symbol key) {
-        return base.accept(ObjectKeyFinder.INSTANCE, key);
+    public boolean find(Symbol base, Symbol key) {
+        return base.accept(this, key);
     }
+
     @Override
     public Boolean visitFunction(Function symbol, Symbol key) {
         if (symbol.valueType().id() != ObjectType.ID) {
@@ -46,10 +52,20 @@ public class ObjectKeyFinder extends SymbolVisitor<Symbol, Boolean> {
     }
 
     @Override
+    public Boolean visitReference(Reference base, Symbol index) {
+        var baseType = ArrayType.unnest(base.valueType());
+        if (baseType instanceof ObjectType objectType) {
+            return objectType.resolveInnerType(subscriptContext.parts()).id() != UndefinedType.ID;
+        }
+        return false;
+    }
+
+    @Override
     protected Boolean visitSymbol(Symbol symbol, Symbol key) {
         return false;
     }
 
-    private ObjectKeyFinder() {
+    public ObjectKeyFinder(SubscriptContext context) {
+        this.subscriptContext = context;
     }
 }
