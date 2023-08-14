@@ -35,6 +35,17 @@ Released on 2023-07-11.
 .. contents::
    :local:
 
+Known Issues
+============
+
+- Version 5.4.0 introduced a regression which can cause some ``JOIN`` queries
+  to return no results when the query optimizer re-orders the joined tables.
+  As a workaround, users should apply the following session settings before
+  running such queries to prevent the query optimizer from re-ordering them
+  and therefore produce the correct results::
+
+    SET optimizer_reorder_hash_join = false
+    SET optimizer_reorder_nested_loop_join = false
 
 Breaking Changes
 ================
