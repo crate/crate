@@ -52,9 +52,7 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -90,6 +88,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.Transports;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 
@@ -452,13 +451,13 @@ public class RecoverySourceHandler {
     }
 
     private void runWithGenericThreadPool(CheckedRunnable<Exception> task) {
-        final PlainActionFuture<Void> future = new PlainActionFuture<>();
-        assert threadPool.generic().isShutdown() == false;
-        // TODO: We shouldn't use the generic thread pool here as we already execute this from the generic pool.
-        //       While practically unlikely at a min pool size of 128 we could technically block the whole pool by waiting on futures
-        //       below and thus make it impossible for the store release to execute which in turn would block the futures forever
-        threadPool.generic().execute(ActionRunnable.run(future, task));
-        FutureUtils.get(future);
+        assert Thread.currentThread().getName().contains("generic") : "must run in generic thread pool";
+        assert threadPool.generic().isShutdown() == false : "ThreadPool must still be running";
+        try {
+            task.run();
+        } catch (Exception e) {
+            throw Exceptions.toRuntimeException(e);
+        }
     }
 
     static final class SendFileResult {
