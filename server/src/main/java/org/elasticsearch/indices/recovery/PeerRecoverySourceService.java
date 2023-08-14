@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
@@ -42,7 +40,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
@@ -54,8 +51,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Tuple;
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.recovery.BlobRecoveryHandler;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
 
 /**
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
@@ -74,21 +75,23 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final RecoverySettings recoverySettings;
+    private final BlobTransferTarget blobTransferTarget;
+    private final BlobIndicesService blobIndicesService;
 
     final OngoingRecoveries ongoingRecoveries = new OngoingRecoveries();
 
-    // CRATE_PATCH: used to register BlobRecoverySourceHandler
-    private final List<RecoverySourceHandlerProvider> recoverySourceHandlerProviders = new ArrayList<>();
-
-    @Inject
     public PeerRecoverySourceService(TransportService transportService,
                                      IndicesService indicesService,
                                      ClusterService clusterService,
-                                     RecoverySettings recoverySettings) {
+                                     RecoverySettings recoverySettings,
+                                     BlobTransferTarget blobTransferTarget,
+                                     BlobIndicesService blobIndicesService) {
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.recoverySettings = recoverySettings;
+        this.blobTransferTarget = blobTransferTarget;
+        this.blobIndicesService = blobIndicesService;
         // When the target node wants to start a peer recovery it sends a START_RECOVERY request to the source
         // node. Upon receiving START_RECOVERY, the source node will initiate the peer recovery.
         transportService.registerRequestHandler(Actions.START_RECOVERY, ThreadPool.Names.GENERIC, StartRecoveryRequest::new,
@@ -193,6 +196,8 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         return ongoingRecoveries.ongoingRecoveries.size();
     }
 
+    record RecoveryHandlers(RecoverySourceHandler sourceHandler, RemoteRecoveryTargetHandler remoteHandler) {}
+
     final class OngoingRecoveries {
 
         private final Map<IndexShard, ShardRecoveryContext> ongoingRecoveries = new HashMap<>();
@@ -205,11 +210,11 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         synchronized RecoverySourceHandler addNewRecovery(StartRecoveryRequest request, IndexShard shard) {
             assert lifecycle.started();
             final ShardRecoveryContext shardContext = ongoingRecoveries.computeIfAbsent(shard, s -> new ShardRecoveryContext());
-            final Tuple<RecoverySourceHandler, RemoteRecoveryTargetHandler> handlers = shardContext.addNewRecovery(request, shard);
-            final RemoteRecoveryTargetHandler recoveryTargetHandler = handlers.v2();
+            final RecoveryHandlers handlers = shardContext.addNewRecovery(request, shard);
+            final RemoteRecoveryTargetHandler recoveryTargetHandler = handlers.remoteHandler();
             nodeToHandlers.computeIfAbsent(recoveryTargetHandler.targetNode(), k -> new HashSet<>()).add(recoveryTargetHandler);
             shard.recoveryStats().incCurrentAsSource();
-            return handlers.v1();
+            return handlers.sourceHandler();
         }
 
         synchronized void cancelOnNodeLeft(DiscoveryNode node) {
@@ -300,16 +305,15 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
             /**
              * Adds recovery source handler.
              */
-            synchronized Tuple<RecoverySourceHandler, RemoteRecoveryTargetHandler> addNewRecovery(StartRecoveryRequest request,
-                                                                                                  IndexShard shard) {
+            synchronized RecoveryHandlers addNewRecovery(StartRecoveryRequest request, IndexShard shard) {
                 for (RecoverySourceHandler existingHandler : recoveryHandlers.keySet()) {
                     if (existingHandler.getRequest().targetAllocationId().equals(request.targetAllocationId())) {
                         throw new DelayRecoveryException("recovery with same target already registered, waiting for " +
                             "previous recovery attempt to be cancelled or completed");
                     }
                 }
-                final Tuple<RecoverySourceHandler, RemoteRecoveryTargetHandler> handlers = createRecoverySourceHandler(request, shard);
-                recoveryHandlers.put(handlers.v1(), handlers.v2());
+                RecoveryHandlers handlers = createRecoverySourceHandler(request, shard);
+                recoveryHandlers.put(handlers.sourceHandler(), handlers.remoteHandler());
                 return handlers;
             }
 
@@ -332,9 +336,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
                 handler.addListener(listener);
             }
 
-            private Tuple<RecoverySourceHandler, RemoteRecoveryTargetHandler> createRecoverySourceHandler(StartRecoveryRequest request,
-                                                                                                          IndexShard shard) {
-                RecoverySourceHandler handler;
+            private RecoveryHandlers createRecoverySourceHandler(StartRecoveryRequest request, IndexShard shard) {
                 final RemoteRecoveryTargetHandler recoveryTarget = new RemoteRecoveryTargetHandler(
                     request.recoveryId(),
                     request.shardId(),
@@ -343,49 +345,33 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
                     recoverySettings,
                     throttleTime -> shard.recoveryStats().addThrottleTime(throttleTime));
 
-                // CRATE_PATCH: used to inject BlobRecoveryHandler
                 int recoveryChunkSizeInBytes = recoverySettings.getChunkSize().bytesAsInt();
-                handler = getCustomRecoverySourceHandler(
-                    shard,
-                    recoveryTarget,
-                    request,
-                    recoveryChunkSizeInBytes
-                );
-
-                if (handler != null) {
-                    return new Tuple<>(handler, recoveryTarget);
+                RecoverySourceHandler handler;
+                if (BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
+                    handler = new BlobRecoveryHandler(
+                        shard,
+                        recoveryTarget,
+                        request,
+                        recoveryChunkSizeInBytes,
+                        recoverySettings.getMaxConcurrentFileChunks(),
+                        recoverySettings.getMaxConcurrentOperations(),
+                        transportService,
+                        blobTransferTarget,
+                        blobIndicesService
+                    );
                 } else {
-                    return new Tuple<>(
-                        new RecoverySourceHandler(
-                            shard,
-                            recoveryTarget,
-                            shard.getThreadPool(),
-                            request,
-                            recoveryChunkSizeInBytes,
-                            recoverySettings.getMaxConcurrentFileChunks(),
-                            recoverySettings.getMaxConcurrentOperations()),
-                        recoveryTarget);
+                    handler = new RecoverySourceHandler(
+                        shard,
+                        recoveryTarget,
+                        shard.getThreadPool(),
+                        request,
+                        recoveryChunkSizeInBytes,
+                        recoverySettings.getMaxConcurrentFileChunks(),
+                        recoverySettings.getMaxConcurrentOperations()
+                    );
                 }
+                return new RecoveryHandlers(handler, recoveryTarget);
             }
         }
-    }
-
-    @Nullable
-    private RecoverySourceHandler getCustomRecoverySourceHandler(IndexShard shard,
-                                                                 RemoteRecoveryTargetHandler recoveryTarget,
-                                                                 StartRecoveryRequest request,
-                                                                 int recoveryChunkSizeInBytes) {
-        for (RecoverySourceHandlerProvider recoverySourceHandlerProvider : recoverySourceHandlerProviders) {
-            RecoverySourceHandler handler = recoverySourceHandlerProvider.get(
-                shard, request, recoveryTarget, recoveryChunkSizeInBytes);
-            if (handler != null) {
-                return handler;
-            }
-        }
-        return null;
-    }
-
-    public void registerRecoverySourceHandlerProvider(RecoverySourceHandlerProvider provider) {
-        recoverySourceHandlerProviders.add(provider);
     }
 }

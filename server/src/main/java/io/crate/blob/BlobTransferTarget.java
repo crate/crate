@@ -40,7 +40,6 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -77,7 +76,6 @@ public class BlobTransferTarget {
     private final List<UUID> finishedUploads = new ArrayList<>();
     private final TimeValue STATE_REMOVAL_DELAY;
 
-    @Inject
     public BlobTransferTarget(BlobIndicesService blobIndicesService,
                               ThreadPool threadPool,
                               TransportService transportService,
