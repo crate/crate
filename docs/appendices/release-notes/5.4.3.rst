@@ -49,3 +49,7 @@ Fixes
 - Fixed a regression introduced with CrateDB 5.0.0 which can cause that some
   nested join queries using the hash-join algorithm will return empty results
   after table statistics have been collected and the join order is optimized.
+
+- Fixed an issue that caused querying an unknown object key to return empty
+  result instead of throwing ``ColumnUnknownException`` when the table was
+  aliased.
