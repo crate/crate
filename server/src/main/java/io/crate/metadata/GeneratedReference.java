@@ -124,6 +124,8 @@ public class GeneratedReference implements Reference {
     }
 
     public void generatedExpression(Symbol generatedExpression) {
+        assert generatedExpression == null || generatedExpression.valueType().equals(valueType())
+            : "The type of the generated expression must match the valueType of the `GeneratedReference`";
         this.generatedExpression = generatedExpression;
         if (generatedExpression != null && SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
             throw new UnsupportedOperationException("Aggregation functions are not allowed in generated columns: " + generatedExpression);

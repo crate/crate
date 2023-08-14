@@ -699,7 +699,9 @@ public class DocIndexMetadata {
         for (var generatedReference : generatedColumnReferences) {
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
             tableReferenceResolver.references().clear();
-            generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
+            Symbol generatedExpression = exprAnalyzer.convert(expression, analysisCtx)
+                .cast(generatedReference.valueType());
+            generatedReference.generatedExpression(generatedExpression);
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
         }
         return this;

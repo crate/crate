@@ -926,7 +926,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(GeneratedReference.class);
         assertThat(week.isNullable()).isFalse();
         assertThat(((GeneratedReference) week).formattedGeneratedExpression()).isEqualTo("date_trunc('week', ts)");
-        Asserts.assertThat(((GeneratedReference) week).generatedExpression()).isFunction("date_trunc", isLiteral("week"), isReference("ts"));
+        Asserts.assertThat(((GeneratedReference) week).generatedExpression()).isFunction("_cast",
+            arg1 -> assertThat(arg1).isFunction("date_trunc", isLiteral("week"), isReference("ts")),
+            arg2 -> assertThat(arg2).isLiteral("bigint")
+        );
         Asserts.assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
 
@@ -1516,7 +1519,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(GeneratedReference.class);
         assertThat(((GeneratedReference) week).formattedGeneratedExpression()).isEqualTo("date_trunc('week', ts)");
         assertThat(((GeneratedReference) week).generatedExpression())
-            .isFunction("date_trunc", isLiteral("week"), isReference("ts"));
+            .isFunction("_cast",
+                arg1 -> assertThat(arg1).isFunction("date_trunc", isLiteral("week"), isReference("ts")),
+                arg2 -> assertThat(arg2).isLiteral("bigint")
+            );
         assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
 
@@ -1691,6 +1697,24 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexReference ref = md.indices().values().iterator().next();
         assertThat(ref.columns()).satisfiesExactly(
             x -> Asserts.assertThat(x).isReference("description")
+        );
+    }
+
+    @Test
+    public void test_generated_columns_expression_has_specified_type() throws Exception {
+        var md = getDocIndexMetadataFromStatement("""
+            create table tbl (
+                x int,
+                y int,
+                sum long generated always as x + y
+            )
+            """
+        );
+        assertThat(md.generatedColumnReferences()).satisfiesExactly(
+            sum -> {
+                assertThat(sum.generatedExpression().valueType()).isEqualTo(DataTypes.LONG);
+                assertThat(sum.valueType()).isEqualTo(DataTypes.LONG);
+            }
         );
     }
 }
