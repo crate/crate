@@ -280,7 +280,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         );
         final int expectedOps = (int) (endingSeqNo - startingSeqNo + 1);
         RecoverySourceHandler.SendSnapshotResult result = FutureUtils.get(future);
-        assertThat(result.sentOperations, equalTo(expectedOps));
+        assertThat(result.sentOperations(), equalTo(expectedOps));
         List<Translog.Operation> sortedShippedOps = shippedOps.stream()
             .sorted(Comparator.comparing(Translog.Operation::seqNo))
             .collect(Collectors.toList());
@@ -288,7 +288,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         for (int i = 0; i < shippedOps.size(); i++) {
             assertThat(sortedShippedOps.get(i), equalTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs)));
         }
-        assertThat(result.targetLocalCheckpoint, equalTo(checkpointOnTarget.get()));
+        assertThat(result.targetLocalCheckpoint(), equalTo(checkpointOnTarget.get()));
     }
 
     @Test
@@ -391,8 +391,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             mappingVersion, sendFuture);
         RecoverySourceHandler.SendSnapshotResult sendSnapshotResult = FutureUtils.get(sendFuture);
         assertTrue(received.get());
-        assertThat(sendSnapshotResult.targetLocalCheckpoint, equalTo(localCheckpoint.get()));
-        assertThat(sendSnapshotResult.sentOperations, equalTo(receivedSeqNos.size()));
+        assertThat(sendSnapshotResult.targetLocalCheckpoint(), equalTo(localCheckpoint.get()));
+        assertThat(sendSnapshotResult.sentOperations(), equalTo(receivedSeqNos.size()));
         Set<Long> sentSeqNos = new HashSet<>();
         for (Translog.Operation op : operations) {
             if (startingSeqNo <= op.seqNo() && op.seqNo() <= endingSeqNo && skipOperations.contains(op) == false) {

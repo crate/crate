@@ -460,31 +460,24 @@ public class RecoverySourceHandler {
         }
     }
 
-    static final class SendFileResult {
-        final List<String> phase1FileNames;
-        final List<Long> phase1FileSizes;
-        final long totalSize;
-
-        final List<String> phase1ExistingFileNames;
-        final List<Long> phase1ExistingFileSizes;
-        final long existingTotalSize;
-
-        final TimeValue took;
-
-        SendFileResult(List<String> phase1FileNames, List<Long> phase1FileSizes, long totalSize,
-                       List<String> phase1ExistingFileNames, List<Long> phase1ExistingFileSizes, long existingTotalSize, TimeValue took) {
-            this.phase1FileNames = phase1FileNames;
-            this.phase1FileSizes = phase1FileSizes;
-            this.totalSize = totalSize;
-            this.phase1ExistingFileNames = phase1ExistingFileNames;
-            this.phase1ExistingFileSizes = phase1ExistingFileSizes;
-            this.existingTotalSize = existingTotalSize;
-            this.took = took;
-        }
+    static final record SendFileResult(
+            List<String> phase1FileNames,
+            List<Long> phase1FileSizes,
+            long totalSize,
+            List<String> phase1ExistingFileNames,
+            List<Long> phase1ExistingFileSizes,
+            long existingTotalSize,
+            TimeValue took) {
 
         static final SendFileResult EMPTY = new SendFileResult(
-            Collections.emptyList(), Collections.emptyList(), 0L,
-            Collections.emptyList(), Collections.emptyList(), 0L, TimeValue.ZERO);
+            Collections.emptyList(),
+            Collections.emptyList(),
+            0L,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            0L,
+            TimeValue.ZERO
+        );
     }
 
     // CRATE_PATCH: used by BlobRecoveryHandler
@@ -772,19 +765,9 @@ public class RecoverySourceHandler {
         sender.start();
     }
 
-    private static class OperationChunkRequest implements MultiChunkTransfer.ChunkRequest {
-        final List<Translog.Operation> operations;
-        final boolean lastChunk;
-
-        OperationChunkRequest(List<Translog.Operation> operations, boolean lastChunk) {
-            this.operations = operations;
-            this.lastChunk = lastChunk;
-        }
-
-        @Override
-        public boolean lastChunk() {
-            return lastChunk;
-        }
+    private static final record OperationChunkRequest(
+            List<Translog.Operation> operations,
+            boolean lastChunk) implements MultiChunkTransfer.ChunkRequest {
     }
 
     private class OperationBatchSender extends MultiChunkTransfer<Translog.Snapshot, OperationChunkRequest> {
@@ -913,17 +896,7 @@ public class RecoverySourceHandler {
         }, listener::onFailure);
     }
 
-    static final class SendSnapshotResult {
-        final long targetLocalCheckpoint;
-        final int sentOperations;
-        final TimeValue tookTime;
-
-        SendSnapshotResult(final long targetLocalCheckpoint, final int sentOperations, final TimeValue tookTime) {
-            this.targetLocalCheckpoint = targetLocalCheckpoint;
-            this.sentOperations = sentOperations;
-            this.tookTime = tookTime;
-        }
-    }
+    static record SendSnapshotResult(long targetLocalCheckpoint, int sentOperations, TimeValue tookTime) {}
 
     /**
      * Cancels the recovery and interrupts all eligible threads.
@@ -942,25 +915,12 @@ public class RecoverySourceHandler {
                 '}';
     }
 
-    private static class FileChunk implements MultiChunkTransfer.ChunkRequest, Releasable {
-        final StoreFileMetadata md;
-        final BytesReference content;
-        final long position;
-        final boolean lastChunk;
-        final Releasable onClose;
-
-        FileChunk(StoreFileMetadata md, BytesReference content, long position, boolean lastChunk, Releasable onClose) {
-            this.md = md;
-            this.content = content;
-            this.position = position;
-            this.lastChunk = lastChunk;
-            this.onClose = onClose;
-        }
-
-        @Override
-        public boolean lastChunk() {
-            return lastChunk;
-        }
+    private static record FileChunk(
+            StoreFileMetadata md,
+            BytesReference content,
+            long position,
+            boolean lastChunk,
+            Releasable onClose) implements MultiChunkTransfer.ChunkRequest, Releasable {
 
         @Override
         public void close() {
