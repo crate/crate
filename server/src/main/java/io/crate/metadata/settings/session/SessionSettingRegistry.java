@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -56,7 +57,7 @@ public class SessionSettingRegistry {
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     static final String DATE_STYLE_KEY = "datestyle";
-    static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<String>(
+    static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
         "application_name",
         inputs -> {},
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
@@ -66,8 +67,8 @@ public class SessionSettingRegistry {
         "Optional application name. Can be set by a client to identify the application which created the connection",
         DataTypes.STRING
     );
-    static final SessionSetting<String> DATE_STYLE = new SessionSetting<String>(
-        "datestyle",
+    static final SessionSetting<String> DATE_STYLE = new SessionSetting<>(
+        DATE_STYLE_KEY,
         inputs -> validateDateStyleFrom(objectsToStringArray(inputs)),
         inputs -> DEFAULT_DATE_STYLE,
         CoordinatorSessionSettings::setDateStyle,
@@ -77,7 +78,7 @@ public class SessionSettingRegistry {
         DataTypes.STRING
     );
 
-    static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<TimeValue>(
+    static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
         "statement_timeout",
         inputs -> {},
         inputs -> {
@@ -109,9 +110,7 @@ public class SessionSettingRegistry {
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
         Sessions.MEMORY_LIMIT.getKey(),
         input -> {},
-        inputs -> {
-            return DataTypes.INTEGER.implicitCast(inputs[0]);
-        },
+        inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
         () -> "0",
@@ -191,11 +190,14 @@ public class SessionSettingRegistry {
             .put(STANDARD_CONFORMING_STRINGS,
                  new SessionSetting<>(
                      STANDARD_CONFORMING_STRINGS,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
-                         throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
+                     objects -> {
+                         if (objects.length != 1) {
+                             throw new IllegalArgumentException(STANDARD_CONFORMING_STRINGS + " should have only one argument.");
+                         }
+                         validateStandardConformingStrings(objectsToStringArray(objects)[0]);
                      },
+                     Function.identity(),
+                     (s, v) -> {},
                      s -> "on",
                      () -> "on",
                      "Causes '...' strings to treat backslashes literally.",
@@ -259,23 +261,31 @@ public class SessionSettingRegistry {
                 // date format style
                 case "ISO":
                     break;
-                case "SQL":
-                case "POSTGRES":
-                case "GERMAN":
-                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+                case "SQL",
+                     "POSTGRES",
+                      "GERMAN":
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                                                        dateStyle + "\". Valid values include: [\"ISO\"].");
                 // date order style
-                case "MDY":
-                case "NONEURO":
-                case "NONEUROPEAN":
-                case "US":
-                case "DMY":
-                case "EURO":
-                case "EUROPEAN":
-                case "YMD":
+                case "MDY",
+                     "NONEURO",
+                     "NONEUROPEAN",
+                     "US",
+                     "DMY",
+                     "EURO",
+                     "EUROPEAN",
+                     "YMD":
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                                                       dateStyle + "\". Valid values include: [\"ISO\"].");
             }
+        }
+    }
+
+    private static void validateStandardConformingStrings(String str) {
+        if (BooleanType.INSTANCE.implicitCast(str) == Boolean.FALSE) {
+            throw new UnsupportedOperationException("\"" + STANDARD_CONFORMING_STRINGS + "\" cannot be changed.");
         }
     }
 }

@@ -210,7 +210,23 @@ It returns ``true`` if the string matches the pattern, ``false`` if not, and
 To negate the matching, use the optional ``!`` prefix. The operator returns
 ``true`` if the string does not match the pattern, ``false`` otherwise.
 
-The regular expression pattern is implicitly anchored, that means that the
+To make the search case insensitive use ``~*`` or ``!~*`` for negative search.
+
+.. NOTE::
+
+    These operators are not intended to be used against
+    ``TEXT INDEX USING FULLTEXT`` fields.
+    To use both regex lookups and full-text search on the same field, create
+    the field as a normal ``TEXT`` field and add a ``FULLTEXT`` index with a
+    separate name to be used with the ``MATCH`` predicate::
+
+     cr> CREATE TABLE tbl1(
+     ...   a TEXT,
+     ...   INDEX a_ft USING FULLTEXT(a)
+     ... );
+     CREATE OK, 1 row affected (... sec)
+
+The regular expression pattern is implicitly anchored, meaning the
 whole string must match, not a single subsequence. All unicode characters are
 allowed.
 
@@ -546,6 +562,23 @@ operator::
     | Minories            | ["netball", "short stories"] |
     +---------------------+------------------------------+
     SELECT 1 row in set (... sec)
+
+For ``LIKE ANY`` operators, the patterns can be provided on either sides::
+
+    cr> select name from locations where name ILIKE ANY(['al%', 'ar%']) order
+    ... by name asc;
+    +---------------------+
+    | name                |
+    +---------------------+
+    | Aldebaran           |
+    | Algol               |
+    | Allosimanius Syneca |
+    | Alpha Centauri      |
+    | Altair              |
+    | Argabuthon          |
+    | Arkintoofle Minor   |
+    +---------------------+
+    SELECT 7 rows in set (... sec)
 
 This query passes a literal array value to the ``ANY`` operator::
 

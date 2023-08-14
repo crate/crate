@@ -41,7 +41,7 @@ public record ViewMetadata(
         String owner = in.readOptionalString();
         SearchPath searchPath;
         Version version = in.getVersion();
-        if (version.onOrAfter(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
             searchPath = SearchPath.createSearchPathFrom(in);
         } else {
             searchPath = SearchPath.pathWithPGCatalogAndDoc();
@@ -54,7 +54,7 @@ public record ViewMetadata(
         out.writeString(stmt);
         out.writeOptionalString(owner);
         Version version = out.getVersion();
-        if (version.onOrAfter(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
+        if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
             searchPath.writeTo(out);
         }
     }
