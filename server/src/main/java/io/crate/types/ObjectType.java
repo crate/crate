@@ -98,6 +98,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return this;
         }
 
+        public Builder mergeInnerType(String key, DataType<?> innerType, BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
+            innerTypesBuilder.merge(key, innerType, remappingFunction);
+            return this;
+        }
+
         public ObjectType build() {
             return new ObjectType(Collections.unmodifiableMap(innerTypesBuilder), columnPolicy);
         }

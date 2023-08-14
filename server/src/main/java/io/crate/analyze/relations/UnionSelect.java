@@ -36,7 +36,9 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 public class UnionSelect implements AnalyzedRelation {
 
@@ -53,17 +55,7 @@ public class UnionSelect implements AnalyzedRelation {
         this.right = right;
         this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
         // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
-        List<Symbol> fieldsFromLeft = left.outputs();
-        ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());
-        for (int i = 0; i < fieldsFromLeft.size(); i++) {
-            Symbol field = fieldsFromLeft.get(i);
-            Symbol rightField = right.outputs().get(i);
-            DataType<?> type = field.valueType().precedes(rightField.valueType())
-                ? field.valueType()
-                : rightField.valueType();
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
-        }
-        this.outputs = List.copyOf(outputs);
+        this.outputs = List.copyOf(unionizeOutputs(left.outputs(), right.outputs()));
         this.isDistinct = isDistinct;
     }
 
@@ -95,6 +87,7 @@ public class UnionSelect implements AnalyzedRelation {
         return name;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @NotNull
     @Override
     public List<Symbol> outputs() {
@@ -108,5 +101,43 @@ public class UnionSelect implements AnalyzedRelation {
 
     public boolean isDistinct() {
         return isDistinct;
+    }
+
+    private List<ScopedSymbol> unionizeOutputs(List<Symbol> left, List<Symbol> right) {
+        ArrayList<ScopedSymbol> outputs = new ArrayList<>(left.size());
+        for (int i = 0; i < left.size(); i++) {
+            outputs.add(unionizeSymbol(left.get(i), right.get(i)));
+        }
+        return outputs;
+    }
+
+    private ScopedSymbol unionizeSymbol(Symbol left, Symbol right) {
+        return new ScopedSymbol(name, Symbols.pathFromSymbol(left), unionizeTypes(left.valueType(), right.valueType()));
+    }
+
+    private DataType<?> unionizeTypes(DataType<?> leftType, DataType<?> rightType) {
+        DataType<?> type;
+        if (leftType.id() == ObjectType.ID) {
+            type = unionizeObjectType((ObjectType) leftType, (ObjectType) rightType);
+        } else if (leftType.id() == ArrayType.ID) {
+            type = new ArrayType<>(
+                unionizeTypes(
+                    ((ArrayType<?>) leftType).innerType(),
+                    ((ArrayType<?>) rightType).innerType()));
+        } else {
+            type = leftType.isConvertableTo(rightType, false) ? rightType : leftType;
+        }
+        return type;
+    }
+
+    private ObjectType unionizeObjectType(ObjectType left, ObjectType right) {
+        ObjectType.Builder unionizedObjectBuilder = ObjectType.builder();
+        for (var e : left.innerTypes().entrySet()) {
+            unionizedObjectBuilder.setInnerType(e.getKey(), e.getValue());
+        }
+        for (var e : right.innerTypes().entrySet()) {
+            unionizedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), this::unionizeTypes);
+        }
+        return unionizedObjectBuilder.build();
     }
 }

@@ -36,9 +36,11 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -215,5 +217,56 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
         Asserts.assertThat(unionSelect.outputs().get(0)).isField("obj");
+    }
+
+    @Test
+    public void test_unionize_nested_object_arrays() throws IOException {
+        SQLExecutor.builder(clusterService)
+            .addTable(
+                """
+                    create table v1 (
+                        object_array array(
+                                object(strict) as (
+                                    inner_object_array object(ignored) as (
+                                        a int
+                                    ),
+                                    b int
+                                )
+                        )
+                    )
+                    """
+            )
+            .addTable(
+                """
+                    create table v2 (
+                        object_array array(
+                                object(ignored) as (
+                                    inner_object_array object as (
+                                        c int
+                                    ),
+                                    d int
+                                )
+                        )
+                    )
+                    """
+            ).build();
+        UnionSelect unionSelect = analyze("select object_array from v1 union all select object_array from v2");
+        Asserts.assertThat(unionSelect.outputs().get(0))
+            .isScopedSymbol("object_array")
+            .hasDataType(
+                new ArrayType<>(
+                    ObjectType.builder()
+                        .setColumnPolicy(ColumnPolicy.DYNAMIC)
+                        .setInnerType("inner_object_array",
+                                      ObjectType.builder()
+                                          .setColumnPolicy(ColumnPolicy.DYNAMIC)
+                                          .setInnerType("a", DataTypes.INTEGER)
+                                          .setInnerType("c", DataTypes.INTEGER)
+                                          .build())
+                        .setInnerType("b", DataTypes.INTEGER)
+                        .setInnerType("d", DataTypes.INTEGER)
+                        .build()
+                )
+            );
     }
 }
