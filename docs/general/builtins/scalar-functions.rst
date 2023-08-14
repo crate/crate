@@ -4255,7 +4255,11 @@ to a query vector.
 
 The first argument is the column to search.
 The second argument is the query vector.
-The third argument is the number of nearest neighbours to search and return.
+The third argument is the number of nearest neighbours to search in the index.
+Searching a larger number of nearest neighbours is more expensive. There is one
+index per shard, and on each shard the function will match at most `k` records.
+To limit the total query result, add a :ref:`LIMIT clause <sql-select-limit>` to
+the query.
 
 ``knn_match(search_vector, target, k)``
 
