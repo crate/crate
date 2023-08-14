@@ -104,3 +104,7 @@ Fixes
    query. e.g.:: ``gen_random_text_uuid`` and ``random``. Functions like
    ``NOW`` or ``CURRENT_TIMESTAMP`` are unaffected by this issue.
 
+
+- Fixed an issue that caused querying an unknown object key to return empty
+  result instead of throwing ``ColumnUnknownException`` when the table was
+  aliased.

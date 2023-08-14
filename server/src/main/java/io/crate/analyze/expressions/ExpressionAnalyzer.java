@@ -120,6 +120,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
@@ -163,6 +164,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -707,8 +709,19 @@ public class ExpressionAnalyzer {
                                                                  List.of(),
                                                                  operation,
                                                                  context.errorOnUnknownObjectKey());
-                        if (base instanceof Reference) {
-                            throw e;
+                        if (base instanceof Reference || base instanceof ScopedSymbol) {
+                            var baseType = ArrayType.unnest(base.valueType());
+                            if (baseType instanceof ObjectType objectType) {
+                                var columnPolicy = objectType.columnPolicy();
+                                if (columnPolicy == ColumnPolicy.STRICT) {
+                                    throw e;
+                                }
+                                if (columnPolicy == ColumnPolicy.DYNAMIC &&
+                                    objectType.resolveInnerType(parts).id() == UndefinedType.ID &&
+                                    context.errorOnUnknownObjectKey()) {
+                                    throw e;
+                                }
+                            }
                         }
                         return allocateFunction(
                             SubscriptFunction.NAME,
