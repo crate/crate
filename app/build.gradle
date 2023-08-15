@@ -147,17 +147,17 @@ def rootDir = project.parent.projectDir
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
 task chooseReleaseNotes(dependsOn: [':server:getVersion']) {
     doLast {
-        def version = project(':server').getVersion.version
+        version = project(':server').getVersion.version
         def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
         def file = new File(releaseNotesDir + '/' + releaseNotesFile)
         if (!file.exists()) { // End of life for a branch
-            def start = version.lastIndexOf('.') + 1
-            def end = version.indexOf('-')
+            start = version.lastIndexOf('.') + 1
+            end = version.indexOf('-')
             if (end == -1) {
                 end = version.length
             }
-            def hotfixVersion = Integer.parseInt(version.substring(start, end)) - 1
+            hotfixVersion = Integer.parseInt(version.substring(start, end)) - 1
             releaseNotesFile = version.substring(0, start) + hotfixVersion + '.rst'
             file = new File(releaseNotesDir + '/' + releaseNotesFile)
             logger.quiet('Branch is end of life, choosing latest available release notes: ' + releaseNotesFile)
