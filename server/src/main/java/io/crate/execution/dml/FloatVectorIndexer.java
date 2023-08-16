@@ -31,8 +31,10 @@ import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -40,14 +42,23 @@ import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.types.FloatVectorType;
 
 public class FloatVectorIndexer implements ValueIndexer<float[]> {
 
-    private final FieldType fieldType;
+    final FieldType fieldType;
     private final String name;
     private final Reference ref;
 
-    public FloatVectorIndexer(Reference ref, FieldType fieldType) {
+    public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
+        if (fieldType == null) {
+            fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
+            fieldType.setVectorAttributes(
+                ref.valueType().characterMaximumLength(),
+                VectorEncoding.FLOAT32,
+                FloatVectorType.SIMILARITY_FUNC
+            );
+        }
         this.ref = ref;
         this.name = ref.column().fqn();
         this.fieldType = fieldType;

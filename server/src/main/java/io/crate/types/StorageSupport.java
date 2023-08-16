@@ -24,9 +24,8 @@ package io.crate.types;
 
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -58,6 +57,10 @@ public abstract class StorageSupport<T> {
     }
 
 
+    /**
+     * @param getFieldType returns a {@link FieldType} for the column or null in
+     *                     case the column gets dynamically created.
+     */
     public abstract ValueIndexer<? super T> valueIndexer(
         RelationName table,
         Reference ref,

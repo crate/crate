@@ -330,7 +330,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
 
         Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});
-        execute("insert into t1 (c) values (?)", bulkArgs);
+        long[] rowCounts = execute("insert into t1 (c) values (?)", bulkArgs);
+        assertThat(rowCounts).containsExactly(1, 1, 1);
         execute("refresh table t1");
 
         execute("select count(*) from t1 where c is null");
