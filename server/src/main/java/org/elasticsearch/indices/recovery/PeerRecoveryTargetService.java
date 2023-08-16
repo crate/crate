@@ -248,7 +248,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         RecoveryResponseHandler responseHandler = new RecoveryResponseHandler(startRequest, timer);
 
         try {
-            cancellableThreads.executeIO(() ->
+            cancellableThreads.execute(() ->
                 // we still execute under cancelableThreads here to ensure we interrupt any blocking call to the network if any
                 // on the underlying transport. It's unclear if we need this here at all after moving to async execution but
                 // the issues that a missing call to this could cause are sneaky and hard to debug. If we don't need it on this

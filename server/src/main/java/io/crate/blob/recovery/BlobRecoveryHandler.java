@@ -196,7 +196,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                 LOGGER.trace("[{}][{}] start to transfer file var/{} to {}",
                              request.shardId().getIndexName(), request.shardId().id(), digest,
                              request.targetNode().getName());
-                cancellableThreads.executeIO(
+                cancellableThreads.execute(
                     new TransferFileRunnable(blobShard.blobContainer().getFile(digest),
                         lastException, latch)
                 );
