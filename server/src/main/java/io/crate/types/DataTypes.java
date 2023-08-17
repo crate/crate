@@ -48,6 +48,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 
 public final class DataTypes {
 
@@ -100,7 +101,7 @@ public final class DataTypes {
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
-    public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
+    public static final ObjectType UNTYPED_OBJECT = ObjectType.DEFAULT_EMPTY_OBJECT;
 
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
@@ -486,7 +487,10 @@ public final class DataTypes {
         entry("ip", DataTypes.IP),
         entry("geo_point", DataTypes.GEO_POINT),
         entry("geo_shape", DataTypes.GEO_SHAPE),
-        entry("object", UNTYPED_OBJECT),
+        // the mapping name is "object" but column policies are prepended in order to differentiate empty object types.
+        entry(ColumnPolicy.DYNAMIC.lowerCaseName() + "_object", ObjectType.DEFAULT_EMPTY_OBJECT),
+        entry(ColumnPolicy.IGNORED.lowerCaseName() + "_object", ObjectType.IGNORED_EMPTY_OBJECT),
+        entry(ColumnPolicy.STRICT.lowerCaseName() + "_object", ObjectType.STRICT_EMPTY_OBJECT),
         entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL),
         entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
@@ -520,6 +524,7 @@ public final class DataTypes {
 
     @Nullable
     public static DataType<?> ofMappingName(String name) {
+        assert ObjectType.NAME.equals(name) == false : "Must have the column policy prepended like, dynamic_object";
         return MAPPING_NAMES_TO_TYPES.get(name);
     }
 

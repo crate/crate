@@ -37,6 +37,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DocSysColumns {
 
@@ -76,7 +77,7 @@ public class DocSysColumns {
     public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
     public static final Map<ColumnIdent, DataType<?>> COLUMN_IDENTS = Map.of(
-        DOC, DataTypes.UNTYPED_OBJECT,
+        DOC, ObjectType.STRICT_EMPTY_OBJECT,
         FETCHID, DataTypes.LONG,
         ID, DataTypes.STRING,
         RAW, DataTypes.STRING,

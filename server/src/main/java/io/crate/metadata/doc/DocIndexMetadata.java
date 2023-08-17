@@ -305,6 +305,7 @@ public class DocIndexMetadata {
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
+            ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
             Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
             if (innerProperties != null) {
                 List<InnerObjectType> children = new ArrayList<>();
@@ -318,9 +319,11 @@ public class DocIndexMetadata {
                 for (var child : children) {
                     builder.setInnerType(child.name, child.type);
                 }
-                type = builder.build();
+                type = builder.setColumnPolicy(columnPolicy).build();
             } else {
-                type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
+                type = Objects.requireNonNullElse(
+                    DataTypes.ofMappingName(columnPolicy.lowerCaseName() + "_" + ObjectType.NAME),
+                    DataTypes.NOT_SUPPORTED);
             }
         } else if (typeName.equalsIgnoreCase("array")) {
             Map<String, Object> innerProperties = Maps.get(columnProperties, "inner");

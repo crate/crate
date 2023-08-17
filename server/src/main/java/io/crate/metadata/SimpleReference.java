@@ -94,7 +94,9 @@ public class SimpleReference implements Reference {
         this(ident,
              granularity,
              type,
-             ColumnPolicy.DYNAMIC,
+             ArrayType.unnest(type) instanceof ObjectType objectType ?
+                 objectType.columnPolicy() :
+                 ColumnPolicy.DYNAMIC,
              IndexType.PLAIN,
              true,
              false,
@@ -120,6 +122,8 @@ public class SimpleReference implements Reference {
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
         this.defaultExpression = defaultExpression;
+        assert (!(ArrayType.unnest(type) instanceof ObjectType objectType)) || objectType.columnPolicy().equals(columnPolicy)
+            : "inconsistent column policies";
     }
 
     /**

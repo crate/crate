@@ -42,7 +42,6 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
@@ -266,7 +265,8 @@ public class Symbols {
             pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
             null,
             null,
-            symbol.valueType().toColumnType(ColumnPolicy.STRICT, null),
+            symbol.valueType().toColumnType(
+                null),
             List.of());
     }
 }

@@ -222,6 +222,38 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testExtractEmptyObjectColumnDefinitions() throws Exception {
+        XContentBuilder builder = JsonXContent.builder()
+            .startObject()
+            .startObject("properties")
+            .startObject("implicit_dynamic")
+            .field("position", 1)
+            .endObject()
+            .startObject("explicit_dynamic")
+            .field("position", 2)
+            .field("dynamic", "true")
+            .endObject()
+            .startObject("ignored")
+            .field("position", 3)
+            .field("dynamic", "false")
+            .endObject()
+            .startObject("strict")
+            .field("position", 4)
+            .field("dynamic", "strict")
+            .endObject()
+            .endObject()
+            .endObject();
+        IndexMetadata metadata = getIndexMetadata("test1", builder);
+        DocIndexMetadata md = newMeta(metadata, "test1");
+        assertThat(md.columns()).hasSize(4);
+        assertThat(md.references()).hasSize(14);
+        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
+        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+    }
+
+    @Test
     public void testExtractColumnDefinitions() throws Exception {
         // @formatter:off
         XContentBuilder builder = JsonXContent.builder()
@@ -1352,6 +1384,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                         .setInnerType("size", DataTypes.DOUBLE)
                         .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
                         .setInnerType("quote", DataTypes.STRING)
+                        .setColumnPolicy(ColumnPolicy.STRICT)
                         .build()));
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy()).isEqualTo(
             ColumnPolicy.STRICT);

@@ -34,6 +34,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.ArrayType;
@@ -91,11 +92,13 @@ public class SysSnapshotsTest extends IntegTestCase {
             StringType.INSTANCE,
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
-            new ArrayType<>(ObjectType.builder()
-                .setInnerType("values", stringArray)
-                .setInnerType("table_schema", StringType.INSTANCE)
-                .setInnerType("table_name", StringType.INSTANCE)
-                .build()
+            new ArrayType<>(
+                ObjectType.builder()
+                    .setColumnPolicy(ColumnPolicy.DYNAMIC)
+                    .setInnerType("values", stringArray)
+                    .setInnerType("table_schema", StringType.INSTANCE)
+                    .setInnerType("table_name", StringType.INSTANCE)
+                    .build()
             ),
             stringArray,
             StringType.INSTANCE

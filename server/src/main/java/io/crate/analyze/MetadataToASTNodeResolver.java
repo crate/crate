@@ -139,7 +139,6 @@ public class MetadataToASTNodeResolver {
                 }
 
                 final ColumnType<Expression> columnType = ref.valueType().toColumnType(
-                    ref.columnPolicy(),
                     () -> extractColumnDefinitions(ident)
                 );
                 List<ColumnConstraint<Expression>> constraints = new ArrayList<>();

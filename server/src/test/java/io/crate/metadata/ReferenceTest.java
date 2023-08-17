@@ -41,6 +41,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -72,7 +73,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            new ArrayType<>(ObjectType.STRICT_EMPTY_OBJECT),
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
@@ -99,7 +100,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
-            ColumnPolicy.STRICT,
+            ColumnPolicy.DYNAMIC,
             IndexType.FULLTEXT,
             false,
             true,

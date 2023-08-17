@@ -469,7 +469,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     parentBuilder.builtReference = parentRef;
                     columns.put(parent, parentBuilder);
                 } else {
-                    columns.put(parent, new RefBuilder(parent, ObjectType.UNTYPED));
+                    columns.put(parent, new RefBuilder(parent, ObjectType.DEFAULT_EMPTY_OBJECT));
                 }
             }
             Reference reference = table.getReference(columnName);

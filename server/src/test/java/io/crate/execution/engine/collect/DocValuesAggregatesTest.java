@@ -201,7 +201,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         return new Aggregation(
             CountAggregation.SIGNATURE,
             CountAggregation.SIGNATURE.getReturnType().createType(),
-            List.of(new InputColumn(inputCol, ObjectType.UNTYPED))
+            List.of(new InputColumn(inputCol, ObjectType.DEFAULT_EMPTY_OBJECT))
         );
     }
 

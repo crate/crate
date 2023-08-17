@@ -45,7 +45,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SourceIndexWriterProjectionSerializationTest {
 
@@ -56,7 +56,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            new ArrayType<>(ObjectType.STRICT_EMPTY_OBJECT),
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
@@ -113,7 +113,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            new ArrayType<>(ObjectType.STRICT_EMPTY_OBJECT),
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,

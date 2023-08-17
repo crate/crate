@@ -222,7 +222,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.UNTYPED,
+            ObjectType.DEFAULT_EMPTY_OBJECT,
             0,
             null
         );
@@ -256,7 +256,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.UNTYPED,
+            ObjectType.DEFAULT_EMPTY_OBJECT,
             0,
             null
         );
