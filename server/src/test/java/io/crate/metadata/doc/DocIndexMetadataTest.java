@@ -1361,6 +1361,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                         .setInnerType("size", DataTypes.DOUBLE)
                         .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
                         .setInnerType("quote", DataTypes.STRING)
+                        .setColumnPolicy(ColumnPolicy.STRICT)
                         .build()));
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy()).isEqualTo(
             ColumnPolicy.STRICT);

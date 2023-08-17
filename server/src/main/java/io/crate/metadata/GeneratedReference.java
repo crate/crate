@@ -92,7 +92,6 @@ public class GeneratedReference implements Reference {
                     ref.ident(),
                     ref.granularity(),
                     ref.valueType(),
-                    ref.columnPolicy(),
                     ref.indexType(),
                     ref.isNullable(),
                     ref.hasDocValues(),
@@ -201,13 +200,13 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public ColumnPolicy columnPolicy() {
-        return ref.columnPolicy();
+    public boolean isNullable() {
+        return ref.isNullable();
     }
 
     @Override
-    public boolean isNullable() {
-        return ref.isNullable();
+    public ColumnPolicy columnPolicy() {
+        return ref.columnPolicy();
     }
 
     @Override

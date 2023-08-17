@@ -164,7 +164,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 xRef.ident(),
                 xRef.granularity(),
                 xRef.valueType(),
-                xRef.columnPolicy(),
                 xRef.indexType(),
                 xRef.isNullable(),
                 false,
@@ -201,7 +200,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         return new Aggregation(
             CountAggregation.SIGNATURE,
             CountAggregation.SIGNATURE.getReturnType().createType(),
-            List.of(new InputColumn(inputCol, ObjectType.UNTYPED))
+            List.of(new InputColumn(inputCol, ObjectType.DYNAMIC_OBJECT))
         );
     }
 

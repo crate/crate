@@ -262,7 +262,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     refIdent,
                     rowGranularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,
@@ -278,7 +277,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 ref = new GeoReference(
                     refIdent,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     position,
@@ -293,7 +291,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     refIdent,
                     rowGranularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,
@@ -344,7 +341,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
         }
         var columnBuilder = columns.get(columnIdent);
-        var dynamicReference = new DynamicReference(new ReferenceIdent(tableName, columnIdent), RowGranularity.DOC, -1);
+        var dynamicReference = new DynamicReference(new ReferenceIdent(tableName, columnIdent), RowGranularity.DOC, -1,
+                                                    ColumnPolicy.DYNAMIC);
         if (columnBuilder == null) {
             if (resolveMissing) {
                 return dynamicReference;
@@ -469,7 +467,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     parentBuilder.builtReference = parentRef;
                     columns.put(parent, parentBuilder);
                 } else {
-                    columns.put(parent, new RefBuilder(parent, ObjectType.UNTYPED));
+                    columns.put(parent, new RefBuilder(parent, ObjectType.DYNAMIC_OBJECT));
                 }
             }
             Reference reference = table.getReference(columnName);

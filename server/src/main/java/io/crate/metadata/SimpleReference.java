@@ -38,6 +38,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -54,7 +55,6 @@ public class SimpleReference implements Reference {
     protected final int position;
 
     protected final ReferenceIdent ident;
-    protected final ColumnPolicy columnPolicy;
     protected final RowGranularity granularity;
     protected final IndexType indexType;
     protected final boolean nullable;
@@ -62,6 +62,39 @@ public class SimpleReference implements Reference {
 
     @Nullable
     protected final Symbol defaultExpression;
+
+    public SimpleReference(ReferenceIdent ident,
+                           RowGranularity granularity,
+                           DataType<?> type,
+                           int position,
+                           @Nullable Symbol defaultExpression) {
+        this(ident,
+             granularity,
+             type,
+             IndexType.PLAIN,
+             true,
+             false,
+             position,
+             defaultExpression);
+    }
+
+    public SimpleReference(ReferenceIdent ident,
+                           RowGranularity granularity,
+                           DataType<?> type,
+                           IndexType indexType,
+                           boolean nullable,
+                           boolean hasDocValues,
+                           int position,
+                           @Nullable Symbol defaultExpression) {
+        this.position = position;
+        this.ident = ident;
+        this.type = type;
+        this.granularity = granularity;
+        this.indexType = indexType;
+        this.nullable = nullable;
+        this.hasDocValues = hasDocValues;
+        this.defaultExpression = defaultExpression != null ? defaultExpression.cast(type) : null;
+    }
 
     public SimpleReference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
@@ -74,7 +107,9 @@ public class SimpleReference implements Reference {
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+        if (in.getVersion().before(Version.V_5_5_0)) {
+            in.readEnum(ColumnPolicy.class); // throw out column policy which is migrated to ObjectType
+        }
         indexType = IndexType.fromStream(in);
         nullable = in.readBoolean();
 
@@ -86,40 +121,29 @@ public class SimpleReference implements Reference {
             : null;
     }
 
-    public SimpleReference(ReferenceIdent ident,
-                           RowGranularity granularity,
-                           DataType<?> type,
-                           int position,
-                           @Nullable Symbol defaultExpression) {
-        this(ident,
-             granularity,
-             type,
-             ColumnPolicy.DYNAMIC,
-             IndexType.PLAIN,
-             true,
-             false,
-             position,
-             defaultExpression);
-    }
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        ident.writeTo(out);
+        if (out.getVersion().before(Version.V_4_6_0)) {
+            out.writeOptionalVInt(position);
+        } else {
+            out.writeVInt(position);
+        }
+        DataTypes.toStream(type, out);
+        RowGranularity.toStream(granularity, out);
 
-    public SimpleReference(ReferenceIdent ident,
-                           RowGranularity granularity,
-                           DataType<?> type,
-                           ColumnPolicy columnPolicy,
-                           IndexType indexType,
-                           boolean nullable,
-                           boolean hasDocValues,
-                           int position,
-                           @Nullable Symbol defaultExpression) {
-        this.position = position;
-        this.ident = ident;
-        this.type = type;
-        this.granularity = granularity;
-        this.columnPolicy = columnPolicy;
-        this.indexType = indexType;
-        this.nullable = nullable;
-        this.hasDocValues = hasDocValues;
-        this.defaultExpression = defaultExpression != null ? defaultExpression.cast(type) : null;
+        if (out.getVersion().before(Version.V_5_5_0)) {
+            out.writeEnum(ColumnPolicies.of(type));
+        }
+        out.writeVInt(indexType.ordinal());
+        out.writeBoolean(nullable);
+        // property was "columnStoreDisabled" so need to reverse the value.
+        out.writeBoolean(!hasDocValues);
+        final boolean hasDefaultExpression = defaultExpression != null;
+        out.writeBoolean(hasDefaultExpression);
+        if (hasDefaultExpression) {
+            Symbols.toStream(defaultExpression, out);
+        }
     }
 
     /**
@@ -131,7 +155,6 @@ public class SimpleReference implements Reference {
             newIdent,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -184,11 +207,6 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public ColumnPolicy columnPolicy() {
-        return columnPolicy;
-    }
-
-    @Override
     public IndexType indexType() {
         return indexType;
     }
@@ -196,6 +214,11 @@ public class SimpleReference implements Reference {
     @Override
     public boolean isNullable() {
         return nullable;
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return ColumnPolicies.of(type);
     }
 
     @Override
@@ -266,9 +289,6 @@ public class SimpleReference implements Reference {
         if (!ident.equals(reference.ident)) {
             return false;
         }
-        if (columnPolicy != reference.columnPolicy) {
-            return false;
-        }
         if (granularity != reference.granularity) {
             return false;
         }
@@ -283,36 +303,12 @@ public class SimpleReference implements Reference {
         int result = type.hashCode();
         result = 31 * result + Integer.hashCode(position);
         result = 31 * result + ident.hashCode();
-        result = 31 * result + columnPolicy.hashCode();
         result = 31 * result + granularity.hashCode();
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
         result = 31 * result + (hasDocValues ? 1 : 0);
         result = 31 * result + (defaultExpression != null ? defaultExpression.hashCode() : 0);
         return result;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        ident.writeTo(out);
-        if (out.getVersion().before(Version.V_4_6_0)) {
-            out.writeOptionalVInt(position);
-        } else {
-            out.writeVInt(position);
-        }
-        DataTypes.toStream(type, out);
-        RowGranularity.toStream(granularity, out);
-
-        out.writeVInt(columnPolicy.ordinal());
-        out.writeVInt(indexType.ordinal());
-        out.writeBoolean(nullable);
-        // property was "columnStoreDisabled" so need to reverse the value.
-        out.writeBoolean(!hasDocValues);
-        final boolean hasDefaultExpression = defaultExpression != null;
-        out.writeBoolean(hasDefaultExpression);
-        if (hasDefaultExpression) {
-            Symbols.toStream(defaultExpression, out);
-        }
     }
 
     @Override

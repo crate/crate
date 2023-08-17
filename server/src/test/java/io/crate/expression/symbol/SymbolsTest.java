@@ -65,6 +65,6 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)")
             .build();
         Symbol symbol = e.asSymbol("x + 10 > 100");
-        assertThat(symbol.ramBytesUsed()).isEqualTo(920L);
+        assertThat(symbol.ramBytesUsed()).isEqualTo(912L);
     }
 }

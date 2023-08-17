@@ -59,7 +59,6 @@ public enum SymbolType {
         throw new UnsupportedEncodingException("FetchStub is not streamable");
     }),
     VOID_REFERENCE(VoidReference::new);
-
     public static final List<SymbolType> VALUES = List.of(values());
 
     private final Writeable.Reader<Symbol> reader;

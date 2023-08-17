@@ -163,7 +163,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 xContentBuilder.nullField(innerName);
                 continue;
             }
-            if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+            final var columnPolicy = ref.columnPolicy();
+            if (columnPolicy == ColumnPolicy.STRICT) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "Cannot add column `%s` to strict object `%s`",
@@ -171,7 +172,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     ref.column()
                 ));
             }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+            if (columnPolicy == ColumnPolicy.IGNORED) {
                 xContentBuilder.field(innerName, innerValue);
                 continue;
             }
@@ -193,7 +194,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 new ReferenceIdent(table, column.getChild(innerName)),
                 RowGranularity.DOC,
                 type,
-                ref.columnPolicy(),
                 IndexType.PLAIN,
                 nullable,
                 storageSupport.docValuesDefault(),

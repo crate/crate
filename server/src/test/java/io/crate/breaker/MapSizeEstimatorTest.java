@@ -37,7 +37,7 @@ public class MapSizeEstimatorTest {
     public void test_map_size_estimate_depends_on_actual_instance_size() {
         Map<String, Object> map = Map.of("x", 10, "y", 20);
         assertThat(
-            ObjectType.UNTYPED.valueBytes(map),
+            ObjectType.DYNAMIC_OBJECT.valueBytes(map),
             is(RamUsageEstimator.sizeOfMap(map))
         );
     }

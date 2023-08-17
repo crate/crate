@@ -24,6 +24,7 @@ package io.crate.testing;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import org.assertj.core.api.AbstractAssert;
 
@@ -39,6 +40,13 @@ public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> 
         assertThat(actual.column().sqlFqn())
             .as("sqlFqn")
             .isEqualTo(expectedName);
+        return this;
+    }
+
+    public ReferenceAssert hasColumnPolicy(ColumnPolicy columnPolicy) {
+        assertThat(actual.columnPolicy())
+            .as("columnPolicy")
+            .isEqualTo(columnPolicy);
         return this;
     }
 

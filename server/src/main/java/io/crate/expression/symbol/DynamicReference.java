@@ -21,29 +21,44 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.IndexType;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class DynamicReference extends SimpleReference {
 
+    private final ColumnPolicy columnPolicy;
+
+    public DynamicReference(ReferenceIdent ident, RowGranularity granularity, int position, ColumnPolicy columnPolicy) {
+        super(ident, granularity, DataTypes.UNDEFINED, position, null);
+        this.columnPolicy = columnPolicy;
+    }
+
     public DynamicReference(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+            columnPolicy = in.readEnum(ColumnPolicy.class);
+        } else {
+            columnPolicy = ColumnPolicy.DYNAMIC;
+        }
     }
 
-    public DynamicReference(ReferenceIdent ident, RowGranularity granularity, int position) {
-        super(ident, granularity, DataTypes.UNDEFINED, position, null);
-    }
-
-    public DynamicReference(ReferenceIdent ident, RowGranularity granularity, ColumnPolicy columnPolicy, int position) {
-        super(ident, granularity, DataTypes.UNDEFINED, columnPolicy, IndexType.PLAIN, true, false, position, null);
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
+            out.writeEnum(columnPolicy);
+        }
     }
 
     @Override
@@ -58,5 +73,30 @@ public class DynamicReference extends SimpleReference {
 
     public void valueType(DataType<?> targetType) {
         type = targetType;
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return columnPolicy;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        DynamicReference that = (DynamicReference) o;
+        return columnPolicy == that.columnPolicy;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), columnPolicy);
     }
 }

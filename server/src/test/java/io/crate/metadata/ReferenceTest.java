@@ -41,6 +41,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -69,12 +70,11 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+        var dataType = new ArrayType<>(ObjectType.builder().setColumnPolicy(ColumnPolicy.STRICT).build());
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -101,7 +101,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,

@@ -50,7 +50,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -261,8 +260,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(getName(), List.of(length));
     }
 

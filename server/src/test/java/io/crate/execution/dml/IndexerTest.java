@@ -73,6 +73,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
@@ -759,8 +760,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     new DynamicReference(
                         new ReferenceIdent(table.ident(), "y"),
                         RowGranularity.DOC,
-                        -1
-                    )
+                        -1,
+                        ColumnPolicy.DYNAMIC)
                 ),
                 null
             );
@@ -1113,7 +1114,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(new ColumnIdent("x"));
-        Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
+        Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2,
+                                           ColumnPolicy.DYNAMIC);
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,

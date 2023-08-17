@@ -23,6 +23,9 @@ package io.crate.metadata.table;
 
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.common.Booleans;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 import static io.crate.sql.tree.ColumnPolicy.DYNAMIC;
 import static io.crate.sql.tree.ColumnPolicy.IGNORED;
@@ -64,5 +67,12 @@ public final class ColumnPolicies {
             default:
                 throw new AssertionError("Illegal columnPolicy: " + columnPolicy);
         }
+    }
+
+    public static ColumnPolicy of(DataType<?> dataType) {
+        if (ArrayType.unnest(dataType) instanceof ObjectType objectType) {
+            return objectType.columnPolicy();
+        }
+        return DYNAMIC;
     }
 }

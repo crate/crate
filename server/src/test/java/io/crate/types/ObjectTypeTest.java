@@ -191,7 +191,7 @@ public class ObjectTypeTest extends ESTestCase {
 
     @Test
     public void test_raises_conversion_exception_on_string_parsing_errors() throws Exception {
-        assertThatThrownBy(() -> ObjectType.UNTYPED.implicitCast("foo"))
+        assertThatThrownBy(() -> ObjectType.DYNAMIC_OBJECT.implicitCast("foo"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `foo` to type `object`");
     }

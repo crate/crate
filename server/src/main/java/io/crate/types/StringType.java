@@ -60,7 +60,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -352,8 +351,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         if (unbound()) {
             return new ColumnType<>(getName());
         } else {

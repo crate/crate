@@ -94,6 +94,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.netty.NettyBootstrap;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -315,8 +316,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         DynamicReference dynamicRefConvertedToSimpleRef = new DynamicReference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("dynamic_long_col")),
             RowGranularity.DOC,
-            0
-        );
+            0,
+            ColumnPolicy.DYNAMIC);
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,

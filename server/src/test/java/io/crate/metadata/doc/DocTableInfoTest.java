@@ -51,6 +51,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
@@ -124,8 +125,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference strictParent = new SimpleReference(
             foobarIdent,
             RowGranularity.DOC,
-            DataTypes.UNTYPED_OBJECT,
-            ColumnPolicy.STRICT,
+            ObjectType.builder().setColumnPolicy(ColumnPolicy.STRICT).build(),
             IndexType.PLAIN,
             true,
             false,

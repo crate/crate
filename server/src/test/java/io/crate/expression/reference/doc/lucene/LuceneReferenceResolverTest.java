@@ -84,7 +84,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
+                new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, 0, ColumnPolicy.DYNAMIC);
 
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);

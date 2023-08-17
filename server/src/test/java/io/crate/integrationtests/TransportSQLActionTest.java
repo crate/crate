@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -73,7 +72,6 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
@@ -1972,7 +1970,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             var extendedType = extendedType(type, val1);
-            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
             execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
             execute("refresh table tbl");
@@ -1993,9 +1991,9 @@ public class TransportSQLActionTest extends IntegTestCase {
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
             assertThat(resp2.rows()[0][0]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][0]);
             assertThat(resp2.rows()[0][1]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][1]);
-            assertThat(ObjectType.UNTYPED.sanitizeValue(resp2.rows()[0][2]))
-                .usingComparator(ObjectType.UNTYPED)
-                .isEqualTo(ObjectType.UNTYPED.sanitizeValue(resp1.rows()[0][2]));
+            assertThat(ObjectType.DYNAMIC_OBJECT.sanitizeValue(resp2.rows()[0][2]))
+                .usingComparator(ObjectType.DYNAMIC_OBJECT)
+                .isEqualTo(ObjectType.DYNAMIC_OBJECT.sanitizeValue(resp1.rows()[0][2]));
 
             if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
                 // should use doc-values/query-without-fetch execution path due to order + limit

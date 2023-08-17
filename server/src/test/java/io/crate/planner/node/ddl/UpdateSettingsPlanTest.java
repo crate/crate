@@ -94,7 +94,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
     @Test
     public void testUpdateObjectWithParameter() throws Exception {
         List<Assignment<Symbol>> settings = List.of(
-            new Assignment<>(Literal.of("stats"), List.of(new ParameterSymbol(0, ObjectType.UNTYPED))));
+            new Assignment<>(Literal.of("stats"), List.of(new ParameterSymbol(0, ObjectType.DYNAMIC_OBJECT))));
 
         Map<String, Object> param = MapBuilder.<String, Object>newMapBuilder()
             .put("enabled", true)

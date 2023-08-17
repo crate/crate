@@ -52,6 +52,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -181,10 +182,10 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDynamicReference() {
         Reference r = new DynamicReference(
-            new ReferenceIdent(new RelationName("schema", "table"),
+                new ReferenceIdent(new RelationName("schema", "table"),
                                new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC,
-            0);
+                RowGranularity.DOC,
+                0, ColumnPolicy.DYNAMIC);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
 

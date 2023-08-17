@@ -66,6 +66,7 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
                 type == null ? DataTypes.UNDEFINED : type.accept(this, context)
             );
         }
+        node.columnPolicy().ifPresent(builder::setColumnPolicy);
         return builder.build();
     }
 

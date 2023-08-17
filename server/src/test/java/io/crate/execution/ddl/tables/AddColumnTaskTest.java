@@ -43,7 +43,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
@@ -108,7 +107,6 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             Reference geoShapeArrayRef = new GeoReference(
                 shapesIdent,
                 new ArrayType<>(DataTypes.GEO_SHAPE),
-                ColumnPolicy.DYNAMIC,
                 IndexType.PLAIN,
                 true,
                 2,
@@ -123,7 +121,6 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             Reference geoPointArrayRef = new GeoReference(
                 pointsIdent,
                 new ArrayType<>(DataTypes.GEO_POINT),
-                ColumnPolicy.DYNAMIC,
                 IndexType.PLAIN,
                 true,
                 3,

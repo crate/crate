@@ -432,34 +432,33 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
         }
         switch (parentPolicy) {
-            case DYNAMIC:
+            case DYNAMIC -> {
                 if (!forWrite) {
                     if (!errorOnUnknownObjectKey) {
                         return new VoidReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
                     }
                     return null;
                 }
-                break;
-            case STRICT:
+            }
+            case STRICT -> {
                 if (forWrite) {
                     throw new ColumnUnknownException(ident, ident());
                 }
                 return null;
-            case IGNORED:
-                parentIsIgnored = true;
-                break;
-            default:
-                break;
+            }
+            case IGNORED -> parentIsIgnored = true;
+            default -> {
+            }
         }
         if (parentIsIgnored) {
             return new DynamicReference(
                 new ReferenceIdent(ident(), ident),
                 rowGranularity(),
-                ColumnPolicy.IGNORED,
-                position
-            );
+                position,
+                ColumnPolicy.IGNORED);
         }
-        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
+        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position,
+                                    ColumnPolicy.DYNAMIC);
     }
 
     @NotNull

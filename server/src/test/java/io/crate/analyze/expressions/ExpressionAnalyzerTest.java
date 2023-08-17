@@ -69,7 +69,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -447,13 +446,12 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAnalyzeArraySliceFunctionCall() {
         ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
         SimpleReference arrayRef = new SimpleReference(arrayRefIdent,
-                                           RowGranularity.DOC,
-                                           DataTypes.INTEGER_ARRAY,
-                                           ColumnPolicy.DYNAMIC,
-                                           IndexType.PLAIN,
-                                           true,
-                                           true,
-                                           1, null);
+                                                       RowGranularity.DOC,
+                                                       DataTypes.INTEGER_ARRAY,
+                                                       IndexType.PLAIN,
+                                                       true,
+                                                       true,
+                                                       1, null);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         Symbol function = ExpressionAnalyzer.allocateFunction(

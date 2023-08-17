@@ -203,7 +203,6 @@ public final class UpdateAnalyzer {
                             targetCol.ident(),
                             targetCol.granularity(),
                             ((ArrayType<?>) targetCol.valueType()).innerType(),
-                            targetCol.columnPolicy(),
                             targetCol.indexType(),
                             targetCol.isNullable(),
                             targetCol.hasDocValues(),

@@ -39,7 +39,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
 public class OptimizeQueryForSearchAfterTest {
@@ -60,7 +59,7 @@ public class OptimizeQueryForSearchAfterTest {
     public void test_short_range_query_with_and_without_docvalues() {
         ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
                                     IndexType.PLAIN, true, true, 1, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
@@ -74,7 +73,7 @@ public class OptimizeQueryForSearchAfterTest {
                 x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class));
 
         orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
                                     IndexType.PLAIN, true, false, 1, null)
         ));
         optimize = new OptimizeQueryForSearchAfter(orderBy);

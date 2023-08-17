@@ -100,7 +100,7 @@ public final class DataTypes {
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
-    public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
+    public static final ObjectType UNTYPED_OBJECT = ObjectType.DYNAMIC_OBJECT;
 
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
@@ -520,6 +520,8 @@ public final class DataTypes {
 
     @Nullable
     public static DataType<?> ofMappingName(String name) {
+        // NOTE: ObjectType returned by the mapping name 'object' is the default object,
+        // which is ObjectType.DYNAMIC_OBJECT with ColumnPolicy.DYNAMIC.
         return MAPPING_NAMES_TO_TYPES.get(name);
     }
 

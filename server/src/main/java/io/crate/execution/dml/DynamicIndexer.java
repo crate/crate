@@ -40,7 +40,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -96,7 +95,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 refIdent,
                 RowGranularity.DOC,
                 type,
-                ColumnPolicy.DYNAMIC,
                 IndexType.PLAIN,
                 nullable,
                 storageSupport.docValuesDefault(),

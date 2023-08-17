@@ -39,6 +39,7 @@ import java.util.function.Supplier;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -64,7 +65,7 @@ import io.crate.sql.tree.ObjectColumnType;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
-    public static final ObjectType UNTYPED = new ObjectType();
+    public static final ObjectType DYNAMIC_OBJECT = new ObjectType(ColumnPolicy.DYNAMIC);
     public static final int ID = 12;
     public static final String NAME = "object";
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, true, null) {
@@ -79,8 +80,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     };
 
     public static class Builder {
+        private final Map<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
+        private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
-        Map<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
+        private Builder() {
+        }
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
@@ -92,8 +96,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return this;
         }
 
+        public Builder setColumnPolicy(ColumnPolicy columnPolicy) {
+            this.columnPolicy = Objects.requireNonNull(columnPolicy);
+            return this;
+        }
+
         public ObjectType build() {
-            return new ObjectType(Collections.unmodifiableMap(innerTypesBuilder));
+            return new ObjectType(Collections.unmodifiableMap(innerTypesBuilder), columnPolicy);
         }
     }
 
@@ -102,13 +111,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     private final Map<String, DataType<?>> innerTypes;
+    private final ColumnPolicy columnPolicy;
 
-    private ObjectType() {
-        this(Map.of());
+    private ObjectType(ColumnPolicy columnPolicy) {
+        this(Map.of(), columnPolicy);
     }
 
-    private ObjectType(Map<String, DataType<?>> innerTypes) {
+    private ObjectType(Map<String, DataType<?>> innerTypes, ColumnPolicy columnPolicy) {
         this.innerTypes = innerTypes;
+        this.columnPolicy = Objects.requireNonNull(columnPolicy);
     }
 
     public Map<String, DataType<?>> innerTypes() {
@@ -117,6 +128,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public DataType<?> innerType(String key) {
         return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+    }
+
+    public ColumnPolicy columnPolicy() {
+        return columnPolicy;
     }
 
     public DataType<?> resolveInnerType(List<String> path) {
@@ -209,7 +224,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             );
             return parser.map();
         } catch (IOException e) {
-            var conversionException = new ConversionException(value, UNTYPED);
+            var conversionException = new ConversionException(value, DYNAMIC_OBJECT);
             conversionException.addSuppressed(e);
             throw conversionException;
         }
@@ -282,14 +297,17 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return false;
         }
         ObjectType that = (ObjectType) o;
-        return Objects.equals(innerTypes, that.innerTypes);
+        if (!Objects.equals(innerTypes, that.innerTypes)) {
+            return false;
+        }
+        return columnPolicy == that.columnPolicy;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        return prime * result + innerTypes.hashCode();
+        return (prime * result + innerTypes.hashCode()) * prime + columnPolicy.hashCode();
     }
 
     @Override
@@ -319,6 +337,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             builder.put(key, type);
         }
         innerTypes = Collections.unmodifiableMap(builder);
+        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+            columnPolicy = in.readEnum(ColumnPolicy.class);
+        } else {
+            columnPolicy = ColumnPolicy.DYNAMIC;
+        }
     }
 
     @Override
@@ -327,6 +350,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         for (Map.Entry<String, DataType<?>> entry : innerTypes.entrySet()) {
             out.writeString(entry.getKey());
             DataTypes.toStream(entry.getValue(), out);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
+            out.writeEnum(columnPolicy);
         }
     }
 
@@ -356,8 +382,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         if (convertChildColumn == null) {
             return new ObjectColumnType<>(
                 columnPolicy.name(),
@@ -365,7 +390,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                     e.getKey(),
                     null,
                     null,
-                    e.getValue().toColumnType(columnPolicy, convertChildColumn),
+                    e.getValue().toColumnType(convertChildColumn),
                     List.of()
                 ))
             );
@@ -396,6 +421,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             bytes += RamUsageEstimator.sizeOf(childName);
             bytes += childType.ramBytesUsed();
         }
-        return bytes;
+        return bytes + RamUsageEstimator.sizeOf(ColumnPolicy.DYNAMIC.ordinal());
     }
 }

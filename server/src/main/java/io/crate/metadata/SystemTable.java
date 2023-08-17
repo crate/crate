@@ -287,7 +287,6 @@ public final class SystemTable<T> implements TableInfo {
                         new ReferenceIdent(name, column.column),
                         RowGranularity.DOC,
                         column.type,
-                        ColumnPolicy.DYNAMIC,
                         IndexType.PLAIN,
                         column.isNullable,
                         false,
@@ -302,9 +301,8 @@ public final class SystemTable<T> implements TableInfo {
                         var ref = new DynamicReference(
                             new ReferenceIdent(name, wanted),
                             RowGranularity.DOC,
-                            ColumnPolicy.DYNAMIC,
-                            position
-                        );
+                            position,
+                            ColumnPolicy.DYNAMIC);
                         ref.valueType(leafType);
                         return ref;
                     });

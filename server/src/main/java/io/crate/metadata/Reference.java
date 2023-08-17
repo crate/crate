@@ -56,9 +56,9 @@ public interface Reference extends Symbol {
 
     IndexType indexType();
 
-    ColumnPolicy columnPolicy();
-
     boolean isNullable();
+
+    ColumnPolicy columnPolicy();
 
     RowGranularity granularity();
 

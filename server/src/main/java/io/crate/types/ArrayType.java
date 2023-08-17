@@ -58,7 +58,6 @@ import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -401,9 +400,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
-        return new CollectionColumnType<>(innerType.toColumnType(columnPolicy, convertChildColumn));
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        return new CollectionColumnType<>(innerType.toColumnType(convertChildColumn));
     }
 
     @Override

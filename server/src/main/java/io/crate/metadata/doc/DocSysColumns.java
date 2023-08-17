@@ -37,6 +37,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DocSysColumns {
 
@@ -76,7 +77,7 @@ public class DocSysColumns {
     public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
     public static final Map<ColumnIdent, DataType<?>> COLUMN_IDENTS = Map.of(
-        DOC, DataTypes.UNTYPED_OBJECT,
+        DOC, ObjectType.builder().setColumnPolicy(ColumnPolicy.IGNORED).build(),
         FETCHID, DataTypes.LONG,
         ID, DataTypes.STRING,
         RAW, DataTypes.STRING,
@@ -94,15 +95,15 @@ public class DocSysColumns {
     );
 
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
-        return new SimpleReference(new ReferenceIdent(table, column),
-                             RowGranularity.DOC,
-                             dataType,
-                             ColumnPolicy.STRICT,
-                             IndexType.PLAIN,
-                             false,
-                             false,
-                             position,
-                             null
+        return new SimpleReference(
+            new ReferenceIdent(table, column),
+            RowGranularity.DOC,
+            dataType,
+            IndexType.PLAIN,
+            false,
+            false,
+            position,
+            null
         );
     }
 

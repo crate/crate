@@ -44,7 +44,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -255,8 +254,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
 
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         assert getTypeParameters().isEmpty()
             : "If the type parameters aren't empty, `" + getClass().getSimpleName() + "` must override `toColumnType`";
         return new ColumnType<>(getName());

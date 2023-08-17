@@ -82,9 +82,9 @@ public class SourceParserTest extends ESTestCase {
         boolean xFirst = randomBoolean();
         if (xFirst) {
             sourceParser.register(x, DataTypes.INTEGER);
-            sourceParser.register(obj, ObjectType.UNTYPED);
+            sourceParser.register(obj, ObjectType.DYNAMIC_OBJECT);
         } else {
-            sourceParser.register(obj, ObjectType.UNTYPED);
+            sourceParser.register(obj, ObjectType.DYNAMIC_OBJECT);
             sourceParser.register(x, DataTypes.INTEGER);
         }
 
@@ -261,7 +261,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
         SourceParser sourceParser = new SourceParser();
-        var type = ObjectType.UNTYPED;
+        var type = ObjectType.DYNAMIC_OBJECT;
         sourceParser.register(new ColumnIdent("_doc", List.of("x")), type);
         var result = sourceParser.parse(
             new BytesArray(

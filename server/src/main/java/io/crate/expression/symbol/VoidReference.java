@@ -42,14 +42,7 @@ public class VoidReference extends DynamicReference {
     public VoidReference(ReferenceIdent ident,
                          RowGranularity granularity,
                          int position) {
-        super(ident, granularity, position);
-    }
-
-    public VoidReference(ReferenceIdent ident,
-                         RowGranularity granularity,
-                         ColumnPolicy columnPolicy,
-                         int position) {
-        super(ident, granularity, columnPolicy, position);
+        super(ident, granularity, position, ColumnPolicy.DYNAMIC);
     }
 
     @Override
