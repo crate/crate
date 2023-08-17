@@ -129,10 +129,10 @@ public class DocRefResolverTest extends ESTestCase {
         collectExpression.setNextRow(doc);
         assertThat(collectExpression.value()).isNull();
 
-        ObjectType ot = new ObjectType.Builder()
-            .setInnerType("oo", new ObjectType.Builder()
-                                        .setInnerType("oox", DataTypes.NUMERIC)
-                                        .setInnerType("ooy", DataTypes.NUMERIC).build())
+        ObjectType ot = ObjectType.builder()
+            .setInnerType("oo", ObjectType.builder()
+                .setInnerType("oox", DataTypes.NUMERIC)
+                .setInnerType("ooy", DataTypes.NUMERIC).build())
             .build();
         Reference o = new SimpleReference(
             new ReferenceIdent(
