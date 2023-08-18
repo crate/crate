@@ -69,7 +69,6 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
         NestableInput<?> childByPath = NestableInput.getChildByPath(refImpl, columnIdent.path());
         assert childByPath instanceof NestableCollectExpression
             : "Child " + columnIdent.path() + " of " + refImpl + " must be a NestableCollectExpression";
-        //noinspection unchecked
         return (NestableCollectExpression<R, ?>) childByPath;
     }
 }

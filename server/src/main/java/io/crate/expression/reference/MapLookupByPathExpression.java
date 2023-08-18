@@ -29,17 +29,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 public final class MapLookupByPathExpression<T> implements NestableCollectExpression<T, Object> {
 
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;
-    private final Function<Object, Object> castResultValue;
+    private final UnaryOperator<Object> castResultValue;
     private Object value;
 
     public MapLookupByPathExpression(Function<T, Map<String, Object>> getMap,
                                      List<String> path,
-                                     Function<Object, Object> castResultValue) {
+                                     UnaryOperator<Object> castResultValue) {
         this.getMap = getMap;
         this.path = path;
         this.castResultValue = castResultValue;

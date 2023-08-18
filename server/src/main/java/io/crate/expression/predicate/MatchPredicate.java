@@ -199,14 +199,14 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         return stringMatch(context, arguments, queryTermVal);
     }
 
+    @SuppressWarnings("unchecked")
     private Query geoMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
 
-        Map fields = (Map) ((Literal) arguments.get(0)).value();
-        String fieldName = (String) fields.keySet().iterator().next();
+        Map<String, Object> fields = (Map<String, Object>) ((Literal<?>) arguments.get(0)).value();
+        String fieldName = fields.keySet().iterator().next();
         MappedFieldType fieldType = context.queryShardContext().getMapperService().fieldType(fieldName);
         GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
-        String matchType = (String) ((Input) arguments.get(2)).value();
-        @SuppressWarnings("unchecked")
+        String matchType = (String) ((Input<?>) arguments.get(2)).value();
         Shape shape = GeoJSONUtils.map2Shape((Map<String, Object>) queryTerm);
 
         ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
@@ -252,13 +252,13 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Query stringMatch(LuceneQueryBuilder.Context context, List<Symbol> arguments, Object queryTerm) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
+
+        Map<String, Object> fields = (Map<String, Object>) ((Literal<?>) arguments.get(0)).value();
         String queryString = (String) queryTerm;
-        String matchType = (String) ((Literal) arguments.get(2)).value();
-        //noinspection unchecked
-        Map<String, Object> options = (Map<String, Object>) ((Literal) arguments.get(3)).value();
+        String matchType = (String) ((Literal<?>) arguments.get(2)).value();
+        Map<String, Object> options = (Map<String, Object>) ((Literal<?>) arguments.get(3)).value();
 
         MatchOptionsAnalysis.validate(options);
 
@@ -272,16 +272,15 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             );
         } else {
             fields.replaceAll((s, o) -> {
-                if (o instanceof Number) {
-                    return ((Number) o).floatValue();
+                if (o instanceof Number number) {
+                    return number.floatValue();
                 }
                 return null;
             });
-            //noinspection unchecked
             return MatchQueries.multiMatch(
                 context.queryShardContext(),
                 matchType,
-                (Map<String, Float>) (Map) fields,
+                (Map) fields,
                 queryString,
                 options
             );
@@ -301,8 +300,8 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             options
         );
         Object boost = entry.getValue();
-        if (boost instanceof Number) {
-            return new BoostQuery(query, ((Number) boost).floatValue());
+        if (boost instanceof Number number) {
+            return new BoostQuery(query, number.floatValue());
         }
         return query;
     }

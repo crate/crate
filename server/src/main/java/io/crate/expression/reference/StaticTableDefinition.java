@@ -38,7 +38,7 @@ import io.crate.user.User;
 
 public class StaticTableDefinition<T> {
 
-    private GetRecords<T> getRecords;
+    private final GetRecords<T> getRecords;
     private final StaticTableReferenceResolver<T> referenceResolver;
     private final boolean involvesIO;
 
@@ -70,9 +70,9 @@ public class StaticTableDefinition<T> {
                                  BiPredicate<User, T> predicate,
                                  boolean involvesIO) {
         this.getRecords = (txnCtx, user) ->
-            futureRecords.get().thenApply((records) ->
+            futureRecords.get().thenApply(records ->
                 StreamSupport.stream(records.spliterator(), false)
-                .filter(record -> user == null || predicate.test(user, record))
+                .filter(r -> user == null || predicate.test(user, r))
                 ::iterator
             );
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);

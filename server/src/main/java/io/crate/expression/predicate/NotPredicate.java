@@ -83,8 +83,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 // WHERE NOT NULL -> WHERE NULL
                 return Literal.of(DataTypes.BOOLEAN, null);
             }
-            if (value instanceof Boolean) {
-                return Literal.of(!((Boolean) value));
+            if (value instanceof Boolean b) {
+                return Literal.of(!b);
             }
         }
         return symbol;
@@ -173,8 +173,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Symbol arg = input.arguments().get(0);
 
         // Optimize `NOT (<ref> IS NULL)`
-        if (arg instanceof Function && ((Function) arg).name().equals(IsNullPredicate.NAME)) {
-            Function innerFunction = (Function) arg;
+        if (arg instanceof Function innerFunction && innerFunction.name().equals(IsNullPredicate.NAME)) {
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
                 // Ignored objects have no field names in the index, need function filter fallback
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {

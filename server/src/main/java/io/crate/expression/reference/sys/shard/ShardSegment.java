@@ -29,7 +29,7 @@ public class ShardSegment {
     private final int shardId;
     private final IndexParts indexParts;
     private final Segment segment;
-    private boolean primary;
+    private final boolean primary;
 
 
     ShardSegment(int shardId, String indexName, Segment segment, boolean primary) {
