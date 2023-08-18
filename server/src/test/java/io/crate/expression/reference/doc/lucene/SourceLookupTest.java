@@ -43,6 +43,7 @@ public class SourceLookupTest {
         assertThat(o, is(10));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testExtractValueFromNestedObjectWithinList() {
         Map<String, List<Map<String, Map<String, Integer>>>> m = singletonMap("x", Arrays.asList(
@@ -53,6 +54,7 @@ public class SourceLookupTest {
         assertThat((Collection<Integer>) o, contains(is(10), is(20)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testExtractValueFromNestedObjectWithListAsLeaf() {
         Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));

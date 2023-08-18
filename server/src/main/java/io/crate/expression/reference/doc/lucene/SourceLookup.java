@@ -101,8 +101,7 @@ public final class SourceLookup {
             tmp = m.get(path.get(i));
             if (tmp instanceof Map) {
                 m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List) {
-                List<?> list = (List<?>) tmp;
+            } else if (tmp instanceof List<?> list) {
                 if (i + 1 == path.size()) {
                     return list;
                 }

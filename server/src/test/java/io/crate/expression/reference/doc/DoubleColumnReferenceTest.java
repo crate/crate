@@ -39,7 +39,7 @@ import io.crate.expression.reference.doc.lucene.DoubleColumnReference;
 
 public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "d";
+    private static final String COLUMN = "d";
 
     public DoubleColumnReferenceTest() {
         super("create table t (d double)");
@@ -49,14 +49,14 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     protected void insertValues(IndexWriter writer) throws Exception {
         for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
-            doc.add(new SortedNumericDocValuesField(column, NumericUtils.doubleToSortableLong(d)));
+            doc.add(new SortedNumericDocValuesField(COLUMN, NumericUtils.doubleToSortableLong(d)));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        DoubleColumnReference doubleColumn = new DoubleColumnReference(column);
+        DoubleColumnReference doubleColumn = new DoubleColumnReference(COLUMN);
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
