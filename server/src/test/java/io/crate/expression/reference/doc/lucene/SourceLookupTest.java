@@ -21,11 +21,9 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,7 +38,7 @@ public class SourceLookupTest {
     public void testExtractValueFromNestedObject() {
         Map<String, Map<String, Integer>> map = singletonMap("x", singletonMap("y", 10));
         Object o = SourceLookup.extractValue(map, Arrays.asList("x", "y"), 0);
-        assertThat(o, is(10));
+        assertThat(o).isEqualTo(10);
     }
 
     @SuppressWarnings("unchecked")
@@ -51,7 +49,7 @@ public class SourceLookupTest {
             singletonMap("y", singletonMap("z", 20))
         ));
         Object o = SourceLookup.extractValue(m, Arrays.asList("x", "y", "z"), 0);
-        assertThat((Collection<Integer>) o, contains(is(10), is(20)));
+        assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 
     @SuppressWarnings("unchecked")
@@ -59,6 +57,6 @@ public class SourceLookupTest {
     public void testExtractValueFromNestedObjectWithListAsLeaf() {
         Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));
         Object o = SourceLookup.extractValue(m, singletonList("x"), 0);
-        assertThat((Collection<Integer>) o, contains(is(10), is(20)));
+        assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 }

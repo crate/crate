@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -66,7 +65,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         short i = -10;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             shortColumn.setNextDocId(doc.doc);
-            assertThat(shortColumn.value(), is(i));
+            assertThat(shortColumn.value()).isEqualTo(i);
             i++;
         }
     }

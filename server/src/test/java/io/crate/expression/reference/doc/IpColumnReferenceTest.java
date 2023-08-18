@@ -21,9 +21,8 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -40,7 +39,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
@@ -100,18 +98,18 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         columnReference.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
-        assertThat(topDocs.scoreDocs.length, is(21));
+        assertThat(topDocs.scoreDocs.length).isEqualTo(21);
 
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             columnReference.setNextDocId(doc.doc);
             if (i == 20) {
-                assertThat(columnReference.value(), is(nullValue()));
+                assertThat(columnReference.value()).isNull();
             } else if (i < 10) {
-                assertThat(columnReference.value(), is("192.168.0." + i));
+                assertThat(columnReference.value()).isEqualTo("192.168.0." + i);
             } else {
-                assertThat(columnReference.value(),
-                    is("7bd0:8082:2df8:487e:e0df:e7b5:9362:" + Integer.toHexString(i)));
+                assertThat(columnReference.value()).isEqualTo(
+                    "7bd0:8082:2df8:487e:e0df:e7b5:9362:" + Integer.toHexString(i));
             }
             i++;
         }
@@ -128,10 +126,9 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         ScoreDoc doc = topDocs.scoreDocs[0];
         columnReference.setNextDocId(doc.doc);
 
-        expectedException.expect(ArrayViaDocValuesUnsupportedException.class);
-        expectedException.expectMessage("Column \"ia\" has a value that is an array. Loading arrays via doc-values is not supported.");
-
-        columnReference.value();
+        assertThatThrownBy(() -> columnReference.value())
+            .isExactlyInstanceOf(ArrayViaDocValuesUnsupportedException.class)
+            .hasMessage("Column \"ia\" has a value that is an array. Loading arrays via doc-values is not supported.");
     }
 
     @Test
@@ -141,6 +138,6 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         ref.setNextReader(new ReaderContext(readerContext));
         ref.setNextDocId(0);
 
-        assertThat(ref.value(), Matchers.nullValue());
+        assertThat(ref.value()).isNull();
     }
 }

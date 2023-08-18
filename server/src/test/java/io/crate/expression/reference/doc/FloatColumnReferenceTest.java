@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -64,7 +63,7 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
         float f = -0.5f;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             floatColumn.setNextDocId(doc.doc);
-            assertThat(floatColumn.value(), is(f));
+            assertThat(floatColumn.value()).isEqualTo(f);
             f++;
         }
     }

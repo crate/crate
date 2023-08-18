@@ -21,13 +21,12 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,7 +46,7 @@ public class ByteColumnReferenceTest extends CrateDummyClusterServiceUnitTest {
         builder.indexValues("x", IntStream.range(-2, 3).boxed().toArray());
         try (QueryTester tester = builder.build()) {
             List<Object> objects = tester.runQuery("x", "true");
-            assertThat(objects, Matchers.contains((byte) -2, (byte) -1, (byte) 0, (byte) 1, (byte) 2));
+            assertThat(objects).containsExactly((byte) -2, (byte) -1, (byte) 0, (byte) 1, (byte) 2);
         }
     }
 }

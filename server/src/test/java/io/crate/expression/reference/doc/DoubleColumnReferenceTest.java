@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -64,7 +63,7 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
         double d = 0.5;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             doubleColumn.setNextDocId(doc.doc);
-            assertThat(doubleColumn.value(), is(d));
+            assertThat(doubleColumn.value()).isEqualTo(d);
             d++;
         }
     }
