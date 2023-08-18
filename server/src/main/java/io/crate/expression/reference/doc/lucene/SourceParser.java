@@ -66,9 +66,6 @@ public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
 
-    public SourceParser() {
-    }
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
@@ -85,12 +82,12 @@ public final class SourceParser {
                     columns.put(part, type);
                 } else {
                     Object object = columns.get(part);
-                    if (object instanceof Map) {
-                        columns = (Map) object;
+                    if (object instanceof Map map) {
+                        columns = map;
                     } else if (object instanceof DataType) {
                         break;
                     } else {
-                        HashMap<String, Object> children = new HashMap<String, Object>();
+                        HashMap<String, Object> children = new HashMap<>();
                         columns.put(part, children);
                         columns = children;
                     }
@@ -202,9 +199,8 @@ public final class SourceParser {
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
             case VALUE_EMBEDDED_OBJECT -> type == null ? parser.binaryValue() : parseByType(parser, type);
-            default -> {
+            default ->
                 throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got " + parser.currentToken());
-            }
         };
     }
 

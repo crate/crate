@@ -40,7 +40,7 @@ import io.crate.expression.reference.doc.lucene.LongColumnReference;
 
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "l";
+    private static final String COLUMN = "l";
 
     public LongColumnReferenceTest() {
         super("create table t (l long)");
@@ -51,14 +51,14 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, l));
+            doc.add(new NumericDocValuesField(COLUMN, l));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testLongExpression() throws Exception {
-        LongColumnReference longColumn = new LongColumnReference(column);
+        LongColumnReference longColumn = new LongColumnReference(COLUMN);
         longColumn.startCollect(ctx);
         longColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

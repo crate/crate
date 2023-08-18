@@ -41,7 +41,7 @@ import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 
 public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "b";
+    private static final String COLUMN = "b";
 
     public StringColumnReferenceTest() {
         super("create table t (b string)");
@@ -54,14 +54,14 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new SortedDocValuesField(column, new BytesRef(builder.toString())));
+            doc.add(new SortedDocValuesField(COLUMN, new BytesRef(builder.toString())));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
+        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(COLUMN);
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

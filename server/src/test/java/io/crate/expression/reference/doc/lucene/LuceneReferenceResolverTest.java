@@ -47,9 +47,9 @@ import io.crate.types.DataTypes;
 public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTest {
 
     // just return any fieldType to get passt the null check
-    private RelationName name = new RelationName("s", "t");
-    private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
-        name.indexNameOrAlias(),
+    private static final RelationName RELATION_NAME = new RelationName("s", "t");
+    private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
+        RELATION_NAME.indexNameOrAlias(),
         i -> new KeywordFieldType("dummy", true, false),
         List.of()
     );
@@ -57,36 +57,36 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
         SimpleReference arrayRef = new SimpleReference(
-            new ReferenceIdent(name, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
+            new ReferenceIdent(RELATION_NAME, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(arrayRef))
+        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(arrayRef))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
     }
 
     @Test
     public void testGetImplementationForSequenceNumber() {
         SimpleReference seqNumberRef = new SimpleReference(
-            new ReferenceIdent(name, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
+            new ReferenceIdent(RELATION_NAME, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(seqNumberRef))
+        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(seqNumberRef))
             .isExactlyInstanceOf(SeqNoCollectorExpression.class);
     }
 
     @Test
     public void testGetImplementationForPrimaryTerm() {
         SimpleReference primaryTerm = new SimpleReference(
-            new ReferenceIdent(name, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
+            new ReferenceIdent(RELATION_NAME, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
-        assertThat(luceneReferenceResolver.getImplementation(primaryTerm))
+        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryTerm))
             .isExactlyInstanceOf(PrimaryTermCollectorExpression.class);
     }
 
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
+            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
 
-        assertThat(luceneReferenceResolver.getImplementation(ignored))
+        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
     }
 
