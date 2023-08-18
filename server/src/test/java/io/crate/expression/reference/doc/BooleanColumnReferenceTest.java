@@ -21,8 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -66,7 +65,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             booleanColumn.setNextDocId(doc.doc);
-            assertThat(booleanColumn.value(), is(i % 2 == 0));
+            assertThat(booleanColumn.value()). isEqualTo(i % 2 == 0);
             i++;
         }
     }

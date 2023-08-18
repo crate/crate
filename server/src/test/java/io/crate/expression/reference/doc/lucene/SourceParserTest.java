@@ -22,8 +22,6 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +29,6 @@ import java.util.Map;
 
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.Maps;
@@ -55,8 +52,8 @@ public class SourceParserTest extends ESTestCase {
                {"x": 10, "y": 20}
             """));
 
-        assertThat(result.get("x"), is(10));
-        assertThat(result.get("y"), Matchers.nullValue());
+        assertThat(result.get("x")).isEqualTo(10);
+        assertThat(result.get("y")).isNull();
     }
 
     @Test
@@ -71,9 +68,9 @@ public class SourceParserTest extends ESTestCase {
                 {"obj": {"x": 1, "y": 2, "z": 3}}
             """));
 
-        assertThat(Maps.getByPath(result, "obj.x"), is(1));
-        assertThat(Maps.getByPath(result, "obj.y"), Matchers.nullValue());
-        assertThat(Maps.getByPath(result, "obj.z"), is(3L));
+        assertThat(Maps.getByPath(result, "obj.x")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "obj.y")).isNull();
+        assertThat(Maps.getByPath(result, "obj.z")).isEqualTo(3L);
     }
 
     @Test
@@ -96,7 +93,7 @@ public class SourceParserTest extends ESTestCase {
                 {"obj": {"x": 1, "y": 2}}
             """));
 
-        assertThat(result.get("obj"), is(Map.of("x", 1, "y", 2)));
+        assertThat(result.get("obj")).isEqualTo(Map.of("x", 1, "y", 2));
     }
 
     @Test
@@ -115,14 +112,14 @@ public class SourceParserTest extends ESTestCase {
             {"i": "1", "l": "2", "f": "0.12", "d": "0.23", "s": "4", "b": "5", "ts": "915757200000", "tsz": "915757200000"}
             """));
 
-        assertThat(result.get("i"), is(1));
-        assertThat(result.get("l"), is(2L));
-        assertThat(result.get("f"), is(0.12f));
-        assertThat(result.get("d"), is(0.23d));
-        assertThat(result.get("s"), is((short) 4));
-        assertThat(result.get("b"), is((byte) 5));
-        assertThat(result.get("ts"), is(915757200000L));
-        assertThat(result.get("tsz"), is(915757200000L));
+        assertThat(result.get("i")).isEqualTo(1);
+        assertThat(result.get("l")).isEqualTo(2L);
+        assertThat(result.get("f")).isEqualTo(0.12f);
+        assertThat(result.get("d")).isEqualTo(0.23d);
+        assertThat(result.get("s")).isEqualTo((short) 4);
+        assertThat(result.get("b")).isEqualTo((byte) 5);
+        assertThat(result.get("ts")).isEqualTo(915757200000L);
+        assertThat(result.get("tsz")).isEqualTo(915757200000L);
     }
 
     @Test
@@ -134,7 +131,7 @@ public class SourceParserTest extends ESTestCase {
                 {"b": "true"}
             """));
 
-        assertThat(result.get("b"), is(true));
+        assertThat(result.get("b")).isEqualTo(true);
     }
 
     @Test
