@@ -108,11 +108,6 @@ public class ShardRowContext {
         return indexShard;
     }
 
-    @Nullable
-    BlobShard blobShard() {
-        return blobShard;
-    }
-
     public ClusterService clusterService() {
         return clusterService;
     }
@@ -140,11 +135,6 @@ public class ShardRowContext {
     @Nullable
     public String blobPath() {
         return blobPath;
-    }
-
-    @Nullable
-    String aliasName() {
-        return aliasName;
     }
 
     @Nullable

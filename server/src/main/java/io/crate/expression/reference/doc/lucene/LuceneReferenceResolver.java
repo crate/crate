@@ -237,6 +237,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             this.partitionPath = partitionPath;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Object value() {
             final var object = (Map<String, Object>) inner.value();
@@ -250,18 +251,22 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return object;
         }
 
+        @Override
         public void startCollect(final CollectorContext context) {
             inner.startCollect(context);
         }
 
+        @Override
         public void setNextDocId(final int doc) {
             inner.setNextDocId(doc);
         }
 
+        @Override
         public void setNextReader(ReaderContext context) throws IOException {
             inner.setNextReader(context);
         }
 
+        @Override
         public void setScorer(final Scorable scorer) {
             inner.setScorer(scorer);
         }

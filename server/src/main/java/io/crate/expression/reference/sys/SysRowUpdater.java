@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * A Component which allows for updating rows on a sys table.
@@ -73,7 +72,7 @@ public interface SysRowUpdater<TRow> {
      */
     default Consumer<Object> newRowWriter(List<ColumnIdent> idents, List<Input<?>> values, Collection<NestableCollectExpression<?, ?>> expressions) {
         assert idents.size() == values.size() : "the number of idents needs to match the number of values";
-        List<BiConsumer<TRow, Input<?>>> writers = idents.stream().map(this::getWriter).collect(Collectors.toList());
+        List<BiConsumer<TRow, Input<?>>> writers = idents.stream().map(this::getWriter).toList();
         return id -> {
             TRow row = getRow(id);
             Iterator<Input<?>> iter = values.iterator();
