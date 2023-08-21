@@ -210,12 +210,12 @@ reference documentation of :ref:`ALTER TABLE REROUTE
 
 Shard rerouting can help solve several problems:
 
-    * **Unassigned shards**: Due to cause of lack of space, shard awareness or
-      any other failure that happens during the automatic shard allocation it is
-      possible to gain unassigned shards in the cluster.
+* **Unassigned shards**: Due to cause of lack of space, shard awareness or
+  any other failure that happens during the automatic shard allocation it is
+  possible to gain unassigned shards in the cluster.
 
-    * **"Hot Shards"**: Most of your queries affect certain shards only. These
-      shards lie on a node that has insufficient resources.
+* **"Hot Shards"**: Most of your queries affect certain shards only. These
+  shards lie on a node that has insufficient resources.
 
 This command takes these :ref:`Routing Allocation Settings <conf_routing>` into
 account. Once an allocation occurs CrateDB tries (by default) to re-balance
