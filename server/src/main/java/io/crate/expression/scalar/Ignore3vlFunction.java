@@ -63,12 +63,8 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public Ignore3vlFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -79,16 +75,6 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
             return Boolean.FALSE;
         }
         return value;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

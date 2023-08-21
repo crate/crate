@@ -21,6 +21,8 @@
 
 package io.crate.user.scalar;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -32,8 +34,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
 
 public class UserFunction extends Scalar<String, Object> {
 
@@ -57,22 +57,8 @@ public class UserFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public UserFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

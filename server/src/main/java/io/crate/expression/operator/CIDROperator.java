@@ -108,12 +108,8 @@ public final class CIDROperator {
 
     public static class ContainedWithinOperator extends Scalar<Boolean, Object> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         public ContainedWithinOperator(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
         }
 
         @Override
@@ -128,16 +124,6 @@ public final class CIDROperator {
                 return null;
             }
             return containedWithin(left, right);
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

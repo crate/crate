@@ -66,26 +66,13 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType> {
 
-        private final Signature signature;
         private final UserDefinedFunctionMetadata metadata;
-        private final BoundSignature boundSignature;
 
         private DummyFunction(UserDefinedFunctionMetadata metadata,
                               Signature signature,
                               BoundSignature boundSignature) {
-            this.signature = signature;
+            super(signature, boundSignature);
             this.metadata = metadata;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

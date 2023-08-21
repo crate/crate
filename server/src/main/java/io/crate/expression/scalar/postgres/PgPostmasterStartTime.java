@@ -38,10 +38,6 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
     public static final String NAME = "pg_postmaster_start_time";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
@@ -53,19 +49,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
     }
 
     public PgPostmasterStartTime(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

@@ -88,12 +88,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private WithinFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -135,16 +131,6 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         return (right instanceof String str) ?
             GeoJSONUtils.wkt2Shape(str) :
             GeoJSONUtils.map2Shape((Map<String, Object>) right);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

@@ -147,26 +147,13 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final TriFunction<Object, Object, Boolean, Object> lookup;
 
     private SubscriptFunction(Signature signature,
                               BoundSignature boundSignature,
                               TriFunction<Object, Object, Boolean, Object> lookup) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.lookup = lookup;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

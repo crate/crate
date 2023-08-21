@@ -79,22 +79,8 @@ public class CaseFunction extends Scalar<Object, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private CaseFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

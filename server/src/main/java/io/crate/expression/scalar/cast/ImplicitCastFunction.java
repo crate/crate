@@ -58,8 +58,6 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     @Nullable
     private final DataType<?> targetType;
 
@@ -68,8 +66,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     private ImplicitCastFunction(Signature signature, BoundSignature boundSignature, @Nullable DataType<?> targetType) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.targetType = targetType;
     }
 
@@ -111,16 +108,6 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new ConversionException(arg, targetType);
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

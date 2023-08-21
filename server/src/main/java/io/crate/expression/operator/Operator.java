@@ -28,6 +28,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 
@@ -35,6 +37,10 @@ public abstract class Operator<I> extends Scalar<Boolean, I> {
 
     public static final BooleanType RETURN_TYPE = DataTypes.BOOLEAN;
     public static final String PREFIX = "op_";
+
+    protected Operator(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
+    }
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {

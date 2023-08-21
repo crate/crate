@@ -60,12 +60,8 @@ public class RegexpMatchOperator extends Operator<String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public RegexpMatchOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -87,16 +83,6 @@ public class RegexpMatchOperator extends Operator<String> {
             byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
             return regexpRunAutomaton.run(bytes, 0, bytes.length);
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

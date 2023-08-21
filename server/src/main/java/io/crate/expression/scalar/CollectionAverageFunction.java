@@ -49,12 +49,8 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private CollectionAverageFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -74,15 +70,5 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
         } else {
             return null;
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

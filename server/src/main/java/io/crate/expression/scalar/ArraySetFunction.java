@@ -64,22 +64,8 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ArraySetFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -126,22 +112,8 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
 
     static class SingleArraySetFunction extends Scalar<List<Object>, Object> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         SingleArraySetFunction(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+            super(signature, boundSignature);
         }
 
         @SafeVarargs

@@ -49,12 +49,8 @@ public final class ColDescriptionFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ColDescriptionFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs
@@ -62,15 +58,5 @@ public final class ColDescriptionFunction extends Scalar<String, Object> {
     public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         // CrateDB doesn't support comments for table columns, so always return null
         return null;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

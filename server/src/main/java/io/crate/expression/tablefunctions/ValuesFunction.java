@@ -53,18 +53,14 @@ public class ValuesFunction {
         .withVariableArity();
 
     public static void register(TableFunctionModule module) {
-        module.register(SIGNATURE, ValuesTableFunctionImplementation::new);
+        module.register(SIGNATURE, ValuesTableFunctionImplementation::of);
     }
 
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
 
-        private ValuesTableFunctionImplementation(Signature signature,
-                                                  BoundSignature boundSignature) {
-            this.signature = signature;
+        private static ValuesTableFunctionImplementation of(Signature signature, BoundSignature boundSignature) {
             var argTypes = boundSignature.argTypes();
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
@@ -73,18 +69,13 @@ public class ValuesFunction {
 
                 fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
-            returnType = new RowType(fieldTypes);
-            this.boundSignature = new BoundSignature(argTypes, returnType);
+            RowType returnType = new RowType(fieldTypes);
+            return new ValuesTableFunctionImplementation(signature, argTypes, returnType);
         }
 
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+        private ValuesTableFunctionImplementation(Signature signature, List<DataType<?>> argTypes, RowType returnType) {
+            super(signature, new BoundSignature(argTypes, returnType));
+            this.returnType = returnType;
         }
 
         @Override

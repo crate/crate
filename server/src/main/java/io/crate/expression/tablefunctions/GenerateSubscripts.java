@@ -68,12 +68,8 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private GenerateSubscripts(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     private static int getNumRows(List<?> array, int depthLevel) {
@@ -146,16 +142,6 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
             Integer::compareTo,
             i -> i
         );
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
