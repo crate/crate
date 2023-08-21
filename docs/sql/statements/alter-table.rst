@@ -191,8 +191,8 @@ operations will exclude all closed partitions.
 ``RENAME TO``
 -------------
 
-Can be used to rename a table, while maintaining its schema and data. During
-this operation the shards of the table will become temporarily unavailable.
+Can be used to rename a table or view, while maintaining its schema and data.
+If renaming a table, the shards of it become temporarily unavailable.
 
 
 .. _sql-alter-table-reroute:
