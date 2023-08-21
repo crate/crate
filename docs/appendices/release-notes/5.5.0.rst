@@ -98,6 +98,9 @@ Scalar and Aggregation Functions
 
 - Added a :ref:`KNN_MATCH <scalar_knn_match>` scalar.
 
+- Added a ``(string FROM string)`` overload to :ref:`scalar-substr` to extract a
+  substring from a string that matches a POSIX regular expression pattern.
+
 
 Performance and Resilience Improvements
 ---------------------------------------

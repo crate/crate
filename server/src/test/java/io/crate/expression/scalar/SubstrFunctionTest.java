@@ -22,12 +22,14 @@
 package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.Asserts;
 import io.crate.types.DataTypes;
@@ -87,9 +89,8 @@ public class SubstrFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidArgs() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'b'` of type `text` to type `integer`");
-        assertNormalize("substr('foo', 'b')", s -> Asserts.assertThat(s).isNull());
+        assertThatThrownBy(() -> assertNormalize("substr('foo', [1, 2])", s -> Asserts.assertThat(s).isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class);
     }
 
     @Test
@@ -100,6 +101,43 @@ public class SubstrFunctionTest extends ScalarTestCase {
     @Test
     public void test_non_generic_substring_syntax_is_alias_for_substr() {
         assertNormalize("substring('crate' FROM 3)", isLiteral("ate"));
+    }
+
+    @Test
+    public void test_substring_from_no_parenthesis() throws Exception {
+        assertEvaluate("substring('foobar' FROM 'o.b')", "oob");
+    }
+
+    @Test
+    public void test_substring_from_parenthesis() throws Exception {
+        assertEvaluate("substring('foobar' FROM 'o(.)b')", "o");
+    }
+
+    @Test
+    public void test_substring_from_uses_first_matching_group() throws Exception {
+        assertEvaluate("substring('foobar' FROM '(.)oo([a-z])')", "f");
+    }
+
+    @Test
+    public void test_substring_from_capture_full_pattern() throws Exception {
+        assertEvaluate("substring(name FROM '((.)oo([a-z]))')", "foob", Literal.of("foobar"));
+    }
+
+    @Test
+    public void test_substring_from_no_pattern_match() throws Exception {
+        assertEvaluate("substring('foobar' FROM 'nomatch')", x -> assertThat(x).isNull());
+    }
+
+    @Test
+    public void test_substring_from_null_values() throws Exception {
+        assertNormalize("substring(null::string FROM null::string)", isLiteral(null));
+        assertNormalize("substring('foobar' FROM null::string)", isLiteral(null));
+        assertNormalize("substring(null::string FROM 'pattern')", isLiteral(null));
+
+        Literal<String> nullString = Literal.of((String) null);
+        assertEvaluate("substring(name FROM null::string)", x -> assertThat(x).isNull(), nullString);
+        assertEvaluate("substring(name FROM null::string)", x -> assertThat(x).isNull(), nullString);
+        assertEvaluate("substring(name FROM 'pattern')", x -> assertThat(x).isNull(), nullString);
     }
 }
 

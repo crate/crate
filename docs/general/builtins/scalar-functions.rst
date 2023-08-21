@@ -139,6 +139,39 @@ Returns: ``text``
     SELECT 1 row in set (... sec)
 
 
+``substr('string' FROM 'pattern')``
+-----------------------------------
+
+Extract a part from a string that matches a POSIX regular expression pattern.
+
+Returns:: ``text``.
+
+If the pattern contains groups specified via parentheses it returns the first
+matching group.
+If the pattern doesn't match, the function returns ``NULL``.
+
+::
+
+    cr> SELECT
+    ...   substring('2023-08-07', '[a-z]') as no_match,
+    ...   substring('2023-08-07', '\d{4}-\d{2}-\d{2}') as full_date,
+    ...   substring('2023-08-07', '\d{4}-(\d{2})-\d{2}') as month;
+    +----------+------------+-------+
+    | no_match | full_date  | month |
+    +----------+------------+-------+
+    | NULL     | 2023-08-07 |    08 |
+    +----------+------------+-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-substring:
+
+``substring(...)``
+---------------...
+
+Alias for :ref:`scalar-substr`.
+
+
 .. _scalar-char_length:
 
 ``char_length('string')``
