@@ -109,6 +109,8 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added support for renaming views via ``ALTER TABLE <view> RENAME TO <newName>``.
+
 - Changed permissions on ``sys.jobs`` and ``sys.jobs_log`` to allow users with
   the ``AL`` privileges to see entries from other users.
 

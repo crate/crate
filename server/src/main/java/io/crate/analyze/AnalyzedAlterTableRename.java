@@ -21,28 +21,33 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-
-import java.util.function.Consumer;
 
 public class AnalyzedAlterTableRename implements DDLStatement {
 
-    private final DocTableInfo sourceTableInfo;
-    private final RelationName targetRelationName;
+    private final RelationName sourceName;
+    private final RelationName targetName;
+    private final boolean isPartitioned;
 
-    AnalyzedAlterTableRename(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
-        this.sourceTableInfo = sourceTableInfo;
-        this.targetRelationName = targetRelationName;
+    AnalyzedAlterTableRename(RelationName sourceName, RelationName targetName, boolean isPartitioned) {
+        this.sourceName = sourceName;
+        this.targetName = targetName;
+        this.isPartitioned = isPartitioned;
     }
 
-    public DocTableInfo sourceTableInfo() {
-        return sourceTableInfo;
+    public RelationName sourceName() {
+        return sourceName;
     }
 
-    public RelationName targetTableIdent() {
-        return targetRelationName;
+    public RelationName targetName() {
+        return targetName;
+    }
+
+    public boolean isPartitioned() {
+        return isPartitioned;
     }
 
     @Override

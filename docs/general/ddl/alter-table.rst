@@ -4,15 +4,15 @@
 Altering tables
 ===============
 
-.. NOTE::
-
-   ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.
-   See :ref:`appendix-compatibility`.
-
 .. rubric:: Table of contents
 
 .. contents::
    :local:
+
+.. NOTE::
+
+   ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.
+   See :ref:`appendix-compatibility`.
 
 .. hide:
 
@@ -190,12 +190,12 @@ clause::
 Renaming tables
 ===============
 
-A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
+You can rename a table or view using ``ALTER TABLE`` with the ``RENAME TO`` clause::
 
-     cr> alter table my_table rename to my_new_table;
+     cr> ALTER TABLE my_table RENAME TO my_new_table;
      ALTER OK, -1 rows affected (... sec)
 
-During the rename operation the shards of the table become temporarily unavailable.
+If renaming a table, the shards of the table become temporarily unavailable.
 
 .. _ddl_reroute_shards:
 
