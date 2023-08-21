@@ -21,6 +21,8 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -50,8 +52,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
-import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
-
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
@@ -67,22 +67,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private NotPredicate(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

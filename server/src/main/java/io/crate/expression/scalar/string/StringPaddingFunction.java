@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.Locale;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.ThreeParametersFunction;
@@ -30,8 +32,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
 
 public class StringPaddingFunction extends Scalar<String, Object> {
 
@@ -105,26 +105,13 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final ThreeParametersFunction<char[], Integer, char[], String> func;
 
     private StringPaddingFunction(Signature signature,
                                   BoundSignature boundSignature,
                                   ThreeParametersFunction<char[], Integer, char[], String> func) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.func = func;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

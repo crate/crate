@@ -43,22 +43,8 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         LnFunction.registerLnFunctions(module);
     }
 
-    protected final Signature signature;
-    protected final BoundSignature boundSignature;
-
     LogFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     /**

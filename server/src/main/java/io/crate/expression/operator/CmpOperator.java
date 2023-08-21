@@ -39,27 +39,14 @@ import io.crate.types.StorageSupport;
 
 public final class CmpOperator extends Operator<Object> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final IntPredicate isMatch;
     private final DataType<Object> type;
 
     @SuppressWarnings("unchecked")
     public CmpOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmpResultIsMatch) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.type = (DataType<Object>) boundSignature.argTypes().get(0);
         this.isMatch = cmpResultIsMatch;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

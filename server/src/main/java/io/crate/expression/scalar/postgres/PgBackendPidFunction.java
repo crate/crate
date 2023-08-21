@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.postgres;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -34,8 +36,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class PgBackendPidFunction extends Scalar<Integer, Void> {
 
@@ -52,28 +52,14 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public PgBackendPidFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         assert symbol.arguments().size() == 0 : "function's number of arguments must be 0";
         return Literal.of(-1);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

@@ -51,13 +51,10 @@ public class RandomFunction extends Scalar<Double, Void> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final Random random = new Random();
 
     public RandomFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -68,16 +65,6 @@ public class RandomFunction extends Scalar<Double, Void> {
         return symbol;
     }
 
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
 
     @Override
     @SafeVarargs

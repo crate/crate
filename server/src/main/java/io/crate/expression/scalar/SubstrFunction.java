@@ -63,22 +63,8 @@ public class SubstrFunction extends Scalar<String, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private SubstrFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -132,22 +118,8 @@ public class SubstrFunction extends Scalar<String, Object> {
 
     private static class SubstrExtractFunction extends Scalar<String, String> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-
         SubstrExtractFunction(Signature signature, BoundSignature boundSignature) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
+            super(signature, boundSignature);
         }
 
         @Override
@@ -189,25 +161,13 @@ public class SubstrFunction extends Scalar<String, Object> {
 
     private static class CompiledSubstr extends Scalar<String, String> {
 
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final Matcher matcher;
 
         public CompiledSubstr(Signature signature, BoundSignature boundSignature, String pattern) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.matcher = Pattern.compile(pattern).matcher("");
         }
 
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
-        }
 
         @Override
         @SafeVarargs

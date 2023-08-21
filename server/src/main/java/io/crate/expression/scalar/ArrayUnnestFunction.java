@@ -52,9 +52,6 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
         TypeSignature.parse("array(E)")
     ).withTypeVariableConstraints(typeVariable("E"));
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public static void register(ScalarFunctionModule module) {
         module.register(SIGNATURE, ArrayUnnestFunction::new);
     }
@@ -70,18 +67,7 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
     }
 
     public ArrayUnnestFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

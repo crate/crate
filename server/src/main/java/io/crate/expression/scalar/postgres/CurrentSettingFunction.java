@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.postgres;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import org.elasticsearch.common.inject.Provider;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -33,9 +37,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Provider;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 public class CurrentSettingFunction extends Scalar<String, Object> {
 
@@ -73,25 +74,12 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final Provider<SessionSettingRegistry> sessionSettingRegistry;
 
     CurrentSettingFunction(Signature signature, BoundSignature boundSignature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.sessionSettingRegistry = sessionSettingRegistry;
 
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

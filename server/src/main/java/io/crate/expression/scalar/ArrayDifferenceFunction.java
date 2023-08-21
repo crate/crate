@@ -66,27 +66,14 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final Optional<Set<Object>> optionalSubtractSet;
 
     private ArrayDifferenceFunction(Signature signature,
                                     BoundSignature boundSignature,
                                     @Nullable Set<Object> subtractSet) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         optionalSubtractSet = Optional.ofNullable(subtractSet);
         ensureBothInnerTypesAreNotUndefined(boundSignature.argTypes(), NAME);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

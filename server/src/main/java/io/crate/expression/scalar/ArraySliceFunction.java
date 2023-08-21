@@ -53,23 +53,9 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private ArraySliceFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

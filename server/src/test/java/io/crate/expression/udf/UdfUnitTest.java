@@ -23,9 +23,9 @@ package io.crate.expression.udf;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 
-import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
 import io.crate.data.Input;
@@ -73,20 +73,9 @@ public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
         public static final Integer RESULT = -42;
 
-        private final Signature signature;
 
         DummyFunction(Signature signature) {
-            this.signature = signature;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return BoundSignature.sameAsUnbound(signature);
+            super(signature, BoundSignature.sameAsUnbound(signature));
         }
 
         @Override

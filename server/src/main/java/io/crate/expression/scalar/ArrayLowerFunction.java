@@ -53,23 +53,9 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ArrayLowerFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), NAME);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

@@ -53,12 +53,9 @@ public class TryCastFunction extends Scalar<Object, Object> {
     }
 
     private final DataType<?> returnType;
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     private TryCastFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.returnType = boundSignature.returnType();
     }
 
@@ -69,16 +66,6 @@ public class TryCastFunction extends Scalar<Object, Object> {
         } catch (ClassCastException | IllegalArgumentException e) {
             return null;
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

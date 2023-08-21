@@ -49,12 +49,8 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private CollectionCountFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -65,15 +61,5 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
             return null;
         }
         return (long) argArray.size();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

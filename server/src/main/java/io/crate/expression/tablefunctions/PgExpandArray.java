@@ -57,13 +57,10 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final RowType resultType;
 
     public PgExpandArray(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ArrayType<?> argType = (ArrayType<?>) boundSignature.argTypes().get(0);
         resultType = new RowType(
             List.of(argType.innerType(), DataTypes.INTEGER),
@@ -94,16 +91,6 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
                     return row;
                 }
             }).iterator();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

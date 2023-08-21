@@ -41,8 +41,6 @@ import io.crate.user.UserLookup;
 
 public class LikeOperator extends Operator<String> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final TriPredicate<String, String, CaseSensitivity> matcher;
     private final CaseSensitivity caseSensitivity;
 
@@ -50,20 +48,9 @@ public class LikeOperator extends Operator<String> {
                         BoundSignature boundSignature,
                         TriPredicate<String, String, CaseSensitivity> matcher,
                         CaseSensitivity caseSensitivity) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.matcher = matcher;
         this.caseSensitivity = caseSensitivity;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
@@ -101,24 +88,11 @@ public class LikeOperator extends Operator<String> {
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final Pattern pattern;
 
         CompiledLike(Signature signature, BoundSignature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.pattern = LikeOperators.makePattern(pattern, caseSensitivity);
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @SafeVarargs

@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.util.function.BiFunction;
+
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,9 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.joda.time.Period;
-
-import java.util.function.BiFunction;
 
 public class IntervalArithmeticScalar extends Scalar<Period, Object> {
 
@@ -58,13 +59,10 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final BiFunction<Period, Period, Period> operation;
 
     IntervalArithmeticScalar(String operator, Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
 
         switch (operator) {
             case "+":
@@ -78,16 +76,6 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
                     throw new IllegalArgumentException("Unsupported operator for interval " + operator);
                 };
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override
