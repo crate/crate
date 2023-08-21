@@ -27,7 +27,6 @@ import java.util.Locale;
 
 import org.elasticsearch.common.inject.Singleton;
 
-import io.crate.common.StringUtils;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -39,7 +38,6 @@ import io.crate.types.DataTypes;
 @Singleton
 public class LoadedRules implements SessionSettingProvider {
 
-    private static final String OPTIMIZER_SETTING_PREFIX = "optimizer_";
     public static final List<Class<? extends Rule<?>>> RULES = buildRules();
 
     private static List<Class<? extends Rule<?>>> buildRules() {
@@ -50,13 +48,9 @@ public class LoadedRules implements SessionSettingProvider {
         return Lists2.map(rules, x -> (Class<? extends Rule<?>>) x.getClass());
     }
 
-    public static String buildSessionSettingName(Class<? extends Rule<?>> rule) {
-        return OPTIMIZER_SETTING_PREFIX + StringUtils.camelToSnakeCase(rule.getSimpleName());
-    }
-
     @VisibleForTesting
     static SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
-        var optimizerRuleName = buildSessionSettingName(rule);
+        var optimizerRuleName = Rule.sessionSettingName(rule);
         return new SessionSetting<>(
             optimizerRuleName,
             objects -> {},

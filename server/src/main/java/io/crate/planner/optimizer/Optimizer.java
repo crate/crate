@@ -71,17 +71,12 @@ public class Optimizer {
     }
 
     public static List<Rule<?>> removeExcludedRules(List<Rule<?>> rules, Set<Class<? extends Rule<?>>> excludedRules) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         if (excludedRules.isEmpty()) {
             return rules;
         }
         var result = new ArrayList<Rule<?>>(rules.size());
         for (var rule : rules) {
-            if (excludedRules.contains(rule.getClass())) {
-                if (isTraceEnabled) {
-                    LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
-                }
-            } else {
+            if (excludedRules.contains(rule.getClass()) == false) {
                 result.add(rule);
             }
         }
@@ -130,7 +125,7 @@ public class Optimizer {
         Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
         if (match.isPresent()) {
             if (traceEnabled) {
-                LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                LOGGER.trace("Rule " + rule.sessionSettingName() + " matched");
             }
             return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
         }
