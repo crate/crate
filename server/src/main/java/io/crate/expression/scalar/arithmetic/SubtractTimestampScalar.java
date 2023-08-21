@@ -51,23 +51,8 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
-    public SubtractTimestampScalar(Signature declaredSignature,
-                                     BoundSignature boundSignature) {
-        this.signature = declaredSignature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+    public SubtractTimestampScalar(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
     }
 
     @Override

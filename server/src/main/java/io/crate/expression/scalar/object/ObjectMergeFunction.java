@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.object;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,27 +31,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class ObjectMergeFunction extends Scalar<Map<String, Object>, Map<String, Object>> {
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ObjectMergeFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

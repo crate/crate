@@ -53,12 +53,8 @@ public class FormatFunction extends Scalar<String, Object> {
         module.register(SIGNATURE, FormatFunction::new);
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public FormatFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @SafeVarargs
@@ -75,15 +71,5 @@ public class FormatFunction extends Scalar<String, Object> {
         }
 
         return String.format(Locale.ENGLISH, (String) arg0Value, values);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

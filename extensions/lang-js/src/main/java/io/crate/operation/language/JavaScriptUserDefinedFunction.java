@@ -43,13 +43,10 @@ import io.crate.user.UserLookup;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
-    private final Signature signature;
     private final String script;
-    private final BoundSignature boundSignature;
 
     JavaScriptUserDefinedFunction(Signature signature, BoundSignature boundSignature, String script) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.script = script;
     }
 
@@ -57,6 +54,8 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     public Scalar<Object, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         try {
             return new CompiledFunction(
+                signature,
+                boundSignature,
                 resolvePolyglotFunctionValue(
                     signature.getName().name(),
                     script));
@@ -90,22 +89,12 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
     }
 
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
-
-    private class CompiledFunction extends Scalar<Object, Object> {
+    private static class CompiledFunction extends Scalar<Object, Object> {
 
         private final Value function;
 
-        private CompiledFunction(Value function) {
+        private CompiledFunction(Signature signature, BoundSignature boundSignature, Value function) {
+            super(signature, boundSignature);
             this.function = function;
         }
 
@@ -126,16 +115,6 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
                     JavaScriptLanguage.NAME
                 );
             }
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
     }
 

@@ -52,24 +52,11 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
 
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final String type;
 
     private PgTypeofFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         type = boundSignature.argTypes().get(0).getName();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @SafeVarargs

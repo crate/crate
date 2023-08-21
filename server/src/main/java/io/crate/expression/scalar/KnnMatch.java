@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.KnnFloatVectorQuery;
 import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.Nullable;
@@ -52,9 +50,6 @@ public class KnnMatch extends Scalar<Boolean, Object> {
 
     private static final float DEFAULT_MIN_SCORE = 0.50f;
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-    private final IndexWriterConfig conf;
     private DataType<float[]> type;
 
     public static void register(ScalarFunctionModule module) {
@@ -72,20 +67,8 @@ public class KnnMatch extends Scalar<Boolean, Object> {
 
     @SuppressWarnings("unchecked")
     public KnnMatch(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-        this.conf = new IndexWriterConfig(new StandardAnalyzer());
+        super(signature, boundSignature);
         this.type = (DataType<float[]>) boundSignature.argTypes().get(0);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

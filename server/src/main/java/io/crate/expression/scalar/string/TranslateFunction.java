@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -31,10 +35,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class TranslateFunction extends Scalar<String, String> {
 
@@ -52,8 +52,6 @@ public class TranslateFunction extends Scalar<String, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final Map<Character, Character> tmap;
 
     private TranslateFunction(Signature signature, BoundSignature boundSignature) {
@@ -61,8 +59,7 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     public TranslateFunction(Signature signature, BoundSignature boundSignature, Map<Character, Character> tmap) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.tmap = tmap;
     }
 
@@ -121,15 +118,5 @@ public class TranslateFunction extends Scalar<String, String> {
             tmap.putIfAbsent(c, i < to.length() ? to.charAt(i) : NULL);
         }
         return tmap;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

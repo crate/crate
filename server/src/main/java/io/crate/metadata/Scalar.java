@@ -31,6 +31,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.user.UserLookup;
 
 /**
@@ -67,6 +69,24 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
+
+    protected final Signature signature;
+    protected final BoundSignature boundSignature;
+
+    protected Scalar(Signature signature, BoundSignature boundSignature) {
+        this.signature = signature;
+        this.boundSignature = boundSignature;
+    }
+
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
+    @Override
+    public BoundSignature boundSignature() {
+        return boundSignature;
+    }
 
     /**
      * Evaluate the function using the provided arguments

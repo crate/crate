@@ -22,6 +22,11 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
+
+import java.util.List;
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;
 import io.crate.metadata.NodeContext;
@@ -32,11 +37,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 
 public class ArraySumFunction<T extends Number, R extends Number> extends Scalar<R, List<T>> {
 
@@ -73,12 +73,8 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private ArraySumFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         returnType = (DataType<R>) signature.getReturnType().createType();
 
         if (returnType == DataTypes.FLOAT) {
@@ -92,16 +88,6 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
         }
 
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

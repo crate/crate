@@ -34,8 +34,6 @@ import io.crate.types.TypeSignature;
 public class ExistsOperator extends Operator<List<Object>> {
 
     public static final String NAME = "_exists";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public static void register(OperatorModule module) {
         Signature signature = Signature.scalar(
@@ -47,18 +45,7 @@ public class ExistsOperator extends Operator<List<Object>> {
     }
 
     private ExistsOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

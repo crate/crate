@@ -25,10 +25,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTimeZone;
 
 import io.crate.common.collections.MapBuilder;
@@ -90,8 +89,6 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     @Nullable
     private final Rounding tzRounding;
 
@@ -102,19 +99,8 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     private DateTruncFunction(Signature signature,
                               BoundSignature boundSignature,
                               @Nullable Rounding tzRounding) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.tzRounding = tzRounding;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

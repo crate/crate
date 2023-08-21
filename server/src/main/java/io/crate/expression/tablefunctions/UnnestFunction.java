@@ -110,27 +110,14 @@ public class UnnestFunction {
     static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final RowType returnType;
-        private final Signature signature;
-        private final BoundSignature boundSignature;
         private final List<DataType<?>> argumentTypes;
 
         private UnnestTableFunctionImplementation(Signature signature,
                                                   BoundSignature boundSignature,
                                                   RowType returnType) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
+            super(signature, boundSignature);
             this.argumentTypes = boundSignature.argTypes();
             this.returnType = returnType;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
         }
 
         @Override

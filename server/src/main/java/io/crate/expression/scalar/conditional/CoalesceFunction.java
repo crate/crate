@@ -49,22 +49,8 @@ public class CoalesceFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "coalesce";
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private CoalesceFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

@@ -39,12 +39,9 @@ import io.crate.types.TypeSignature;
 public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
 
     public static final String NAME = "array_position";
-    private final Signature signature;
-    private final BoundSignature boundSignature;
 
     public ArrayPositionFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
@@ -66,17 +63,6 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
             ).withTypeVariableConstraints(typeVariable("T")),
             ArrayPositionFunction::new);
     }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
-    }
-
 
     @Override
     public Integer evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input[] args) {

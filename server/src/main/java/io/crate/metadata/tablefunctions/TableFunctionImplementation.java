@@ -28,6 +28,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.RowType;
 
 /**
@@ -80,6 +82,10 @@ import io.crate.types.RowType;
  *
  */
 public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row>, T> {
+
+    protected TableFunctionImplementation(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
+    }
 
     /**
      * An ObjectType which describes the result of the table function.
