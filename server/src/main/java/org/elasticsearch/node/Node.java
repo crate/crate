@@ -19,6 +19,8 @@
 
 package org.elasticsearch.node;
 
+import static org.elasticsearch.search.SearchModule.INDICES_MAX_CLAUSE_COUNT_PADDING;
+
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
@@ -447,7 +449,7 @@ public class Node implements Closeable {
             IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
             modules.add(indicesModule);
 
-            IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
+            IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings) + INDICES_MAX_CLAUSE_COUNT_PADDING);
 
             CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);

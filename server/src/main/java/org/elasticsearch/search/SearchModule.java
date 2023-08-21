@@ -24,4 +24,8 @@ import org.elasticsearch.common.settings.Setting;
 public class SearchModule {
     public static final Setting<Integer> INDICES_MAX_CLAUSE_COUNT_SETTING = Setting.intSetting("indices.query.bool.max_clause_count",
             8192, 1, Integer.MAX_VALUE, Setting.Property.NodeScope);
+
+    // Sometimes an extra FieldExistsQuery is added for a null check:
+    // https://github.com/crate/crate/pull/13733/commits/69345c0dcf17eb70be1ca26aa82bec741d3c8d8c
+    public static final int INDICES_MAX_CLAUSE_COUNT_PADDING = 1;
 }

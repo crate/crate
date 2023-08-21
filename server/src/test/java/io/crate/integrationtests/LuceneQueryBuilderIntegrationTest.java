@@ -48,7 +48,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
                        .put(super.nodeSettings(nodeOrdinal))
-                       .put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
+                       .put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(),
+                            NUMBER_OF_BOOLEAN_CLAUSES + SearchModule.INDICES_MAX_CLAUSE_COUNT_PADDING)
                        .build();
     }
 
