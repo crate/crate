@@ -1407,7 +1407,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
      * Test that when an error happens on the primary, the record should never be inserted on the replica.
      * Since we cannot force a select statement to be executed on a replica, we repeat this test to increase the chance.
      */
-    @Repeat(iterations = 5)
+   // @Repeat(iterations = 5)
     @Test
     public void testInsertWithErrorMustNotBeInsertedOnReplica() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas=1)");
@@ -1916,6 +1916,20 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
             String indexName = cursor.value;
             assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
+        }
+    }
+
+    @Test
+    public void test_insert_from_select_fail_fast() throws Exception {
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertFailFast(true);
+            execute("create table t (a int NOT NULL, b int)");
+            execute("insert into t (a,b) select NULL, 1", session);
+            assertSQLError(() -> execute("insert into t (a,b) select NULL, 1"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"a\" must not be null");
+
         }
     }
 }

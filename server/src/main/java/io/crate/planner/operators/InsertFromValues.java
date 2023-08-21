@@ -269,6 +269,7 @@ public class InsertFromValues implements LogicalPlan {
 
         for (Row row : rows) {
             try {
+                // Insert From Values always does partial failure.
                 Item item = grouper.apply(shardedRequests, row, true);
                 // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                 // constraintsChecker is also used in grouper.apply but only for partitioned tables.

@@ -145,6 +145,7 @@ public class IndexWriterProjector implements Projector {
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,
+            false, // COPY FROM has dedicated RETURN SUMMARY for partial failures
             elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,

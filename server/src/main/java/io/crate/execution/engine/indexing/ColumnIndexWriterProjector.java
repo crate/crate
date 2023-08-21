@@ -141,6 +141,7 @@ public class ColumnIndexWriterProjector implements Projector {
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,
+            txnCtx.sessionSettings().insertFailFast(),
             elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,

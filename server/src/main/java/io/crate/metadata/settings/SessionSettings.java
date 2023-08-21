@@ -130,6 +130,11 @@ public class SessionSettings implements Writeable {
         return TimeValue.ZERO;
     }
 
+    public Boolean insertFailFast() {
+        // Only available on coordinator.
+        return false;
+    }
+
     /**
      * memory.operation_limit
      **/

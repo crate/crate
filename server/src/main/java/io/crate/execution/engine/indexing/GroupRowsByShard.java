@@ -62,6 +62,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Supplier<String> indexNameResolver;
     private final ClusterService clusterService;
     private final boolean autoCreateIndices;
+    private final boolean insertFailFast;
     private final BiConsumer<ShardedRequests, String> itemFailureRecorder;
     private final Predicate<ShardedRequests> hasSourceFailure;
     private final Input<String> sourceUriInput;
@@ -78,6 +79,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices,
+                            boolean insertFailFast,
                             UpsertResultContext upsertContext) {
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
@@ -94,6 +96,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.sourceUriInput = upsertContext.getSourceUriInput();
         this.lineNumberInput = upsertContext.getLineNumberInput();
         this.autoCreateIndices = autoCreateIndices;
+        this.insertFailFast = insertFailFast;
     }
 
     public GroupRowsByShard(ClusterService clusterService,
@@ -110,6 +113,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
              expressions,
              itemFactory,
              autoCreateIndices,
+             true, // insert from values always does partial failure.
              UpsertResultContext.forRowCount());
     }
 
@@ -118,7 +122,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
      */
     @Override
     public void accept(ShardedRequests<TReq, TItem> shardedRequests, Row row) {
-        apply(shardedRequests, row, false);
+        apply(shardedRequests, row, insertFailFast);
     }
 
     @Override

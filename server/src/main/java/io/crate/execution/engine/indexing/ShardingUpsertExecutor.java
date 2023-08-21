@@ -112,11 +112,12 @@ public class ShardingUpsertExecutor
                            int bulkSize,
                            UUID jobId,
                            RowShardResolver rowShardResolver,
-                           ItemFactory<ShardUpsertRequest.Item> itemFactory,
+                           ItemFactory<Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
+                           Boolean insertFailFast,
                            ElasticsearchClient elasticsearchClient,
                            int targetTableNumShards,
                            int targetTableNumReplicas,
@@ -143,6 +144,7 @@ public class ShardingUpsertExecutor
             expressions,
             itemFactory,
             autoCreateIndices,
+            insertFailFast,
             upsertResultContext);
         bulkShardCreationLimiter = new BulkShardCreationLimiter(
             targetTableNumShards,
