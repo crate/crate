@@ -56,7 +56,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
@@ -655,7 +654,7 @@ public class InsertFromValues implements LogicalPlan {
                 if (throwable == null) {
                     result.complete(compressedResult);
                 } else {
-                    throwable = SQLExceptions.unwrap(throwable, t -> t instanceof RuntimeException);
+                    throwable = SQLExceptions.unwrap(throwable);
                     // we want to report duplicate key exceptions
                     if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
                             (partitionWasDeleted(throwable, request.index())
@@ -731,8 +730,7 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private static boolean mixedArgumentTypesFailure(Throwable throwable) {
-        return throwable instanceof ClassCastException
-               || throwable instanceof NotSerializableExceptionWrapper;
+        return throwable instanceof ClassCastException;
     }
 
     private static boolean partitionWasDeleted(Throwable throwable, String index) {

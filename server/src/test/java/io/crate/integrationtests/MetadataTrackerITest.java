@@ -378,7 +378,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 try {
                     var response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(4)");
                     rowCount = response.rowCount();
-                } catch (OperationOnInaccessibleRelationException e) {
+                } catch (Throwable e) {
                     throw new AssertionError(e.getMessage());
                 }
                 assertThat(rowCount).isEqualTo(1L);
@@ -390,7 +390,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 try {
                     var response = executeOnSubscriber("INSERT INTO p2 (id, p) VALUES(4, 4)");
                     rowCount = response.rowCount();
-                } catch (OperationOnInaccessibleRelationException e) {
+                } catch (Throwable e) {
                     throw new AssertionError(e.getMessage());
                 }
                 assertThat(rowCount).isEqualTo(1L);

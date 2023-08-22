@@ -565,7 +565,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
         Asserts.assertSQLError(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasHTTPError(BAD_REQUEST, 4003)
             .hasMessageContaining("Failed to parse mapping: analyzer [foobar] not found for field [content]");
     }
 
