@@ -194,7 +194,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4048)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s:%s] is missing", REPOSITORY_NAME, snapshot));
     }
 
     @Test
