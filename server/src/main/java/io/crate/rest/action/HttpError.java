@@ -59,7 +59,6 @@ import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.SnapshotAlreadyExistsException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -194,8 +193,6 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof RepositoryAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
-        } else if (throwable instanceof SnapshotAlreadyExistsException) {
-            httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof InvalidSnapshotNameException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof UserAlreadyExistsException) {

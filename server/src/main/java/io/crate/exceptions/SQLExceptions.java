@@ -45,7 +45,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -174,9 +173,6 @@ public class SQLExceptions {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof SnapshotCreationException) {
-            SnapshotCreationException creationException = (SnapshotCreationException) unwrappedError;
-            return new SnapshotAlreadyExistsException(creationException.getRepositoryName(), creationException.getSnapshotName());
         }
         return unwrappedError;
     }
