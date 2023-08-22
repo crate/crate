@@ -27,8 +27,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -37,6 +35,7 @@ import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -55,6 +54,7 @@ import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.common.exceptions.Exceptions;
@@ -70,16 +70,14 @@ public class SQLExceptions {
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ElasticsearchWrapperException ||
-        throwable instanceof ExecutionException;
+        throwable instanceof ExecutionException ||
+        throwable instanceof NotSerializableExceptionWrapper ||
+        throwable.getClass() == RuntimeException.class;
 
-    public static Throwable unwrap(Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
+    public static Throwable unwrap(Throwable t) {
         int counter = 0;
         Throwable result = t;
-        Predicate<Throwable> unwrapCondition = EXCEPTIONS_TO_UNWRAP;
-        if (additionalUnwrapCondition != null) {
-            unwrapCondition = unwrapCondition.or(additionalUnwrapCondition);
-        }
-        while (unwrapCondition.test(result)) {
+        while (EXCEPTIONS_TO_UNWRAP.test(result)) {
             Throwable cause = result.getCause();
             if (cause == null) {
                 return result;
@@ -95,10 +93,6 @@ public class SQLExceptions {
             result = cause;
         }
         return result;
-    }
-
-    public static Throwable unwrap(Throwable t) {
-        return unwrap(t, null);
     }
 
     public static String messageOf(@Nullable Throwable t) {
