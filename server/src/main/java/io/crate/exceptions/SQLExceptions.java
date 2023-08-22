@@ -45,7 +45,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
@@ -177,8 +176,6 @@ public class SQLExceptions {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
-        } else if (unwrappedError instanceof RepositoryMissingException) {
-            return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
         } else if (unwrappedError instanceof InvalidSnapshotNameException) {
             return new SnapshotNameInvalidException(unwrappedError.getMessage());
         } else if (unwrappedError instanceof SnapshotMissingException) {

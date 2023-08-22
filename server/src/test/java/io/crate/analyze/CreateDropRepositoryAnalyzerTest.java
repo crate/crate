@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
@@ -43,7 +44,6 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.TypeSettings;
 import io.crate.data.Row;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
-import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -120,8 +120,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     @Test
     public void testDropUnknownRepository() {
         assertThatThrownBy(() -> analyze(e, "DROP REPOSITORY \"unknown_repo\""))
-            .isExactlyInstanceOf(RepositoryUnknownException.class)
-            .hasMessage("Repository 'unknown_repo' unknown");
+            .isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessage("[unknown_repo] missing");
     }
 
     @Test
