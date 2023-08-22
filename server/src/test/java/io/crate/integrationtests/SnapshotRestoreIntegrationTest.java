@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -203,7 +204,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + repository + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s] missing", repository));
     }
 
     @Test
@@ -292,7 +293,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining("Repository 'unknown_repo' unknown");
+            .hasMessageContaining("[unknown_repo] missing");
     }
 
     @Test

@@ -29,6 +29,7 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -53,7 +54,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
-import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
@@ -172,7 +172,7 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
         } else if (throwable instanceof RelationsUnknown) {
             httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
-        } else if (throwable instanceof RepositoryUnknownException) {
+        } else if (throwable instanceof RepositoryMissingException) {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_UNKNOWN;
         } else if (throwable instanceof SchemaUnknownException) {
             httpErrorStatus = HttpErrorStatus.SCHEMA_UNKNOWN;
