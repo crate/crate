@@ -284,7 +284,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1L);
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [my_snapshot], snapshot with the same name already exists");
     }
 
@@ -300,7 +300,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     public void testInvalidSnapshotName() throws Exception {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
     }
 

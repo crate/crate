@@ -30,6 +30,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
+import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -58,7 +59,6 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.SnapshotAlreadyExistsException;
-import io.crate.exceptions.SnapshotNameInvalidException;
 import io.crate.exceptions.SnapshotUnknownException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
@@ -196,8 +196,8 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof SnapshotAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
-        } else if (throwable instanceof SnapshotNameInvalidException) {
-            httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
+        } else if (throwable instanceof InvalidSnapshotNameException) {
+            httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof UserAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.USER_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof UserDefinedFunctionAlreadyExistsException) {
