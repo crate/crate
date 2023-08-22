@@ -97,7 +97,7 @@ public class KillIntegrationTest extends IntegTestCase {
             } catch (Throwable exception) {
                 // wrapped in ExecutionException or RuntimeException via Exceptions.toRuntimeExceptions
                 // (E.g. in ShardDMLExecutor.maybeRaiseFailure)
-                exception = SQLExceptions.unwrap(exception, t -> t.getClass() == RuntimeException.class);
+                exception = SQLExceptions.unwrap(exception);
                 assertThat(exception).satisfiesAnyOf(
                     x -> assertThat(x).isExactlyInstanceOf(JobKilledException.class),
                     x -> assertThat(x).isExactlyInstanceOf(InterruptedException.class),

@@ -21,7 +21,28 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.ShardId;
+
 import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.InMemoryBatchIterator;
@@ -38,25 +59,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.ShardId;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * Utility class to group requests by shardId and execute them.
@@ -247,7 +249,7 @@ public class ShardRequestExecutor<Req> {
     private static <A> void updateOrFail(A acc, ShardResponse response, BiConsumer<A, ShardResponse> f) {
         Exception exception = response.failure();
         if (exception != null) {
-            Throwable t = SQLExceptions.unwrap(exception, e -> e instanceof RuntimeException);
+            Throwable t = SQLExceptions.unwrap(exception);
             if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
                 throw Exceptions.toRuntimeException(t);
             }
