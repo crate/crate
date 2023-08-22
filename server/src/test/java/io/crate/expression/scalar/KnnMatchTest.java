@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -35,22 +36,11 @@ import io.crate.testing.QueryTester;
 public class KnnMatchTest extends ScalarTestCase {
 
     @Test
-    public void test_null_arg_returns_null() throws Exception {
-        assertEvaluate("knn_match(null, [1.2]::float_vector(1), 2)", x -> assertThat(x).isNull());
-        assertEvaluate("knn_match([1.2]::float_vector(1), null, 2)", x -> assertThat(x).isNull());
-        assertEvaluate("knn_match([1.2]::float_vector(1), [1.2]::float_vector(1), null)", x -> assertThat(x).isNull());
-    }
-
-    @Test
-    public void test_knn_query_match() throws Exception {
-        assertEvaluate(
-            "knn_match([1.0, 2.0, 3.14]::float_vector(3), [1.0, 2.0, 3.14]::float_vector(3), 5)", true);
-    }
-
-    @Test
-    public void test_knn_query_below_min_score() throws Exception {
-        assertEvaluate(
-            "knn_match([1.0, 2.0, 3.14]::float_vector(3), [0.0, 0.0, 0.0]::float_vector(3), 5)", false);
+    public void test_knn_match_evaluate_results_in_an_error() throws Exception {
+        assertThatThrownBy(() -> {
+            assertEvaluate(
+                "knn_match([1.0, 2.0, 3.14]::float_vector(3), [1.0, 2.0, 3.14]::float_vector(3), 5)", true);
+        }).isExactlyInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
