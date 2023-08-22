@@ -4298,9 +4298,8 @@ the query.
 
 This function must be used within a ``WHERE`` clause targeting a table to use it
 as a predicate that searches the whole dataset of a table.
-If used *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
-virtual table instead of a physical table, the search algorithm will only
-consider the current row, not the whole dataset.
+Using it *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
+virtual table instead of a physical table, results in an error.
 
 Similar to the :ref:`MATCH predicate <predicates_match>`, this function affects
 the :ref:`_score <sql_administration_system_column_score>` value.
