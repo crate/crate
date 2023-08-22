@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
+import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -59,7 +60,6 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.SnapshotAlreadyExistsException;
-import io.crate.exceptions.SnapshotUnknownException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -180,7 +180,7 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.USER_DEFINED_FUNCTION_UNKNOWN;
         } else if (throwable instanceof UserUnknownException) {
             httpErrorStatus = HttpErrorStatus.USER_UNKNOWN;
-        } else if (throwable instanceof SnapshotUnknownException) {
+        } else if (throwable instanceof SnapshotMissingException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_UNKNOWN;
         } else if (throwable instanceof UnauthorizedException) {
             httpErrorStatus = HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
