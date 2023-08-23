@@ -541,6 +541,37 @@ public class Indexer {
         }
     }
 
+    /**
+     * Phase 1 of the indexing: collect all new columns
+     * and update schema **before** creating a Lucene document.
+     */
+    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
+        ArrayList<Reference> newColumns = new ArrayList<>();
+        Consumer<? super Reference> onDynamicColumn = ref -> {
+            ColumnIdent.validateColumnName(ref.column().name());
+            ref.column().path().forEach(ColumnIdent::validateObjectKey);
+            newColumns.add(ref);
+        };
+
+        Object[] values = item.insertValues();
+        for (int i = 0; i < values.length; i++) {
+            Reference reference = columns.get(i);
+            Object value = reference.valueType().valueForInsert(values[i]);
+            // No granularity check since PARTITIONED BY columns cannot be added dynamically.
+            if (value == null) {
+                continue;
+            }
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn);
+        }
+        // TODO: synthetics can also add columns?
+        // default/gen expressions with something like as object (existing_int_col: 1, non_existent_int_col: 2).
+        return newColumns;
+    }
+
+    /**
+     * Phase 2 of the indexing. At this point schema is already updated.
+     */
     @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
@@ -548,12 +579,6 @@ public class Indexer {
 
         Document doc = new Document();
         Consumer<? super IndexableField> addField = doc::add;
-        ArrayList<Reference> newColumns = new ArrayList<>();
-        Consumer<? super Reference> onDynamicColumn = ref -> {
-            ColumnIdent.validateColumnName(ref.column().name());
-            ref.column().path().forEach(ColumnIdent::validateObjectKey);
-            newColumns.add(ref);
-        };
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
@@ -563,6 +588,7 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
+                // TODO: Add assertion that oid is assigned once AddColumnAction returns OID-S in the response and Indexer targets gets updated.
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
@@ -580,7 +606,6 @@ public class Indexer {
                     reference.valueType().sanitizeValue(value),
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     columnConstraints
                 );
@@ -601,7 +626,6 @@ public class Indexer {
                     value,
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     columnConstraints
                 );
@@ -655,8 +679,7 @@ public class Indexer {
                 item.id(),
                 doc,
                 source,
-                null,
-                newColumns
+                null
             );
         }
     }
