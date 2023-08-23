@@ -113,7 +113,6 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                     value,
                     xContentBuilder,
                     fields::add,
-                    ref -> {},
                     Map.of(),
                     Map.of()
                 );

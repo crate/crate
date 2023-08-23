@@ -4900,8 +4900,7 @@ public class InternalEngineTests extends EngineTestCase {
                 id,
                 document,
                 source,
-                null,
-                List.of()
+                null
             );
 
             final Engine.Index index = new Engine.Index(

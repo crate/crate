@@ -58,7 +58,6 @@ public class FloatIndexer implements ValueIndexer<Float> {
     public void indexValue(Float value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);

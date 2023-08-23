@@ -58,8 +58,9 @@ public class RawIndexer {
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
     private final List<Reference> nonDeterministicSynthetics;
 
-    private Indexer currentRowIndexer;
 
+    private Indexer currentRowIndexer;
+    private IndexItem.StaticItem currentItem;
 
     public RawIndexer(String indexName,
                       DocTableInfo table,
@@ -77,7 +78,10 @@ public class RawIndexer {
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
     }
 
-    public ParsedDocument index(IndexItem item) throws IOException {
+    /**
+     * Looks for new columns in the values of the given IndexItem and returns them.
+     */
+    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         String raw = (String) item.insertValues()[0];
         Map<String, Object> doc = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, raw, true);
         currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
@@ -130,13 +134,28 @@ public class RawIndexer {
             insertValues[doc.size() + i] = item.insertValues()[i + 1];
         }
 
-        ParsedDocument parsedDoc = currentRowIndexer.index(new IndexItem.StaticItem(
+        currentItem = new IndexItem.StaticItem(
             item.id(),
             item.pkValues(),
             insertValues,
             item.seqNo(),
             item.primaryTerm()
-        ));
+        );
+
+        return currentRowIndexer.collectSchemaUpdates(currentItem);
+    }
+
+    /**
+     * Create a {@link ParsedDocument} from {@link IndexItem}
+     *
+     * This must be called after any new columns (found via
+     * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
+     * state.
+     */
+    public ParsedDocument index(IndexItem item) throws IOException {
+        assert currentRowIndexer != null : "Must be used only after collecting schema updates.";
+
+        ParsedDocument parsedDoc = currentRowIndexer.index(currentItem);
         return parsedDoc;
     }
 
