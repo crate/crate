@@ -21,6 +21,18 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -40,17 +52,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -85,7 +86,7 @@ public class FileCollectSource implements CollectSource {
 
         List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
         return CompletableFuture.completedFuture(
-            FileReadingIterator.newInstance(
+            new FileReadingIterator(
                 fileUris,
                 ctx.topLevelInputs(),
                 ctx.expressions(),

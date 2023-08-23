@@ -216,7 +216,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             Input<String> sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);
         }
-        return FileReadingIterator.newInstance(
+        return new FileReadingIterator(
             fileUris,
             inputs,
             ctx.expressions(),

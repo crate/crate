@@ -43,13 +43,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.common.annotations.VisibleForTesting;
@@ -66,36 +65,6 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private static final Logger LOGGER = LogManager.getLogger(FileReadingIterator.class);
     @VisibleForTesting
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
-
-    public static BatchIterator<Row> newInstance(Collection<String> fileUris,
-                                                 List<Input<?>> inputs,
-                                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
-                                                 String compression,
-                                                 Map<String, FileInputFactory> fileInputFactories,
-                                                 Boolean shared,
-                                                 int numReaders,
-                                                 int readerNumber,
-                                                 List<String> targetColumns,
-                                                 CopyFromParserProperties parserProperties,
-                                                 FileUriCollectPhase.InputFormat inputFormat,
-                                                 Settings withClauseOptions,
-                                                 ScheduledExecutorService scheduler) {
-        return new FileReadingIterator(
-            fileUris,
-            inputs,
-            collectorExpressions,
-            compression,
-            fileInputFactories,
-            shared,
-            numReaders,
-            readerNumber,
-            targetColumns,
-            parserProperties,
-            inputFormat,
-            withClauseOptions,
-            scheduler);
-    }
-
 
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
@@ -124,20 +93,19 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> backOffPolicy;
 
-    @VisibleForTesting
-    FileReadingIterator(Collection<String> fileUris,
-                        List<? extends Input<?>> inputs,
-                        Iterable<LineCollectorExpression<?>> collectorExpressions,
-                        String compression,
-                        Map<String, FileInputFactory> fileInputFactories,
-                        Boolean shared,
-                        int numReaders,
-                        int readerNumber,
-                        List<String> targetColumns,
-                        CopyFromParserProperties parserProperties,
-                        FileUriCollectPhase.InputFormat inputFormat,
-                        Settings withClauseOptions,
-                        ScheduledExecutorService scheduler) {
+    public FileReadingIterator(Collection<String> fileUris,
+                               List<? extends Input<?>> inputs,
+                               Iterable<LineCollectorExpression<?>> collectorExpressions,
+                               String compression,
+                               Map<String, FileInputFactory> fileInputFactories,
+                               Boolean shared,
+                               int numReaders,
+                               int readerNumber,
+                               List<String> targetColumns,
+                               CopyFromParserProperties parserProperties,
+                               FileUriCollectPhase.InputFormat inputFormat,
+                               Settings withClauseOptions,
+                               ScheduledExecutorService scheduler) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
