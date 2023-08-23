@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import org.jetbrains.annotations.Nullable;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
@@ -44,7 +45,6 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public void indexValue(List<T> values,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.startArray();
@@ -57,7 +57,6 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         value,
                         xContentBuilder,
                         addField,
-                        onDynamicColumn,
                         synthetics,
                         toValidate
                     );
@@ -65,5 +64,18 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             }
         }
         xContentBuilder.endArray();
+    }
+
+    @Override
+    public void collectSchemaUpdates(@Nullable List<T> values,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+        if (values != null) {
+            for (T value : values) {
+                if (value != null) {
+                    innerIndexer.collectSchemaUpdates(value, onDynamicColumn, synthetics);
+                }
+            }
+        }
     }
 }
