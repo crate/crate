@@ -140,7 +140,7 @@ public class JsonReaderBenchmark {
             txnCtx, FileLineReferenceResolver::getImplementation);
 
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-        BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
+        BatchIterator<Row> batchIterator = new FileReadingIterator(
             Collections.singletonList(fileUri),
             inputs,
             ctx.expressions(),

@@ -476,7 +476,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
 
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-        return FileReadingIterator.newInstance(
+        return new FileReadingIterator(
             fileUris,
             inputs,
             ctx.expressions(),

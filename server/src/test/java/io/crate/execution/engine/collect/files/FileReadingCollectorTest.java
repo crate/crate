@@ -51,8 +51,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
@@ -242,7 +240,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);
         }
-        return FileReadingIterator.newInstance(
+        return new FileReadingIterator(
             fileUris,
             inputs,
             ctx.expressions(),
@@ -256,21 +254,5 @@ public class FileReadingCollectorTest extends ESTestCase {
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
             THREAD_POOL.scheduler());
-    }
-
-    private static class WriteBufferAnswer implements Answer<Integer> {
-
-        private byte[] bytes;
-
-        public WriteBufferAnswer(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public Integer answer(InvocationOnMock invocation) throws Throwable {
-            byte[] buffer = (byte[]) invocation.getArguments()[0];
-            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
-            return bytes.length;
-        }
     }
 }
