@@ -60,7 +60,6 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     public void indexValue(Number value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);

@@ -415,7 +415,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         document.add(seqID.primaryTerm);
         final BytesReference source = new BytesArray(new byte[] { 1 });
         final ParsedDocument doc =
-            new ParsedDocument(versionField, seqID, id, document, source, null, List.of());
+            new ParsedDocument(versionField, seqID, id, document, source, null);
         return new Engine.Index(
             new Term("_id", Uid.encodeId(doc.id())), doc, UNASSIGNED_SEQ_NO, 0,
             Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);

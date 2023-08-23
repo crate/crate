@@ -377,8 +377,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer.index(item);
-            if (!parsedDoc.newColumns().isEmpty()) {
+            List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+
+            if (!newColumns.isEmpty()) {
                 // this forces clearing the cache
                 schemas.tableExists(relationName);
 
@@ -390,10 +391,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
-                logger.trace("Mappings are not available on the replica columns={}", parsedDoc.newColumns());
+                logger.trace("Mappings are not available on the replica columns={}", newColumns);
                 throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + parsedDoc.newColumns());
+                    "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
+
+            ParsedDocument parsedDoc = indexer.index(item);
             Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -517,6 +520,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         final long startTime = System.nanoTime();
+
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        if (!newColumns.isEmpty()) {
+            var addColumnRequest = new AddColumnRequest(
+                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
+                newColumns,
+                Map.of(),
+                new IntArrayList(0)
+            );
+            addColumnAction.execute(addColumnRequest).get();
+        }
+
         ParsedDocument parsedDoc = indexer.index(item);
 
         // Replica must use the same values for undeterministic defaults/generated columns
@@ -524,15 +539,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.insertValues(indexer.addGeneratedValues(item));
         }
 
-        if (!parsedDoc.newColumns().isEmpty()) {
-            var addColumnRequest = new AddColumnRequest(
-                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
-                parsedDoc.newColumns(),
-                Map.of(),
-                new IntArrayList(0)
-            );
-            addColumnAction.execute(addColumnRequest).get();
-        }
+
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);

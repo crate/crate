@@ -59,7 +59,6 @@ public class IpIndexer implements ValueIndexer<String> {
     public void indexValue(String value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
