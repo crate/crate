@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 
@@ -55,6 +56,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
@@ -98,24 +100,10 @@ public class HashJoin extends JoinPlan {
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        // First extract the symbols that belong to rhs
-        var rhsHashSymbols = new ArrayList<Symbol>();
-        for (var relationName : rhs.getRelationNames()) {
-            var symbols = hashSymbols.remove(relationName);
-            if (symbols != null) {
-                for (var symbol : symbols) {
-                    rhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            }
-        }
-        // All leftover extracted symbols belong to the lhs
-        var lhsHashSymbols = new ArrayList<Symbol>();
-        for (var symbols : hashSymbols.values()) {
-            for (Symbol symbol : symbols) {
-                lhsHashSymbols.add(paramBinder.apply(symbol));
-            }
-        }
+        var hashJoinConditionSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+
+        var rhsHashSymbols = extractHashSymbols(rhs, hashJoinConditionSymbols, paramBinder);
+        var lhsHashSymbols = extractHashSymbols(lhs, hashJoinConditionSymbols, paramBinder);
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
         ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
@@ -191,6 +179,23 @@ public class HashJoin extends JoinPlan {
             outputs.size(),
             null
         );
+    }
+
+    private static List<Symbol> extractHashSymbols(LogicalPlan plan,
+                                                   Map<RelationName, List<Symbol>> hashSymbols,
+                                                   SubQueryAndParamBinder paramBinder) {
+        var result = new LinkedHashSet<Symbol>();
+        for (var output : plan.outputs()) {
+            var relationNames = RelationNameCollector.collect(output);
+            var symbols = hashSymbols.get(getOnlyElement(relationNames));
+            if (symbols != null) {
+                for (var symbol : symbols) {
+                    result.add(paramBinder.apply(symbol));
+                }
+            }
+        }
+        assert result.isEmpty() == false : "HashSymbols must not be empty";
+        return new ArrayList<>(result);
     }
 
     @Override
