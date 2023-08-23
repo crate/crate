@@ -125,11 +125,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "y", 20);
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        IndexItem item = item(value);
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
             .hasSize(8);
 
-        assertThat(parsedDoc.newColumns())
+        assertThat(newColumns)
             .hasSize(1);
 
         assertThat(parsedDoc.source().utf8ToString()).isIn(
@@ -138,8 +140,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         value = Map.of("x", 10, "y", 20);
-        parsedDoc = indexer.index(item(value));
-        assertThat(parsedDoc.newColumns()).isEmpty();
+        newColumns = indexer.collectSchemaUpdates(item(value));
+        assertThat(newColumns).isEmpty();
     }
 
     @Test
@@ -160,11 +162,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20, "z", 30));
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        IndexItem item = item(value);
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
             .hasSize(9);
 
-        assertThat(parsedDoc.newColumns())
+        assertThat(newColumns)
             .satisfiesExactly(
                 col1 -> assertThat(col1).isReference().hasName("o['obj']"),
                 col2 -> assertThat(col2).isReference()
@@ -214,9 +218,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> value = Map.of("x", 10, "xs", List.of(2, 3, 4));
-        ParsedDocument parsedDoc = indexer.index(item(value));
+        IndexItem item = item(value);
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument parsedDoc = indexer.index(item);
 
-        assertThat(parsedDoc.newColumns())
+        assertThat(newColumns)
             .satisfiesExactly(
                 col1 -> assertThat(col1)
                     .isReference()
@@ -497,7 +503,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 10, "y", 20))))
+        assertThatThrownBy(() -> indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20))))
             .hasMessage("Cannot add column `y` to strict object `o`");
     }
 
@@ -524,8 +530,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        ParsedDocument index = indexer.index(item(Map.of("x", 10, "y", 20)));
-        assertThat(index.newColumns()).satisfiesExactly(
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20)));
+        assertThat(newColumns).satisfiesExactly(
             r -> assertThat(r)
                 .isReference()
                 .hasName("o['y']")
@@ -717,8 +723,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        ParsedDocument doc = indexer.index(item(42, "Hello", 21));
-        assertThat(doc.newColumns()).satisfiesExactly(
+        IndexItem item = item(42, "Hello", 21);
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument doc = indexer.index(item);
+        assertThat(newColumns).satisfiesExactly(
             x -> assertThat(x)
                 .isReference()
                 .hasName("y")
@@ -736,8 +744,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
 
-        doc = indexer.index(item(42, "Hello", 22));
-        assertThat(doc.newColumns())
+        newColumns = indexer.collectSchemaUpdates(item(42, "Hello", 22));
+        assertThat(newColumns)
             .as("Doesn't repeatedly add new column")
             .hasSize(0);
     }
@@ -819,8 +827,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         List<Object> n1 = List.of();
         List<Object> n2 = Arrays.asList(null, null);
-        ParsedDocument doc = indexer.index(item(Map.of("inner", n1), n1, n2));
-        assertThat(doc.newColumns()).isEmpty();
+        IndexItem item = item(Map.of("inner", n1), n1, n2);
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument doc = indexer.index(item);
+        assertThat(newColumns).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
             {"o":{"inner":[]},"n1":[],"n2":[null,null]}
@@ -834,8 +844,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int generated always as x + 1)")
             .build();
         Indexer indexer = getIndexer(e, "tbl", NumberFieldMapper.FIELD_TYPE, "x");
-        ParsedDocument doc = indexer.index(item(new Object[] { null }));
-        assertThat(doc.newColumns()).isEmpty();
+        IndexItem item = item(new Object[] { null });
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument doc = indexer.index(item);
+        assertThat(newColumns).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualTo("{}");
     }
 
@@ -887,10 +899,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 o.put(key, c);
             }
             IndexItem item = item(10, o, 50);
+            List<Reference> collectedNewColumns = indexer.collectSchemaUpdates(item);
             ParsedDocument doc = indexer.index(item);
             if (source == null) {
                 source = doc.source();
-                newColumns = doc.newColumns();
+                newColumns = collectedNewColumns;
                 logger.info("Dynamic column order: {}", newColumns);
                 logger.info("New keys order: {}", keys);
             } else {
@@ -937,8 +950,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 o.put(key, c);
             }
             IndexItem item = item(10, o, 50);
+            List<Reference> collectedNewColumns = indexer.collectSchemaUpdates(item);
             ParsedDocument doc = indexer.index(item);
-            assertThat(doc.newColumns()).isEmpty();
+            assertThat(collectedNewColumns).isEmpty();
             assertThat(doc.source())
                 .as(
                     "Fields in new source expected to match old source\n" +
@@ -1123,8 +1137,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(x, y),
             null
         );
-        ParsedDocument doc = indexer.index(item(10, List.of(List.of(1, 2), List.of(3, 4))));
-        List<Reference> newColumns = doc.newColumns();
+        IndexItem item = item(10, List.of(List.of(1, 2), List.of(3, 4)));
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        ParsedDocument doc = indexer.index(item);
         assertThat(newColumns).satisfiesExactly(
             column -> assertThat(column)
                 .isReference()

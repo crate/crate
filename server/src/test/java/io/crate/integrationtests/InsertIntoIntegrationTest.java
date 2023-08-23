@@ -1919,6 +1919,21 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_generated_expression_updates_schema() {
+        execute("create table t (" +
+            "id int," +
+            "details object generated always as {\"a1\" = {\"b1\" = 'test'}}," +
+            "nested_gen object as (a int, gen object generated always as {\"a2\" = {\"b2\" = 'test2'}})) " +
+            "with (number_of_replicas=0, column_policy='dynamic')");
+        execute("insert into t (id, nested_gen) values (1, {\"a\" = 1})");
+        refresh();
+        execute("select * from t");
+        assertThat(response).hasRows(
+            "1| {a1={b1=test}}| {a=1, gen={a2={b2=test2}}}"
+        );
+    }
+
+    @Test
     public void test_returning_non_deterministic_synthetics_match_actually_persisted_value() {
         execute("""
             create table tbl (
