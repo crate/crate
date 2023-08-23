@@ -22,6 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -378,9 +379,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
+
+            ParsedDocument parsedDoc = null;
+            List<Reference> newColumns = new ArrayList<>();
+
+            if (indexer == null) {
+                // TODO: Add 2-phase indexing support to RawIndexer.
+                parsedDoc = rawIndexer.index(item);
+            } else {
+                newColumns = indexer.collectSchemaUpdates(item);
+            }
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer == null ? rawIndexer.index(item) : indexer.index(item);
-            if (!parsedDoc.newColumns().isEmpty()) {
+            if (!newColumns.isEmpty()) {
                 // this forces clearing the cache
                 schemas.tableExists(relationName);
 
@@ -392,9 +402,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
-                logger.trace("Mappings are not available on the replica columns={}", parsedDoc.newColumns());
+                logger.trace("Mappings are not available on the replica columns={}", newColumns);
                 throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + parsedDoc.newColumns());
+                    "Mappings are not available on the replica yet, triggered update: " + newColumns);
+            }
+
+            if (indexer != null) {
+                // TODO: Add 2-phase indexing support to RawIndexer.
+                parsedDoc = indexer.index(item);
             }
             Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
             boolean isRetry = false;
@@ -511,22 +526,38 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        @Nullable RawIndexer rawIndexer,
                                        long version) throws Exception {
         final long startTime = System.nanoTime();
-        ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item) : rawIndexer.index(item);
+
+        ParsedDocument parsedDoc = null;
+        List<Reference> newColumns = new ArrayList<>();
+
+        if (indexer == null) {
+            // TODO: Add 2-phase indexing support to RawIndexer.
+            parsedDoc = rawIndexer.index(item);
+        } else {
+            newColumns = indexer.collectSchemaUpdates(item);
+        }
+
+        if (!newColumns.isEmpty()) {
+            var addColumnRequest = new AddColumnRequest(
+                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
+                newColumns,
+                Map.of(),
+                new IntArrayList(0)
+            );
+            addColumnAction.execute(addColumnRequest).get();
+        }
+
+        if (indexer != null) {
+            // TODO: Add 2-phase indexing support to RawIndexer.
+            parsedDoc = indexer.index(item);
+        }
 
         // Replica must use the same values for undeterministic defaults/generated columns
         if (indexer.hasUndeterministicSynthetics()) {
             item.insertValues(indexer.addGeneratedValues(item));
         }
 
-        if (!parsedDoc.newColumns().isEmpty()) {
-            var addColumnRequest = new AddColumnRequest(
-                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
-                parsedDoc.newColumns(),
-                Map.of(),
-                new IntArrayList(0)
-            );
-            addColumnAction.execute(addColumnRequest).get();
-        }
+
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
