@@ -50,11 +50,15 @@ import io.crate.metadata.Reference;
  **/
 public interface ValueIndexer<T> {
 
+    /**
+     * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
+     */
+    default void collectSchemaUpdates(@Nullable T value, Consumer<? super Reference> onDynamicColumn) throws IOException {}
+
     void indexValue(
         @Nullable T value,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
-        Consumer<? super Reference> onDynamicColumn,
         Map<ColumnIdent, Indexer.Synthetic> synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate
     ) throws IOException;

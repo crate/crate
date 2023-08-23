@@ -102,7 +102,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(@Nullable Map<String, Object> value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
@@ -134,25 +133,48 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     type.sanitizeValue(innerValue),
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     checks
                 );
             }
         }
-        if (value != null) {
-            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
-        }
+
+        // We don't need to parse object and try to index unknown key/values since at the second phase there are no unknown columns.
+        // All unknown columns are already handled in the first phase, thus innerTypes must contain all relevant entries on each level
         xContentBuilder.endObject();
+    }
+
+    @Override
+    public void collectSchemaUpdates(@Nullable Map<String, Object> value, Consumer<? super Reference> onDynamicColumn) throws IOException {
+        for (var entry : innerTypes.entrySet()) {
+            String innerName = entry.getKey();
+            DataType<?> type = entry.getValue();
+            Object innerValue = null;
+            // TODO: handle synthetics or figure out whether handling them in the Indexer is enough (there is TODO there as well)
+            if (value != null) {
+                innerValue = value.get(innerName);
+            }
+            if (innerValue == null) {
+                continue;
+            }
+            var valueIndexer = innerIndexers.get(innerName);
+            // valueIndexer is null for partitioned columns
+            if (valueIndexer != null) {
+                valueIndexer.collectSchemaUpdates(
+                    type.sanitizeValue(innerValue),
+                    onDynamicColumn
+                );
+            }
+        }
+        if (value != null) {
+            addNewColumns(value, onDynamicColumn);
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
-                               XContentBuilder xContentBuilder,
-                               Consumer<? super IndexableField> addField,
-                               Consumer<? super Reference> onDynamicColumn,
-                               Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                               Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+                               Consumer<? super Reference> onDynamicColumn) throws IOException {
+        // TODO: handle synthetics or figure out whether handling them in the Indexer is enough (there is TODO there as well)
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -162,7 +184,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             if (innerValue == null) {
-                xContentBuilder.nullField(innerName);
                 continue;
             }
             if (ref.columnPolicy() == ColumnPolicy.STRICT) {
@@ -174,15 +195,13 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 ));
             }
             if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                xContentBuilder.field(innerName, innerValue);
                 continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                xContentBuilder.field(innerName);
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, null)) {
                     continue;
                 }
                 throw new IllegalArgumentException(
@@ -214,14 +233,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             );
             innerIndexers.put(innerName, valueIndexer);
             innerTypes.put(innerName, type);
-            xContentBuilder.field(innerName);
-            valueIndexer.indexValue(
+            valueIndexer.collectSchemaUpdates(
                 innerValue,
-                xContentBuilder,
-                addField,
-                onDynamicColumn,
-                synthetics,
-                checks
+                onDynamicColumn
             );
         }
     }
