@@ -37,17 +37,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -55,6 +61,8 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
@@ -62,6 +70,7 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import io.crate.types.DataTypes;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -1030,4 +1039,65 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
     }
+
+//    @Test
+//    public void test_input_columns() throws Exception {
+//        SQLExecutor executor = SQLExecutor.builder(clusterService)
+//            .addTable("create table doc.t1(a int, b int)")
+//            .addTable("create table doc.t2(c int, d int)")
+//            .addTable("create table doc.t3(e int, f int)")
+//            .build();
+//
+//        var a = executor.asSymbol("a");
+//        var b = executor.asSymbol("b");
+//        var c = executor.asSymbol("c");
+//        var d = executor.asSymbol("d");
+//        var e = executor.asSymbol("e");
+//        var f = executor.asSymbol("f");
+//
+//        {
+//            var joinCondition1 = executor.asSymbol("t1.b = t3.f");
+//
+//            // lhsHashSymbols = [b]
+//            // lhsOutputs = [b, a]
+//            // rhsHashSymbols = [f]
+//            // rhsOutputs = [e, f]
+//
+//            var lhsHashSymbols = List.of(b);
+//            var lhsOutputs = List.of(b, a);
+//
+//            var rhsHashSymbols = List.of(f);
+//            var rhsOutputs = List.of(e, f);
+//
+//            List<Symbol> leftJoinConditionInputs = InputColumns.create(lhsHashSymbols,
+//                                                                       new InputColumns.SourceSymbols(lhsOutputs));
+//            List<Symbol> rightJoinConditionInputs = InputColumns.create(rhsHashSymbols,
+//                                                                        new InputColumns.SourceSymbols(rhsOutputs));
+//
+//
+//        }
+//
+//        {
+//            var joinCondition2 = executor.asSymbol("(a = c) AND (t2.d = t3.e)");
+//
+//            // lhsHashSymbols = [c, d]
+//            // lhsOutputs = [c, d]
+//            // rhsHashSymbols = [a, e]
+//            // rhsOutputs = [b, a, e, f]
+//
+//            var lhsHashSymbols = List.of(c, d);
+//            var lhsOutputs = List.of(c, d);
+//
+//            var rhsHashSymbols = List.of(c, d);
+//            var rhsOutputs = List.of(b, a, e, f);
+//
+//            List<Symbol> leftJoinConditionInputs = InputColumns.create(lhsHashSymbols,
+//                                                                       new InputColumns.SourceSymbols(lhsOutputs));
+//
+//            List<Symbol> rightJoinConditionInputs = InputColumns.create(rhsHashSymbols,
+//                                                                        new InputColumns.SourceSymbols(rhsOutputs));
+//        }
+//
+//
+//    }
 }

@@ -48,6 +48,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -1524,4 +1525,41 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
         assertThat(execute(stmt)).hasRowCount(51);
     }
+
+    /*
+     * https://github.com/crate/crate/issues/14583
+     */
+    @UseJdbc(0)
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(value = 0)
+    @UseHashJoins(1)
+    public void test_hash_join_reordering_does_work() throws Exception {
+        execute("create table doc.t1(a int, b int)");
+        execute("create table doc.t2(c int, d int)");
+        execute("create table doc.t3(e int, f int)");
+
+        execute("insert into doc.t1(a,b) values(1,2)");
+        execute("insert into doc.t2(c,d) values (1,3),(5,6)");
+        execute("insert into doc.t3(e,f) values (3,2)");
+
+        execute("refresh table doc.t1, doc.t2, doc.t3");
+        execute("analyze");
+
+//        var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c AND t2.d = t3.e";
+//        System.out.println(stmt);
+//        execute("explain " + stmt);
+//        System.out.println(response.rows()[0][0]);
+//        execute(stmt);
+//        assertThat(response).hasRows("3");
+
+        System.out.println("---------------------------------------------------");
+        var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t2.d = t3.e AND t1.a = t2.c";
+        System.out.println(stmt);
+        execute("explain " + stmt);
+        System.out.println(response.rows()[0][0]);
+        execute(stmt);
+        assertThat(response).hasRows("3");
+    }
+
 }

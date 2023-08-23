@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -337,7 +338,13 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+            var outputsInCorrectOrder = new ArrayList<Symbol>();
+            for (Symbol output : relation.outputs()) {
+                    if (outputs.contains(output)) {
+                        outputsInCorrectOrder.add(output);
+                    }
+            }
+            return new Collect(relation, outputsInCorrectOrder, WhereClause.MATCH_ALL);
         }
 
         @Override
