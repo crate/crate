@@ -95,6 +95,19 @@ import io.crate.types.ObjectType;
  *  <li>Source generation</li>
  *  <li>Lucene {@link Document} and index field creation</li>
  * </ul>
+ * <p>
+ * This process is split into multiple steps:
+ * <ol>
+ * <li>Look for unknown columns via {@link #collectSchemaUpdates(IndexItem)}</li>
+ * <li>Update cluster state with new columns (The user of the Indexer is
+ * responsible for this)</li>
+ * <li>Update reference information based on cluster state update</li>
+ * <li>Create {@link ParsedDocument} via {@link #index(IndexItem)}</li>
+ * </ol>
+ *
+ * Schema update and creation of ParsedDocument is split into two steps to be
+ * able to use information from the persisted {@link Reference} from the cluster
+ * state. (Mostly for the OID information)
  **/
 public class Indexer {
 
@@ -541,6 +554,60 @@ public class Indexer {
         }
     }
 
+    /**
+     * Looks for new columns in the values of the given IndexItem and returns them.
+     */
+    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
+        ArrayList<Reference> newColumns = new ArrayList<>();
+        Consumer<? super Reference> onDynamicColumn = ref -> {
+            ColumnIdent.validateColumnName(ref.column().name());
+            ref.column().path().forEach(ColumnIdent::validateObjectKey);
+            newColumns.add(ref);
+        };
+
+        for (var expression : expressions) {
+            expression.setNextRow(item);
+        }
+
+        Object[] values = item.insertValues();
+        for (int i = 0; i < values.length; i++) {
+            Reference reference = columns.get(i);
+            Object value = reference.valueType().valueForInsert(values[i]);
+            // No granularity check since PARTITIONED BY columns cannot be added dynamically.
+            if (value == null) {
+                continue;
+            }
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics);
+        }
+        // Generated columns can result in new columns. For example: details object generated always as {\"a1\" = {\"b1\" = 'test'}},
+        for (var entry : synthetics.entrySet()) {
+            ColumnIdent column = entry.getKey();
+            if (!column.isRoot()) {
+                continue;
+            }
+            Synthetic synthetic = entry.getValue();
+            ValueIndexer<Object> indexer = synthetic.indexer();
+            Object value = synthetic.input().value();
+            if (value == null) {
+                continue;
+            }
+            indexer.collectSchemaUpdates(
+                value,
+                onDynamicColumn,
+                synthetics
+            );
+        }
+        return newColumns;
+    }
+
+    /**
+     * Create a {@link ParsedDocument} from {@link IndexItem}
+     *
+     * This must be called after any new columns (found via
+     * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
+     * state.
+     */
     @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
@@ -548,12 +615,6 @@ public class Indexer {
 
         Document doc = new Document();
         Consumer<? super IndexableField> addField = doc::add;
-        ArrayList<Reference> newColumns = new ArrayList<>();
-        Consumer<? super Reference> onDynamicColumn = ref -> {
-            ColumnIdent.validateColumnName(ref.column().name());
-            ref.column().path().forEach(ColumnIdent::validateObjectKey);
-            newColumns.add(ref);
-        };
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
@@ -580,7 +641,6 @@ public class Indexer {
                     reference.valueType().sanitizeValue(value),
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     columnConstraints
                 );
@@ -601,7 +661,6 @@ public class Indexer {
                     value,
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     columnConstraints
                 );
@@ -655,8 +714,7 @@ public class Indexer {
                 item.id(),
                 doc,
                 source,
-                null,
-                newColumns
+                null
             );
         }
     }

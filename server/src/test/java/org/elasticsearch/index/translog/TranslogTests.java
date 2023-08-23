@@ -2975,7 +2975,7 @@ public class TranslogTests extends ESTestCase {
         document.add(seqID.seqNo);
         document.add(seqID.seqNoDocValue);
         document.add(seqID.primaryTerm);
-        ParsedDocument doc = new ParsedDocument(versionField, seqID, "1", document, B_1, null, List.of());
+        ParsedDocument doc = new ParsedDocument(versionField, seqID, "1", document, B_1, null);
 
         Engine.Index eIndex = new Engine.Index(newUid(doc), doc, randomSeqNum, randomPrimaryTerm,
             1, VersionType.INTERNAL, Origin.PRIMARY, 0, 0, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);

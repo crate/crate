@@ -19,13 +19,9 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.List;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.elasticsearch.common.bytes.BytesReference;
-
-import io.crate.metadata.Reference;
 
 /**
  * The result of parsing a document.
@@ -43,22 +39,18 @@ public class ParsedDocument {
 
     private final Mapping dynamicMappingsUpdate;
 
-    private final List<Reference> newColumns;
-
     public ParsedDocument(Field version,
                           SequenceIDFields seqID,
                           String id,
                           Document document,
                           BytesReference source,
-                          Mapping dynamicMappingsUpdate,
-                          List<Reference> newColumns) {
+                          Mapping dynamicMappingsUpdate) {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
         this.document = document;
         this.source = source;
         this.dynamicMappingsUpdate = dynamicMappingsUpdate;
-        this.newColumns = newColumns;
     }
 
     public String id() {
@@ -104,9 +96,5 @@ public class ParsedDocument {
     @Override
     public String toString() {
         return "Document id[" + id + "] doc [" + document + ']';
-    }
-
-    public List<Reference> newColumns() {
-        return newColumns;
     }
 }

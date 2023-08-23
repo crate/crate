@@ -102,7 +102,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(@Nullable Map<String, Object> value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
@@ -134,25 +133,54 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     type.sanitizeValue(innerValue),
                     xContentBuilder,
                     addField,
-                    onDynamicColumn,
                     synthetics,
                     checks
                 );
             }
         }
+
         if (value != null) {
-            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
+            indexUnknownColumns(value, xContentBuilder);
         }
         xContentBuilder.endObject();
     }
 
+    @Override
+    public void collectSchemaUpdates(@Nullable Map<String, Object> value,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+        for (var entry : innerTypes.entrySet()) {
+            String innerName = entry.getKey();
+            DataType<?> type = entry.getValue();
+            ColumnIdent innerColumn = column.getChild(innerName);
+            Object innerValue = null;
+            if (value == null || value.containsKey(innerName) == false) {
+                Synthetic synthetic = synthetics.get(innerColumn);
+                if (synthetic != null) {
+                    innerValue = synthetic.input().value();
+                }
+            } else {
+                innerValue = value.get(innerName);
+            }
+            var valueIndexer = innerIndexers.get(innerName);
+            // valueIndexer is null for partitioned columns
+            if (valueIndexer != null) {
+                valueIndexer.collectSchemaUpdates(
+                    type.sanitizeValue(innerValue),
+                    onDynamicColumn,
+                    synthetics
+                );
+            }
+        }
+        if (value != null) {
+            addNewColumns(value, onDynamicColumn, synthetics);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
-                               XContentBuilder xContentBuilder,
-                               Consumer<? super IndexableField> addField,
                                Consumer<? super Reference> onDynamicColumn,
-                               Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                               Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+                               Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -162,7 +190,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             if (innerValue == null) {
-                xContentBuilder.nullField(innerName);
                 continue;
             }
             if (ref.columnPolicy() == ColumnPolicy.STRICT) {
@@ -174,15 +201,13 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 ));
             }
             if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                xContentBuilder.field(innerName, innerValue);
                 continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                xContentBuilder.field(innerName);
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, null)) {
                     continue;
                 }
                 throw new IllegalArgumentException(
@@ -214,15 +239,52 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             );
             innerIndexers.put(innerName, valueIndexer);
             innerTypes.put(innerName, type);
-            xContentBuilder.field(innerName);
-            valueIndexer.indexValue(
+            valueIndexer.collectSchemaUpdates(
                 innerValue,
-                xContentBuilder,
-                addField,
                 onDynamicColumn,
-                synthetics,
-                checks
+                synthetics
             );
         }
+    }
+
+    /**
+     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Map) to the xContentBuilder.
+     *
+     * There are no columns for:
+     * <ul>
+     *  <li>OBJECT (IGNORED)</li>
+     *  <li>Empty arrays, or arrays with only null values</li>
+     * </ul>
+     */
+    private void indexUnknownColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
+        for (var entry : value.entrySet()) {
+            String innerName = entry.getKey();
+            Object innerValue = entry.getValue();
+            boolean isNewColumn = !innerTypes.containsKey(innerName);
+            if (!isNewColumn) {
+                continue;
+            }
+            if (innerValue == null) {
+                xContentBuilder.nullField(innerName);
+                continue;
+            }
+            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                xContentBuilder.field(innerName, innerValue);
+                continue;
+            }
+            var type = DynamicIndexer.guessType(innerValue);
+            innerValue = type.sanitizeValue(innerValue);
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null) {
+                xContentBuilder.field(innerName);
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                    continue;
+                }
+                throw new IllegalArgumentException(
+                    "Cannot create columns of type " + type.getName() + " dynamically. " +
+                        "Storage is not supported for this type");
+            }
+        }
+
     }
 }

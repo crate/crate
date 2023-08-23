@@ -388,9 +388,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
+
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer == null ? rawIndexer.index(item) : indexer.index(item);
-            if (!parsedDoc.newColumns().isEmpty()) {
+            List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
+
+            if (!newColumns.isEmpty()) {
                 // this forces clearing the cache
                 schemas.tableExists(relationName);
 
@@ -402,10 +404,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
-                logger.trace("Mappings are not available on the replica columns={}", parsedDoc.newColumns());
+                logger.trace("Mappings are not available on the replica columns={}", newColumns);
                 throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + parsedDoc.newColumns());
+                    "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
+
+            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+
             Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -532,23 +537,27 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        @Nullable RawIndexer rawIndexer,
                                        long version) throws Exception {
         final long startTime = System.nanoTime();
-        ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item) : rawIndexer.index(item);
 
-        // Replica must use the same values for undeterministic defaults/generated columns
-        if (rawIndexer == null && indexer.hasUndeterministicSynthetics()) {
-            item.insertValues(indexer.addGeneratedValues(item));
-        } else if (rawIndexer != null && rawIndexer.hasUndeterministicSynthetics()) {
-            item.insertValues(rawIndexer.addGeneratedValues(item));
-        }
+        List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
-        if (!parsedDoc.newColumns().isEmpty()) {
+        if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
-                parsedDoc.newColumns(),
+                newColumns,
                 Map.of(),
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
+        }
+
+        ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+
+        // Replica must use the same values for undeterministic defaults/generated columns
+        // This check must be done after index() call to let values/indexers size check compare original array sizes.
+        if (rawIndexer == null && indexer.hasUndeterministicSynthetics()) {
+            item.insertValues(indexer.addGeneratedValues(item));
+        } else if (rawIndexer != null && rawIndexer.hasUndeterministicSynthetics()) {
+            item.insertValues(rawIndexer.addGeneratedValues(item));
         }
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
