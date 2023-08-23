@@ -61,7 +61,6 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
     public void indexValue(BitString value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         BitSet bitSet = value.bitSet();

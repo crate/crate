@@ -57,7 +57,6 @@ public class LongIndexer implements ValueIndexer<Long> {
     public void indexValue(Long value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);

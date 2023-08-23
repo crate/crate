@@ -68,7 +68,6 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     public void indexValue(float @Nullable [] values,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (values == null) {

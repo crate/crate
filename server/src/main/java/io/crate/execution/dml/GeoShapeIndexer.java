@@ -62,7 +62,6 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(Map<String, Object> value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.map(value);
