@@ -501,7 +501,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ),
             null
         );
-        assertThatThrownBy(() -> indexer.index(item(Map.of("x", 10, "y", 20))))
+        assertThatThrownBy(() -> indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20))))
             .hasMessage("Cannot add column `y` to strict object `o`");
     }
 

@@ -139,8 +139,11 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
         }
 
-        // We don't need to parse object and try to index unknown key/values since at the second phase there are no unknown columns.
-        // All unknown columns are already handled in the first phase, thus innerTypes must contain all relevant entries on each level
+        if (value != null) {
+            // All unknown columns are already handled in the first phase, thus innerTypes contains **almost** all needed entries on each level.
+            // However, columns added into IGNORED objects are not handled in the first phase and thus we need to parse value.
+            indexIgnoredColumns(value, xContentBuilder);
+        }
         xContentBuilder.endObject();
     }
 
@@ -244,5 +247,23 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 synthetics
             );
         }
+    }
+
+    private void indexIgnoredColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
+        for (var entry : value.entrySet()) {
+            String innerName = entry.getKey();
+            Object innerValue = entry.getValue();
+            boolean isNewColumn = !innerTypes.containsKey(innerName);
+            if (!isNewColumn) {
+                continue;
+            }
+            if (innerValue == null) {
+                xContentBuilder.nullField(innerName);
+                continue;
+            }
+            assert ref.columnPolicy() == ColumnPolicy.IGNORED : "Only ignored columns can be unknown at phase 2";
+            xContentBuilder.field(innerName, innerValue);
+        }
+
     }
 }
