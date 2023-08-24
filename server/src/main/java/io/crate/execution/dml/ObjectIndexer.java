@@ -145,35 +145,41 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void collectSchemaUpdates(@Nullable Map<String, Object> value, Consumer<? super Reference> onDynamicColumn) throws IOException {
+    public void collectSchemaUpdates(@Nullable Map<String, Object> value,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         for (var entry : innerTypes.entrySet()) {
             String innerName = entry.getKey();
             DataType<?> type = entry.getValue();
+            ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = null;
-            // TODO: handle synthetics or figure out whether handling them in the Indexer is enough (there is TODO there as well)
-            if (value != null) {
+            if (value == null || value.containsKey(innerName) == false) {
+                Synthetic synthetic = synthetics.get(innerColumn);
+                if (synthetic != null) {
+                    innerValue = synthetic.input().value();
+                }
+            } else {
                 innerValue = value.get(innerName);
-            }
-            if (innerValue == null) {
-                continue;
             }
             var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
                 valueIndexer.collectSchemaUpdates(
                     type.sanitizeValue(innerValue),
-                    onDynamicColumn
+                    onDynamicColumn,
+                    synthetics
                 );
             }
         }
         if (value != null) {
-            addNewColumns(value, onDynamicColumn);
+            addNewColumns(value, onDynamicColumn, synthetics);
         }
     }
 
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
-                               Consumer<? super Reference> onDynamicColumn) throws IOException {
+                               Consumer<? super Reference> onDynamicColumn,
+                               Map<ColumnIdent, Synthetic> synthetics) throws IOException {
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -234,7 +240,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerTypes.put(innerName, type);
             valueIndexer.collectSchemaUpdates(
                 innerValue,
-                onDynamicColumn
+                onDynamicColumn,
+                synthetics
             );
         }
     }
