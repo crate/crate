@@ -1407,7 +1407,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
      * Test that when an error happens on the primary, the record should never be inserted on the replica.
      * Since we cannot force a select statement to be executed on a replica, we repeat this test to increase the chance.
      */
-//    @Repeat(iterations = 5)
+    @Repeat(iterations = 5)
     @Test
     public void testInsertWithErrorMustNotBeInsertedOnReplica() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas=1)");
@@ -1923,14 +1923,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_generated_expression_updates_schema() {
         execute("create table t (" +
             "id int," +
-            "details object generated always as {\"a1\" = {\"b1\" = 'test'}}) " +
+            "details object generated always as {\"a1\" = {\"b1\" = 'test'}}," +
+            "nested_gen object as (a int, gen object generated always as {\"a2\" = {\"b2\" = 'test2'}})) " +
             "with (number_of_replicas=0, column_policy='dynamic')");
-
-        execute("insert into t (id) values (1)");
+        execute("insert into t (id, nested_gen) values (1, {\"a\" = 1})");
         refresh();
         execute("select * from t");
         assertThat(response).hasRows(
-            "1| {a1={b1=test}}"
+            "1| {a1={b1=test}}| {a=1, gen={a2={b2=test2}}}"
         );
     }
 }
