@@ -158,12 +158,17 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             false,
             defaultExpression
         );
-        indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
-            refIdent.tableIdent(),
-            newColumn,
-            getFieldType,
-            getRef
-        );
+        if (indexer == null) {
+            // Reuse indexer if phase 1 already created one.
+            // Phase 1 mutates indexer.innerTypes on new columns creation.
+            // Phase 2 must be aware of all mapping updates.
+            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
+                refIdent.tableIdent(),
+                newColumn,
+                getFieldType,
+                getRef
+            );
+        }
         value = type.sanitizeValue(value);
         indexer.indexValue(
             value,
