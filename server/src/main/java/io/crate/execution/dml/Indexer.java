@@ -564,8 +564,22 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn);
         }
-        // TODO: synthetics can also add columns?
-        // default/gen expressions with something like as object (existing_int_col: 1, non_existent_int_col: 2).
+        for (var entry : synthetics.entrySet()) {
+            ColumnIdent column = entry.getKey();
+            if (!column.isRoot()) {
+                continue;
+            }
+            Synthetic synthetic = entry.getValue();
+            ValueIndexer<Object> indexer = synthetic.indexer();
+            Object value = synthetic.input().value();
+            if (value == null) {
+                continue;
+            }
+            indexer.collectSchemaUpdates(
+                value,
+                onDynamicColumn
+            );
+        }
         return newColumns;
     }
 
