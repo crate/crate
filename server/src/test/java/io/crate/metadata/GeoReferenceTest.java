@@ -24,7 +24,6 @@ package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -41,7 +40,6 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo = new GeoReference(
             referenceIdent,
             DataTypes.GEO_SHAPE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             1,
@@ -62,7 +60,6 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo3 = new GeoReference(
             referenceIdent,
             DataTypes.GEO_SHAPE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             false,
             2,

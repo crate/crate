@@ -35,7 +35,6 @@ import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -74,7 +73,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(ObjectType.STRICT_EMPTY_OBJECT),
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -100,7 +98,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             new ArrayType<>(DataTypes.UNTYPED_OBJECT),
-            ColumnPolicy.DYNAMIC,
             IndexType.FULLTEXT,
             false,
             true,

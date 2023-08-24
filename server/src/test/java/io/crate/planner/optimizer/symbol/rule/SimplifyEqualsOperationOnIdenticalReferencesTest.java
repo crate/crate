@@ -49,7 +49,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
@@ -75,7 +74,6 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         new ReferenceIdent(new RelationName(null, "dummy"), "col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
-        ColumnPolicy.DYNAMIC,
         IndexType.PLAIN,
         true,
         false,
@@ -86,7 +84,6 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         new ReferenceIdent(new RelationName(null, "dummy"), "col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
-        ColumnPolicy.DYNAMIC,
         IndexType.PLAIN,
         false,
         false,

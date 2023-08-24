@@ -37,6 +37,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.TableInfo;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.ColumnPolicy;
@@ -125,7 +126,7 @@ public final class ValueNormalizer {
             ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
-                if (info.columnPolicy() == ColumnPolicy.IGNORED) {
+                if (ColumnPolicies.extractFrom(info.valueType()) == ColumnPolicy.IGNORED) {
                     continue;
                 }
                 DynamicReference dynamicReference = null;

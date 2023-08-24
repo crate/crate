@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.IgnoredReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
@@ -52,6 +53,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.sys.TableColumn;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
@@ -426,7 +428,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
         for (var parent : getParents(ident)) {
             if (parent != null) {
-                parentPolicy = parent.columnPolicy();
+                parentPolicy = ColumnPolicies.extractFrom(parent.valueType());
                 position = parent.position();
                 break;
             }
@@ -452,10 +454,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 break;
         }
         if (parentIsIgnored) {
-            return new DynamicReference(
+            return new IgnoredReference(
                 new ReferenceIdent(ident(), ident),
                 rowGranularity(),
-                ColumnPolicy.IGNORED,
                 position
             );
         }

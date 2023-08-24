@@ -49,6 +49,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -176,7 +177,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         if (arg instanceof Function innerFunction && innerFunction.name().equals(IsNullPredicate.NAME)) {
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
                 // Ignored objects have no field names in the index, need function filter fallback
-                if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                if (ColumnPolicies.extractFrom(ref.valueType()) == ColumnPolicy.IGNORED) {
                     return null;
                 }
                 return IsNullPredicate.refExistsQuery(ref, context, true);

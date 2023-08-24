@@ -38,6 +38,7 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.IgnoredReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -126,6 +127,12 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     public ReferenceAssert isDynamicReference() {
         isNotNull();
         isExactlyInstanceOf(DynamicReference.class);
+        return new ReferenceAssert((Reference) actual);
+    }
+
+    public ReferenceAssert isIgnoredReference() {
+        isNotNull();
+        isExactlyInstanceOf(IgnoredReference.class);
         return new ReferenceAssert((Reference) actual);
     }
 

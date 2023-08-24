@@ -40,7 +40,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class GeoReference extends SimpleReference {
@@ -60,7 +59,6 @@ public class GeoReference extends SimpleReference {
 
     public GeoReference(ReferenceIdent ident,
                         DataType<?> type,
-                        ColumnPolicy columnPolicy,
                         IndexType indexType,
                         boolean nullable,
                         int position,
@@ -70,14 +68,13 @@ public class GeoReference extends SimpleReference {
                         Integer treeLevels,
                         Double distanceErrorPct) {
         super(ident,
-            RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
-            type,
-            columnPolicy,
-            indexType,
-            nullable,
-            false, //Geo shapes don't have doc values
-            position,
-            defaultExpression
+              RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
+              type,
+              indexType,
+              nullable,
+              false, //Geo shapes don't have doc values
+              position,
+              defaultExpression
         );
         this.geoTree = Objects.requireNonNullElse(geoTree, DEFAULT_TREE);
         this.precision = precision;
@@ -161,7 +158,6 @@ public class GeoReference extends SimpleReference {
         return new GeoReference(
             newIdent,
             type,
-            columnPolicy,
             indexType,
             nullable,
             position,

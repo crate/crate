@@ -126,7 +126,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             foobarIdent,
             RowGranularity.DOC,
             ObjectType.STRICT_EMPTY_OBJECT,
-            ColumnPolicy.STRICT,
             IndexType.PLAIN,
             true,
             false,

@@ -43,7 +43,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -159,7 +158,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         final String fqn = ref.column().fqn();
         final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
+            return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || ref.symbolType() == SymbolType.IGNORED_REFERENCE
                 ? DocCollectorExpression.create(toSourceLookup(ref))
                 : new LiteralValueExpression(null);
         }
@@ -199,10 +198,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             default:
                 throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }
-    }
-
-    private static boolean isIgnoredDynamicReference(final Reference ref) {
-        return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
     static class LiteralValueExpression extends LuceneCollectorExpression<Object> {

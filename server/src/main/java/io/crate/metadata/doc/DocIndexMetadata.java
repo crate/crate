@@ -222,7 +222,6 @@ public class DocIndexMetadata {
             refIdent(column),
             granularity(column),
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -256,7 +255,6 @@ public class DocIndexMetadata {
         Reference info = new GeoReference(
             refIdent(column),
             type,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             nullable,
             position,
@@ -506,7 +504,6 @@ public class DocIndexMetadata {
                             refIdent(newIdent),
                             granularity(newIdent),
                             columnDataType,
-                            ColumnPolicy.DYNAMIC,
                             columnIndexType,
                             nullable,
                             hasDocValues,

@@ -29,8 +29,8 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
 import org.junit.Test;
 
 import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.IgnoredReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -39,7 +39,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -83,8 +82,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
-        Reference ignored = new DynamicReference(
-            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
+        Reference ignored = new IgnoredReference(
+            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, 0);
 
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);

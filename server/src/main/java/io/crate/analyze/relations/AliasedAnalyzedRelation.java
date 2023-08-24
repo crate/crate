@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.IgnoredReference;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -121,8 +122,13 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             return new VoidReference(
                 new ReferenceIdent(alias, voidReference.column()),
                 voidReference.granularity(),
-                voidReference.columnPolicy(),
                 voidReference.position());
+        }
+        if (field instanceof IgnoredReference ignoredReference) {
+            return new IgnoredReference(
+                new ReferenceIdent(alias, ignoredReference.column()),
+                ignoredReference.granularity(),
+                ignoredReference.position());
         }
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
 

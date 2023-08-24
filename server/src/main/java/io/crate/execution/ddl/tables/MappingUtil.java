@@ -187,7 +187,7 @@ public final class MappingUtil {
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
+        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(ColumnPolicies.extractFrom(reference.valueType())));
         Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);

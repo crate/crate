@@ -74,7 +74,6 @@ public interface TableInfo extends RelationInfo {
                 ref.ident(),
                 ref.granularity(),
                 readType,
-                ref.columnPolicy(),
                 ref.indexType(),
                 ref.isNullable(),
                 ref.hasDocValues(),

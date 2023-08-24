@@ -45,6 +45,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -163,7 +164,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 xContentBuilder.nullField(innerName);
                 continue;
             }
-            if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+            final var columnPolicy = ColumnPolicies.extractFrom(ref.valueType());
+            if (columnPolicy == ColumnPolicy.STRICT) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "Cannot add column `%s` to strict object `%s`",
@@ -171,7 +173,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     ref.column()
                 ));
             }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+            if (columnPolicy == ColumnPolicy.IGNORED) {
                 xContentBuilder.field(innerName, innerValue);
                 continue;
             }
@@ -193,7 +195,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 new ReferenceIdent(table, column.getChild(innerName)),
                 RowGranularity.DOC,
                 type,
-                ref.columnPolicy(),
                 IndexType.PLAIN,
                 nullable,
                 storageSupport.docValuesDefault(),

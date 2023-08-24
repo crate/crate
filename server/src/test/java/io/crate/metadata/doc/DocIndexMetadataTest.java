@@ -74,6 +74,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.server.xcontent.XContentHelper;
@@ -215,10 +216,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
         assertThat(md.columns()).hasSize(4);
         assertThat(md.references()).hasSize(20);
-        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
-        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("implicit_dynamic")).valueType())).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("explicit_dynamic")).valueType())).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("ignored")).valueType())).isEqualTo(ColumnPolicy.IGNORED);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("strict")).valueType())).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -247,10 +248,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetadata md = newMeta(metadata, "test1");
         assertThat(md.columns()).hasSize(4);
         assertThat(md.references()).hasSize(14);
-        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
-        assertThat(md.references().get(new ColumnIdent("strict")).columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("implicit_dynamic")).valueType())).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("explicit_dynamic")).valueType())).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("ignored")).valueType())).isEqualTo(ColumnPolicy.IGNORED);
+        assertThat(ColumnPolicies.extractFrom(md.references().get(new ColumnIdent("strict")).valueType())).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -1386,7 +1387,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                         .setInnerType("quote", DataTypes.STRING)
                         .setColumnPolicy(ColumnPolicy.STRICT)
                         .build()));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy()).isEqualTo(
+        assertThat(ColumnPolicies.extractFrom(md.references().get(ColumnIdent.fromPath("tags")).valueType())).isEqualTo(
             ColumnPolicy.STRICT);
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType()).isEqualTo(
             DataTypes.DOUBLE);

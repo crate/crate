@@ -73,6 +73,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -354,7 +355,7 @@ public class LuceneQueryBuilder {
         // - docValues value differs from source, currently happening on GeoPoint types as lucene's internal format
         //   results in precision changes (e.g. longitude 11.0 will be 10.999999966)
         function = (Function) DocReferences.toSourceLookup(function,
-            r -> r.columnPolicy() == ColumnPolicy.IGNORED
+            r -> ColumnPolicies.extractFrom(r.valueType()) == ColumnPolicy.IGNORED
                  || r.valueType() == DataTypes.GEO_POINT);
 
         final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);

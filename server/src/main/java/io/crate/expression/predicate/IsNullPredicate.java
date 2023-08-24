@@ -53,6 +53,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -140,7 +141,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);
-        } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+        } else if (ColumnPolicies.extractFrom(ref.valueType()) == ColumnPolicy.IGNORED) {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {

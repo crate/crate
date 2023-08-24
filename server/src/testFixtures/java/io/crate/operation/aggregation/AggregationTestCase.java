@@ -126,7 +126,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.BitString;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
@@ -313,7 +312,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                     ident,
                     RowGranularity.DOC,
                     argumentTypes.get(i),
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     true,
                     true,
@@ -618,7 +616,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                     new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
                     dataTypes.get(i),
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     true,
                     true,

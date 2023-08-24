@@ -35,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
 
 public interface Reference extends Symbol {
 
@@ -55,8 +54,6 @@ public interface Reference extends Symbol {
     ColumnIdent column();
 
     IndexType indexType();
-
-    ColumnPolicy columnPolicy();
 
     boolean isNullable();
 
