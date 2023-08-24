@@ -174,7 +174,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn) throws IOException {
-        // TODO: handle synthetics or figure out whether handling them in the Indexer is enough (there is TODO there as well)
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
