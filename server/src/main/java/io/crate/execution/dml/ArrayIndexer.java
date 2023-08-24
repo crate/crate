@@ -67,11 +67,13 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void collectSchemaUpdates(@Nullable List<T> values, Consumer<? super Reference> onDynamicColumn) throws IOException {
+    public void collectSchemaUpdates(@Nullable List<T> values,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         if (values != null) {
             for (T value : values) {
                 if (value != null) {
-                    innerIndexer.collectSchemaUpdates(value, onDynamicColumn);
+                    innerIndexer.collectSchemaUpdates(value, onDynamicColumn, synthetics);
                 }
             }
         }

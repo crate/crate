@@ -75,7 +75,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void collectSchemaUpdates(Object value, Consumer<? super Reference> onDynamicColumn) throws IOException {
+    public void collectSchemaUpdates(Object value,
+                                     Consumer<? super Reference> onDynamicColumn,
+                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
             StorageSupport<?> storageSupport = type.storageSupport();
@@ -114,7 +116,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         value = type.sanitizeValue(value);
         indexer.collectSchemaUpdates(
             value,
-            onDynamicColumn
+            onDynamicColumn,
+            synthetics
         );
     }
 

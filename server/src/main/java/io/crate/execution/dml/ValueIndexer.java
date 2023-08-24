@@ -53,7 +53,9 @@ public interface ValueIndexer<T> {
     /**
      * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
      */
-    default void collectSchemaUpdates(@Nullable T value, Consumer<? super Reference> onDynamicColumn) throws IOException {}
+    default void collectSchemaUpdates(@Nullable T value,
+                                      Consumer<? super Reference> onDynamicColumn,
+                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {}
 
     void indexValue(
         @Nullable T value,

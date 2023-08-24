@@ -562,7 +562,7 @@ public class Indexer {
                 continue;
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn);
+            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics);
         }
         for (var entry : synthetics.entrySet()) {
             ColumnIdent column = entry.getKey();
@@ -577,7 +577,8 @@ public class Indexer {
             }
             indexer.collectSchemaUpdates(
                 value,
-                onDynamicColumn
+                onDynamicColumn,
+                synthetics
             );
         }
         return newColumns;
