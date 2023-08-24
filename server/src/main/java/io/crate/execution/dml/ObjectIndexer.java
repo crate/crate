@@ -140,9 +140,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
 
         if (value != null) {
-            // All unknown columns are already handled in the first phase, thus innerTypes contains **almost** all needed entries on each level.
-            // However, columns added into IGNORED objects are not handled in the first phase and thus we need to parse value.
-            indexIgnoredColumns(value, xContentBuilder);
+            indexUnknownColumns(value, xContentBuilder);
         }
         xContentBuilder.endObject();
     }
@@ -249,7 +247,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
     }
 
-    private void indexIgnoredColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
+    /**
+     * All unknown columns are already handled in the first phase, thus phase 2 is aware of **almost** all unknwn columns.
+     * However, columns added into IGNORED objects and are not handled in the first phase and thus needs to be handked even on the second phase.
+     * Also, empty arrays and arrays filled only by nulls doesn't result in a new column, thus also needs separate handling.
+     */
+    private void indexUnknownColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
@@ -261,8 +264,22 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 xContentBuilder.nullField(innerName);
                 continue;
             }
-            assert ref.columnPolicy() == ColumnPolicy.IGNORED : "Only ignored columns can be unknown at phase 2";
-            xContentBuilder.field(innerName, innerValue);
+            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                xContentBuilder.field(innerName, innerValue);
+                continue;
+            }
+            var type = DynamicIndexer.guessType(innerValue);
+            innerValue = type.sanitizeValue(innerValue);
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null) {
+                xContentBuilder.field(innerName);
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                    continue;
+                }
+                throw new IllegalArgumentException(
+                    "Cannot create columns of type " + type.getName() + " dynamically. " +
+                        "Storage is not supported for this type");
+            }
         }
 
     }
