@@ -81,14 +81,14 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         RamAccounting.NO_ACCOUNTING
     );
 
-    private String columnName = "x";
-    private Reference reference = createReference(columnName, DataTypes.LONG);
+    private final String columnName = "x";
+    private final Reference reference = createReference(columnName, DataTypes.LONG);
     private IndexSearcher searcher1;
     private IndexSearcher searcher2;
     private OrderBy orderBy;
     private List<Object[]> expectedResult;
-    private boolean[] reverseFlags = new boolean[]{true};
-    private boolean[] nullsFirst = new boolean[]{true};
+    private final boolean[] reverseFlags = new boolean[]{true};
+    private final boolean[] nullsFirst = new boolean[]{true};
 
     @Mock
     public RowAccounting<Row> rowAccounting;
@@ -153,7 +153,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
             .when(rowAccounting).accountForAndMaybeBreak(any(Row.class));
 
         BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
-            Arrays.asList(createOrderedCollector(searcher1, 1)),
+            List.of(createOrderedCollector(searcher1, 1)),
             OrderingByPosition.rowOrdering(List.of(DataTypes.INTEGER), new int[]{0}, reverseFlags, nullsFirst),
             rowAccounting,
             Runnable::run,
@@ -223,7 +223,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
         rowBatchIterator.kill(new InterruptedException("killed"));
 
-        assertThatThrownBy(() -> consumer.getResult())
+        assertThatThrownBy(consumer::getResult)
             .isExactlyInstanceOf(InterruptedException.class);
     }
 
@@ -232,7 +232,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(rowBatchIterator, null);
 
-        assertThatThrownBy(() -> consumer.getResult())
+        assertThatThrownBy(consumer::getResult)
             .isExactlyInstanceOf(exception.getClass())
             .hasMessage(exception.getMessage());
     }

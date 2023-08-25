@@ -47,7 +47,9 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
-public class MappingUtil {
+public final class MappingUtil {
+
+    private MappingUtil() {}
 
     public static class AllocPosition {
 

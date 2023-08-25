@@ -74,7 +74,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
     private Functions functions;
     private IndexSearcher indexSearcher;
 
-    private List<Object[]> rows = List.of(
+    private final List<Object[]> rows = List.of(
         new Object[]{"1", 1L, 1L},
         new Object[]{"0", 0L, 2L},
         new Object[]{"1", 1L, 3L},

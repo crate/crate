@@ -210,7 +210,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         if (cmpVal instanceof Comparable comparable) {
             Comparable<Object> currentValue = state.cmpValue;
             if (currentValue == null || comparable.compareTo(currentValue) == cmpResult) {
-                state.cmpValue = (Comparable<Object>) comparable;
+                state.cmpValue = comparable;
                 state.resultValue = args[0].value();
             }
         } else if (cmpVal != null) {
@@ -300,10 +300,10 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         private SortedNumericDocValues values;
         private LeafReaderContext leafReaderContext;
 
-        public CmpByLong(long sentinelValue,
-                         String columnName,
-                         DataType<?> searchType,
-                         LuceneCollectorExpression<?> resultExpression) {
+        CmpByLong(long sentinelValue,
+                  String columnName,
+                  DataType<?> searchType,
+                  LuceneCollectorExpression<?> resultExpression) {
             this.sentinelValue = sentinelValue;
             this.columnName = columnName;
             this.searchType = searchType;
@@ -341,6 +341,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             }
         }
 
+        @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public Object partialResult(RamAccounting ramAccounting, CmpByLongState state) {
             CompareBy compareBy = new CompareBy();
