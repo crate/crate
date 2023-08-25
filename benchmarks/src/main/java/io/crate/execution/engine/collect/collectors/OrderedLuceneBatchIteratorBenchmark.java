@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -101,7 +102,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         iw.commit();
         iw.forceMerge(1, true);
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
-        collectorContext = new CollectorContext();
+        collectorContext = new CollectorContext(Set.of());
         reference = new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
             RowGranularity.DOC,

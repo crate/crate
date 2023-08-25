@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
@@ -79,6 +80,7 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -160,10 +162,9 @@ public final class ReservoirSampler {
         } catch (RelationUnknown e) {
             return Samples.EMPTY;
         }
-        if (!(table instanceof DocTableInfo)) {
+        if (!(table instanceof DocTableInfo docTable)) {
             return Samples.EMPTY;
         }
-        DocTableInfo docTable = (DocTableInfo) table;
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -176,6 +177,7 @@ public final class ReservoirSampler {
         try {
             return getSamples(
                 columns,
+                docTable.droppedColumns(),
                 maxSamples,
                 docTable,
                 random,
@@ -194,6 +196,7 @@ public final class ReservoirSampler {
     }
 
     private Samples getSamples(List<Reference> columns,
+                               Set<ColumnIdent> droppedColumns,
                                int maxSamples,
                                DocTableInfo docTable,
                                Random random,
@@ -202,7 +205,7 @@ public final class ReservoirSampler {
                                List<Streamer> streamers,
                                List<Engine.Searcher> searchersToRelease,
                                RamAccounting ramAccounting) {
-        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * maxSamples);
+        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
@@ -230,7 +233,7 @@ public final class ReservoirSampler {
             ctx.add(columns);
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-            CollectorContext collectorContext = new CollectorContext();
+            CollectorContext collectorContext = new CollectorContext(droppedColumns);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.startCollect(collectorContext);
             }
