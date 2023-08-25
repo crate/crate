@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.cluster.ClusterState;
@@ -65,6 +66,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
+    private final List<Reference> addedColumns = new ArrayList<>();
 
     public AddColumnTask(NodeContext nodeContext, CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService) {
         this.nodeContext = nodeContext;
@@ -82,6 +84,11 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             return currentState;
         }
 
+        // We cannot just use {@link AddColumnRequest#references} as a link to addedColumns.
+        // since references list is normalized, parents added and already existing are taken from the cluster state.
+        // addedColumns will be used to update Indexer's targets, we don't want existing columns there.
+        Consumer<Reference> addNewColumn = (refWithJustAssignedOID) -> addedColumns.add(refWithJustAssignedOID);
+
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         Map<String, Object> mapping = createMapping(
             AllocPosition.forTable(currentTable),
@@ -91,8 +98,9 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             List.of(),
             null,
             null,
-            metadataBuilder.columnOidSupplier()
-            );
+            metadataBuilder.columnOidSupplier(),
+            addNewColumn
+        );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
@@ -224,5 +232,12 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
                 return oldMap;
             }
         );
+    }
+
+    /**
+     * @return **only** new columns (with assigned OID-s).
+     */
+    public List<Reference> addedColumns() {
+        return addedColumns;
     }
 }

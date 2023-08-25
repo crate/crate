@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -98,7 +99,8 @@ public class MappingUtil {
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable String routingColumn,
-                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier,
+                                                    Consumer<Reference> addNewColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
         Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree, columnOidSupplier);

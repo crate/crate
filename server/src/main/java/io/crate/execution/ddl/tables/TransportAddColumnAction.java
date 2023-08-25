@@ -21,27 +21,40 @@
 
 package io.crate.execution.ddl.tables;
 
+import io.crate.metadata.Reference;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiFunction;
+
 @Singleton
-public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
+public class TransportAddColumnAction extends TransportMasterNodeAction<AddColumnRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
     private final IndicesService indicesService;
+    private final Writeable.Reader<AcknowledgedResponse> reader;
+    private final BiFunction<Boolean, List<Reference>, AcknowledgedResponse> ackedResponseFunction;
 
     @Inject
     public TransportAddColumnAction(TransportService transportService,
@@ -49,23 +62,56 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                                     IndicesService indicesService,
                                     ThreadPool threadPool,
                                     NodeContext nodeContext) {
-        super(ACTION_NAME,
+        super(
+            ACTION_NAME,
             transportService,
             clusterService,
             threadPool,
-            AddColumnRequest::new,
-            AcknowledgedResponse::new,
-            AcknowledgedResponse::new,
-            "add-column");
+            AddColumnRequest::new
+        );
+        if (clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_5_5_0)) {
+            reader = AddColumnResponse::new;
+            ackedResponseFunction = AddColumnResponse::new;
+        } else {
+            reader = AcknowledgedResponse::new;
+            ackedResponseFunction = (acked, ignored) -> new AcknowledgedResponse(acked);
+        }
         this.nodeContext = nodeContext;
         this.indicesService = indicesService;
     }
 
     @Override
-    public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
+    protected String executor() {
+        return ThreadPool.Names.SAME;
     }
 
+    @Override
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return reader.read(in);
+    }
+
+    @Override
+    protected void masterOperation(AddColumnRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
+        AddColumnTask addColumnTask = new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
+
+        clusterService.submitStateUpdateTask("add-column",
+            new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
+
+                private List<Reference> addedColumns = new ArrayList<>();
+
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    ClusterState updatedState = addColumnTask.execute(currentState, request);
+                    addedColumns = addColumnTask.addedColumns();
+                    return updatedState;
+                }
+
+                @Override
+                protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                    return ackedResponseFunction.apply(acknowledged, addedColumns);
+                }
+            });
+    }
 
     @Override
     public ClusterBlockException checkBlock(AddColumnRequest request, ClusterState state) {

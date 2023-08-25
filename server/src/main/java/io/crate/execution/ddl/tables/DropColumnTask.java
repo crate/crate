@@ -92,13 +92,14 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         Map<String, Object> mapping = createMapping(
             MappingUtil.AllocPosition.forTable(currentTable),
-                refsToDrop,
-                EMPTY_PK_LIST,
-                Map.of(),
-                List.of(),
-                null,
-                null,
-                null
+            refsToDrop,
+            EMPTY_PK_LIST,
+            Map.of(),
+            List.of(),
+            null,
+            null,
+            null,
+            (ignored) -> {}
         );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());

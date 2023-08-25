@@ -112,7 +112,8 @@ public class TableCreator {
                 createTable.partitionedBy(),
                 tableColumnPolicy,
                 routingColumn,
-                null // 5.3 requests don't expect OID in mapping
+                null, // 5.3 requests don't expect OID in mapping
+                (ignored) -> {}
             );
             createTableRequest = templateName == null
                 ? new CreateTableRequest(
