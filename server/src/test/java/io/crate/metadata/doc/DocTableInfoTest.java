@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -70,6 +71,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     null
                 )
             ),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),
@@ -141,6 +143,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo info = new DocTableInfo(
             dummy,
             List.of(strictParent),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),
