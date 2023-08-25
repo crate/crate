@@ -349,6 +349,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         if (mergeWith.dynamic != null) {
             this.dynamic = mergeWith.dynamic;
         }
+        this.isDropped = mergeWith.isDropped;
 
         for (Mapper mergeWithMapper : mergeWith) {
             Mapper mergeIntoMapper = mappers.get(mergeWithMapper.simpleName());

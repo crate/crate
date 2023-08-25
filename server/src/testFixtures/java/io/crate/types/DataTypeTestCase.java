@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -163,7 +164,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             );
 
             Scorer scorer = weight.scorer(leafReader);
-            CollectorContext collectorContext = new CollectorContext(1);
+            CollectorContext collectorContext = new CollectorContext(1, Set.of());
             ReaderContext readerContext = new ReaderContext(leafReader);
             DocIdSetIterator iterator = scorer.iterator();
             int nextDoc = iterator.nextDoc();
