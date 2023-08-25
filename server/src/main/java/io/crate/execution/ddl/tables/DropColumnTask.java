@@ -22,7 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
-import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
+import static io.crate.execution.ddl.tables.MappingUtil.createMappingForDroppedCols;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
 import java.io.IOException;
@@ -43,8 +43,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.analyze.AlterTableDropColumnAnalyzer;
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists2;
@@ -59,9 +57,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
 public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumnRequest> {
-
-    private static final IntArrayList EMPTY_PK_LIST = new IntArrayList();
-
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
 
@@ -90,16 +85,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
                                     });
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        Map<String, Object> mapping = createMapping(
-            MappingUtil.AllocPosition.forTable(currentTable),
-                refsToDrop,
-                EMPTY_PK_LIST,
-                Map.of(),
-                List.of(),
-                null,
-                null,
-                null
-        );
+        Map<String, Object> mapping = createMappingForDroppedCols(currentTable, refsToDrop);
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);

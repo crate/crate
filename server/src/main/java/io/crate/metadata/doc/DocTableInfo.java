@@ -115,6 +115,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final Collection<Reference> columns;
+    private final Set<ColumnIdent> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
     private final List<Reference> defaultExpressionColumns;
@@ -148,6 +149,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo(RelationName ident,
                         Collection<Reference> columns,
+                        Set<ColumnIdent> droppedColumns,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
@@ -173,6 +175,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         assert (partitionedBy.size() ==
                 partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.columns = columns;
+        this.droppedColumns = droppedColumns;
         this.partitionedByColumns = partitionedByColumns;
         this.generatedColumns = generatedColumns;
         this.notNullColumns = notNullColumns;
@@ -216,6 +219,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> columns() {
         return columns;
+    }
+
+    public Set<ColumnIdent> droppedColumns() {
+        return droppedColumns;
     }
 
     public int maxPosition() {
