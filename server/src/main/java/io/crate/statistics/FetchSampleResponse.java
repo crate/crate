@@ -21,14 +21,15 @@
 
 package io.crate.statistics;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.Streamer;
 
 public final class FetchSampleResponse extends TransportResponse {
 
@@ -38,6 +39,7 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = samples;
     }
 
+    @SuppressWarnings("rawtypes")
     public FetchSampleResponse(List<Streamer> streamers, StreamInput in) throws IOException {
         this.samples = new Samples(streamers, in);
     }

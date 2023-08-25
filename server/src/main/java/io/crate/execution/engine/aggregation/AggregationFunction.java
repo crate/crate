@@ -23,10 +23,9 @@ package io.crate.execution.engine.aggregation;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
