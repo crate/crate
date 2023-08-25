@@ -111,6 +111,8 @@ public class DocIndexMetadata {
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
 
+    private final Set<ColumnIdent> droppedColumns = new HashSet<>();
+
     private final NodeContext nodeCtx;
     private final RelationName ident;
     private final int numberOfShards;
@@ -205,7 +207,8 @@ public class DocIndexMetadata {
         return indexMetadata.getState() == IndexMetadata.State.CLOSE;
     }
 
-    private void add(int position,
+    private void add(Map<String, Object> columnProperties,
+                     int position,
                      long oid,
                      boolean isDropped,
                      ColumnIdent column,
@@ -221,10 +224,11 @@ public class DocIndexMetadata {
         if (partitionByColumn) {
             indexType = IndexType.PLAIN;
         }
+
         Reference simpleRef = new SimpleReference(
             refIdent(column),
             granularity(column),
-            type,
+            removeDroppedColsFromInnerTypes(columnProperties, type),
             columnPolicy,
             indexType,
             nullable,
@@ -449,9 +453,14 @@ public class DocIndexMetadata {
 
         for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
+            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             String columnName = columnEntry.getKey();
             ColumnIdent newIdent = columnIdent(parent, columnName);
+            if (isDropped) {
+                droppedColumns.add(newIdent);
+                continue; // skip column
+            }
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
@@ -477,11 +486,6 @@ public class DocIndexMetadata {
             // Jackson optimizes writes of small long values as stores them as ints:
             long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
 
-            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
-            if (isDropped) {
-                continue; // skip column
-            }
-
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
                 String geoTree = (String) columnProperties.get("tree");
@@ -505,7 +509,7 @@ public class DocIndexMetadata {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType<?>) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                add(columnProperties, position, oid, isDropped, newIdent, columnDataType, defaultExpression,
                     columnPolicy, IndexType.NONE, nullable, hasDocValues);
 
                 if (columnProperties.get("properties") != null) {
@@ -547,7 +551,7 @@ public class DocIndexMetadata {
                             .sources(sources);
                     }
                 } else {
-                    add(position, oid, isDropped, newIdent, columnDataType, defaultExpression,
+                    add(columnProperties, position, oid, isDropped, newIdent, columnDataType, defaultExpression,
                         ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);
                 }
             }
@@ -740,6 +744,10 @@ public class DocIndexMetadata {
         return columns;
     }
 
+    public Set<ColumnIdent> droppedColumns() {
+        return droppedColumns;
+    }
+
     public Map<ColumnIdent, IndexReference> indices() {
         return indices;
     }
@@ -851,5 +859,33 @@ public class DocIndexMetadata {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    /**
+     * Even though referenced marked as "dropped" are excluded from {@link #columns}, when a sub-column
+     * of an object col is dropped, the {@link ObjectType#innerTypes()} still contain those dropped sub-columns.
+     */
+    @SuppressWarnings("unchecked")
+    private DataType<?> removeDroppedColsFromInnerTypes(Map<String, Object> columnProperties, DataType<?> type) {
+        if (type.id() == ObjectType.ID) {
+            ObjectType.Builder builder = new ObjectType.Builder();
+            for (var entry : ((ObjectType) type).innerTypes().entrySet()) {
+                Map<String, Object> innerProps =
+                    ((Map<String, Object>)((Map<String, Object>) columnProperties.get("properties"))
+                        .get(entry.getKey()));
+                if (innerProps.get("dropped") == null || (Boolean) innerProps.get("dropped") == false) {
+                    builder.setInnerType(entry.getKey(), removeDroppedColsFromInnerTypes(innerProps, entry.getValue()));
+                }
+            }
+            return builder.build();
+        } else if (type.id() == ArrayType.ID) {
+            Map<String, Object> innerProps = (Map<String, Object>) columnProperties.get("inner");
+            if (innerProps == null) {
+                innerProps = columnProperties;
+            }
+            var newInnerType = removeDroppedColsFromInnerTypes(innerProps, ((ArrayType<?>) type).innerType());
+            return new ArrayType<>(newInnerType);
+        }
+        return type;
     }
 }

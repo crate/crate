@@ -213,6 +213,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     request,
                     item,
                     indexShard,
+                    tableInfo,
                     updateToInsert,
                     rawIndexer
                 );
@@ -434,6 +435,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
+                                        DocTableInfo tableInfo,
                                         @Nullable UpdateToInsert updateToInsert,
                                         @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
@@ -452,7 +454,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     if (item.updateAssignments() != null && item.updateAssignments().length > 0) {
                         // Use the source parser without registering any concrete column to get the complete
                         // source which is required to write a new document with the updated values
-                        sourceParser = new SourceParser();
+                        sourceParser = new SourceParser(tableInfo.droppedColumns());
                     } else {
                         // No source is required for simple inserts and duplicate detection
                         sourceParser = null;

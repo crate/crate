@@ -21,36 +21,45 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import java.util.Set;
+
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public class CollectorContext {
 
     private final int readerId;
+    private final Set<ColumnIdent> droppedColumns;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext() {
-        this(-1);
+    public CollectorContext(Set<ColumnIdent> droppedColumns) {
+        this(-1, droppedColumns);
     }
 
-    public CollectorContext(int readerId) {
+    public CollectorContext(int readerId, Set<ColumnIdent> droppedColumns) {
         this.readerId = readerId;
+        this.droppedColumns = droppedColumns;
     }
 
     public int readerId() {
         return readerId;
     }
 
+    public Set<ColumnIdent> droppedColumns() {
+        return droppedColumns;
+    }
+
     public SourceLookup sourceLookup() {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup();
+            sourceLookup = new SourceLookup(droppedColumns);
         }
         return sourceLookup;
     }
 
     public SourceLookup sourceLookup(Reference ref) {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup();
+            sourceLookup = new SourceLookup(droppedColumns);
         }
         return sourceLookup.registerRef(ref);
     }

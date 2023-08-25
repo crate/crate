@@ -109,6 +109,7 @@ public class DocTableInfoFactory {
         return new DocTableInfo(
             relation,
             docIndexMetadata.columns(),
+            docIndexMetadata.droppedColumns(),
             docIndexMetadata.partitionedByColumns(),
             docIndexMetadata.generatedColumnReferences(),
             docIndexMetadata.notNullColumns(),
