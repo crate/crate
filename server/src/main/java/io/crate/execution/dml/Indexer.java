@@ -553,6 +553,10 @@ public class Indexer {
             newColumns.add(ref);
         };
 
+        for (var expression : expressions) {
+            expression.setNextRow(item);
+        }
+
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
