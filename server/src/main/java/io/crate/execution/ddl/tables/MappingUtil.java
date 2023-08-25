@@ -30,13 +30,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -136,6 +136,30 @@ public final class MappingUtil {
         return mapping;
     }
 
+    public static Map<String, Object> createMappingForDroppedCols(DocTableInfo tableInfo,
+                                                                  List<Reference> columnsToDrop) {
+
+        List<Reference> references = new ArrayList<>(columnsToDrop);
+        // Add missing parents
+        for (var colToDrop : columnsToDrop) {
+            ColumnIdent parent = colToDrop.column();
+            while ((parent = parent.getParent()) != null) {
+                if (!Symbols.containsColumn(columnsToDrop, parent)
+                    && !Symbols.containsColumn(references, parent)) {
+                    references.add(tableInfo.getReference(parent));
+                }
+            }
+        }
+        HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
+        Map<String, Map<String, Object>> propertiesMap =
+            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree, null);
+
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("_meta", Map.of());
+        mapping.put("properties", propertiesMap);
+        return mapping;
+    }
+
     /**
      * Returns properties map including all nested sub-columns if there any.
      * Format of the top level properties field:
@@ -178,7 +202,7 @@ public final class MappingUtil {
         Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()), columnOidSupplier);
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
-        while (valueType instanceof ArrayType arrayType) {
+        while (valueType instanceof ArrayType<?> arrayType) {
             HashMap<String, Object> arrayMapping = new HashMap<>();
             arrayMapping.put("type", "array");
             arrayMapping.put("inner", properties);
@@ -236,7 +260,7 @@ public final class MappingUtil {
         }
 
         // Not nulls
-        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).collect(Collectors.toList());
+        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).toList();
         if (newNotNulls.isEmpty() == false) {
             Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
             List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
@@ -253,7 +277,7 @@ public final class MappingUtil {
         List<GeneratedReference> newGenExpressions = references.stream()
             .filter(ref -> ref instanceof GeneratedReference)
             .map(ref -> (GeneratedReference) ref)
-            .collect(Collectors.toList());
+            .toList();
         if (newGenExpressions.isEmpty() == false) {
             Map<String, String> generatedColumns = (Map<String, String>) meta.get("generated_columns");
             if (generatedColumns == null) {

@@ -27,22 +27,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.Set;
 
 import org.elasticsearch.common.bytes.BytesReference;
 
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public final class SourceLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
-    private final SourceParser sourceParser = new SourceParser();
+    private final SourceParser sourceParser;
     private int doc;
     private ReaderContext readerContext;
     private Map<String, Object> source;
     private boolean docVisited = false;
 
-    SourceLookup() {
+    SourceLookup(Set<ColumnIdent> droppedColumns) {
+        sourceParser = new SourceParser(droppedColumns);
     }
 
     public void setSegmentAndDocument(ReaderContext context, int doc) {
