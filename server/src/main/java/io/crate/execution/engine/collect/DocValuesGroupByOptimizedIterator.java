@@ -163,7 +163,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns())
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -175,7 +175,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns())
             );
         }
     }
