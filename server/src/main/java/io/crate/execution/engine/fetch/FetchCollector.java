@@ -60,7 +60,7 @@ class FetchCollector {
         this.streamers = streamers;
         this.ramAccounting = ramAccounting;
         this.readerId = readerId;
-        CollectorContext collectorContext = new CollectorContext(readerId);
+        CollectorContext collectorContext = new CollectorContext(readerId, fetchTask.table(readerId).droppedColumns());
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

@@ -154,7 +154,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(),
+                new CollectorContext(table.droppedColumns()),
                 Collections.singletonList(input),
                 ctx.expressions()
             );

@@ -165,7 +165,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns())
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -177,7 +177,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId())
+                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns())
             );
         }
     }
@@ -206,7 +206,7 @@ final class DocValuesGroupByOptimizedIterator {
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                new CollectorContext(collectorContext.readerId())
+                new CollectorContext(collectorContext.readerId(), collectorContext.droppedColumns())
             );
         }
 
@@ -244,7 +244,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 },
                 query,
-                new CollectorContext(collectorContext.readerId())
+                new CollectorContext(collectorContext.readerId(), collectorContext.droppedColumns())
             );
         }
 

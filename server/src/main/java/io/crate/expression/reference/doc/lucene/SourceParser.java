@@ -32,6 +32,8 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -40,6 +42,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -65,6 +68,12 @@ import io.crate.types.UndefinedType;
 public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
+    private final Set<String> droppedColumns;
+
+    public SourceParser(Set<ColumnIdent> droppedColumns) {
+        // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
+        this.droppedColumns = droppedColumns.stream().map(ColumnIdent::fqn).collect(Collectors.toUnmodifiableSet());
+    }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
@@ -96,7 +105,7 @@ public final class SourceParser {
         }
     }
 
-    public Map<String, Object> parse(BytesReference bytes) {
+    public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
         try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes)) {
             XContentParser parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY,
@@ -105,17 +114,23 @@ public final class SourceParser {
             );
             Token token = parser.currentToken();
             if (token == null) {
-                token = parser.nextToken();
+                parser.nextToken();
             }
-            return parseObject(parser, null, requiredColumns, false);
+            return parseObject(parser, null, requiredColumns, droppedColumns, new StringBuilder(), includeUnknownCols);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
+    @VisibleForTesting
+    Map<String, Object> parse(BytesReference bytes) {
+        return parse(bytes, false);
+    }
+
     private static Object parseArray(XContentParser parser,
                                      @Nullable DataType<?> type,
-                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
+                                     @Nullable Map<String, Object> requiredColumns,
+                                     Set<String> droppedColumns) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
@@ -133,7 +148,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns));
+                values.add(parseValue(parser, type, requiredColumns, droppedColumns));
             }
             return values;
         }
@@ -143,6 +158,8 @@ public final class SourceParser {
     private static Map<String, Object> parseObject(XContentParser parser,
                                                    @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns,
+                                                   Set<String> droppedColumns,
+                                                   StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
         if (requiredColumns == null || requiredColumns.isEmpty()) {
             return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
@@ -151,9 +168,19 @@ public final class SourceParser {
             XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
                 String fieldName = parser.currentName();
+                boolean dropped = false;
+                if (droppedColumns.isEmpty() == false) {
+                    String path = "";
+                    if (colPath.isEmpty() == false) {
+                        path = colPath + ".";
+                    }
+                    path += fieldName;
+                    dropped = droppedColumns.contains(path);
+                }
+
                 token = parser.nextToken(); // Move to the current field's value
                 var required = requiredColumns.get(fieldName);
-                if (required == null && !includeUnknown) {
+                if ((required == null && !includeUnknown) || dropped) {
                     parser.skipChildren();
                 } else if (token == START_ARRAY
                            && required instanceof DataType<?>
@@ -171,11 +198,16 @@ public final class SourceParser {
                     // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
                     values.put(fieldName, null);
                 } else if (required instanceof ObjectType objectType) {
-                    values.put(fieldName, parseObject(parser, objectType, (Map) objectType.innerTypes(), true));
+                    if (colPath.isEmpty() == false) {
+                        colPath.append('.');
+                    }
+                    colPath.append(fieldName);
+                    values.put(fieldName, parseObject(
+                        parser, objectType, (Map) objectType.innerTypes(), droppedColumns, colPath, true));
                 } else if (required instanceof DataType<?> dataType) {
-                    values.put(fieldName, parseValue(parser, dataType, null));
+                    values.put(fieldName, parseValue(parser, dataType, null, Set.of()));
                 } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required));
+                    values.put(fieldName, parseValue(parser, null, (Map) required, Set.of()));
                 }
             }
             return values;
@@ -190,11 +222,12 @@ public final class SourceParser {
      */
     private static Object parseValue(XContentParser parser,
                                      @Nullable DataType<?> type,
-                                     @Nullable Map<String, Object> requiredColumns) throws IOException {
+                                     @Nullable Map<String, Object> requiredColumns,
+                                     Set<String> droppedColumns) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> parseArray(parser, type, requiredColumns);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, false);
+            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, new StringBuilder(), false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
