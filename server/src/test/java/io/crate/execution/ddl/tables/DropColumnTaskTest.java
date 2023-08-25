@@ -73,6 +73,36 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_drop_subcolumn() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))")
+            .build();
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo"));
+            SimpleReference colToDrop = new SimpleReference(
+                refIdent,
+                RowGranularity.DOC,
+                DataTypes.SHORT, // irrelevant
+                333, // irrelevant
+                null
+            );
+            var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+            ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+
+            assertThat(newTable.getReference(colToDrop.column())).isNull();
+        }
+    }
+
+    @Test
     public void test_is_no_op_if_columns_exist() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table tbl (x int, y int)")

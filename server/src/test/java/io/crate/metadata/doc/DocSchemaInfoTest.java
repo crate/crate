@@ -30,6 +30,7 @@ import static org.junit.Assert.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.script.ScriptException;
 
@@ -241,6 +242,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         return new DocTableInfo(
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
             List.of(),
+            Set.of(),
             List.of(),
             List.of(),
             List.of(),

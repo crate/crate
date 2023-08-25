@@ -636,6 +636,7 @@ public class JobSetup {
                 memoryManagerFactory,
                 ramAccountingBlockSizeInBytes,
                 context.transactionContext,
+                schemas,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),
