@@ -361,7 +361,7 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext();
+        final CollectorContext collectorContext = new CollectorContext(context.table.droppedColumns());
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

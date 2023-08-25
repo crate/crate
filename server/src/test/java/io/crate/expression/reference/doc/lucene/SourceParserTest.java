@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.test.ESTestCase;
@@ -44,7 +45,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         var column = new ColumnIdent("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
@@ -58,7 +59,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_unnecessary_leafs_of_object_columns_are_not_collected() throws Exception {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         var z = new ColumnIdent("_doc", List.of("obj", "z"));
         sourceParser.register(x, DataTypes.INTEGER);
@@ -75,7 +76,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_full_object_is_collected_if_full_object_requested() throws Exception {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         var obj = new ColumnIdent("_doc", List.of("obj"));
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         // the order in which the columns are registered must not matter
@@ -98,7 +99,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_numbers_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         sourceParser.register(new ColumnIdent("_doc", List.of("i")), DataTypes.INTEGER);
         sourceParser.register(new ColumnIdent("_doc", List.of("l")), DataTypes.LONG);
         sourceParser.register(new ColumnIdent("_doc", List.of("f")), DataTypes.FLOAT);
@@ -124,7 +125,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BOOLEAN);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
@@ -136,7 +137,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_uses_inner_type_info_to_parse_objects() throws Exception {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         BitStringType bitStringType = new BitStringType(4);
         ObjectType objectType = ObjectType.builder()
             .setInnerType("bs", bitStringType)
@@ -159,7 +160,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_sibling_subcolumn_has_same_name() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         ObjectType innerObjectType = ObjectType.builder()
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -191,7 +192,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_next_not_sibling_column_has_same_name() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         ObjectType objectType = ObjectType.builder()
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -217,7 +218,7 @@ public class SourceParserTest extends ESTestCase {
     // tracks a bug: https://github.com/crate/crate/issues/13504
     @Test
     public void test_nested_array_access() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         // ex:
         //   CREATE TABLE test (
         //   "a" array(object as (
@@ -255,12 +256,10 @@ public class SourceParserTest extends ESTestCase {
         );
     }
 
-    /**
-     * https://github.com/crate/crate/issues/13990
-     */
+    // https://github.com/crate/crate/issues/13990
     @Test
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         var type = ObjectType.UNTYPED;
         sourceParser.register(new ColumnIdent("_doc", List.of("x")), type);
         var result = sourceParser.parse(
@@ -276,12 +275,10 @@ public class SourceParserTest extends ESTestCase {
         assertThat(result).isEqualTo(expected);
     }
 
-    /**
-     * https://github.com/crate/crate/issues/14451
-     */
+    // https://github.com/crate/crate/issues/14451
     @Test
     public void test_nested_arrays_from_ignored_objects() {
-        SourceParser sourceParser = new SourceParser();
+        SourceParser sourceParser = new SourceParser(Set.of());
         sourceParser.register(new ColumnIdent("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
         var result = sourceParser.parse(
             new BytesArray(
@@ -294,5 +291,101 @@ public class SourceParserTest extends ESTestCase {
                     """
             ));
         assertThat(result).isEqualTo(Map.of("obj", Map.of("x", List.of(List.of("1", "2"), List.of("3", "4")))));
+    }
+
+    @Test
+    public void test_dropped_leaf_sub_column() {
+        SourceParser sourceParser = new SourceParser(Set.of(
+            new ColumnIdent("o", List.of("oo", "b")),
+            new ColumnIdent("o", List.of("oo", "s"))));
+        var ooType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+        var oType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("oo", ooType)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"o": {"a":1, "b":2, "oo":{"a": 11, "b":22, "c":33, "s":33, "t":44}, "s":3, "t":4}}
+            """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
+        assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
+        assertThat(Maps.getByPath(result, "o.oo.a")).isEqualTo(11);
+        assertThat(Maps.getByPath(result, "o.oo.b")).isNull();
+        assertThat(Maps.getByPath(result, "o.oo.s")).isNull();
+        assertThat(Maps.getByPath(result, "o.oo.t")).isEqualTo(44);
+    }
+
+    @Test
+    public void test_drop_sub_column_with_children() {
+        SourceParser sourceParser = new SourceParser(Set.of(new ColumnIdent("o", List.of("oo"))));
+        var ooType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .build();
+        var oType = new ObjectType.Builder()
+            .setInnerType("oo", ooType)
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .build();
+
+
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}}
+            """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.oo")).isNull();
+    }
+
+    @Test
+    public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
+        SourceParser sourceParser = new SourceParser(Set.of(
+            new ColumnIdent("o", List.of("oo", "b")),
+            new ColumnIdent("o", List.of("oo", "t"))));
+        var ooType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+        var oType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("oo", new ArrayType<>(ooType))
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"o": {"a":1, "b":2, "oo":[{"a": 11, "b":22, "c":33, "s":33, "t":44}], "s":3, "t":4}}
+            """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
+        assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
+        //noinspection unchecked
+        Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).get(0);
+        assertThat(innerObj).containsExactly(
+            Map.entry("a", 11),
+            Map.entry("s", 33));
     }
 }
