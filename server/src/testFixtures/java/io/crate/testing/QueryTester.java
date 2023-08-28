@@ -127,7 +127,8 @@ public final class QueryTester implements AutoCloseable {
                 plannerContext.nodeContext(),
                 col -> mapperService.getLuceneFieldType(col.fqn()),
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
-                null
+                null,
+                Version.CURRENT
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);

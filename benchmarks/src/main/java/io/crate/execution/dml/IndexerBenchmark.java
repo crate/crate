@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -107,7 +108,8 @@ public class IndexerBenchmark {
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("y"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
         items = IntStream.range(1, 2000).mapToObj(x -> new IndexItem.StaticItem(
             "dummy-" + x,

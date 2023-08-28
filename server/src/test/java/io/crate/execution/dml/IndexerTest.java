@@ -104,7 +104,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Stream.of(columns)
                 .map(x -> table.getReference(new ColumnIdent(x)))
                 .toList(),
-            null
+            null,
+            Version.CURRENT
         );
     }
 
@@ -122,7 +123,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
-            null
+            null,
+            Version.CURRENT
         );
 
         Map<String, Object> value = Map.of("x", 10, "y", 20);
@@ -159,7 +161,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
-            null
+            null,
+            Version.CURRENT
         );
 
         Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20, "z", 30));
@@ -215,7 +218,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
-            null
+            null,
+            Version.CURRENT
         );
 
         Map<String, Object> value = Map.of("x", 10, "xs", List.of(2, 3, 4));
@@ -253,7 +257,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(y),
-            null
+            null,
+            Version.CURRENT
         );
         var parsedDoc = indexer.index(item(new Object[] { null }));
         assertThat(parsedDoc.source().utf8ToString())
@@ -269,7 +274,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
-            null
+            null,
+            Version.CURRENT
         );
         parsedDoc = indexer.index(item(10));
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
@@ -293,7 +299,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
-            null
+            null,
+            Version.CURRENT
         );
         var parsedDoc = indexer.index(item(1));
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
@@ -319,7 +326,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
-            null
+            null,
+            Version.CURRENT
         );
         var parsedDoc = indexer.index(item(1));
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
@@ -341,7 +349,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(o),
-            null
+            null,
+            Version.CURRENT
         );
 
         var parsedDoc = indexer.index(item(Map.of("z", 20)));
@@ -372,7 +381,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
-            null
+            null,
+            Version.CURRENT
         );
         var parsedDoc = indexer.index(item(42));
         assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
@@ -401,7 +411,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, y),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer1.index(item(1, 2)))
             .hasMessage("Given value 2 for generated column y does not match calculation (x + 2) = 3");
@@ -413,7 +424,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, o),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer2.index(item(1, Map.of("z", 10))))
             .hasMessage("Given value 10 for generated column o['z'] does not match calculation (x + 3) = 4");
@@ -434,7 +446,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(
                 table.getReference(new ColumnIdent("x"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer.index(item(new Object[] { null })))
             .hasMessage("\"x\" must not be null");
@@ -467,7 +480,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("z"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer.index(item(8, 10)))
             .hasMessage("Failed CONSTRAINT c1 CHECK (\"x\" > 10) for values: [8, 10]");
@@ -499,7 +513,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(
                 table.getReference(new ColumnIdent("o"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20))))
             .hasMessage("Cannot add column `y` to strict object `o`");
@@ -526,7 +541,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(
                 table.getReference(new ColumnIdent("o"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
         List<Reference> newColumns = indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20)));
         assertThat(newColumns).satisfiesExactly(
@@ -554,7 +570,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table.getReference(new ColumnIdent("_id")),
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("y")),
-            }
+            },
+            Version.CURRENT
         );
 
         Object[] returnValues = indexer.returnValues(item(10));
@@ -578,7 +595,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table.getReference(new ColumnIdent("x")),
                 table.getReference(new ColumnIdent("o"))
             ),
-            null
+            null,
+            Version.CURRENT
         );
 
         HashMap<String, Object> o = new HashMap<>();
@@ -682,7 +700,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 e.nodeCtx,
                 column -> indexEnv.mapperService().getLuceneFieldType(column.fqn()),
                 Lists2.map(columns, c -> table.getReference(c)),
-                null
+                null,
+                Version.CURRENT
             );
             ParsedDocument doc = indexer.index(item(values.toArray()));
             Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
@@ -716,7 +735,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table.getDynamic(new ColumnIdent("y"), true, false),
                 table.getDynamic(new ColumnIdent("z"), true, false)
             ),
-            null
+            null,
+            Version.CURRENT
         );
         IndexItem item = item(42, "Hello", 21);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
@@ -763,7 +783,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                         -1
                     )
                 ),
-                null
+                null,
+                Version.CURRENT
             );
         }).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot add column `y` to table `doc.tbl` with column policy `strict`");
@@ -816,7 +837,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 table.getDynamic(new ColumnIdent("n1"), true, false),
                 table.getDynamic(new ColumnIdent("n2"), true, false)
             ),
-            null
+            null,
+            Version.CURRENT
         );
         List<Object> n1 = List.of();
         List<Object> n2 = Arrays.asList(null, null);
@@ -935,7 +957,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 List.of("x", "o", "y").stream()
                     .map(x -> newTable.getReference(new ColumnIdent(x)))
                     .toList(),
-                null
+                null,
+                Version.CURRENT
             );
             Map<String, Integer> o = new LinkedHashMap<>();
             for (int c = 0; c < keys.size(); c++) {
@@ -1128,7 +1151,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x, y),
-            null
+            null,
+            Version.CURRENT
         );
         IndexItem item = item(10, List.of(List.of(1, 2), List.of(3, 4)));
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
@@ -1165,7 +1189,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 // 'Parted' is not in targets to imitate insert-from-subquery behavior
                 //  which excludes partitioned columns from targets
             ),
-            null
+            null,
+            Version.CURRENT
         );
 
         // Imitating problematic query
@@ -1193,7 +1218,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
             List.of(x),
-            null
+            null,
+            Version.CURRENT
         );
         assertThatThrownBy(() -> indexer.index(item(Map.of("x", 5))))
             .isExactlyInstanceOf(IllegalArgumentException.class)
