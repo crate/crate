@@ -505,6 +505,9 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> starting one node");
         cluster().startNode();
         var tableName = getFqn("test");
+        // Cannot crete table with SQL since intentional invalid value of analyzer wouldn't pass validation.
+        // When index created directly, OID is not assigned.
+        // It's asserted on indexing, thus explicitly adding OID to the mapping.
         client().admin().indices().create(
             new CreateIndexRequest(
                 tableName,
@@ -519,6 +522,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 "        \"field1\": {\n" +
                 "          \"type\": \"text\",\n" +
                 "          \"position\": 1,\n" +
+                "          \"oid\": 1,\n" +
                 "          \"analyzer\": \"test\"\n" +
                 "        }\n" +
                 "      }\n" +
