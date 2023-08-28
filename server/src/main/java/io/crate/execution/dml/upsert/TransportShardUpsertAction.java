@@ -533,7 +533,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             addColumnAction.execute(addColumnRequest).get();
         }
 
-        // Phase 2, index values.
         // TODO: Update addColumnAction to return refs with assigned OIDs and update target columns in the indexer before using OID-s in the second phase.
         ParsedDocument parsedDoc = indexer.index(item);
 
