@@ -140,6 +140,26 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
+        // Use same names for sub-cols at different level of nesting
+        execute("create table t(id integer primary key, " +
+                "o object AS(a int, b int, oo array(object AS(a int, b int, s int, t int)), s int, t int))");
+        execute("insert into t(id, o) values(1, '{\"a\":1, \"b\":2, " +
+                "\"oo\":[{\"a\":11, \"b\":22, \"s\":33, \"t\":44}], \"s\":3, \"t\":4}')");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=1, b=2, oo=[{a=11, b=22, s=33, t=44}], s=3, t=4}");
+
+        execute("alter table t drop column o['oo']['b'], drop column o['oo']['t']");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=1, b=2, oo=[{a=11, s=33}], s=3, t=4}");
+        Asserts.assertSQLError(() -> execute("select o['oo']['b'] from t"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column o['oo']['b'] unknown");
+    }
+
+    @Test
     public void test_alter_table_drop_subcolumn_with_children() {
         // Use same names for sub-cols at different level of nesting
         execute("create table t(id integer primary key, o object AS(a int, b int, oo object AS(a int, b int)))");

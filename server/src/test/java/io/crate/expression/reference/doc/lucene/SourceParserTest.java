@@ -295,21 +295,37 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_dropped_leaf_sub_column() {
-        SourceParser sourceParser = new SourceParser(Set.of(new ColumnIdent("o", List.of("oo", "b"))));
+        SourceParser sourceParser = new SourceParser(Set.of(
+            new ColumnIdent("o", List.of("oo", "b")),
+            new ColumnIdent("o", List.of("oo", "s"))));
         var ooType = new ObjectType.Builder()
-            .setInnerType("a", DataTypes.INTEGER).build();
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
         var oType = new ObjectType.Builder()
-            .setInnerType("oo", ooType).build();
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("oo", ooType)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
 
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"oo": {"a": 1, "b": 2, "c": 3}}}
+                {"o": {"a":1, "b":2, "oo":{"a": 11, "b":22, "c":33, "s":33, "t":44}, "s":3, "t":4}}
             """));
 
-        assertThat(Maps.getByPath(result, "o.oo.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
+        assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
+        assertThat(Maps.getByPath(result, "o.oo.a")).isEqualTo(11);
         assertThat(Maps.getByPath(result, "o.oo.b")).isNull();
-        assertThat(Maps.getByPath(result, "o.oo.c")).isEqualTo(3);
+        assertThat(Maps.getByPath(result, "o.oo.s")).isNull();
+        assertThat(Maps.getByPath(result, "o.oo.t")).isEqualTo(44);
     }
 
     @Test
@@ -335,5 +351,41 @@ public class SourceParserTest extends ESTestCase {
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
         assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
         assertThat(Maps.getByPath(result, "o.oo")).isNull();
+    }
+
+    @Test
+    public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
+        SourceParser sourceParser = new SourceParser(Set.of(
+            new ColumnIdent("o", List.of("oo", "b")),
+            new ColumnIdent("o", List.of("oo", "t"))));
+        var ooType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+        var oType = new ObjectType.Builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("oo", new ArrayType<>(ooType))
+            .setInnerType("s", DataTypes.INTEGER)
+            .setInnerType("t", DataTypes.INTEGER)
+            .build();
+
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"o": {"a":1, "b":2, "oo":[{"a": 11, "b":22, "c":33, "s":33, "t":44}], "s":3, "t":4}}
+            """));
+
+        assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
+        assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
+        assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
+        assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
+        //noinspection unchecked
+        Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).get(0);
+        assertThat(innerObj).containsExactly(
+            Map.entry("a", 11),
+            Map.entry("s", 33));
     }
 }

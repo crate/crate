@@ -130,7 +130,8 @@ public final class SourceParser {
     private static Object parseArray(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
-                                     Set<String> droppedColumns) throws IOException {
+                                     Set<String> droppedColumns,
+                                     StringBuilder colPath) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
@@ -148,7 +149,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns, droppedColumns));
+                values.add(parseValue(parser, type, requiredColumns, droppedColumns, colPath));
             }
             return values;
         }
@@ -170,11 +171,10 @@ public final class SourceParser {
                 String fieldName = parser.currentName();
                 boolean dropped = false;
                 if (droppedColumns.isEmpty() == false) {
-                    String path = "";
+                    String path = fieldName;
                     if (colPath.isEmpty() == false) {
-                        path = colPath + ".";
+                        path = colPath + "." + fieldName;
                     }
-                    path += fieldName;
                     dropped = droppedColumns.contains(path);
                 }
 
@@ -198,20 +198,33 @@ public final class SourceParser {
                     // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
                     values.put(fieldName, null);
                 } else if (required instanceof ObjectType objectType) {
-                    if (colPath.isEmpty() == false) {
-                        colPath.append('.');
-                    }
-                    colPath.append(fieldName);
+                    var prevLength = appendToColPath(colPath, fieldName);
                     values.put(fieldName, parseObject(
                         parser, objectType, (Map) objectType.innerTypes(), droppedColumns, colPath, true));
+                    colPath.delete(prevLength, colPath.length());
                 } else if (required instanceof DataType<?> dataType) {
-                    values.put(fieldName, parseValue(parser, dataType, null, Set.of()));
+                    if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
+                        var prevLength = appendToColPath(colPath, fieldName);
+                        values.put(fieldName, parseValue(parser, arrayType.innerType(), (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns, colPath));
+                        colPath.delete(prevLength, colPath.length());
+                    } else {
+                        values.put(fieldName, parseValue(parser, dataType, null, droppedColumns, colPath));
+                    }
                 } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required, Set.of()));
+                    values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns, colPath));
                 }
             }
             return values;
         }
+    }
+
+    private static int appendToColPath(StringBuilder colPath, String fieldName) {
+        var prevLength = colPath.length();
+        if (colPath.isEmpty() == false) {
+            colPath.append('.');
+        }
+        colPath.append(fieldName);
+        return prevLength;
     }
 
     /**
@@ -223,11 +236,12 @@ public final class SourceParser {
     private static Object parseValue(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
-                                     Set<String> droppedColumns) throws IOException {
+                                     Set<String> droppedColumns,
+                                     StringBuilder colPath) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, new StringBuilder(), false);
+            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, colPath);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, colPath, false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);

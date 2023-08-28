@@ -878,6 +878,13 @@ public class DocIndexMetadata {
                 }
             }
             return builder.build();
+        } else if (type.id() == ArrayType.ID) {
+            Map<String, Object> innerProps = (Map<String, Object>) columnProperties.get("inner");
+            if (innerProps == null) {
+                innerProps = columnProperties;
+            }
+            var newInnerType = removeDroppedColsFromInnerTypes(innerProps, ((ArrayType<?>) type).innerType());
+            return new ArrayType<>(newInnerType);
         }
         return type;
     }
