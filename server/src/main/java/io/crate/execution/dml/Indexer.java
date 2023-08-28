@@ -589,7 +589,11 @@ public class Indexer {
     }
 
     /**
-     * Phase 2 of the indexing. At this point schema is already updated.
+     * Create a {@link ParsedDocument} from {@link IndexItem}
+     *
+     * This must be called after any new columns (found via
+     * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
+     * state.
      */
     @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
