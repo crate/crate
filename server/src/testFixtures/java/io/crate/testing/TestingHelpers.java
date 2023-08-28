@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -419,7 +420,11 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
-        // TODO: Add MetadataBuilder parameter to this method, so that analyzers test code and SQlExecutor.addTable can also assign oid.
+        // TODO: Assign oid in analyzer tests.
+        return toMapping(null, boundCreateTable);
+    }
+
+    public static Map<String, Object> toMapping(Metadata.ColumnOidSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
@@ -433,7 +438,7 @@ public class TestingHelpers {
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
             boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn(),
-            null
+            columnOidSupplier
         );
 
     }

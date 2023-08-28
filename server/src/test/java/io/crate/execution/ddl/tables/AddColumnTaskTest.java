@@ -91,8 +91,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
 
             Reference addedColumn = newTable.getReference(newColumn.column());
-            // TODO: Update TestingHelpers to assign OID-s so that expression .addTable("create table tbl (x int, o object)") actually shifts the OID.
-            // Need to create a clone of request column to imitate the expected OID. Currently it's 2 and will be 3 once ^ is implemented.
+            // Need to create a clone of request column to imitate the expected OID.
             Reference newColumnWithOid = new SimpleReference(
                 newColumn.ident(),
                 newColumn.granularity(),
@@ -102,7 +101,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 newColumn.isNullable(),
                 newColumn.hasDocValues(),
                 newColumn.position(),
-                2,
+                3,
                 false,
                 newColumn.defaultExpression()
             );
