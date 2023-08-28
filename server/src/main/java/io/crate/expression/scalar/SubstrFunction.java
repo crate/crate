@@ -22,17 +22,22 @@
 package io.crate.expression.scalar;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
+import io.crate.user.UserLookup;
 
 public class SubstrFunction extends Scalar<String, Object> {
 
@@ -40,45 +45,26 @@ public class SubstrFunction extends Scalar<String, Object> {
     public static final String ALIAS = "substring";
 
     public static void register(ScalarFunctionModule module) {
+        TypeSignature stringType = DataTypes.STRING.getTypeSignature();
+        TypeSignature intType = DataTypes.INTEGER.getTypeSignature();
         for (var name : List.of(NAME, ALIAS)) {
             module.register(
-                Signature.scalar(
-                    name,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ),
+                Signature.scalar(name, stringType, intType, stringType),
                 SubstrFunction::new
             );
             module.register(
-                Signature.scalar(
-                    name,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ),
+                Signature.scalar(name, stringType, intType, intType, stringType),
                 SubstrFunction::new
+            );
+            module.register(
+                Signature.scalar(name, stringType, stringType, stringType),
+                SubstrExtractFunction::new
             );
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private SubstrFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -128,5 +114,76 @@ public class SubstrFunction extends Scalar<String, Object> {
     @VisibleForTesting
     static String substring(String value, int begin, int end) {
         return value.substring(begin, end);
+    }
+
+    private static class SubstrExtractFunction extends Scalar<String, String> {
+
+        SubstrExtractFunction(Signature signature, BoundSignature boundSignature) {
+            super(signature, boundSignature);
+        }
+
+        @Override
+        @SafeVarargs
+        public final String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<String>... args) {
+            String string = args[0].value();
+            if (string == null) {
+                return null;
+            }
+            String pattern = args[1].value();
+            if (pattern == null) {
+                return null;
+            }
+
+            Pattern re = Pattern.compile(pattern);
+            Matcher matcher = re.matcher(string);
+            int groupCount = matcher.groupCount();
+            if (matcher.find()) {
+                String group = matcher.group(groupCount > 0 ? 1 : 0);
+                return group;
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+            Symbol patternSymbol = arguments.get(1);
+            if (patternSymbol instanceof Input<?> input) {
+                String pattern = (String) input.value();
+                if (pattern == null) {
+                    return this;
+                }
+                return new CompiledSubstr(signature, boundSignature, pattern);
+            }
+            return this;
+        }
+    }
+
+    private static class CompiledSubstr extends Scalar<String, String> {
+
+        private final Matcher matcher;
+
+        public CompiledSubstr(Signature signature, BoundSignature boundSignature, String pattern) {
+            super(signature, boundSignature);
+            this.matcher = Pattern.compile(pattern).matcher("");
+        }
+
+
+        @Override
+        @SafeVarargs
+        public final String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<String>... args) {
+            String string = args[0].value();
+            if (string == null) {
+                return null;
+            }
+            matcher.reset(string);
+            int groupCount = matcher.groupCount();
+            if (matcher.find()) {
+                String group = matcher.group(groupCount > 0 ? 1 : 0);
+                return group;
+            } else {
+                return null;
+            }
+        }
     }
 }

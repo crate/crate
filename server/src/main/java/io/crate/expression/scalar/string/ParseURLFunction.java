@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar.string;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,8 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.elasticsearch.common.Strings;
-
-import java.nio.charset.StandardCharsets;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -58,22 +57,8 @@ public final class ParseURLFunction extends Scalar<Object, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ParseURLFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

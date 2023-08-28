@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
-import java.net.URISyntaxException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -51,22 +51,8 @@ public final class ParseURIFunction extends Scalar<Object, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public ParseURIFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

@@ -94,7 +94,7 @@ public final class ReservoirSampler {
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final Schemas schemas;
-    private CircuitBreakerService circuitBreakerService;
+    private final CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
     private final RateLimiter rateLimiter;
@@ -160,10 +160,9 @@ public final class ReservoirSampler {
         } catch (RelationUnknown e) {
             return Samples.EMPTY;
         }
-        if (!(table instanceof DocTableInfo)) {
+        if (!(table instanceof DocTableInfo docTable)) {
             return Samples.EMPTY;
         }
-        DocTableInfo docTable = (DocTableInfo) table;
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -202,7 +201,7 @@ public final class ReservoirSampler {
                                List<Streamer> streamers,
                                List<Engine.Searcher> searchersToRelease,
                                RamAccounting ramAccounting) {
-        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * maxSamples);
+        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * (long) maxSamples);
         Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
@@ -339,7 +338,7 @@ public final class ReservoirSampler {
     private static class ReservoirCollector implements Collector {
 
         private final Reservoir reservoir;
-        private int readerIdx;
+        private final int readerIdx;
 
         ReservoirCollector(Reservoir reservoir, int readerIdx) {
             this.reservoir = reservoir;

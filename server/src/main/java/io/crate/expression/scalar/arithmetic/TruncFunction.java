@@ -21,6 +21,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.function.Function;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
@@ -31,12 +37,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.function.Function;
-
-import static io.crate.metadata.functions.Signature.scalar;
 
 
 public final class TruncFunction {
@@ -82,17 +82,7 @@ public final class TruncFunction {
     }
 
     private static Scalar<Number, Number> createTruncWithMode(Signature signature, BoundSignature boundSignature) {
-        return new Scalar<>() {
-
-            @Override
-            public Signature signature() {
-                return signature;
-            }
-
-            @Override
-            public BoundSignature boundSignature() {
-                return boundSignature;
-            }
+        return new Scalar<>(signature, boundSignature) {
 
             @Override
             public Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {

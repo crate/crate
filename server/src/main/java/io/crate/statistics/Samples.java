@@ -21,28 +21,31 @@
 
 package io.crate.statistics;
 
-import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+
 class Samples implements Writeable {
 
     static final Samples EMPTY = new Samples(List.of(), List.of(), 0L, 0L);
 
+    @SuppressWarnings("rawtypes")
     private final List<Streamer> recordStreamer;
     final List<Row> records;
     final long numTotalDocs;
     final long numTotalSizeInBytes;
 
+    @SuppressWarnings("rawtypes")
     Samples(List<Row> records, List<Streamer> recordStreamer, long numTotalDocs, long numTotalSizeInBytes) {
         this.records = records;
         this.recordStreamer = recordStreamer;
@@ -50,6 +53,7 @@ class Samples implements Writeable {
         this.numTotalSizeInBytes = numTotalSizeInBytes;
     }
 
+    @SuppressWarnings("rawtypes")
     public Samples(List<Streamer> recordStreamer, StreamInput in) throws IOException {
         this.recordStreamer = recordStreamer;
         this.numTotalDocs = in.readLong();
@@ -70,12 +74,12 @@ class Samples implements Writeable {
         out.writeLong(numTotalDocs);
         out.writeLong(numTotalSizeInBytes);
         out.writeVInt(records.size());
-        for (Row record : records) {
-            assert record.numColumns() == recordStreamer.size()
+        for (Row row : records) {
+            assert row.numColumns() == recordStreamer.size()
                 : "Number of columns in the row must match the number of streamers available";
-            for (int i = 0; i < record.numColumns(); i++) {
+            for (int i = 0; i < row.numColumns(); i++) {
                 //noinspection unchecked
-                recordStreamer.get(i).writeValueTo(out, record.get(i));
+                recordStreamer.get(i).writeValueTo(out, row.get(i));
             }
         }
     }

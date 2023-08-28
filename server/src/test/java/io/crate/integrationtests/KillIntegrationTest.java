@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -36,11 +34,10 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -98,13 +95,14 @@ public class KillIntegrationTest extends IntegTestCase {
             try {
                 future.get(10, TimeUnit.SECONDS);
             } catch (Throwable exception) {
-                exception = SQLExceptions.unwrap(exception); // wrapped in ExecutionException
-                assertThat(exception,
-                           anyOf(instanceOf(JobKilledException.class),
-                                 instanceOf(InterruptedException.class),
-                                 instanceOf(CancellationException.class),
-                                 instanceOf(TaskMissing.class)
-                                )
+                // wrapped in ExecutionException or RuntimeException via Exceptions.toRuntimeExceptions
+                // (E.g. in ShardDMLExecutor.maybeRaiseFailure)
+                exception = SQLExceptions.unwrap(exception);
+                assertThat(exception).satisfiesAnyOf(
+                    x -> assertThat(x).isExactlyInstanceOf(JobKilledException.class),
+                    x -> assertThat(x).isExactlyInstanceOf(InterruptedException.class),
+                    x -> assertThat(x).isExactlyInstanceOf(CancellationException.class),
+                    x -> assertThat(x).isExactlyInstanceOf(TaskMissing.class)
                 );
             }
         } finally {

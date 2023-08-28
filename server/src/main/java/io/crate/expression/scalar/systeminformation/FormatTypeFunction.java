@@ -51,22 +51,8 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public FormatTypeFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-    }
-
-    @Override
-    public Signature signature() {
-        return this.signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override

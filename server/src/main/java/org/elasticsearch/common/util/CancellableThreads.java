@@ -19,15 +19,15 @@
 
 package org.elasticsearch.common.util;
 
-import org.apache.lucene.util.SetOnce;
-import org.apache.lucene.util.ThreadInterruptedException;
-import org.elasticsearch.ElasticsearchException;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.lucene.util.SetOnce;
+import org.apache.lucene.util.ThreadInterruptedException;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A utility class for multi threaded operation that needs to be cancellable via interrupts. Every cancellable operation should be
@@ -89,25 +89,9 @@ public class CancellableThreads {
      * @param interruptable code to run
      */
     public void execute(Interruptable interruptable) {
-        try {
-            executeIO(interruptable);
-        } catch (IOException e) {
-            assert false : "the passed interruptable can not result in an IOException";
-            throw new RuntimeException("unexpected IO exception", e);
-        }
-    }
-
-    /**
-     * run the Interruptable, capturing the executing thread. Concurrent calls to {@link #cancel(String)} will interrupt this thread
-     * causing the call to prematurely return.
-     *
-     * @param interruptable code to run
-     */
-    public void executeIO(IOInterruptable interruptable) throws IOException {
         boolean wasInterrupted = add();
         boolean cancelledByExternalInterrupt = false;
         RuntimeException runtimeException = null;
-        IOException ioException = null;
 
         try {
             interruptable.run();
@@ -119,8 +103,6 @@ public class CancellableThreads {
             cancelledByExternalInterrupt = !cancelled;
         } catch (RuntimeException t) {
             runtimeException = t;
-        } catch (IOException e) {
-            ioException = e;
         } finally {
             remove();
         }
@@ -132,11 +114,7 @@ public class CancellableThreads {
             // clear the flag interrupted flag as we are checking for failure..
             Thread.interrupted();
         }
-        checkForCancel(ioException != null ? ioException : runtimeException);
-        if (ioException != null) {
-            // if we're not canceling, we throw the original exception
-            throw ioException;
-        }
+        checkForCancel(runtimeException);
         if (runtimeException != null) {
             // if we're not canceling, we throw the original exception
             throw runtimeException;

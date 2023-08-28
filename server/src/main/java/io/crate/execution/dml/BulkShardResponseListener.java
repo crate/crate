@@ -21,19 +21,21 @@
 
 package io.crate.execution.dml;
 
-import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.data.Row1;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.MultiActionListener;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+
+import com.carrotsearch.hppc.IntCollection;
+import com.carrotsearch.hppc.cursors.IntCursor;
+
+import io.crate.data.Row1;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.support.MultiActionListener;
 
 /**
  * Listener to aggregate the responses of multiple (bulk-operation-mode) ShardResponses
@@ -71,7 +73,7 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
         if (failure == null) {
             result.update(response);
         } else {
-            Throwable t = SQLExceptions.unwrap(failure, e -> e instanceof RuntimeException);
+            Throwable t = SQLExceptions.unwrap(failure);
             if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
                 throw new RuntimeException(t);
             }

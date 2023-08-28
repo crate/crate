@@ -40,6 +40,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 
@@ -227,6 +228,19 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             }
         }
         return new RemoveResult(new ViewsMetadata(updatedQueryByName), missing);
+    }
+
+    /**
+     * @throws RelationUnknown if source view doesn't exist.
+     */
+    public ViewsMetadata rename(RelationName source, RelationName target) {
+        HashMap<String, ViewMetadata> newViewByName = new HashMap<>(viewByName);
+        ViewMetadata removed = newViewByName.remove(source.fqn());
+        if (removed == null) {
+            throw new RelationUnknown(source);
+        }
+        newViewByName.put(target.fqn(), removed);
+        return new ViewsMetadata(newViewByName);
     }
 
     @Nullable

@@ -139,6 +139,39 @@ Returns: ``text``
     SELECT 1 row in set (... sec)
 
 
+``substr('string' FROM 'pattern')``
+-----------------------------------
+
+Extract a part from a string that matches a POSIX regular expression pattern.
+
+Returns:: ``text``.
+
+If the pattern contains groups specified via parentheses it returns the first
+matching group.
+If the pattern doesn't match, the function returns ``NULL``.
+
+::
+
+    cr> SELECT
+    ...   substring('2023-08-07', '[a-z]') as no_match,
+    ...   substring('2023-08-07', '\d{4}-\d{2}-\d{2}') as full_date,
+    ...   substring('2023-08-07', '\d{4}-(\d{2})-\d{2}') as month;
+    +----------+------------+-------+
+    | no_match | full_date  | month |
+    +----------+------------+-------+
+    | NULL     | 2023-08-07 |    08 |
+    +----------+------------+-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-substring:
+
+``substring(...)``
+---------------...
+
+Alias for :ref:`scalar-substr`.
+
+
 .. _scalar-char_length:
 
 ``char_length('string')``
@@ -4265,9 +4298,8 @@ the query.
 
 This function must be used within a ``WHERE`` clause targeting a table to use it
 as a predicate that searches the whole dataset of a table.
-If used *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
-virtual table instead of a physical table, the search algorithm will only
-consider the current row, not the whole dataset.
+Using it *outside* of a ``WHERE`` clause, or in a ``WHERE`` clause targeting a
+virtual table instead of a physical table, results in an error.
 
 Similar to the :ref:`MATCH predicate <predicates_match>`, this function affects
 the :ref:`_score <sql_administration_system_column_score>` value.

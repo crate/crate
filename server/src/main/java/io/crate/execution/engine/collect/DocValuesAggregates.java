@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -42,6 +40,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -72,7 +71,9 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
-public class DocValuesAggregates {
+public final class DocValuesAggregates {
+
+    private DocValuesAggregates() {}
 
     @Nullable
     public static BatchIterator<Row> tryOptimize(Functions functions,
@@ -135,8 +136,8 @@ public class DocValuesAggregates {
         );
     }
 
-    @Nullable
     @SuppressWarnings("rawtypes")
+    @Nullable
     public static List<DocValueAggregator> createAggregators(Functions functions,
                                                              LuceneReferenceResolver referenceResolver,
                                                              List<Aggregation> aggregations,
@@ -223,7 +224,7 @@ public class DocValuesAggregates {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings("rawtypes")
     private static Iterable<Row> getRow(RamAccounting ramAccounting,
                                         MemoryManager memoryManager,
                                         Version minNodeVersion,

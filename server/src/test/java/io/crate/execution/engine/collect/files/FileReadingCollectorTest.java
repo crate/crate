@@ -22,9 +22,8 @@
 package io.crate.execution.engine.collect.files;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -51,8 +50,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
@@ -116,30 +113,33 @@ public class FileReadingCollectorTest extends ESTestCase {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        assertThat(tmpFile.delete(), is(true));
-        assertThat(tmpFileGz.delete(), is(true));
-        assertThat(tmpFileEmptyLine.delete(), is(true));
+        assertThat(tmpFile.delete()).isTrue();
+        assertThat(tmpFileGz.delete()).isTrue();
+        assertThat(tmpFileEmptyLine.delete()).isTrue();
         ThreadPool.terminate(THREAD_POOL, 30, TimeUnit.SECONDS);
     }
 
     @Test
     public void testUmlautsAndWhitespacesWithExplicitURIThrowsAre() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Illegal character in path at index 12: file:///this will fäil.json");
-        getObjects("file:///this will fäil.json");
+        assertThatThrownBy(() -> getObjects("file:///this will fäil.json"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Illegal character in path at index 12: file:///this will fäil.json");
     }
 
     @Test
     public void testNoErrorIfNoSuchFile() throws Throwable {
         // no error, -> don't want to fail just because one node doesn't have a file
-        getObjects("file:///some/path/that/shouldnt/exist/foo.json");
-        getObjects("file:///some/path/that/shouldnt/exist/*");
+        assertThat(getObjects("file:///some/path/that/shouldnt/exist/foo.json").getBucket())
+            .as("Contains one row even if file doesn't exist to propagate failure for return summary")
+            .satisfiesExactly(row1 -> assertThat(row1.get(0)).isNull());
+        assertThat(getObjects("file:///some/path/that/shouldnt/exist/*").getBucket()).isEmpty();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testRelativeImport() throws Throwable {
-        TestingRowConsumer projector = getObjects("xy");
-        assertCorrectResult(projector.getBucket());
+        assertThatThrownBy(() -> getObjects("xy"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("relative fileURIs are not allowed");
     }
 
     @Test
@@ -177,7 +177,7 @@ public class FileReadingCollectorTest extends ESTestCase {
     @Test
     public void unsupportedURITest() throws Throwable {
         getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html", true).getBucket();
-        assertThat(sourceUriFailureInput.value(), is("unknown protocol: invalid"));
+        assertThat(sourceUriFailureInput.value()).isEqualTo("unknown protocol: invalid");
     }
 
     @Test
@@ -187,16 +187,16 @@ public class FileReadingCollectorTest extends ESTestCase {
         fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         TestingRowConsumer consumer = getObjects(fileUris, null);
         Iterator<Row> it = consumer.getBucket().iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        assertThat(it.next().materialize()).containsExactly("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}");
+        assertThat(it.next().materialize()).containsExactly("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}");
+        assertThat(it.next().materialize()).containsExactly("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}");
+        assertThat(it.next().materialize()).containsExactly("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}");
     }
 
     private void assertCorrectResult(Bucket rows) throws Throwable {
         Iterator<Row> it = rows.iterator();
-        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
-        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        assertThat(it.next().materialize()).containsExactly("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}");
+        assertThat(it.next().materialize()).containsExactly("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}");
     }
 
     private TestingRowConsumer getObjects(String fileUri) throws Throwable {
@@ -228,6 +228,7 @@ public class FileReadingCollectorTest extends ESTestCase {
         consumer.accept(iterator, null);
     }
 
+    @SuppressWarnings("unchecked")
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    String compression,
                                                    boolean collectSourceUriFailure) {
@@ -238,11 +239,10 @@ public class FileReadingCollectorTest extends ESTestCase {
         inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
-            //noinspection unchecked
             sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);
         }
-        return FileReadingIterator.newInstance(
+        return new FileReadingIterator(
             fileUris,
             inputs,
             ctx.expressions(),
@@ -256,21 +256,5 @@ public class FileReadingCollectorTest extends ESTestCase {
             FileUriCollectPhase.InputFormat.JSON,
             Settings.EMPTY,
             THREAD_POOL.scheduler());
-    }
-
-    private static class WriteBufferAnswer implements Answer<Integer> {
-
-        private byte[] bytes;
-
-        public WriteBufferAnswer(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public Integer answer(InvocationOnMock invocation) throws Throwable {
-            byte[] buffer = (byte[]) invocation.getArguments()[0];
-            System.arraycopy(bytes, 0, buffer, 0, bytes.length);
-            return bytes.length;
-        }
     }
 }

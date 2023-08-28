@@ -65,7 +65,6 @@ import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
@@ -377,18 +376,8 @@ public class AlterTableOperation {
         });
     }
 
-    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename statement) {
-        DocTableInfo sourceTableInfo = statement.sourceTableInfo();
-        RelationName sourceRelationName = sourceTableInfo.ident();
-        RelationName targetRelationName = statement.targetTableIdent();
-
-        return renameTable(sourceRelationName, targetRelationName, sourceTableInfo.isPartitioned());
-    }
-
-    private CompletableFuture<Long> renameTable(RelationName sourceRelationName,
-                                                RelationName targetRelationName,
-                                                boolean isPartitioned) {
-        RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
+    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename renameTable) {
+        var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
         return transportRenameTableAction.execute(request, r -> -1L);
     }
 

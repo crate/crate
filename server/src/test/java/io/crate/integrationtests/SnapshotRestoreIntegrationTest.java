@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -193,7 +194,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + REPOSITORY_NAME + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4048)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown", REPOSITORY_NAME, snapshot));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s:%s] is missing", REPOSITORY_NAME, snapshot));
     }
 
     @Test
@@ -203,7 +204,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("drop snapshot " + repository + "." + snapshot))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining(String.format(Locale.ENGLISH, "Repository '%s' unknown", repository));
+            .hasMessageContaining(String.format(Locale.ENGLISH, "[%s] missing", repository));
     }
 
     @Test
@@ -283,7 +284,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1L);
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [my_snapshot], snapshot with the same name already exists");
     }
 
@@ -292,14 +293,14 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT unknown_repo.my_snapshot ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(NOT_FOUND, 4047)
-            .hasMessageContaining("Repository 'unknown_repo' unknown");
+            .hasMessageContaining("[unknown_repo] missing");
     }
 
     @Test
     public void testInvalidSnapshotName() throws Exception {
         Asserts.assertSQLError(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(CONFLICT, 4099)
+            .hasHTTPError(CONFLICT, 4096)
             .hasMessageContaining("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
     }
 

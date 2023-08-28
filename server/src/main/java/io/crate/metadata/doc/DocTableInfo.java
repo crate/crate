@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -202,7 +201,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.defaultExpressionColumns = references.values()
             .stream()
             .filter(r -> r.defaultExpression() != null)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Nullable

@@ -75,10 +75,8 @@ public final class QueryTester implements AutoCloseable {
     public static class Builder {
 
         private final DocTableInfo table;
-        private final SQLExecutor sqlExecutor;
         private final SqlExpressions expressions;
         private final PlannerContext plannerContext;
-        private final DocTableRelation docTableRelation;
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
 
@@ -88,7 +86,7 @@ public final class QueryTester implements AutoCloseable {
                        Version indexVersion,
                        String createTableStmt,
                        AbstractModule... additionalModules) throws IOException {
-            sqlExecutor = SQLExecutor
+            var sqlExecutor = SQLExecutor
                 .builder(clusterService, additionalModules)
                 .addTable(createTableStmt)
                 .build();
@@ -106,7 +104,7 @@ public final class QueryTester implements AutoCloseable {
                 tempDir
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
-            docTableRelation = new DocTableRelation(table);
+            var docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(
                 Collections.singletonMap(table.ident(), docTableRelation),
                 docTableRelation

@@ -19,15 +19,18 @@
 
 package org.elasticsearch.snapshots;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.exceptions.ClusterScopeException;
+import io.crate.exceptions.ConflictException;
 
 /**
  * Thrown on the attempt to create a snapshot with invalid name
  */
-public class InvalidSnapshotNameException extends SnapshotException {
+public class InvalidSnapshotNameException extends SnapshotException implements ConflictException, ClusterScopeException {
 
     public InvalidSnapshotNameException(final String repositoryName, final String snapshotName, String desc) {
         super(repositoryName, snapshotName, "Invalid snapshot name [" + snapshotName + "], " + desc);
@@ -41,6 +44,5 @@ public class InvalidSnapshotNameException extends SnapshotException {
     public RestStatus status() {
         return RestStatus.BAD_REQUEST;
     }
-
 }
 

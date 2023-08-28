@@ -99,14 +99,11 @@ public final class EqOperator extends Operator<Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final DataType<Object> argType;
 
     @SuppressWarnings("unchecked")
     private EqOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.argType = (DataType<Object>) boundSignature.argTypes().get(0);
     }
 
@@ -123,16 +120,6 @@ public final class EqOperator extends Operator<Object> {
             return null;
         }
         return argType.compare(left, right) == 0;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

@@ -75,14 +75,11 @@ public final class AllOperator extends Operator<Object> {
         }
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final IntPredicate cmp;
     private final DataType leftType;
 
     public AllOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmp) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.cmp = cmp;
         this.leftType = boundSignature.argTypes().get(0);
     }
@@ -110,15 +107,5 @@ public final class AllOperator extends Operator<Object> {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

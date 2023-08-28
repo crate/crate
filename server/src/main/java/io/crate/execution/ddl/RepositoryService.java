@@ -21,10 +21,8 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.RepositoryUnknownException;
-import io.crate.exceptions.SQLExceptions;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -38,9 +36,12 @@ import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoryException;
-
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.jetbrains.annotations.Nullable;
-import java.util.concurrent.CompletableFuture;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 @Singleton
 public class RepositoryService {
@@ -71,7 +72,7 @@ public class RepositoryService {
 
     public void failIfRepositoryDoesNotExist(String repositoryName) {
         if (getRepository(repositoryName) == null) {
-            throw new RepositoryUnknownException(repositoryName);
+            throw new RepositoryMissingException(repositoryName);
         }
     }
 

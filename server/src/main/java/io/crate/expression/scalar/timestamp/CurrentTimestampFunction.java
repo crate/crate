@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Locale;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,10 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 
@@ -57,12 +57,8 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public CurrentTimestampFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -97,15 +93,5 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
                 throw new IllegalArgumentException("Precision must be between 0 and 3");
         }
         return Math.floorDiv(millis, factor) * factor;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

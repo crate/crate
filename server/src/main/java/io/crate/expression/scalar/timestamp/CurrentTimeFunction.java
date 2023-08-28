@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Locale;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -30,10 +34,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.TimeTZ;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Locale;
 
 public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
 
@@ -58,12 +58,8 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     private CurrentTimeFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -88,15 +84,5 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
         long microsSinceMidnight = ChronoUnit.MICROS.between(currentInstant.truncatedTo(ChronoUnit.DAYS), currentInstant);
         long factor = (long) Math.pow(10, MICRO_PRECISION - precision);
         return new TimeTZ((microsSinceMidnight / factor) * factor, 0);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }

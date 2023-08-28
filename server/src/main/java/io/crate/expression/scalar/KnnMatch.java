@@ -22,12 +22,8 @@
 
 package io.crate.expression.scalar;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.KnnFloatVectorQuery;
 import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.Nullable;
@@ -43,19 +39,11 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
 import io.crate.types.TypeSignature;
 
 public class KnnMatch extends Scalar<Boolean, Object> {
-
-    private static final float DEFAULT_MIN_SCORE = 0.50f;
-
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-    private final IndexWriterConfig conf;
-    private DataType<float[]> type;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -70,22 +58,8 @@ public class KnnMatch extends Scalar<Boolean, Object> {
         );
     }
 
-    @SuppressWarnings("unchecked")
     public KnnMatch(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
-        this.conf = new IndexWriterConfig(new StandardAnalyzer());
-        this.type = (DataType<float[]>) boundSignature.argTypes().get(0);
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -93,37 +67,7 @@ public class KnnMatch extends Scalar<Boolean, Object> {
     public final Boolean evaluate(TransactionContext txnCtx,
                                   NodeContext nodeContext,
                                   Input<Object>... args) {
-        Object field = args[0].value();
-        if (field == null) {
-            return null;
-        }
-        Object target = args[1].value();
-        if (target == null) {
-            return null;
-        }
-        Object k = args[2].value();
-        if (k == null) {
-            return null;
-        }
-        assert field instanceof float[] : "First parameter value must be a float array";
-        assert target instanceof float[] : "Second parameter value must be a float array";
-        assert k instanceof Integer : "Third parameter value must be an integer";
-
-        try {
-            return evaluate((float[]) field, (float[]) target, (int) k);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private boolean evaluate(float[] field, float[] target, int k) throws IOException {
-        if (field.length != target.length) {
-            throw new IllegalArgumentException("Field dimensions must match target dimensions for knn_query");
-        }
-        if (field.length != type.characterMaximumLength()) {
-            throw new IllegalArgumentException("Field dimensions must match type dimensions for knn_query");
-        }
-        return FloatVectorType.SIMILARITY_FUNC.compare(field, target) >= DEFAULT_MIN_SCORE;
+        throw new UnsupportedOperationException("knn_match can only be used in WHERE clause for tables as it needs an index to operate on");
     }
 
     @Override

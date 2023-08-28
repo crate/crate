@@ -53,12 +53,8 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     public RegexpMatchCaseInsensitiveOperator(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -75,16 +71,6 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
 
         Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
         return p.matcher(source).matches();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

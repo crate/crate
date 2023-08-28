@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.Locale;
+import java.util.function.BiFunction;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
@@ -29,9 +32,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
-import java.util.function.BiFunction;
 
 public class StringLeftRightFunction extends Scalar<String, Object> {
 
@@ -58,26 +58,13 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
     private final BiFunction<String, Integer, String> func;
 
     private StringLeftRightFunction(Signature signature,
                                     BoundSignature boundSignature,
                                     BiFunction<String, Integer, String> func) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
         this.func = func;
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 
     @Override

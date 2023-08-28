@@ -235,17 +235,17 @@ public class SQLTransportExecutor {
                 cause = ex;
             }
             throw new ElasticsearchTimeoutException("Timeout while running `" + stmt + "`", cause);
-        } catch (RuntimeException e) {
-            var cause = e.getCause();
+        } catch (Throwable t) {
             // ActionListener.onFailure takes `Exception` as argument instead of `Throwable`.
             // That requires us to wrap Throwable; That Throwable may be an AssertionError.
             //
             // Wrapping the exception can hide parts of the stacktrace that are interesting
             // to figure out the root cause of an error, so we prefer the cause here
-            if (e.getClass() == RuntimeException.class && cause != null) {
-                Exceptions.rethrowUnchecked(cause);
-            }
-            throw e;
+            t = SQLExceptions.unwrap(t);
+            Exceptions.rethrowUnchecked(t);
+
+            // unreachable
+            return null;
         }
     }
 

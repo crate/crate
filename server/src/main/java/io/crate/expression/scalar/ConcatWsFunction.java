@@ -44,12 +44,8 @@ public class ConcatWsFunction extends Scalar<String, String> {
         );
     }
 
-    private final Signature signature;
-    private final BoundSignature boundSignature;
-
     ConcatWsFunction(Signature signature, BoundSignature boundSignature) {
-        this.signature = signature;
-        this.boundSignature = boundSignature;
+        super(signature, boundSignature);
     }
 
     @Override
@@ -75,15 +71,5 @@ public class ConcatWsFunction extends Scalar<String, String> {
             }
         }
         return sb.toString();
-    }
-
-    @Override
-    public Signature signature() {
-        return signature;
-    }
-
-    @Override
-    public BoundSignature boundSignature() {
-        return boundSignature;
     }
 }
