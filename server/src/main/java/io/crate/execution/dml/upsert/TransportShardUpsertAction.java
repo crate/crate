@@ -532,7 +532,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             addColumnAction.execute(addColumnRequest).get();
         }
 
-        // TODO: Update addColumnAction to return refs with assigned OIDs and update target columns in the indexer before using OID-s in the second phase.
         ParsedDocument parsedDoc = indexer.index(item);
 
         // Replica must use the same values for undeterministic defaults/generated columns

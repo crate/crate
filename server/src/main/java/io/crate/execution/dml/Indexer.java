@@ -624,7 +624,6 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                // TODO: Add assertion that oid is assigned once AddColumnAction returns OID-S in the response and Indexer targets gets updated.
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
