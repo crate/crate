@@ -542,8 +542,7 @@ public class Indexer {
     }
 
     /**
-     * Phase 1 of the indexing: collect all new columns
-     * and update schema **before** creating a Lucene document.
+     * Looks for new columns in the values of the given IndexItem and returns them.
      */
     public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         ArrayList<Reference> newColumns = new ArrayList<>();
