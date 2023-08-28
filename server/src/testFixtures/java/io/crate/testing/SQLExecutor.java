@@ -471,24 +471,27 @@ public class SQLExecutor {
                 .put(customSettings)
                 .build();
 
-            XContentBuilder mappingBuilder = JsonXContent.builder().map(TestingHelpers.toMapping(boundCreateTable));
-            CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
+            // addPartitionedTable can be called multiple times, create supplier based on existing state.
+            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+            Metadata.ColumnOidSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+            Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
+
+            XContentBuilder mappingBuilder = JsonXContent.builder().map(mapping);
             AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
                 .patterns(singletonList(boundCreateTable.templatePrefix()))
-                .putMapping(mapping)
+                .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
                 .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);
 
-            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
-                .put(template);
+            mdBuilder.put(template);
 
             RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
             for (String partition : partitions) {
                 IndexMetadata indexMetadata = getIndexMetadata(
                     partition,
                     combinedSettings,
-                    TestingHelpers.toMapping(boundCreateTable),
+                    mapping, // Each partition has the same mapping.
                     prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
                     .build();
@@ -534,16 +537,21 @@ public class SQLExecutor {
                 .build();
 
             ClusterState prevState = clusterService.state();
+
+            // addTable can be called multiple times, create supplier based on existing state.
+            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+            Metadata.ColumnOidSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+
             RelationName relationName = boundCreateTable.tableName();
             IndexMetadata indexMetadata = getIndexMetadata(
                 relationName.indexNameOrAlias(),
                 combinedSettings,
-                TestingHelpers.toMapping(boundCreateTable),
+                TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
                 prevState.nodes().getSmallestNonClientNodeVersion()
             ).build();
 
             ClusterState state = ClusterState.builder(prevState)
-                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+                .metadata(mdBuilder.put(indexMetadata, true))
                 .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
                 .build();
 
