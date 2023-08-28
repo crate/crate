@@ -95,6 +95,19 @@ import io.crate.types.ObjectType;
  *  <li>Source generation</li>
  *  <li>Lucene {@link Document} and index field creation</li>
  * </ul>
+ * <p>
+ * This process is split into multiple steps:
+ * <ol>
+ * <li>Look for unknown columns via {@link #collectSchemaUpdates(IndexItem)}</li>
+ * <li>Update cluster state with new columns (The user of the Indexer is
+ * responsible for this)</li>
+ * <li>Update reference information based on cluster state update</li>
+ * <li>Create {@link ParsedDocument} via {@link #index(IndexItem)}</li>
+ * </ol>
+ *
+ * Schema update and creation of ParsedDocument is split into two steps to be
+ * able to use information from the persisted {@link Reference} from the cluster
+ * state. (Mostly for the OID information)
  **/
 public class Indexer {
 
