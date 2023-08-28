@@ -521,7 +521,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         final long startTime = System.nanoTime();
 
-        // Phase 1, collect updates and do a mapping update.
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
