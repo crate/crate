@@ -262,6 +262,10 @@ public class SimpleReference implements Reference {
         mapping.put("position", position);
         if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
             mapping.put("oid", columnOidSupplier.nextOid());
+        } else if (oid != COLUMN_OID_UNASSIGNED) {
+            // Print out existing oid without shifting a global one.
+            // Mainly needed for tests, so that printed out mapping actually corresponds to the real mapping (see ReferenceTest).
+            mapping.put("oid", oid);
         }
         if (isDropped) {
             mapping.put("dropped", true);

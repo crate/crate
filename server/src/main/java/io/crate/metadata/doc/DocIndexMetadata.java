@@ -547,6 +547,7 @@ public class DocIndexMetadata {
                         IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
                         builder.indexType(columnIndexType)
                             .position(position)
+                            .oid(oid)
                             .analyzer((String) columnProperties.get("analyzer"))
                             .sources(sources);
                     }
