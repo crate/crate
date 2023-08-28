@@ -29,6 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import io.crate.execution.ddl.tables.AddColumnResponse;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -168,7 +171,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             assert request.insertColumns() == null || insertColumns.subList(0, request.insertColumns().length).equals(Arrays.asList(request.insertColumns()))
                 : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
         } else {
-            insertColumns = List.of(request.insertColumns());
+            insertColumns = Arrays.asList(request.insertColumns());
         }
         Indexer indexer = new Indexer(
             indexName,
@@ -540,6 +543,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
+        AcknowledgedResponse response = null;
         if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
@@ -547,7 +551,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Map.of(),
                 new IntArrayList(0)
             );
-            addColumnAction.execute(addColumnRequest).get();
+            response = addColumnAction.execute(addColumnRequest).get();
+        }
+
+        if (response instanceof AddColumnResponse addColumnResponse) {
+            indexer.updateTargets(addColumnResponse.addedColumns());
         }
 
         ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
