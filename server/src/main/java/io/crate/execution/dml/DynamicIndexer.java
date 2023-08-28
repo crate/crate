@@ -88,7 +88,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 }
                 throw new IllegalArgumentException(
                     "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
+                    "Storage is not supported for this type");
             }
             boolean nullable = true;
             Symbol defaultExpression = null;
