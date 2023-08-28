@@ -26,13 +26,13 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.metadata.ColumnIdent;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.junit.Before;
@@ -61,15 +61,10 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -445,34 +440,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnalyzeArraySliceFunctionCall() {
-        ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
-        SimpleReference arrayRef = new SimpleReference(
-            arrayRefIdent,
-            RowGranularity.DOC,
-            DataTypes.INTEGER_ARRAY,
-            ColumnPolicy.DYNAMIC,
-            IndexType.PLAIN,
-            true,
-            true,
-            1,
-            COLUMN_OID_UNASSIGNED,
-            false,
-            null
-        );
-        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-        Symbol function = ExpressionAnalyzer.allocateFunction(
+        assertThat(executor.asSymbol("tarr.xs[1:3]")).isFunction(
             ArraySliceFunction.NAME,
-            List.of(arrayRef, Literal.of(1), Literal.of(3)),
-            null,
-            localContext,
-            txnCtx,
-            expressions.nodeCtx
+            arg1 -> assertThat(arg1)
+                    .isReference()
+                    .hasColumnIdent(new ColumnIdent("xs"))
+                    .hasTableIdent(new RelationName("doc", "tarr"))
+                .hasType(DataTypes.INTEGER_ARRAY),
+            arg2 -> assertThat(arg2).isLiteral(1),
+            arg3 -> assertThat(arg3).isLiteral(3)
         );
-
-        var result = executor.asSymbol("tarr.xs[1:3]");
-
-        assertThat(result).isEqualTo(function);
     }
 
     @Test
