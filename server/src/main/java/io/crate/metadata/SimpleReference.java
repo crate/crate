@@ -262,6 +262,8 @@ public class SimpleReference implements Reference {
         mapping.put("position", position);
         if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
             mapping.put("oid", columnOidSupplier.nextOid());
+        } else if (oid != COLUMN_OID_UNASSIGNED) {
+            mapping.put("oid", oid);
         }
         if (isDropped) {
             mapping.put("dropped", true);
