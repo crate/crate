@@ -248,9 +248,13 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     /**
-     * All unknown columns are already handled in the first phase, thus phase 2 is aware of **almost** all unknwn columns.
-     * However, columns added into IGNORED objects and are not handled in the first phase and thus needs to be handked even on the second phase.
-     * Also, empty arrays and arrays filled only by nulls doesn't result in a new column, thus also needs separate handling.
+     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Map) to the xContentBuilder.
+     *
+     * There are no columns for:
+     * <ul>
+     *  <li>OBJECT (IGNORED)</li>
+     *  <li>Empty arrays, or arrays with only null values</li>
+     * </ul>
      */
     private void indexUnknownColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
         for (var entry : value.entrySet()) {
