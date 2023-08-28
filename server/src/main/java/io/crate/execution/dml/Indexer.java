@@ -42,6 +42,7 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -81,6 +82,8 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
+
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 /**
  * <p>
@@ -122,6 +125,7 @@ public class Indexer {
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
+    private final boolean writeOids;
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -366,6 +370,7 @@ public class Indexer {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
+        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -512,6 +517,24 @@ public class Indexer {
         this.expressions = ctxForRefs.expressions();
     }
 
+    /**
+     * @param addedColumns has columns collected by {@link #collectSchemaUpdates(IndexItem) and with assigned OID0-s
+     */
+    public void updateTargets(List<Reference> addedColumns) {
+        // Store by ident for fast replacement.
+        Map<ColumnIdent, Reference> addedColumnsByIdent = new HashMap<>();
+        for (Reference ref: addedColumns) {
+            addedColumnsByIdent.put(ref.column(), ref);
+        }
+
+        for (int i = 0; i < columns.size(); i++) {
+            Reference referenceWithOid = addedColumnsByIdent.get(columns.get(i).column());
+            if (referenceWithOid != null) {
+                columns.set(i, referenceWithOid);
+            }
+        }
+    }
+
     private static void addNotNullConstraints(List<TableConstraint> tableConstraints,
                                               Map<ColumnIdent, ColumnConstraint> columnConstraints,
                                               DocTableInfo table,
@@ -553,6 +576,7 @@ public class Indexer {
             }
         }
     }
+
 
     /**
      * Looks for new columns in the values of the given IndexItem and returns them.
@@ -624,6 +648,10 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
+                    // It's possible to have target references without OID after doing a mapping update:
+                    // Empty arrays, arrays with only null values and columns added dynamically into IGNORED object doesn't result in schema update.
+                    assert assertExistingOid(reference) : "All target columns must have assigned OID on indexing.";
+
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
@@ -837,5 +865,12 @@ public class Indexer {
             }
         }
         return result;
+    }
+
+    private boolean assertExistingOid(Reference ref) {
+        if (writeOids && ref instanceof DynamicReference == false) {
+            return ref.oid() != COLUMN_OID_UNASSIGNED;
+        }
+        return true;
     }
 }
