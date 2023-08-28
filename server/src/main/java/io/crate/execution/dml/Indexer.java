@@ -567,6 +567,7 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics);
         }
+        // Generated columns can result in new columns. For example: details object generated always as {\"a1\" = {\"b1\" = 'test'}},
         for (var entry : synthetics.entrySet()) {
             ColumnIdent column = entry.getKey();
             if (!column.isRoot()) {
