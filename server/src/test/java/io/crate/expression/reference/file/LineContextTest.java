@@ -29,12 +29,13 @@ import java.nio.charset.StandardCharsets;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 import io.crate.metadata.ColumnIdent;
 
 public class LineContextTest extends ESTestCase {
     @Test
     public void testGet() {
-        LineContext context = new LineContext();
+        LineContext context = new LineContext(new LineCursor());
 
         String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
         context.rawSource(source.getBytes(StandardCharsets.UTF_8));

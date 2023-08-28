@@ -1106,7 +1106,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy t from ? with (shared = true) return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(response.rows()[0][2]).isEqualTo(2L);
         assertThat(response.rows()[0][3]).isEqualTo(9L);
-
     }
 
     @Test

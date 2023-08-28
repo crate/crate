@@ -21,29 +21,33 @@
 
 package io.crate.expression.reference.file;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.server.xcontent.ParsedXContent;
-import io.crate.server.xcontent.XContentHelper;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.NotXContentException;
 import org.elasticsearch.common.xcontent.XContentType;
-
 import org.jetbrains.annotations.Nullable;
-import java.net.URI;
-import java.util.LinkedHashMap;
-import java.util.Map;
+
+import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.server.xcontent.ParsedXContent;
+import io.crate.server.xcontent.XContentHelper;
 
 public class LineContext {
 
+    private final LineCursor cursor;
+
     private byte[] rawSource;
     private LinkedHashMap<String, Object> parsedSource;
-    private String currentUri;
-    private String currentUriFailure;
     private String currentParsingFailure;
-    private long currentLineNumber = 0;
+
+    public LineContext(LineCursor cursor) {
+        this.cursor = cursor;
+    }
 
     @Nullable
     String sourceAsString() {
@@ -84,23 +88,10 @@ public class LineContext {
         this.parsedSource = null;
     }
 
-    /**
-     * Sets the current URI to the context. This is expected to happen when starting to process a new URI.
-     * Any existing URI processing failure must have been consumed already as it will be overwritten/reset.
-     */
-    public void currentUri(URI currentUri) {
-        this.currentUri = currentUri.toString();
-        currentUriFailure = null;
-        currentParsingFailure = null;
-    }
-
     String currentUri() {
-        return currentUri;
+        return cursor.uri().toString();
     }
 
-    public void setCurrentUriFailure(String failureMessage) {
-        currentUriFailure = failureMessage;
-    }
 
     /**
      * Sets the current parsing failure.
@@ -114,7 +105,8 @@ public class LineContext {
      */
     @Nullable
     String getCurrentUriFailure() {
-        return currentUriFailure;
+        IOException failure = cursor.failure();
+        return failure == null ? null : failure.getMessage();
     }
 
     /**
@@ -125,16 +117,8 @@ public class LineContext {
         return currentParsingFailure;
     }
 
-    public void resetCurrentLineNumber() {
-        currentLineNumber = 0;
-    }
-
-    public void incrementCurrentLineNumber() {
-        currentLineNumber++;
-    }
-
     public long getCurrentLineNumber() {
-        return currentLineNumber;
+        return cursor.lineNumber();
     }
 
     public void resetCurrentParsingFailure() {

@@ -34,16 +34,19 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.AnalyzedCopyFrom;
+import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.SkippingBatchIterator;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.execution.engine.collect.files.LineProcessor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
@@ -85,22 +88,28 @@ public class FileCollectSource implements CollectSource {
         ctx.add(collectPhase.toCollect());
 
         List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
-        return CompletableFuture.completedFuture(
-            new FileReadingIterator(
-                fileUris,
-                ctx.topLevelInputs(),
-                ctx.expressions(),
-                fileUriCollectPhase.compression(),
-                fileInputFactoryMap,
-                fileUriCollectPhase.sharedStorage(),
-                fileUriCollectPhase.nodeIds().size(),
-                getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
-                fileUriCollectPhase.targetColumns(),
-                fileUriCollectPhase.parserProperties(),
-                fileUriCollectPhase.inputFormat(),
-                fileUriCollectPhase.withClauseOptions(),
-                threadPool.scheduler()
-            ));
+        FileReadingIterator fileReadingIterator = new FileReadingIterator(
+            fileUris,
+            fileUriCollectPhase.compression(),
+            fileInputFactoryMap,
+            fileUriCollectPhase.sharedStorage(),
+            fileUriCollectPhase.nodeIds().size(),
+            getReaderNumber(fileUriCollectPhase.nodeIds(), clusterService.state().nodes().getLocalNodeId()),
+            fileUriCollectPhase.withClauseOptions(),
+            threadPool.scheduler()
+        );
+        CopyFromParserProperties parserProperties = fileUriCollectPhase.parserProperties();
+        LineProcessor lineProcessor = new LineProcessor(
+            parserProperties.skipNumLines() > 0
+                ? new SkippingBatchIterator<>(fileReadingIterator, (int) parserProperties.skipNumLines())
+                : fileReadingIterator,
+            ctx.topLevelInputs(),
+            ctx.expressions(),
+            fileUriCollectPhase.inputFormat(),
+            parserProperties,
+            fileUriCollectPhase.targetColumns()
+        );
+        return CompletableFuture.completedFuture(lineProcessor);
     }
 
     @VisibleForTesting

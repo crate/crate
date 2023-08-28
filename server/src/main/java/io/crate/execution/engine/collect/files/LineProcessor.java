@@ -21,60 +21,124 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
-import io.crate.expression.reference.file.LineContext;
-
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public final class LineProcessor {
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.MappedForwardingBatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
+import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
+import io.crate.expression.InputRow;
+import io.crate.expression.reference.file.LineContext;
+import io.crate.operation.collect.files.CSVLineParser;
 
-    private final LineContext lineContext = new LineContext();
-    private final LineParser lineParser;
+public final class LineProcessor extends MappedForwardingBatchIterator<LineCursor, Row> {
 
-    public LineProcessor(CopyFromParserProperties parserProperties, List<String> targetColumns) {
-        lineParser = new LineParser(parserProperties, targetColumns);
-    }
+    private final BatchIterator<LineCursor> source;
+    private final LineContext lineContext;
+    private final CopyFromParserProperties parserProperties;
+    private final List<String> targetColumns;
+    private final InputRow row;
 
-    public void startCollect(Iterable<LineCollectorExpression<?>> collectorExpressions) {
-        for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
+    private InputFormat inputFormat;
+    private CSVLineParser csvLineParser;
+    private boolean firstLine = true;
+
+    public LineProcessor(BatchIterator<LineCursor> source,
+                         List<Input<?>> inputs,
+                         List<LineCollectorExpression<?>> expressions,
+                         FileUriCollectPhase.InputFormat inputFormat,
+                         CopyFromParserProperties parserProperties,
+                         List<String> targetColumns) {
+        this.source = source;
+        this.inputFormat = inputFormat;
+        this.row = new InputRow(inputs);
+        this.parserProperties = parserProperties;
+        this.targetColumns = targetColumns;
+        this.lineContext = new LineContext(source.currentElement());
+        for (LineCollectorExpression<?> collectorExpression : expressions) {
             collectorExpression.startCollect(lineContext);
         }
     }
 
-    void startWithUri(URI currentUri) {
-        lineContext.resetCurrentLineNumber();
-        lineContext.currentUri(currentUri);
+    @Override
+    public void moveToStart() {
+        source.moveToStart();
+        firstLine = true;
     }
 
-    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
-        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    private boolean readFirstLine(URI currentUri, String line) throws IOException {
+        if (isCSV(inputFormat, currentUri)) {
+            csvLineParser = new CSVLineParser(parserProperties, targetColumns);
+            inputFormat = InputFormat.CSV;
+            if (parserProperties.fileHeader()) {
+                csvLineParser.parseHeader(line);
+                return true;
+            }
+        } else {
+            inputFormat = InputFormat.JSON;
+        }
+        return false;
     }
 
-    public void process(String line) throws IOException {
-        lineContext.incrementCurrentLineNumber();
-        lineContext.resetCurrentParsingFailure(); // Reset prev failure if there is any.
-        byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
-        lineContext.rawSource(jsonByteArray);
+    private byte[] getByteArray(String line, long rowNumber) throws IOException {
+        if (inputFormat == InputFormat.CSV) {
+            return parserProperties.fileHeader() ?
+                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
+        } else {
+            return line.getBytes(StandardCharsets.UTF_8);
+        }
     }
 
-    /**
-     * Set IO failure. Can be added only once per URI and nullifies
-     * `error_count` and `success_count` in summary when encountered.
-     */
-    public void setUriFailure(String failure) {
-        lineContext.setCurrentUriFailure(failure);
+    private static boolean isCSV(FileUriCollectPhase.InputFormat inputFormat, URI currentUri) {
+        return (inputFormat == FileUriCollectPhase.InputFormat.CSV) || currentUri.toString().endsWith(".csv");
     }
 
-    /**
-     * Set a non-IO failure. Can be added multiple times per URI and
-     * each failure gets traced in `error_count` and  `error` columns
-     * in summary.
-     */
-    public void setParsingFailure(String failure) {
-        lineContext.setCurrentParsingFailure(failure);
+    @Override
+    public boolean moveNext() {
+        try {
+            while (source.moveNext()) {
+                LineCursor cursor = source.currentElement();
+                String line = cursor.line();
+                if (line == null) {
+                    assert cursor.failure() != null : "If the line is null, there must be a failure";
+                    return true;
+                }
+                if (firstLine) {
+                    firstLine = false;
+                    if (readFirstLine(cursor.uri(), line)) {
+                        continue;
+                    }
+                }
+                try {
+                    byte[] json = getByteArray(line, cursor.lineNumber());
+                    lineContext.resetCurrentParsingFailure();
+                    lineContext.rawSource(json);
+                } catch (Throwable parseError) {
+                    lineContext.setCurrentParsingFailure(parseError.getMessage());
+                }
+                return true;
+            }
+            return false;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public Row currentElement() {
+        return row;
+    }
+
+    @Override
+    protected BatchIterator<LineCursor> delegate() {
+        return source;
     }
 }
