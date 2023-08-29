@@ -33,7 +33,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.FieldExistsQuery;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
@@ -637,8 +636,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class),
-                x -> assertThat(x.getQuery()).isExactlyInstanceOf(IndexOrDocValuesQuery.class)
+            // the query class is anonymous
+            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1"),
+            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1")
         );
 
         query = convert("10 != ANY(x_array_no_docvalues)");
@@ -647,8 +647,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class),
-                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class)
+            // the query class is anonymous
+            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1"),
+            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1")
         );
     }
 
