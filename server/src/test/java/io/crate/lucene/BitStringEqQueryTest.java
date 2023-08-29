@@ -36,7 +36,7 @@ import io.crate.sql.tree.BitString;
 public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
     private static final BitString BIT_STRING = BitString.ofBitString("B'001'");
     private static final BytesRef BIT_STRING_IN_BYTES_REF = new BytesRef(BIT_STRING.bitSet().toByteArray());
-    
+
     @Override
     protected String createStmt() {
         // `columnstore = false` is not supported
