@@ -42,8 +42,6 @@ Disable indexing
 ================
 
 Indexing can be turned off by using the ``INDEX OFF`` column definition.
-Consider that a column without an index can only be used as a result column
-and will never produce a hit when queried.
 
 ::
 
@@ -52,23 +50,11 @@ and will never produce a hit when queried.
     ... );
     CREATE OK, 1 row affected (... sec)
 
-::
 
-    cr> insert into table_a (first_column) values ('hello');
-    INSERT OK, 1 row affected (... sec)
+.. NOTE::
 
-.. Hidden: Refresh::
-
-    cr> refresh table table_a;
-    REFRESH OK, ...
-
-When a not indexed column is queried the query will return an error.
-
-::
-
-    cr> select * from table_a where first_column = 'hello';
-    SQLParseException[Cannot search on field [first_column] since it is not indexed.]
-
+    Disabling indexing will reduce disk consumption but cause poorer query
+    performance.
 
 .. NOTE::
 
