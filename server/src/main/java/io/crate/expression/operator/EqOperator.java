@@ -141,7 +141,8 @@ public final class EqOperator extends Operator<Object> {
             if (dataType.id() != IntegerType.ID &&
                 dataType.id() != StringType.ID &&
                 dataType.id() != BitStringType.ID &&
-                dataType.id() != LongType.ID) {
+                dataType.id() != LongType.ID &&
+                dataType.id() != DoubleType.ID) {
                 throw new IllegalArgumentException(
                     "Cannot search on field [" + fqn + "] since it is not indexed.");
             }
