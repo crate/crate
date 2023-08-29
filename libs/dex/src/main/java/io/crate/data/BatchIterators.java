@@ -124,18 +124,4 @@ public class BatchIterators {
             }
         };
     }
-
-    public static <I, O> BatchIterator<O> map(BatchIterator<I> bi, Function<? super I, ? extends O> mapper) {
-        return new MappedForwardingBatchIterator<I, O>() {
-            @Override
-            public O currentElement() {
-                return mapper.apply(bi.currentElement());
-            }
-
-            @Override
-            protected BatchIterator<I> delegate() {
-                return bi;
-            }
-        };
-    }
 }

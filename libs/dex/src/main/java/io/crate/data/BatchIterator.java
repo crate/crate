@@ -23,6 +23,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.crate.common.concurrent.Killable;
 
@@ -186,5 +187,22 @@ public interface BatchIterator<T> extends Killable {
         } catch (Throwable ex) {
             onFinish.accept(ex);
         }
+    }
+
+
+    default <O> BatchIterator<O> map(Function<? super T, ? extends O> mapper) {
+        final BatchIterator<T> source = this;
+        return new MappedForwardingBatchIterator<T, O>() {
+
+            @Override
+            public O currentElement() {
+                return mapper.apply(source.currentElement());
+            }
+
+            @Override
+            protected BatchIterator<T> delegate() {
+                return source;
+            }
+        };
     }
 }
