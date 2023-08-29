@@ -32,7 +32,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -98,7 +97,7 @@ public final class WindowFunctionBatchIterator {
         };
         return CollectingBatchIterator.newInstance(
             source,
-            src -> src.collect(Collectors.mapping(materialize, Collectors.toList()))
+            src -> src.map(materialize).toList()
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
                     computeFrameStart,

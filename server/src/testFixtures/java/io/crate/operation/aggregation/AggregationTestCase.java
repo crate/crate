@@ -361,7 +361,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         List<Row> result;
         if (batchIterator != null) {
-            result = batchIterator.collect(Collectors.toList()).get();
+            result = batchIterator.toList().get();
         } else {
             result = null;
         }

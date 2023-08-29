@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -215,7 +214,10 @@ public final class QueryTester implements AutoCloseable {
     public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
         Query query = toQuery(expression, params);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
-        return batchIterator.collect(Collectors.mapping(row -> row.get(0), Collectors.toList())).get(5, TimeUnit.SECONDS);
+        return batchIterator
+            .map(row -> row.get(0))
+            .toList()
+            .get(5, TimeUnit.SECONDS);
     }
 
     @Override
