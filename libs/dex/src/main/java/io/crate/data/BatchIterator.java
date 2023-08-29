@@ -212,6 +212,32 @@ public interface BatchIterator<T> extends Killable {
         };
     }
 
+
+    /**
+     * Use {@code collector} to consume all elements from {@code it}
+     *
+     * @param <A> state type
+     * @param <R> result type
+     * @return future containing the result
+     */
+    default <A, R> CompletableFuture<R> collect(Collector<T, A, R> collector, boolean close) {
+        BiConsumer<A, T> accumulator = collector.accumulator();
+        Function<A, R> finisher = collector.finisher();
+        A state = collector.supplier().get();
+        CompletableFuture<R> result = new CompletableFuture<>();
+        move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
+            if (close) {
+                close();
+            }
+            if (err == null) {
+                result.complete(finisher.apply(state));
+            } else {
+                result.completeExceptionally(err);
+            }
+        });
+        return result;
+    }
+
     /**
      * Use {@code collector} to consume all elements from {@code it}
      *
@@ -220,19 +246,7 @@ public interface BatchIterator<T> extends Killable {
      * @return future containing the result
      */
     default <A, R> CompletableFuture<R> collect(Collector<T, A, R> collector) {
-        BiConsumer<A, T> accumulator = collector.accumulator();
-        Function<A, R> finisher = collector.finisher();
-        A state = collector.supplier().get();
-        CompletableFuture<R> result = new CompletableFuture<>();
-        move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
-            close();
-            if (err == null) {
-                result.complete(finisher.apply(state));
-            } else {
-                result.completeExceptionally(err);
-            }
-        });
-        return result;
+        return collect(collector, true);
     }
 
     /**

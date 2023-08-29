@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -46,17 +47,21 @@ import io.crate.data.Row;
  * A class which can be used to verify that a {@link io.crate.data.BatchIterator} implements
  * all contracts correctly
  */
-public class BatchIteratorTester {
+public class BatchIteratorTester<T> {
 
-    private final Supplier<BatchIterator<Row>> it;
+    private final Supplier<BatchIterator<T>> it;
 
-    public BatchIteratorTester(Supplier<BatchIterator<Row>> it) {
+    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it) {
+        return new BatchIteratorTester<>(() -> it.get().map(row -> row == null ? null : row.materialize()));
+    }
+
+    public BatchIteratorTester(Supplier<BatchIterator<T>> it) {
         this.it = it;
     }
 
-    public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult,
-                                                 @Nullable Consumer<BatchIterator<Row>> verifyAfterProperConsumption) throws Exception {
-        BatchIterator<Row> firstBatchIterator = this.it.get();
+    public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult,
+                                                 @Nullable Consumer<BatchIterator<T>> verifyAfterProperConsumption) throws Exception {
+        BatchIterator<T> firstBatchIterator = this.it.get();
         testProperConsumption(firstBatchIterator, expectedResult);
         if (verifyAfterProperConsumption != null) {
             verifyAfterProperConsumption.accept(firstBatchIterator);
@@ -71,7 +76,7 @@ public class BatchIteratorTester {
         testLoadNextBatchFutureCompletesOnKill(this.it.get());
     }
 
-    private void testLoadNextBatchFutureCompletesOnKill(BatchIterator<Row> bi) throws Exception {
+    private void testLoadNextBatchFutureCompletesOnKill(BatchIterator<T> bi) throws Exception {
         if (bi.allLoaded()) {
             return;
         }
@@ -86,12 +91,12 @@ public class BatchIteratorTester {
         }
     }
 
-    public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult) throws Exception {
+    public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult) throws Exception {
         verifyResultAndEdgeCaseBehaviour(expectedResult, null);
     }
 
-    private void testAllLoadedNeverRaises(Supplier<BatchIterator<Row>> batchIterator) {
-        BatchIterator<Row> bi = batchIterator.get();
+    private void testAllLoadedNeverRaises(Supplier<BatchIterator<T>> batchIterator) {
+        BatchIterator<T> bi = batchIterator.get();
         bi.allLoaded();
         bi.close();
         bi.allLoaded();
@@ -101,28 +106,21 @@ public class BatchIteratorTester {
         bi.allLoaded();
     }
 
-    private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator<Row> it) throws Exception {
-        var firstConsumer = new TestingRowConsumer(false);
-        firstConsumer.accept(it, null);
-        final List<Object[]> firstResult = firstConsumer.getResult();
-
+    private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator<T> it) throws Exception {
+        List<T> firstResult = it.collect(Collectors.toList(), false).get(5, TimeUnit.SECONDS);
         it.moveToStart();
-
-        var secondConsumer = new TestingRowConsumer(false);
-        secondConsumer.accept(it, null);
-
-        List<Object[]> secondResult = secondConsumer.getResult();
+        List<T> secondResult = it.collect(Collectors.toList(), false).get(5, TimeUnit.SECONDS);
         it.close();
         checkResult(firstResult, secondResult);
     }
 
-    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<Row> it) throws Exception {
-        TestingRowConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
+    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<T> it) throws Exception {
+        it.collect(Collectors.counting(), false).get(10, TimeUnit.SECONDS);
         assertThat(it.moveNext()).isFalse();
         it.close();
     }
 
-    private void testIllegalNextBatchCall(BatchIterator<Row> it) throws Exception {
+    private void testIllegalNextBatchCall(BatchIterator<T> it) throws Exception {
         while (!it.allLoaded()) {
             it.loadNextBatch().toCompletableFuture().get(10, TimeUnit.SECONDS);
         }
@@ -135,37 +133,34 @@ public class BatchIteratorTester {
         it.close();
     }
 
-    private void testIteratorAccessFromDifferentThreads(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
+    private void testIteratorAccessFromDifferentThreads(BatchIterator<T> it, List<T> expectedResult) throws Exception {
         if (expectedResult.size() < 2) {
             it.close();
             return;
         }
         ExecutorService executor = Executors.newFixedThreadPool(3);
         try {
-            CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
-                Row firstElement = getFirstElement(it);
+            CompletableFuture<T> firstRow = CompletableFuture.supplyAsync(() -> {
+                T firstElement = getFirstElement(it);
                 assertThat(firstElement)
                     .as("it should have at least two rows, first missing")
                     .isNotNull();
-                return firstElement.materialize();
+                return firstElement;
             }, executor);
-            CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
-                Row firstElement = getFirstElement(it);
+            CompletableFuture<T> secondRow = firstRow.thenApplyAsync(row -> {
+                T firstElement = getFirstElement(it);
                 assertThat(firstElement)
                     .as("it should have at least two rows")
                     .isNotNull();
-                return firstElement.materialize();
+                return firstElement;
             }, executor);
 
-            Object[] firstItem = firstRow.get(10, TimeUnit.SECONDS);
-            Object[] secondItem = secondRow.get(10, TimeUnit.SECONDS);
+            T firstItem = firstRow.get(10, TimeUnit.SECONDS);
+            T secondItem = secondRow.get(10, TimeUnit.SECONDS);
             assertThat(expectedResult).contains(firstItem);
             assertThat(expectedResult).contains(secondItem);
 
-            // retrieve and check the remaining items
-            TestingRowConsumer consumer = new TestingRowConsumer();
-            consumer.accept(it, null);
-            List<Object[]> result = consumer.getResult();
+            List<T> result = it.toList().get(5, TimeUnit.SECONDS);
             assertThat(result).hasSize(expectedResult.size() - 2);
             result.add(firstItem);
             result.add(secondItem);
@@ -203,7 +198,7 @@ public class BatchIteratorTester {
     }
 
 
-    private void testBehaviourAfterClose(BatchIterator<Row> it) {
+    private void testBehaviourAfterClose(BatchIterator<T> it) {
         it.close();
         assertThat(it.currentElement())
             .as("currentElement is not affected by close")
@@ -213,7 +208,7 @@ public class BatchIteratorTester {
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
     }
 
-    private void testBehaviourAfterKill(BatchIterator<Row> it) {
+    private void testBehaviourAfterKill(BatchIterator<T> it) {
         it.kill(new InterruptedException("job killed"));
         assertThat(it.currentElement())
             .as("currentElement is not affected by kill")
@@ -222,15 +217,12 @@ public class BatchIteratorTester {
         expectFailure(it::moveNext, InterruptedException.class, "moveNext must fail after kill");
     }
 
-    private void testProperConsumption(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(it, null);
-
-        List<Object[]> result = consumer.getResult();
+    private void testProperConsumption(BatchIterator<T> it, List<T> expectedResult) throws Exception {
+        List<T> result = it.toList().get(5, TimeUnit.SECONDS);
         checkResult(expectedResult, result);
     }
 
-    private static void checkResult(List<Object[]> expected, List<Object[]> actual) {
+    private static <T> void checkResult(List<T> expected, List<T> actual) {
         if (expected.isEmpty()) {
             assertThat(actual).isEmpty();
         } else {

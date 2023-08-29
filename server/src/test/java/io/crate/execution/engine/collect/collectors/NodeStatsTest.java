@@ -50,7 +50,6 @@ import org.mockito.ArgumentCaptor;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
-import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
@@ -128,7 +127,7 @@ public class NodeStatsTest extends ESTestCase {
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStats.newInstance(
+        var iterator = NodeStats.newInstance(
             nodeStatesExecutor,
             collectPhase,
             nodes,
@@ -148,7 +147,7 @@ public class NodeStatsTest extends ESTestCase {
         toCollect.add(nameRef);
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStats.newInstance(
+        var iterator = NodeStats.newInstance(
             nodeStatesExecutor,
             collectPhase,
             nodes,
@@ -167,7 +166,7 @@ public class NodeStatsTest extends ESTestCase {
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        BatchIterator iterator = NodeStats.newInstance(
+        var iterator = NodeStats.newInstance(
             nodeStatesExecutor,
             collectPhase,
             nodes,
@@ -204,7 +203,7 @@ public class NodeStatsTest extends ESTestCase {
             new Object[]{"nodeOne"},
             new Object[]{"nodeTwo"}
         );
-        BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStats.newInstance(
+        var tester = BatchIteratorTester.forRows(() -> NodeStats.newInstance(
             nodeStatesExecutor,
             collectPhase,
             nodes,

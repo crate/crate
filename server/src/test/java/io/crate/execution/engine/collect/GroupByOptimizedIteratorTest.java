@@ -190,7 +190,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_optimized_iterator_behaviour() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(() -> createBatchIterator(() -> {}));
+        var tester = BatchIteratorTester.forRows(() -> createBatchIterator(() -> {}));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

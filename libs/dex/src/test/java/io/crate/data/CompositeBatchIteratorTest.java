@@ -56,7 +56,7 @@ public class CompositeBatchIteratorTest {
 
     @Test
     public void testCompositeBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> CompositeBatchIterator.seqComposite(
                 TestingBatchIterators.range(0, 5),
                 TestingBatchIterators.range(5, 10))
@@ -78,7 +78,7 @@ public class CompositeBatchIteratorTest {
         expectedResult.add(new Object[] { 2 });
         expectedResult.add(new Object[] { 3 });
         expectedResult.add(new Object[] { 4 });
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> CompositeBatchIterator.seqComposite(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null),
                 TestingBatchIterators.range(5, 10)

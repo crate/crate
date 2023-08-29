@@ -108,7 +108,7 @@ public class AsyncFlatMapBatchIteratorTest {
                                                   new RowN(row.materialize())
                                               )
             );
-        BatchIteratorTester tester = new BatchIteratorTester(() -> {
+        var tester = BatchIteratorTester.forRows(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);
             return new AsyncFlatMapBatchIterator<>(source, duplicateRow);
         });

@@ -125,7 +125,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
     @Test
     public void testNestedLoopBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinBlockNLBatchIterator(
                 left.get(),
                 right.get(),
@@ -145,7 +145,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
     @Test
     public void testNestedLoopWithBatchedSource() throws Exception {
         int batchSize = 50;
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> new CrossJoinBlockNLBatchIterator(
                 new BatchSimulatingIterator<>(left.get(), batchSize, expectedRowsLeft / batchSize + 1, null),
                 new BatchSimulatingIterator<>(right.get(), batchSize, expectedRowsRight / batchSize + 1, null),

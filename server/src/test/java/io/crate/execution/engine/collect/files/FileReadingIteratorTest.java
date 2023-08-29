@@ -117,7 +117,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{JSON_AS_MAP_FIRST_LINE},
             new Object[]{JSON_AS_MAP_SECOND_LINE});
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -134,7 +134,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{CSV_AS_MAP_FIRST_LINE},
             new Object[]{CSV_AS_MAP_SECOND_LINE});
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -153,7 +153,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{JSON_AS_MAP_FIRST_LINE},
             new Object[]{JSON_AS_MAP_SECOND_LINE});
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -170,7 +170,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{CSV_AS_MAP_FIRST_LINE},
             new Object[]{CSV_AS_MAP_SECOND_LINE});
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -233,7 +233,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{CSV_AS_MAP_FIRST_LINE},
             new Object[]{CSV_AS_MAP_SECOND_LINE});
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -297,7 +297,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             new Object[]{"{\"id\":\"4\"}"},
             new Object[]{"{\"id\":\"5\"}"}
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -358,7 +358,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             new Object[]{"{\"id\":\"4\"}"},
             new Object[]{"{\"id\":\"5\"}"}
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
