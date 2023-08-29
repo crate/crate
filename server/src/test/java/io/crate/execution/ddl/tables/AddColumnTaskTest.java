@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -323,6 +324,65 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThatThrownBy(() -> addColumnTask.execute(state, request))
                 .isExactlyInstanceOf(MapperParsingException.class)
                 .hasMessageContaining("nested arrays are not supported");
+        }
+    }
+
+    @Test
+    public void test_stores_news_columns_with_assigned_oid() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, o object) with (column_policy='dynamic')")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        ClusterState state = clusterService.state();
+
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            table,
+            state,
+            Version.CURRENT,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            SimpleReference nonObjectRef = new SimpleReference(
+                new ReferenceIdent(table.ident(), "int_col"),
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                3,
+                null
+            );
+            SimpleReference oxRef = new SimpleReference(
+                new ReferenceIdent(table.ident(), "o", List.of("x")),
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                4,
+                null
+            );
+            SimpleReference oyRef = new SimpleReference(
+                new ReferenceIdent(table.ident(), "o", List.of("y")),
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                5,
+                null
+            );
+            List<Reference> columns = List.of(nonObjectRef, oxRef, oyRef);
+            var request = new AddColumnRequest(
+                table.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+
+            addColumnTask.execute(state, request);
+            List<Reference> addedColumns = addColumnTask.addedColumns();
+            assertThat(addedColumns).hasSize(3);
+            assertThat(addedColumns).satisfiesExactly(
+                ref -> assertThat(ref).isReference(
+                    new ColumnIdent("int_col"), table.ident(), DataTypes.INTEGER, 3L),
+                ref -> assertThat(ref).isReference(
+                    new ColumnIdent("o", List.of("x")), table.ident(), DataTypes.INTEGER, 4L),
+                ref -> assertThat(ref).isReference(
+                    new ColumnIdent("o", List.of("y")), table.ident(), DataTypes.INTEGER, 5L)
+            );
         }
     }
 }

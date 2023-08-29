@@ -124,6 +124,14 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
 
     public SymbolAssert isReference(ColumnIdent expectedColumn,
                                     RelationName expectedRelName,
+                                    DataType<?> expectedType,
+                                    long oid) {
+        assertThat(((Reference) actual).oid()).isEqualTo(oid);
+        return isReference(expectedColumn, expectedRelName, expectedType);
+    }
+
+    public SymbolAssert isReference(ColumnIdent expectedColumn,
+                                    RelationName expectedRelName,
                                     DataType<?> expectedType) {
         isNotNull();
         isInstanceOf(Reference.class);

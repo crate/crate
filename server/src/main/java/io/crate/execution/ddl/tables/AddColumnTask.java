@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.cluster.ClusterState;
@@ -65,6 +66,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
+    private final List<Reference> addedColumns = new ArrayList<>();
 
     public AddColumnTask(NodeContext nodeContext, CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService) {
         this.nodeContext = nodeContext;
@@ -82,6 +84,11 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             return currentState;
         }
 
+        // We cannot use normalizedColumns for building response since it may contain existing columns:
+        // parents of a sub-column or already existing reference, taken from the cluster state.
+        List<ColumnIdent> newColumnIdents = new ArrayList<>();
+        Consumer<Reference> addNewColumn = (ref) -> newColumnIdents.add(ref.column());
+
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         Map<String, Object> mapping = createMapping(
             AllocPosition.forTable(currentTable),
@@ -91,8 +98,9 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             List.of(),
             null,
             null,
-            metadataBuilder.columnOidSupplier()
-            );
+            metadataBuilder.columnOidSupplier(),
+            addNewColumn
+        );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
@@ -118,7 +126,12 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             (Map<String, Map<String, Object>>) mapping.get("properties")
         );
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        docTableInfoFactory.create(request.relationName(), currentState);
+        DocTableInfo table = docTableInfoFactory.create(request.relationName(), currentState);
+        for (ColumnIdent columnIdent: newColumnIdents) {
+            Reference ref = table.getReference(columnIdent);
+            assert ref != null : "All new columns must be added to the schema.";
+            addedColumns.add(ref);
+        }
         return currentState;
     }
 
@@ -224,5 +237,12 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
                 return oldMap;
             }
         );
+    }
+
+    /**
+     * @return **only** new columns (with assigned OID-s).
+     */
+    public List<Reference> addedColumns() {
+        return addedColumns;
     }
 }
