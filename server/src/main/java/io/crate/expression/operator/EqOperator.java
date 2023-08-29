@@ -140,7 +140,8 @@ public final class EqOperator extends Operator<Object> {
             // gradually allowing un-indexed columns to be searchable: https://github.com/crate/crate/issues/14407
             if (dataType.id() != IntegerType.ID &&
                 dataType.id() != StringType.ID &&
-                dataType.id() != BitStringType.ID) {
+                dataType.id() != BitStringType.ID &&
+                dataType.id() != LongType.ID) {
                 throw new IllegalArgumentException(
                     "Cannot search on field [" + fqn + "] since it is not indexed.");
             }
