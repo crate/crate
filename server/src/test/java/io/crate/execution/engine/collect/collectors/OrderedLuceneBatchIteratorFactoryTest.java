@@ -129,7 +129,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     @Test
     public void testOrderedLuceneBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> {
                 LuceneOrderedDocCollector collector1 = createOrderedCollector(searcher1, 1);
                 LuceneOrderedDocCollector collector2 = createOrderedCollector(searcher2, 2);

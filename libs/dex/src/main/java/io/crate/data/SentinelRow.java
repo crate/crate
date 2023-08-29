@@ -39,7 +39,7 @@ public final class SentinelRow {
 
         @Override
         public Object[] materialize() {
-            throw new IllegalStateException("Iterator is not on a row");
+            return new Object[0];
         }
     };
 }

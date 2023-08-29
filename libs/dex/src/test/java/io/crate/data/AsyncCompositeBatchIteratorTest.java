@@ -58,7 +58,7 @@ public class AsyncCompositeBatchIteratorTest {
 
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         try {
-            BatchIteratorTester tester = new BatchIteratorTester(
+            var tester = BatchIteratorTester.forRows(
                 () -> CompositeBatchIterator.asyncComposite(
                     executorService,
                     () -> 3,

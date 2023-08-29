@@ -69,7 +69,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
@@ -93,7 +93,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIteratorWithBatchSimulatingSource() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(

@@ -67,7 +67,7 @@ public class LuceneBatchIteratorTest {
 
     @Test
     public void testLuceneBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
+        var tester = BatchIteratorTester.forRows(
             () -> new LuceneBatchIterator(
                 indexSearcher,
                 new MatchAllDocsQuery(),
