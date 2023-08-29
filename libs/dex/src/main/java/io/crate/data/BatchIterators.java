@@ -36,18 +36,6 @@ public class BatchIterators {
      * @param <T> element type
      * @param <A> state type
      * @param <R> result type
-     * @return future containing the result
-     */
-    public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it, Collector<T, A, R> collector) {
-        return collect(it, collector.supplier().get(), collector, new CompletableFuture<>());
-    }
-
-    /**
-     * Use {@code collector} to consume all elements from {@code it}
-     *
-     * @param <T> element type
-     * @param <A> state type
-     * @param <R> result type
      * @return future containing the result, this is the future that has been provided as argument.
      */
     public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it,

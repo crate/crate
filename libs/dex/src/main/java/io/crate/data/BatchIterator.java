@@ -21,9 +21,12 @@
 
 package io.crate.data;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collector;
 
 import io.crate.common.concurrent.Killable;
 
@@ -204,5 +207,28 @@ public interface BatchIterator<T> extends Killable {
                 return source;
             }
         };
+    }
+
+    /**
+     * Use {@code collector} to consume all elements from {@code it}
+     *
+     * @param <A> state type
+     * @param <R> result type
+     * @return future containing the result
+     */
+    default <A, R> CompletableFuture<R> collect(Collector<T, A, R> collector) {
+        BiConsumer<A, T> accumulator = collector.accumulator();
+        Function<A, R> finisher = collector.finisher();
+        A state = collector.supplier().get();
+        CompletableFuture<R> result = new CompletableFuture<>();
+        move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
+            close();
+            if (err == null) {
+                result.complete(finisher.apply(state));
+            } else {
+                result.completeExceptionally(err);
+            }
+        });
+        return result;
     }
 }

@@ -59,7 +59,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -150,7 +149,7 @@ public class GroupingLongCollectorBenchmark {
     @Benchmark
     public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
         var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
-        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
+        blackhole.consume(rowsIterator.collect(groupBySumCollector).get());
     }
 
     @Benchmark

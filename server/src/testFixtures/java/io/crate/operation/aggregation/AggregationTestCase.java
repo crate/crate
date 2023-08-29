@@ -90,7 +90,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 import io.crate.data.ArrayBucket;
-import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -362,7 +361,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         List<Row> result;
         if (batchIterator != null) {
-            result = BatchIterators.collect(batchIterator, Collectors.toList()).get();
+            result = batchIterator.collect(Collectors.toList()).get();
         } else {
             result = null;
         }

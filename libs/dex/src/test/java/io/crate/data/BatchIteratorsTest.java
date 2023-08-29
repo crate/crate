@@ -42,8 +42,7 @@ public class BatchIteratorsTest {
 
     @Test
     public void testExceptionOnAllLoadedIsSetOntoFuture() {
-        CompletableFuture<Long> future = BatchIterators.collect(
-            FailingBatchIterator.failOnAllLoaded(), Collectors.counting());
+        CompletableFuture<Long> future = FailingBatchIterator.failOnAllLoaded().collect(Collectors.counting());
         assertThat(future.isCompletedExceptionally()).isTrue();
     }
 
@@ -74,7 +73,7 @@ public class BatchIteratorsTest {
         );
         BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
-        CompletableFuture<List<List<Integer>>> future = BatchIterators.collect(batchedIt, Collectors.toList());
+        CompletableFuture<List<List<Integer>>> future = batchedIt.collect(Collectors.toList());
         assertThat(future.get(10, TimeUnit.SECONDS)).isEqualTo(Arrays.asList(
             Arrays.asList(0, 1),
             Arrays.asList(2, 3),

@@ -43,7 +43,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -178,9 +177,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         );
         List<Object> actualResult;
         try {
-            actualResult = BatchIterators.collect(
-                iterator,
-                Collectors.mapping(row -> row.get(numCellsInSourceRows), Collectors.toList())).get(5, TimeUnit.SECONDS);
+            actualResult = iterator.collect(Collectors.mapping(row -> row.get(numCellsInSourceRows), Collectors.toList())).get(5, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             throw e.getCause();
         }

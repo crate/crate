@@ -43,7 +43,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -209,7 +208,7 @@ public class RowsBatchIteratorBenchmark {
             new Boolean[]{null},
             new Input[]{input}
         );
-        BatchIterators.collect(batchIterator, Collectors.summingInt(x -> {
+        batchIterator.collect(Collectors.summingInt(x -> {
             blackhole.consume(x);
             return 1;
         })).get();
