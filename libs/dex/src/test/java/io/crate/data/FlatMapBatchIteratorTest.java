@@ -44,7 +44,7 @@ public class FlatMapBatchIteratorTest {
             new FlatMapBatchIterator<>(source,
                                        x -> Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator());
 
-        List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1, TimeUnit.SECONDS);
+        List<Integer[]> integers = twiceAsArray.collect(Collectors.toList()).get(1, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(new Integer[] {1, 1},
                                              new Integer[] {1, 1},
                                              new Integer[] {2, 2},

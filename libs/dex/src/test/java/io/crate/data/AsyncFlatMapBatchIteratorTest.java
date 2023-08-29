@@ -53,7 +53,7 @@ public class AsyncFlatMapBatchIteratorTest {
             source,
             (x, isLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
         );
-        List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1, TimeUnit.SECONDS);
+        List<Integer[]> integers = twiceAsArray.collect(Collectors.toList()).get(1, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(new Integer[] {1, 1},
                                              new Integer[] {1, 1},
                                              new Integer[] {2, 2},
@@ -88,7 +88,7 @@ public class AsyncFlatMapBatchIteratorTest {
                 source,
                 (x, istLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
             );
-            List<Integer[]> integers = BatchIterators.collect(twiceAsArray, Collectors.toList()).get(1,
+            List<Integer[]> integers = twiceAsArray.collect(Collectors.toList()).get(1,
                                                                                                      TimeUnit.SECONDS);
             assertThat(integers).containsExactly(new Integer[] {1, 1},
                                                  new Integer[] {1, 1},

@@ -44,7 +44,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
-import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -216,10 +215,7 @@ public final class QueryTester implements AutoCloseable {
     public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
         Query query = toQuery(expression, params);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
-        return BatchIterators.collect(
-            batchIterator,
-            Collectors.mapping(row -> row.get(0), Collectors.toList())
-        ).get(5, TimeUnit.SECONDS);
+        return batchIterator.collect(Collectors.mapping(row -> row.get(0), Collectors.toList())).get(5, TimeUnit.SECONDS);
     }
 
     @Override

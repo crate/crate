@@ -38,7 +38,7 @@ public class TopNDistinctBatchIteratorTest {
         var source = InMemoryBatchIterator.of(List.of(1, 1, 1, 2, 3), null, false);
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 2, x -> x);
 
-        List<Integer> integers = BatchIterators.collect(topNDistinct, Collectors.toList()).get(5, TimeUnit.SECONDS);
+        List<Integer> integers = topNDistinct.collect(Collectors.toList()).get(5, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(1, 2);
     }
 
@@ -47,7 +47,7 @@ public class TopNDistinctBatchIteratorTest {
         var source = InMemoryBatchIterator.of(List.of(1, 1, 1, 2, 3), null, false);
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 5, x -> x);
 
-        List<Integer> integers = BatchIterators.collect(topNDistinct, Collectors.toList()).get(5, TimeUnit.SECONDS);
+        List<Integer> integers = topNDistinct.collect(Collectors.toList()).get(5, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(1, 2, 3);
     }
 
