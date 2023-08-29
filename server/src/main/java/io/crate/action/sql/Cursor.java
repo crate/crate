@@ -33,7 +33,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -304,7 +303,7 @@ public final class Cursor implements AutoCloseable {
         } else {
             objectRows = InMemoryBatchIterator.of(items, null, false);
         }
-        return BatchIterators.map(objectRows, cells -> {
+        return objectRows.map(cells -> {
             sharedRow.cells(cells);
             return sharedRow;
         });
