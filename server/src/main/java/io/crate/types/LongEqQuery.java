@@ -23,14 +23,19 @@ package io.crate.types;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 
 public class LongEqQuery implements EqQuery<Long> {
 
     @Override
     public Query termQuery(String field, Long value, boolean hasDocValues, boolean isIndexed) {
-        return LongPoint.newExactQuery(field, value);
+        if (isIndexed) {
+            return LongPoint.newExactQuery(field, value);
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowExactQuery(field, value);
+        }
+        return null;
     }
 
     @Override
@@ -47,11 +52,12 @@ public class LongEqQuery implements EqQuery<Long> {
         long upper = upperTerm == null
             ? Long.MAX_VALUE
             : (includeUpper ? upperTerm : upperTerm - 1);
-        Query indexQuery = LongPoint.newRangeQuery(field, lower, upper);
-        if (hasDocValues) {
-            return new IndexOrDocValuesQuery(indexQuery,
-                                             SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        if (isIndexed) {
+            return LongPoint.newRangeQuery(field, lower, upper);
         }
-        return indexQuery;
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        }
+        return null;
     }
 }
