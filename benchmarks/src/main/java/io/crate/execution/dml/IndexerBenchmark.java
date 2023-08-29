@@ -67,6 +67,7 @@ import io.crate.metadata.doc.DocTableInfo;
 @Warmup(iterations = 3, time = 10000, timeUnit = TimeUnit.MILLISECONDS)
 public class IndexerBenchmark {
 
+    private Indexer oldIndexer;
     private Indexer indexer;
     private Node node;
     private List<StaticItem> items;
@@ -111,6 +112,19 @@ public class IndexerBenchmark {
             null,
             Version.CURRENT
         );
+        oldIndexer = new Indexer(
+            table.concreteIndices()[0],
+            table,
+            new CoordinatorTxnCtx(session.sessionSettings()),
+            injector.getInstance(NodeContext.class),
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("x")),
+                table.getReference(new ColumnIdent("y"))
+            ),
+            null,
+            Version.V_5_4_0 // Skips oid existence assertion.
+        );
         items = IntStream.range(1, 2000).mapToObj(x -> new IndexItem.StaticItem(
             "dummy-" + x,
             List.of(),
@@ -128,7 +142,15 @@ public class IndexerBenchmark {
     @Benchmark
     public void measure_index(Blackhole blackhole) throws Exception {
         for (var item : items) {
+            blackhole.consume(indexer.collectSchemaUpdates(item));
             blackhole.consume(indexer.index(item));
+        }
+    }
+
+    @Benchmark
+    public void measure_index_old(Blackhole blackhole) throws Exception {
+        for (var item : items) {
+            blackhole.consume(oldIndexer.index(item));
         }
     }
 }
