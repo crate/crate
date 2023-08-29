@@ -31,7 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -53,7 +52,7 @@ public class AsyncFlatMapBatchIteratorTest {
             source,
             (x, isLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
         );
-        List<Integer[]> integers = twiceAsArray.collect(Collectors.toList()).get(1, TimeUnit.SECONDS);
+        List<Integer[]> integers = twiceAsArray.toList().get(1, TimeUnit.SECONDS);
         assertThat(integers).containsExactly(new Integer[] {1, 1},
                                              new Integer[] {1, 1},
                                              new Integer[] {2, 2},
@@ -88,8 +87,7 @@ public class AsyncFlatMapBatchIteratorTest {
                 source,
                 (x, istLast) -> CompletableFuture.completedFuture(mkIter(new Integer[] {x, x}, new Integer[] {x, x}))
             );
-            List<Integer[]> integers = twiceAsArray.collect(Collectors.toList()).get(1,
-                                                                                                     TimeUnit.SECONDS);
+            List<Integer[]> integers = twiceAsArray.toList().get(1, TimeUnit.SECONDS);
             assertThat(integers).containsExactly(new Integer[] {1, 1},
                                                  new Integer[] {1, 1},
                                                  new Integer[] {2, 2},

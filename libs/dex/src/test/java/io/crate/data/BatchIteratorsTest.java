@@ -73,7 +73,7 @@ public class BatchIteratorsTest {
         );
         BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
-        CompletableFuture<List<List<Integer>>> future = batchedIt.collect(Collectors.toList());
+        CompletableFuture<List<List<Integer>>> future = batchedIt.toList();
         assertThat(future.get(10, TimeUnit.SECONDS)).isEqualTo(Arrays.asList(
             Arrays.asList(0, 1),
             Arrays.asList(2, 3),

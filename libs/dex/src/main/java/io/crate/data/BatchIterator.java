@@ -21,12 +21,15 @@
 
 package io.crate.data;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.crate.common.concurrent.Killable;
 
@@ -230,5 +233,13 @@ public interface BatchIterator<T> extends Killable {
             }
         });
         return result;
+    }
+
+    /**
+     * Shortcut for {@link #collect(Collector)} with {@link Collectors#toList()}.
+     * To mirror {@link Stream#toList()}
+     */
+    default <R> CompletableFuture<List<T>> toList() {
+        return collect(Collectors.toList());
     }
 }
