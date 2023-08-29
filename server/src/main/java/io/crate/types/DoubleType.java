@@ -29,7 +29,6 @@ import java.util.function.Function;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -56,7 +55,13 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
             @Override
             public Query termQuery(String field, Double value, boolean hasDocValues, boolean isIndexed) {
-                return DoublePoint.newExactQuery(field, value);
+                if (isIndexed) {
+                    return DoublePoint.newExactQuery(field, value);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.doubleToSortableLong(value));
+                }
+                return null;
             }
 
             @Override
@@ -80,16 +85,16 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                 } else {
                     upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
                 }
-                Query indexQuery = DoublePoint.newRangeQuery(field, lower, upper);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(
-                            field,
-                            NumericUtils.doubleToSortableLong(lower),
-                            NumericUtils.doubleToSortableLong(upper)
-                    );
-                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (isIndexed) {
+                    return DoublePoint.newRangeQuery(field, lower, upper);
                 }
-                return indexQuery;
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowRangeQuery(
+                        field,
+                        NumericUtils.doubleToSortableLong(lower),
+                        NumericUtils.doubleToSortableLong(upper));
+                }
+                return null;
             }
         }
     ) {
