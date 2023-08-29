@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.FieldType;
@@ -70,7 +71,12 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
             @Override
             public Query termQuery(String field, BitString value, boolean hasDocValues, boolean isIndexed) {
-                return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+                if (isIndexed) {
+                    return new TermQuery(new Term(field, new BytesRef(value.bitSet().toByteArray())));
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for BitString types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowExactQuery(field, new BytesRef(value.bitSet().toByteArray()));
+                }
             }
 
             @Override
