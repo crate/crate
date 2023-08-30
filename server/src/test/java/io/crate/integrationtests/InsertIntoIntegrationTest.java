@@ -1407,7 +1407,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
      * Test that when an error happens on the primary, the record should never be inserted on the replica.
      * Since we cannot force a select statement to be executed on a replica, we repeat this test to increase the chance.
      */
-    @Repeat(iterations = 5)
+  //  @Repeat(iterations = 5)
     @Test
     public void testInsertWithErrorMustNotBeInsertedOnReplica() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas=1)");

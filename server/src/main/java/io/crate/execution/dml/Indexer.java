@@ -677,7 +677,7 @@ public class Indexer {
                     continue;
                 }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                xContentBuilder.field(reference.column().leafName());
+                xContentBuilder.field(Long.toString(reference.oid()));
                 valueIndexer.indexValue(
                     reference.valueType().sanitizeValue(value),
                     xContentBuilder,
@@ -697,7 +697,7 @@ public class Indexer {
                 if (value == null) {
                     continue;
                 }
-                xContentBuilder.field(column.leafName());
+                xContentBuilder.field(Long.toString(synthetic.ref().oid()));
                 indexer.indexValue(
                     value,
                     xContentBuilder,

@@ -128,7 +128,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                xContentBuilder.field(innerName);
+                ColumnIdent child = column.getChild(innerName);
+                Reference childRef = getRef.apply(child);
+                xContentBuilder.field(Long.toString(childRef.oid()));
                 valueIndexer.indexValue(
                     type.sanitizeValue(innerValue),
                     xContentBuilder,
@@ -265,10 +267,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 continue;
             }
             if (innerValue == null) {
+                // also todo - but looks like can as as is, only update javadocs
                 xContentBuilder.nullField(innerName);
                 continue;
             }
             if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                //todo but looks like can as as is, only update javadocs
                 xContentBuilder.field(innerName, innerValue);
                 continue;
             }
@@ -276,6 +280,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
+                //todo - figure out indexing but looks like can as as is, only update javadocs
+                // and also scenario when no closing value?
                 xContentBuilder.field(innerName);
                 if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
                     continue;
