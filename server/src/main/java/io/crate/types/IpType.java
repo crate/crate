@@ -27,7 +27,9 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -51,7 +53,13 @@ public class IpType extends DataType<String> implements Streamer<String> {
 
             @Override
             public Query termQuery(String field, String value, boolean hasDocValues, boolean isIndexed) {
-                return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
+                if (isIndexed) {
+                    return InetAddressPoint.newExactQuery(field, InetAddresses.forString(value));
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for Ip types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowExactQuery(
+                        field, new BytesRef(InetAddressPoint.encode(InetAddresses.forString(value))));
+                }
             }
 
             @Override
@@ -62,23 +70,33 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                     boolean includeUpper,
                                     boolean hasDocValues,
                                     boolean isIndexed) {
-                InetAddress lower;
+                InetAddress inclusiveLower;
                 if (lowerTerm == null) {
-                    lower = InetAddressPoint.MIN_VALUE;
+                    inclusiveLower = InetAddressPoint.MIN_VALUE;
                 } else {
                     var lowerAddress = InetAddresses.forString(lowerTerm);
-                    lower = includeLower ? lowerAddress : InetAddressPoint.nextUp(lowerAddress);
+                    inclusiveLower = includeLower ? lowerAddress : InetAddressPoint.nextUp(lowerAddress);
                 }
 
-                InetAddress upper;
+                InetAddress inclusiveUpper;
                 if (upperTerm == null) {
-                    upper = InetAddressPoint.MAX_VALUE;
+                    inclusiveUpper = InetAddressPoint.MAX_VALUE;
                 } else {
                     var upperAddress = InetAddresses.forString(upperTerm);
-                    upper = includeUpper ? upperAddress : InetAddressPoint.nextDown(upperAddress);
+                    inclusiveUpper = includeUpper ? upperAddress : InetAddressPoint.nextDown(upperAddress);
                 }
 
-                return InetAddressPoint.newRangeQuery(field, lower, upper);
+                if (isIndexed) {
+                    return InetAddressPoint.newRangeQuery(field, inclusiveLower, inclusiveUpper);
+                } else {
+                    assert hasDocValues == true : "hasDocValues must be true for Ip types since 'columnstore=false' is not supported.";
+                    return SortedSetDocValuesField.newSlowRangeQuery(
+                        field,
+                        new BytesRef(InetAddressPoint.encode(inclusiveLower)),
+                        new BytesRef(InetAddressPoint.encode(inclusiveUpper)),
+                        true,
+                        true);
+                }
             }
         }
     ) {
