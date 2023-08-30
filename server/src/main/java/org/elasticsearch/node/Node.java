@@ -985,6 +985,7 @@ public class Node implements Closeable {
         // start after transport service so the local disco is known
         discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
+
         assert clusterService.localNode().equals(localNodeFactory.getNode())
             : "clusterService has a different local node than the factory provided";
         transportService.acceptIncomingRequests();
