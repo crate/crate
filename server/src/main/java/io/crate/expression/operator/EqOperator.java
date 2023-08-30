@@ -138,11 +138,13 @@ public final class EqOperator extends Operator<Object> {
         DataType<?> dataType = ref.valueType();
         if (dataType.id() != ObjectType.ID && dataType.id() != ArrayType.ID && ref.indexType() == IndexType.NONE) {
             // gradually allowing un-indexed columns to be searchable: https://github.com/crate/crate/issues/14407
-            if (dataType.id() != IntegerType.ID &&
-                dataType.id() != StringType.ID &&
-                dataType.id() != BitStringType.ID &&
-                dataType.id() != LongType.ID &&
-                dataType.id() != DoubleType.ID) {
+            var typeId = dataType.id();
+            if (typeId != IntegerType.ID &&
+                typeId != StringType.ID &&
+                typeId != BitStringType.ID &&
+                typeId != LongType.ID &&
+                typeId != DoubleType.ID &&
+                typeId != FloatType.ID) {
                 throw new IllegalArgumentException(
                     "Cannot search on field [" + fqn + "] since it is not indexed.");
             }

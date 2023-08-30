@@ -29,7 +29,6 @@ import java.util.function.Function;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -55,7 +54,13 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
             @Override
             public Query termQuery(String field, Float value, boolean hasDocValues, boolean isIndexed) {
-                return FloatPoint.newExactQuery(field, value);
+                if (isIndexed) {
+                    return FloatPoint.newExactQuery(field, value);
+                }
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowExactQuery(field, NumericUtils.floatToSortableInt(value));
+                }
+                return null;
             }
 
             @Override
@@ -79,16 +84,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                 } else {
                     upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
                 }
-
-                Query indexQuery = FloatPoint.newRangeQuery(field, lower, upper);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField
-                            .newSlowRangeQuery(field,
-                                               NumericUtils.floatToSortableInt(lower),
-                                               NumericUtils.floatToSortableInt(upper));
-                    return new IndexOrDocValuesQuery(indexQuery, dvQuery);
+                if (isIndexed) {
+                    return FloatPoint.newRangeQuery(field, lower, upper);
                 }
-                return indexQuery;
+                if (hasDocValues) {
+                    return SortedNumericDocValuesField.newSlowRangeQuery(
+                        field,
+                        NumericUtils.floatToSortableInt(lower),
+                        NumericUtils.floatToSortableInt(upper));
+                }
+                return null;
             }
         }
     ) {
