@@ -578,17 +578,6 @@ public class Indexer {
         }
     }
 
-    /**
-     * Indicates whether inserts should use OID in source.
-     * @return true if:
-     * <ol>
-     * <li>Table is created on Version on or after 5.5, ie we are not inserting into an old table, restored from a snapshot.</li>
-     * <li>All cluster nodes support updating schema with getting OIDs in response.</li>
-     * </ol>
-     */
-    public boolean targetsHaveOids() {
-        return targetsHaveOids;
-    }
 
     /**
      * Looks for new columns in the values of the given IndexItem and returns them.
