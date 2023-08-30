@@ -125,7 +125,7 @@ public class Indexer {
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
-    private final boolean targetsHaveOids;
+    private final boolean writeOids;
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -371,7 +371,7 @@ public class Indexer {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
-        this.targetsHaveOids = table.versionCreated().onOrAfter(Version.V_5_5_0) && minNodeVersion.onOrAfter(Version.V_5_5_0);
+        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -649,7 +649,7 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                if (targetsHaveOids && reference instanceof DynamicReference == false) {
+                if (writeOids && reference instanceof DynamicReference == false) {
                     // It's possible to have references with OID after doing a mapping update:
                     // Empty arrays, arrays with only null values and columns added dynamically into IGNORED object doesn't result in schema update.
                     assert reference.oid() != COLUMN_OID_UNASSIGNED : "All target columns must have assigned OID on indexing.";
