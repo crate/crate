@@ -48,6 +48,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -1523,5 +1524,42 @@ public class JoinIntegrationTest extends IntegTestCase {
             "              └ Collect[doc.tt1 | [_fetchid, b] | true] (rows=100)"
         );
         assertThat(execute(stmt)).hasRowCount(51);
+    }
+
+    /**
+     * Verifies a bug in the HashJoinPhase building code resulting in hashing symbols being in the wrong order
+     * and such it's generated hash-code won't match anymore.
+     *
+     * https://github.com/crate/crate/issues/14583
+     */
+    @UseJdbc(1)
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() {
+        execute("create table doc.t1(a int, b int)");
+        execute("create table doc.t2(c int, d int)");
+        execute("create table doc.t3(e int, f int)");
+
+        execute("insert into doc.t1(a,b) values(1,2)");
+        execute("insert into doc.t2(c,d) values (1,3),(5,6)");
+        execute("insert into doc.t3(e,f) values (3,2)");
+        refresh();
+        execute("analyze");
+
+        var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
+        assertThat(execute("explain " + stmt)).hasRows(
+                "Eval[e] (rows=0)",
+                "  └ Eval[b, a, e, f, c, d] (rows=0)",
+                "    └ HashJoin[((a = c) AND (d = e))] (rows=0)",
+                "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
+                "      └ HashJoin[(b = f)] (rows=1)",
+                "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
+                "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRows("3");
     }
 }
