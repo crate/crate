@@ -35,6 +35,13 @@ public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> 
         super(reference, ReferenceAssert.class);
     }
 
+    public ReferenceAssert hasOid(long expectedOid) {
+        assertThat(actual.oid())
+            .as("oid")
+            .isEqualTo(expectedOid);
+        return this;
+    }
+
     public ReferenceAssert hasName(String expectedName) {
         assertThat(actual.column().sqlFqn())
             .as("sqlFqn")
