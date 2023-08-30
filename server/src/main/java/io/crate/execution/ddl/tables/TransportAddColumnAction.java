@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.Reference;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -35,7 +34,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -43,9 +41,6 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.metadata.NodeContext;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.BiFunction;
 
 @Singleton
 public class TransportAddColumnAction extends TransportMasterNodeAction<AddColumnRequest, AcknowledgedResponse> {
@@ -53,9 +48,6 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
     private final IndicesService indicesService;
-
-    private Writeable.Reader<AcknowledgedResponse> reader;
-    private BiFunction<Boolean, List<Reference>, AcknowledgedResponse> ackedResponseFunction;
 
     @Inject
     public TransportAddColumnAction(TransportService transportService,
@@ -74,7 +66,6 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
         this.indicesService = indicesService;
     }
 
-
     @Override
     protected String executor() {
         return ThreadPool.Names.SAME;
@@ -82,7 +73,9 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
 
     @Override
     protected AcknowledgedResponse read(StreamInput in) throws IOException {
-        return reader.read(in);
+        return clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_5_5_0)
+            ? new AddColumnResponse(in)
+            : new AcknowledgedResponse(in);
     }
 
     @Override
@@ -92,18 +85,16 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
         clusterService.submitStateUpdateTask("add-column",
             new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
 
-                private List<Reference> addedColumns = new ArrayList<>();
-
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    ClusterState updatedState = addColumnTask.execute(currentState, request);
-                    addedColumns = addColumnTask.addedColumns();
-                    return updatedState;
+                    return addColumnTask.execute(currentState, request);
                 }
 
                 @Override
                 protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                    return ackedResponseFunction.apply(acknowledged, addedColumns);
+                    return clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_5_5_0)
+                        ? new AddColumnResponse(acknowledged, addColumnTask.addedColumns())
+                        : new AcknowledgedResponse(acknowledged);
                 }
             });
     }
