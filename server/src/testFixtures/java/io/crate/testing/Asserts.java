@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import io.crate.metadata.Reference;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -175,11 +176,16 @@ public class Asserts extends Assertions {
     }
 
     public static Consumer<Symbol> isReference(String expectedName) {
-        return s -> assertThat(s).isReference(expectedName);
+        return s -> assertThat(s)
+            .isReference()
+            .hasName(expectedName);
     }
 
     public static Consumer<Symbol> isReference(String expectedName, DataType<?> expectedType) {
-        return s -> assertThat(s).isReference(expectedName, expectedType);
+        return s -> assertThat(s)
+            .isReference()
+            .hasName(expectedName)
+            .hasType(expectedType);
     }
 
     public static Consumer<Symbol> isScopedSymbol(String expectedName) {

@@ -381,7 +381,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect.size(), is(2));
-        Asserts.assertThat(toCollect.get(0)).isReference("_doc['id']");
+        Asserts.assertThat(toCollect.get(0)).isReference().hasName("_doc['id']");
         assertThat(toCollect.get(1), equalTo(new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,

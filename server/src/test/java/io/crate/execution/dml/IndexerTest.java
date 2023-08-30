@@ -167,13 +167,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
-                col1 -> assertThat(col1).isReference("o['obj']"),
-                col2 -> assertThat(col2).isReference("o['obj']['y']")
-                    .extracting("position")
-                    .isEqualTo(-1),
-                col3 -> assertThat(col3).isReference("o['obj']['z']")
-                    .extracting("position")
-                    .isEqualTo(-2)
+                col1 -> assertThat(col1).isReference().hasName("o['obj']"),
+                col2 -> assertThat(col2).isReference()
+                    .hasName("o['obj']['y']")
+                    .hasPosition(-1),
+                col3 -> assertThat(col3).isReference()
+                    .hasName("o['obj']['z']")
+                    .hasPosition(-2)
             );
     }
 
@@ -219,7 +219,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
-                col1 -> assertThat(col1).isReference("o['xs']", new ArrayType<>(DataTypes.LONG))
+                col1 -> assertThat(col1)
+                    .isReference()
+                    .hasName("o['xs']")
+                    .hasType(new ArrayType<>(DataTypes.LONG))
             );
 
         assertThat(parsedDoc.source().utf8ToString()).isIn(
@@ -524,7 +527,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         ParsedDocument index = indexer.index(item(Map.of("x", 10, "y", 20)));
         assertThat(index.newColumns()).satisfiesExactly(
-            r -> assertThat(r).isReference("o['y']", DataTypes.LONG)
+            r -> assertThat(r)
+                .isReference()
+                .hasName("o['y']")
+                .hasType(DataTypes.LONG)
         );
     }
 
@@ -715,13 +721,15 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(42, "Hello", 21));
         assertThat(doc.newColumns()).satisfiesExactly(
             x -> assertThat(x)
-                .isReference("y", DataTypes.STRING)
-                .extracting("position")
-                .isEqualTo(-1),
+                .isReference()
+                .hasName("y")
+                .hasType(DataTypes.STRING)
+                .hasPosition(-1),
             x -> assertThat(x)
-                .isReference("z", DataTypes.LONG)
-                .extracting("position")
-                .isEqualTo(-2)
+                .isReference()
+                .hasName("z")
+                .hasType(DataTypes.LONG)
+                .hasPosition(-2)
         );
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
@@ -1119,7 +1127,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(10, List.of(List.of(1, 2), List.of(3, 4))));
         List<Reference> newColumns = doc.newColumns();
         assertThat(newColumns).satisfiesExactly(
-            column -> assertThat(column).isReference("y", new ArrayType<>(new ArrayType<>(DataTypes.LONG)))
+            column -> assertThat(column)
+                .isReference()
+                .hasName("y")
+                .hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)))
         );
         assertThat(doc.source().utf8ToString()).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
