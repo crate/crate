@@ -986,15 +986,6 @@ public class Node implements Closeable {
         // start after transport service so the local disco is known
         discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
-
-        /**
-         * Due to BWC reasons, TransportAddColumnAction has Version dependant response.
-         * It's an eager singleton and cluster state is unavailable on the moment of creation,
-         * thus we need to initialize it after creation.
-         */
-        TransportAddColumnAction transportAddColumnAction = injector.getInstance(TransportAddColumnAction.class);
-        transportAddColumnAction.init(clusterService.state().nodes().getMinNodeVersion());
-
         assert clusterService.localNode().equals(localNodeFactory.getNode())
             : "clusterService has a different local node than the factory provided";
         transportService.acceptIncomingRequests();
