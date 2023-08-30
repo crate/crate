@@ -23,14 +23,12 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -102,11 +100,10 @@ public final class MappingUtil {
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable String routingColumn,
-                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier,
-                                                    Consumer<Reference> addNewColumn) {
+                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree, columnOidSupplier, addNewColumn);
+        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree, columnOidSupplier);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
@@ -155,7 +152,7 @@ public final class MappingUtil {
         }
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
         Map<String, Map<String, Object>> propertiesMap =
-            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree, null, ignored -> {});
+            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree, null);
 
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("_meta", Map.of());
@@ -186,16 +183,14 @@ public final class MappingUtil {
     private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
                                                                         @Nullable ColumnIdent currentNode,
                                                                         HashMap<ColumnIdent, List<Reference>> tree,
-                                                                        @Nullable Metadata.ColumnOidSupplier columnOidSupplier,
-                                                                        Consumer<Reference> addNewColumn) {
+                                                                        @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree, columnOidSupplier, addNewColumn));
+            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree, columnOidSupplier));
         }
         return allColumnsMap;
     }
@@ -203,11 +198,7 @@ public final class MappingUtil {
     private static Map<String, Object> addColumnProperties(AllocPosition position,
                                                            Reference reference,
                                                            HashMap<ColumnIdent, List<Reference>> tree,
-                                                           @Nullable Metadata.ColumnOidSupplier columnOidSupplier,
-                                                           Consumer<Reference> addNewColumn) {
-        if (reference.oid() == COLUMN_OID_UNASSIGNED) {
-            addNewColumn.accept(reference);
-        }
+                                                           @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()), columnOidSupplier);
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
@@ -219,7 +210,7 @@ public final class MappingUtil {
             properties = arrayMapping;
         }
         if (valueType.id() == ObjectType.ID) {
-            objectMapping(position, leafProperties, reference, tree, columnOidSupplier, addNewColumn);
+            objectMapping(position, leafProperties, reference, tree, columnOidSupplier);
         }
         return properties;
     }
@@ -228,10 +219,9 @@ public final class MappingUtil {
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree,
-                                      @Nullable Metadata.ColumnOidSupplier columnOidSupplier,
-                                      Consumer<Reference> addNewColumn) {
+                                      @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree, columnOidSupplier, addNewColumn);
+        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree, columnOidSupplier);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

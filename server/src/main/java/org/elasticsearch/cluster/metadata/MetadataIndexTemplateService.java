@@ -247,8 +247,7 @@ public class MetadataIndexTemplateService {
                     createTableRequest.partitionedBy(),
                     createTableRequest.tableColumnPolicy(),
                     createTableRequest.routingColumn(),
-                    metadataBuilder.columnOidSupplier(),
-                    (ignored) -> {}
+                    metadataBuilder.columnOidSupplier()
                 );
                 mapping = Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping); // We used PutIndexTemplateRequest.mapping which wraps mapping with default type
                 try {

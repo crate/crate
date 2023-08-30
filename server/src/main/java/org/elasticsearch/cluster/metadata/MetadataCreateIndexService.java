@@ -345,8 +345,7 @@ public class MetadataCreateIndexService {
                             createTableRequest.partitionedBy(),
                             createTableRequest.tableColumnPolicy(),
                             createTableRequest.routingColumn(),
-                            metadataBuilder.columnOidSupplier(),
-                            (ignored) -> {}
+                            metadataBuilder.columnOidSupplier()
                         );
                     }
                 } else {

@@ -85,10 +85,10 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             return currentState;
         }
 
-        // We cannot use normalizedColumns for building response since it may contain existing columns:
-        // parents of a sub-column or already existing reference, taken from the cluster state.
-        List<ColumnIdent> newColumnIdents = new ArrayList<>();
-        Consumer<Reference> addNewColumn = (ref) -> newColumnIdents.add(ref.column());
+        List<ColumnIdent> newColumnIdents = request.references().stream()
+            .filter(ref -> currentTable.getReference(ref.column()) == null)
+            .map(Reference::column)
+            .toList();
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         Map<String, Object> mapping = createMapping(
@@ -99,8 +99,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             List.of(),
             null,
             null,
-            metadataBuilder.columnOidSupplier(),
-            addNewColumn
+            metadataBuilder.columnOidSupplier()
         );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
