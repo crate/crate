@@ -537,8 +537,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             response = addColumnAction.execute(addColumnRequest).get();
         }
 
-        if (response != null && indexer.targetsHaveOids()) {
-            AddColumnResponse addColumnResponse = (AddColumnResponse) response;
+        if (response instanceof AddColumnResponse addColumnResponse) {
             indexer.updateTargets(addColumnResponse.addedColumns());
         }
 

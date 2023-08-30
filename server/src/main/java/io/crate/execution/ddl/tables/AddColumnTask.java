@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.cluster.ClusterState;
