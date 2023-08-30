@@ -74,15 +74,6 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
         this.indicesService = indicesService;
     }
 
-    public void init(Version minNodeVersion) {
-        if (minNodeVersion.onOrAfter(Version.V_5_5_0)) {
-            reader = AddColumnResponse::new;
-            ackedResponseFunction = AddColumnResponse::new;
-        } else {
-            reader = AcknowledgedResponse::new;
-            ackedResponseFunction = (acked, ignored) -> new AcknowledgedResponse(acked);
-        }
-    }
 
     @Override
     protected String executor() {
