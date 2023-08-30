@@ -128,8 +128,14 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
         assertThat(Maps.getByPath(map, "y"), is(2));
         assertThat(Maps.getByPath(map, "z"), is(3));
         assertThat(insertSource.refLookUpCache.lookupCache.size(), is(2));
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x")).isReference("x", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y")).isReference("y", DataTypes.INTEGER); // lookupCache populated from iteration 1
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x"))
+            .isReference()
+            .hasName("x") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER); // lookupCache populated from iteration 1
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y"))
+            .isReference()
+            .hasName("y") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
         assertThat(insertSource.refLookUpCache.presentColumns.size(), is(0)); // check that it is cleared
 
         // iteration 2
@@ -138,8 +144,14 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
         assertThat(Maps.getByPath(map, "y"), is(11));
         assertThat(Maps.getByPath(map, "z"), is(12));
         assertThat(insertSource.refLookUpCache.lookupCache.size(), is(2));
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x")).isReference("x", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y")).isReference("y", DataTypes.INTEGER); // lookupCache populated from iteration 1
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x"))
+            .isReference()
+            .hasName("x") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y"))
+            .isReference()
+            .hasName("y") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
         assertThat(insertSource.refLookUpCache.presentColumns.size(), is(0)); // check that it is cleared
 
         // iteration 3
@@ -149,9 +161,17 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
         assertThat(Maps.getByPath(map, "z"), is(22));
         assertThat(Maps.getByPath(map, "newCol"), is("hello"));
         assertThat(insertSource.refLookUpCache.lookupCache.size(), is(3));
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x")).isReference("x", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y")).isReference("y", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("newCol")).isDynamicReference("newCol"); // lookupCache populated from iteration 3
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x"))
+            .isReference()
+            .hasName("x") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y"))
+            .isReference()
+            .hasName("y") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("newCol"))
+            .isDynamicReference() // lookupCache populated from iteration 3
+            .hasName("newCol");
         assertThat(insertSource.refLookUpCache.presentColumns.size(), is(0)); // check that it is cleared
 
         // iteration 4
@@ -161,10 +181,21 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
         assertThat(Maps.getByPath(map, "z"), is(102));
         assertThat(Maps.getByPath(map, "newCol"), is(nullValue()));
         assertThat(insertSource.refLookUpCache.lookupCache.size(), is(4));
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x")).isReference("x", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y")).isReference("y", DataTypes.INTEGER); // lookupCache populated from iteration 1
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("newCol")).isDynamicReference("newCol"); // lookupCache populated from iteration 3
-        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("z")).isReference("z", DataTypes.INTEGER); // lookupCache populated from iteration 4
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("x"))
+            .isReference()
+            .hasName("x") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("y"))
+            .isReference()
+            .hasName("y") // lookupCache populated from iteration 1
+            .hasType(DataTypes.INTEGER);
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("newCol"))
+            .isDynamicReference() // lookupCache populated from iteration 3
+            .hasName("newCol");
+        Asserts.assertThat(insertSource.refLookUpCache.lookupCache.get("z"))
+            .isReference()
+            .hasName("z") // lookupCache populated from iteration 4
+            .hasType(DataTypes.INTEGER);
         assertThat(insertSource.refLookUpCache.presentColumns.size(), is(0)); // check that it is cleared
     }
 

@@ -219,7 +219,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey()).isReference("name");
+            assertThat(entry.getKey()).isReference().hasName("name");
             assertThat(entry.getValue()).isLiteral("Arthur", StringType.INSTANCE);
         }
     }
@@ -234,7 +234,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey()).isReference("name");
+            assertThat(entry.getKey()).isReference().hasName("name");
             assertThat(entry.getValue()).isExactlyInstanceOf(ParameterSymbol.class);
         }
     }
@@ -248,7 +248,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(statement.onDuplicateKeyAssignments()).hasSize(1);
 
         for (var entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey()).isReference("name");
+            assertThat(entry.getKey()).isReference().hasName("name");
             assertThat(entry.getValue()).isFunction(SubstrFunction.NAME);
             Function function = (Function) entry.getValue();
             assertThat(function.arguments().get(0)).isExactlyInstanceOf(InputColumn.class);

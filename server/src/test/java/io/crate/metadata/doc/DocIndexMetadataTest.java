@@ -1696,7 +1696,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.indices()).hasSize(1);
         IndexReference ref = md.indices().values().iterator().next();
         assertThat(ref.columns()).satisfiesExactly(
-            x -> Asserts.assertThat(x).isReference("description")
+            x -> Asserts.assertThat(x).isReference().hasName("description")
         );
     }
 

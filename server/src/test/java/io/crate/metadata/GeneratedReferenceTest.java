@@ -117,7 +117,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
             "cast",
             arg1 -> {
                 assertThat(arg1).isExactlyInstanceOf(GeneratedReference.class);
-                assertThat(arg1).isReference("year");
+                assertThat(arg1).isReference().hasName("year");
             },
             arg2 -> assertThat(arg2).isLiteral(null)
         );
