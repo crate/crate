@@ -76,6 +76,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     @Override
     @SuppressWarnings("unchecked")
     public ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
+        addedColumns.clear();
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         DocTableInfo currentTable = docTableInfoFactory.create(request.relationName(), currentState);
 
