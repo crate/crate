@@ -68,6 +68,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
+import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -145,7 +146,8 @@ public final class EqOperator extends Operator<Object> {
                 typeId != LongType.ID &&
                 typeId != DoubleType.ID &&
                 typeId != FloatType.ID &&
-                typeId != IpType.ID) {
+                typeId != IpType.ID &&
+                typeId != BooleanType.ID) {
                 throw new IllegalArgumentException(
                     "Cannot search on field [" + fqn + "] since it is not indexed.");
             }
