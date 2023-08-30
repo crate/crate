@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 
 import javax.net.ssl.SNIHostName;
 
-import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
