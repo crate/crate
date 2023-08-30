@@ -149,7 +149,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set name=name");
         assertThat(update.assignmentByTargetCol().size(), is(1));
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
-        Asserts.assertThat(value).isReference("name");
+        Asserts.assertThat(value).isReference().hasName("name");
     }
 
     @Test

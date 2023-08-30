@@ -140,7 +140,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
         var symbol = executor.asSymbol("subscript(nested_obj.\"myObj\", 'x')");
-        assertThat(symbol).isReference("myObj['x']");
+        assertThat(symbol).isReference().hasName("myObj['x']");
     }
 
     @Test
@@ -178,7 +178,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function cmp = (Function) expressions.normalize(executor.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.name()).isEqualTo("op_<");
-        assertThat(cmp.arguments().get(0)).isReference("x");
+        assertThat(cmp.arguments().get(0)).isReference().hasName("x");
     }
 
     @Test
@@ -277,7 +277,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testFunctionsCanBeCasted() {
         Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1::smallint");
         assertThat(symbol2).isFunction(EqOperator.NAME);
-        assertThat(symbol2.arguments().get(0)).isReference("w");
+        assertThat(symbol2.arguments().get(0)).isReference().hasName("w");
         assertThat(symbol2.arguments().get(1))
             .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
     }
@@ -386,10 +386,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']['c']\"");
-        assertThat(symbol).isReference("o['a']['b']['c']");
+        assertThat(symbol).isReference().hasName("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
-        assertThat(symbol).isReference("myObj['x']['AbC']");
+        assertThat(symbol).isReference().hasName("myObj['x']['AbC']");
     }
 
     /**
@@ -405,10 +405,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_partial_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
-        assertThat(symbol).isReference("o['a']['b']['c']");
+        assertThat(symbol).isReference().hasName("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']\"['AbC']");
-        assertThat(symbol).isReference("myObj['x']['AbC']");
+        assertThat(symbol).isReference().hasName("myObj['x']['AbC']");
     }
 
     @Test
@@ -503,7 +503,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(executor.asSymbol("t1.x = ANY([ [1, 2, 3], [4, 5] ])")).isFunction(
             AnyEqOperator.NAME,
-            x -> assertThat(x).isReference("x"),
+            x -> assertThat(x).isReference().hasName("x"),
             x -> assertThat(x)
                 .as("array_unnest is eagerly normalized to array literal")
                 .isLiteral(List.of(1, 2, 3, 4, 5))
@@ -514,7 +514,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).isLiteral(1),
             x -> assertThat(x).isFunction(
                 ArrayUnnestFunction.NAME,
-                y -> assertThat(y).isReference("o_arr['o_arr_nested']['y']")
+                y -> assertThat(y).isReference().hasName("o_arr['o_arr_nested']['y']")
             )
         );
     }

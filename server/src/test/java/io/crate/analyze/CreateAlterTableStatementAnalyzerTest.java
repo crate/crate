@@ -841,8 +841,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Reference ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) ftRef).columns()).satisfiesExactly(
-            x -> assertThat(x).isReference("title"),
-            x -> assertThat(x).isReference("name")
+            x -> assertThat(x).isReference().hasName("title"),
+            x -> assertThat(x).isReference().hasName("name")
         );
     }
 
@@ -1429,7 +1429,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         ColumnIdent o2b = new ColumnIdent("o1", List.of("o2", "b"));
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKey(o2b);
-        assertThat(columns.get(o2b)).isReference("o1['o2']['b']", DataTypes.INTEGER);
+        assertThat(columns.get(o2b)).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
         assertThat(createTable.checks()).hasSize(1);
         AnalyzedCheck check = createTable.checks().values().iterator().next();
         assertThat(check.check()).isSQL("(doc.t.o1['o2']['b'] > 100)");
@@ -1735,7 +1735,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKeys(x);
         Reference xRef = columns.get(x);
-        assertThat(xRef).isReference("x", new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(xRef).isReference().hasName("x").hasType(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 
 

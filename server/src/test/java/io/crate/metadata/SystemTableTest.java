@@ -47,7 +47,7 @@ public class SystemTableTest {
 
         assertThat(table.columns()).satisfiesExactly(isReference("obj_a"));
         assertThat(table.getReference(new ColumnIdent("obj_a", List.of("obj_b", "x"))))
-            .isReference("obj_a['obj_b']['x']");
+            .isReference().hasName("obj_a['obj_b']['x']");
 
         var x = table.expressions().get(new ColumnIdent("obj_a", List.of("obj_b", "x"))).create();
         x.setNextRow(null);
@@ -83,7 +83,7 @@ public class SystemTableTest {
                 .add("y", DataTypes.INTEGER, point -> point.y)
             .endObjectArray()
             .build();
-        assertThat(table.getReference(new ColumnIdent("points"))).isReference("points");
+        assertThat(table.getReference(new ColumnIdent("points"))).isReference().hasName("points");
         var points = table.expressions().get(new ColumnIdent("points")).create();
         points.setNextRow(null);
         assertThat(points.value()).isEqualTo(
@@ -91,7 +91,9 @@ public class SystemTableTest {
                 Map.of("x", 10, "y", 20),
                 Map.of("x", 30, "y", 40)));
         assertThat(table.getReference(new ColumnIdent("points", "x")))
-            .isReference("points['x']", new ArrayType<>(DataTypes.INTEGER));
+            .isReference()
+            .hasName("points['x']")
+            .hasType(new ArrayType<>(DataTypes.INTEGER));
         var xs = table.expressions().get(new ColumnIdent("points", "x")).create();
         xs.setNextRow(null);
         assertThat(xs.value()).isEqualTo(List.of(10, 30));
