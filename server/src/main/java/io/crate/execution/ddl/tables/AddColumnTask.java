@@ -240,7 +240,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
     }
 
     /**
-     * @return **only** new columns (with assigned OID-s).
+     * @return columns added by the last {@link #execute} call. Columns part of the {@link AddColumnRequest} which already existed are not included.
      */
     public List<Reference> addedColumns() {
         return addedColumns;
