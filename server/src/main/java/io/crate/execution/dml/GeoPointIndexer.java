@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -59,7 +60,8 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, ColumnConstraint> toValidate,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
 
         xcontentBuilder.startArray()
             .value(point.getX())

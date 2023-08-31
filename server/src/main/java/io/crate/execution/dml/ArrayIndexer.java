@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -46,7 +47,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xContentBuilder.startArray();
         if (values != null) {
             for (T value : values) {
@@ -58,7 +60,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         xContentBuilder,
                         addField,
                         synthetics,
-                        toValidate
+                        toValidate,
+                        columnKeyProvider
                     );
                 }
             }

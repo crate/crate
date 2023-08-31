@@ -127,7 +127,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, ColumnConstraint> toValidate,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
             // except the case with array of nulls
@@ -175,7 +176,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             xcontentBuilder,
             addField,
             synthetics,
-            toValidate
+            toValidate,
+            columnKeyProvider
         );
     }
 

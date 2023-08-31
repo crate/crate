@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -126,6 +127,8 @@ public class Indexer {
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
     private final boolean writeOids;
+    private final Function<Reference, String> columnKeyProvider;
+    private final Map<ColumnIdent, Reference> columnsByIdent = new HashMap<>();
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
@@ -366,11 +369,21 @@ public class Indexer {
                    Function<ColumnIdent, FieldType> getFieldType,
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
+        Iterator<Reference> refsIterator = table.iterator();
+        while (refsIterator.hasNext()) {
+            Reference reference = refsIterator.next();
+            columnsByIdent.put(reference.column(), reference);
+        }
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
         this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        if (writeOids) {
+            columnKeyProvider = reference -> reference.oid() != COLUMN_OID_UNASSIGNED ? Long.toString(reference.oid()) : reference.column().leafName();
+        } else {
+            columnKeyProvider = reference -> reference.column().leafName();
+        }
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -380,9 +393,10 @@ public class Indexer {
             txnCtx,
             referenceResolver
         );
-        Function<ColumnIdent, Reference> getRef = table::getReference;
+        Function<ColumnIdent, Reference> getRef = ident -> columnsByIdent.get(ident);
         this.valueIndexers = new ArrayList<>(targetColumns.size());
         int position = -1;
+
         for (var ref : targetColumns) {
             ValueIndexer<?> valueIndexer;
             if (ref instanceof DynamicReference dynamic) {
@@ -525,6 +539,8 @@ public class Indexer {
         Map<ColumnIdent, Reference> addedColumnsByIdent = new HashMap<>();
         for (Reference ref: addedColumns) {
             addedColumnsByIdent.put(ref.column(), ref);
+            // Also add to columnsByIdent,so that getRef supplier doesn't get stale.
+            columnsByIdent.put(ref.column(), ref);
         }
 
         for (int i = 0; i < columns.size(); i++) {
@@ -664,13 +680,14 @@ public class Indexer {
                     continue;
                 }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                xContentBuilder.field(reference.column().leafName());
+                xContentBuilder.field(columnKeyProvider.apply(reference));
                 valueIndexer.indexValue(
                     reference.valueType().sanitizeValue(value),
                     xContentBuilder,
                     addField,
                     synthetics,
-                    columnConstraints
+                    columnConstraints,
+                    columnKeyProvider
                 );
             }
             for (var entry : synthetics.entrySet()) {
@@ -684,13 +701,14 @@ public class Indexer {
                 if (value == null) {
                     continue;
                 }
-                xContentBuilder.field(column.leafName());
+                xContentBuilder.field(columnKeyProvider.apply(synthetic.ref()));
                 indexer.indexValue(
                     value,
                     xContentBuilder,
                     addField,
                     synthetics,
-                    columnConstraints
+                    columnConstraints,
+                    columnKeyProvider
                 );
             }
             xContentBuilder.endObject();

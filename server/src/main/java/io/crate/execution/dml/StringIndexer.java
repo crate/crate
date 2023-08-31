@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +56,8 @@ public class StringIndexer implements ValueIndexer<String> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xcontentBuilder.value(value);
         String name = ref.column().fqn();
         BytesRef binaryValue = new BytesRef(value);
