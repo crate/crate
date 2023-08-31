@@ -103,7 +103,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+                           Map<ColumnIdent, Indexer.ColumnConstraint> checks,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xContentBuilder.startObject();
         for (var entry : innerTypes.entrySet()) {
             String innerName = entry.getKey();
@@ -128,13 +129,16 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                xContentBuilder.field(innerName);
+                ColumnIdent child = column.getChild(innerName);
+                Reference childRef = getRef.apply(child);
+                xContentBuilder.field(columnKeyProvider.apply(childRef));
                 valueIndexer.indexValue(
                     type.sanitizeValue(innerValue),
                     xContentBuilder,
                     addField,
                     synthetics,
-                    checks
+                    checks,
+                    columnKeyProvider
                 );
             }
         }
@@ -249,6 +253,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     /**
      * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Map) to the xContentBuilder.
+     * Since the are no columns, there are no OID-s to be assinged, thus keys written to the source "as is".
      *
      * There are no columns for:
      * <ul>

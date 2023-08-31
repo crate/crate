@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -62,6 +63,7 @@ public interface ValueIndexer<T> {
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
         Map<ColumnIdent, Indexer.Synthetic> synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
+        Map<ColumnIdent, ColumnConstraint> toValidate,
+        Function<Reference, String> columnKeyProvider
     ) throws IOException;
 }
