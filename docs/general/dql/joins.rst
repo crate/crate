@@ -263,12 +263,12 @@ relation once scanning the second relation has finished.
 This optimisation cannot be applied unless the join is an ``INNER`` join and
 the join condition satisfies the following rules:
 
-  - Contains at least one ``EQUAL`` :ref:`operator <gloss-operator>`
+- Contains at least one ``EQUAL`` :ref:`operator <gloss-operator>`
 
-  - Contains no ``OR`` operator
+- Contains no ``OR`` operator
 
-  - Every argument of a ``EQUAL`` operator can only references fields from one
-    relation
+- Every argument of a ``EQUAL`` operator can only references fields from one
+  relation
 
 The `hash join`_ algorithm is faster but has a bigger memory footprint. As such
 it can explicitly be disabled on demand when memory is scarce using the session
