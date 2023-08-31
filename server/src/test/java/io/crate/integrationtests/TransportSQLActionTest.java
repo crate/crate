@@ -1743,7 +1743,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedOptimizerRules(1)
     @Test
     public void test_subscript_on_ignored_object_does_not_raise_missing_key_error() throws Exception {
         execute("create table tbl (obj object (ignored))");

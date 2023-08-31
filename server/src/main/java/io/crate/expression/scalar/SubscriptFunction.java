@@ -32,7 +32,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.data.Input;
@@ -53,6 +52,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -147,11 +148,11 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         );
     }
 
-    private final TriFunction<Object, Object, Boolean, Object> lookup;
+    private final LookUp lookup;
 
     private SubscriptFunction(Signature signature,
                               BoundSignature boundSignature,
-                              TriFunction<Object, Object, Boolean, Object> lookup) {
+                              LookUp lookup) {
         super(signature, boundSignature);
         this.lookup = lookup;
     }
@@ -177,20 +178,29 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         if (element == null || index == null) {
             return null;
         }
-        return lookup.apply(element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
+        return lookup.get(element,
+                          index,
+                          ColumnPolicies.extractFrom(this.boundSignature.argTypes().get(0)),
+                          txnCtx.sessionSettings().errorOnUnknownObjectKey());
     }
 
-    static Object lookupIntoListObjectsByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupIntoListObjectsByName(Object base, Object name, ColumnPolicy columnPolicy, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         List<Object> result = new ArrayList<>(values.size());
         for (int i = 0; i < values.size(); i++) {
             Map<?, ?> map = (Map<?, ?>) values.get(i);
+            if (map.containsKey(name) == false) {
+                if (columnPolicy == ColumnPolicy.STRICT ||
+                    (columnPolicy == ColumnPolicy.DYNAMIC && errorOnUnknownObjectKey)) {
+                    throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+                }
+            }
             result.add(map.get(name));
         }
         return result;
     }
 
-    static Object lookupByNumericIndex(Object base, Object index, boolean errorOnUnknownObjectKey) {
+    static Object lookupByNumericIndex(Object base, Object index, ColumnPolicy columnPolicy, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         int idx = ((Number) index).intValue();
         try {
@@ -200,12 +210,15 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
     }
 
-    static Object lookupByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupByName(Object base, Object name, ColumnPolicy columnPolicy, boolean errorOnUnknownObjectKey) {
         if (!(base instanceof Map<?, ?> map)) {
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
         }
-        if (errorOnUnknownObjectKey && !map.containsKey(name)) {
-            throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+        if (map.containsKey(name) == false) {
+            if (columnPolicy == ColumnPolicy.STRICT ||
+                (columnPolicy == ColumnPolicy.DYNAMIC && errorOnUnknownObjectKey)) {
+                throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+            }
         }
         return map.get(name);
     }
@@ -264,5 +277,10 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             return builder.build();
         }
         return null;
+    }
+
+    @FunctionalInterface
+    private interface LookUp {
+        Object get(Object base, Object name, ColumnPolicy columnPolicy, boolean errorOnUnknownObjectKey);
     }
 }

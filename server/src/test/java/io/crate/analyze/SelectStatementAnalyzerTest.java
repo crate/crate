@@ -2695,16 +2695,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().get(0)).isLiteral(null);
 
-        /*
-         * This is documenting a bug. If this fails, it is a breaking change.
-         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works --> bug?
-         * set errorOnUnknownObjectKey = false;
-         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works
-         */
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
-        analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().get(0)).hasToString("[1, NULL]");
+        assertThatThrownBy(() -> executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("The object `[{x=1, y=2}, {y=2, z=3}]` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
         assertThat(analyzed.outputs()).hasSize(1);

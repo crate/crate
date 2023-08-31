@@ -157,6 +157,7 @@ public class ArraySetFunctionTest extends ScalarTestCase {
                        List.of(Map.of("b", 1),
                                Map.of("b", 2),
                                Map.of("b", 3)));
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluate("array_set([{a=1},{c='c'}]['a'], [1,2], [100,200])", List.of(100, 200));
     }
 }

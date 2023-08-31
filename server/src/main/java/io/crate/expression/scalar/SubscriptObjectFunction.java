@@ -36,6 +36,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -122,7 +123,12 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             if (mapValue == null) {
                 return null;
             }
-            mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value(), txnCtx.sessionSettings().errorOnUnknownObjectKey());
+            var columnPolicy = ColumnPolicies.extractFrom(this.boundSignature.argTypes().get(0));
+            mapValue = SubscriptFunction.lookupByName(
+                mapValue,
+                args[i].value(),
+                columnPolicy,
+                txnCtx.sessionSettings().errorOnUnknownObjectKey());
         }
         return mapValue;
     }

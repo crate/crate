@@ -55,4 +55,9 @@ public class IgnoredReference extends DynamicReference {
     public SymbolType symbolType() {
         return SymbolType.IGNORED_REFERENCE;
     }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitIgnoredReference(this, context);
+    }
 }
