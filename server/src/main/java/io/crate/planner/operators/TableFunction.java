@@ -125,8 +125,8 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Set.of(relation.relationName());
+    public List<RelationName> getRelationNames() {
+        return List.of(relation.relationName());
     }
 
     @Override

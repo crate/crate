@@ -87,7 +87,6 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 nl.joinType(),
                 nl.joinCondition(),
                 nl.isFiltered(),
-                nl.topMostLeftRelation(),
                 nl.orderByWasPushedDown(),
                 nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                 true, // Mark joinConditionOptimised = true
@@ -97,8 +96,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             // Push constant join condition down to source
             var lhs = resolvePlan.apply(nl.lhs());
             var rhs = resolvePlan.apply(nl.rhs());
-            var queryForLhs = constantConditions.remove(lhs.getRelationNames());
-            var queryForRhs = constantConditions.remove(rhs.getRelationNames());
+            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
+            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
             var newLhs = getNewSource(queryForLhs, lhs);
             var newRhs = getNewSource(queryForRhs, rhs);
             return new HashJoin(

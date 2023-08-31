@@ -69,7 +69,6 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
                 nl.joinType(),
                 nl.joinCondition(),
                 nl.isFiltered(),
-                nl.topMostLeftRelation(),
                 nl.orderByWasPushedDown(),
                 nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                 nl.isJoinConditionOptimised(),
