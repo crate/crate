@@ -876,9 +876,11 @@ Legacy
   5.0.0.
 
   The following table functions are affected by this setting:
+
   - :ref:`unnest <unnest>`
   - :ref:`regexp_matches <table-functions-regexp-matches>`
   - :ref:`generate_series <table-functions-generate-series>`
+
   When the setting is set and a single column is expected to be returned,
   the returned column will be named ``col1``, ``groups``, or ``col1``
   respectively.
