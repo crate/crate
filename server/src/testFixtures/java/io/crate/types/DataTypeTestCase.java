@@ -114,7 +114,8 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                     xContentBuilder,
                     fields::add,
                     Map.of(),
-                    Map.of()
+                    Map.of(),
+                    ref -> Long.toString(ref.oid())
                 );
                 xContentBuilder.endObject();
                 writer.addDocument(fields);

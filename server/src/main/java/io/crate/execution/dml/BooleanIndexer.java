@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -56,7 +57,8 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+                           Map<ColumnIdent, ColumnConstraint> toValidate,
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xContentBuilder.value(value);
         if (ref.indexType() != IndexType.NONE || fieldType.stored()) {
             addField.accept(new Field(name, value ? "T" : "F", fieldType));
