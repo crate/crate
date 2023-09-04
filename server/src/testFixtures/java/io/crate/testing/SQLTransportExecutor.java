@@ -179,7 +179,7 @@ public class SQLTransportExecutor {
         for (int i = 0; i < numberOfRulesToPick; i++) {
             result.add(String.format(Locale.ENGLISH,
                                      "set %s=false",
-                                     LoadedRules.buildSessionSettingName(ruleCandidates.get(i))));
+                                     Rule.sessionSettingName(ruleCandidates.get(i))));
         }
 
         return result;
