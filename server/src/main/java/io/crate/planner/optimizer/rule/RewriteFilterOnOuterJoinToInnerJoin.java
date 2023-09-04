@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -133,8 +134,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         var sources = Lists2.map(nl.sources(), resolvePlan);
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
-        Set<RelationName> leftName = lhs.getRelationNames();
-        Set<RelationName> rightName = rhs.getRelationNames();
+        Set<RelationName> leftName = new HashSet<>(lhs.getRelationNames());
+        Set<RelationName> rightName = new HashSet<>(rhs.getRelationNames());
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);
@@ -257,7 +258,6 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             newJoinIsInnerJoin ? JoinType.INNER : nl.joinType(),
             nl.joinCondition(),
             nl.isFiltered(),
-            nl.topMostLeftRelation(),
             nl.orderByWasPushedDown(),
             true,
             nl.isJoinConditionOptimised(),

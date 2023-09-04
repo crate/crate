@@ -25,6 +25,7 @@ import static io.crate.planner.operators.JoinPlanBuilder.extractCorrelatedSubQue
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
 
@@ -68,7 +69,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
         var splitQuery = QuerySplitter.split(filter.query());
         assert join.sources().size() == 1 : "CorrelatedJoin operator must have 1 children, the input plan";
         var inputPlan = join.sources().get(0);
-        var inputQuery = splitQuery.remove(inputPlan.getRelationNames());
+        var inputQuery = splitQuery.remove(new HashSet<>(inputPlan.getRelationNames()));
         if (inputQuery == null) {
             return null;
         }

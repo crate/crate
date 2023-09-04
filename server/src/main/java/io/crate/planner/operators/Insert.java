@@ -120,8 +120,8 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Set.of();
+    public List<RelationName> getRelationNames() {
+        return List.of();
     }
 
     @Override

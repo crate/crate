@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Sets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -99,21 +98,37 @@ public class HashJoin extends JoinPlan {
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        // First extract the symbols that belong to rhs
+        /* It is important here to process the hashSymbols in order as there values are used for building the
+         *  hash codes. For example:
+         *
+         *      join-condition:     t1.a = t2.c AND t1.b = t2.d
+         *      left hashSymbols:   [t1.a, t1.b]
+         *      right hashSymbols:  [t2.c, t2.d]
+         *
+         *      with rows:          left ->     [1, 3]
+         *                          right ->    [1, 3]
+         *
+         * if the order is not guaranteed, one side may use [3, 1] for hash code generation which yields different results
+         *
+         */
         var rhsHashSymbols = new ArrayList<Symbol>();
-        for (var relationName : rhs.getRelationNames()) {
-            var symbols = hashSymbols.remove(relationName);
-            if (symbols != null) {
-                for (var symbol : symbols) {
+        var lhsHashSymbols = new ArrayList<Symbol>();
+        var rightRelationNames = rhs.getRelationNames();
+        var leftRelationNames = lhs.getRelationNames();
+        for (var entry : hashSymbols.entrySet()) {
+            var relationName = entry.getKey();
+            var symbols = entry.getValue();
+            if (symbols == null) {
+                continue;
+            }
+            if (rightRelationNames.contains(relationName)) {
+                for (Symbol symbol : symbols) {
                     rhsHashSymbols.add(paramBinder.apply(symbol));
                 }
-            }
-        }
-        // All leftover extracted symbols belong to the lhs
-        var lhsHashSymbols = new ArrayList<Symbol>();
-        for (var symbols : hashSymbols.values()) {
-            for (Symbol symbol : symbols) {
-                lhsHashSymbols.add(paramBinder.apply(symbol));
+            } else if (leftRelationNames.contains(relationName)) {
+                for (Symbol symbol : symbols) {
+                    lhsHashSymbols.add(paramBinder.apply(symbol));
+                }
             }
         }
 
@@ -204,8 +219,8 @@ public class HashJoin extends JoinPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Sets.union(lhs.getRelationNames(), rhs.getRelationNames());
+    public List<RelationName> getRelationNames() {
+        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
     }
 
     @Override
