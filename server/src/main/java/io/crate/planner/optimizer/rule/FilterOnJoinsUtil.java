@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Sets;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -60,11 +61,56 @@ final class FilterOnJoinsUtil {
         }
         LogicalPlan lhs = join.lhs();
         LogicalPlan rhs = join.rhs();
-        Symbol queryForLhs = splitQuery.remove(new HashSet<>(lhs.getRelationNames()));
-        Symbol queryForRhs = splitQuery.remove(new HashSet<>(rhs.getRelationNames()));
-        LogicalPlan newLhs = getNewSource(queryForLhs, lhs);
-        LogicalPlan newRhs = getNewSource(queryForRhs, rhs);
-        LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
+
+        LogicalPlan newLhs = null;
+        LogicalPlan newRhs = null;
+
+        HashSet<RelationName> lhsRelations = new HashSet<>(lhs.getRelationNames());
+        HashSet<RelationName> rhsRelations = new HashSet<>(rhs.getRelationNames());
+
+        Symbol queryForLhs = splitQuery.remove(lhsRelations);
+        Symbol queryForRhs = splitQuery.remove(rhsRelations);
+
+        if (queryForRhs == null && queryForLhs == null) {
+            // we don't have a match for the filter on rhs/lhs yet
+            // let's see if we have partial match with a subsection of the relations
+            var it = splitQuery.entrySet().iterator();
+            while (it.hasNext()) {
+                var entry = it.next();
+                var relationNames = entry.getKey();
+                var symbol = entry.getValue();
+
+                var matchesLhs = Sets.intersection(lhsRelations, relationNames);
+                var matchesRhs = Sets.intersection(rhsRelations, relationNames);
+
+                if (matchesRhs.isEmpty() == false && matchesLhs.isEmpty()) {
+                    // push filter to rhs
+                    newRhs = getNewSource(symbol, rhs);
+                    it.remove();
+                } else if (matchesRhs.isEmpty() && matchesLhs.isEmpty() == false) {
+                    // push filter to lhs
+                    newLhs = getNewSource(symbol, lhs);
+                    it.remove();
+                }
+            }
+            if (newLhs == null && newRhs == null) {
+                // no match at all
+                // nothing to change
+                return null;
+            } else if (newLhs == null) {
+                // match on the rhs, lhs remains
+                newLhs = lhs;
+            } else if (newRhs == null) {
+                // match on the lhs, rhs remains
+                newRhs = rhs;
+            }
+        } else {
+            newLhs = getNewSource(queryForLhs, lhs);
+            newRhs = getNewSource(queryForRhs, rhs);
+        }
+
+        var newJoin = join.replaceSources(List.of(newLhs, newRhs));
+
         if (splitQuery.isEmpty()) {
             return newJoin;
         } else if (initialParts == splitQuery.size()) {
