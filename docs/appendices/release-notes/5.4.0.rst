@@ -38,14 +38,21 @@ Released on 2023-07-11.
 Known Issues
 ============
 
-- Version 5.4.0 introduced a regression which can cause some ``JOIN`` queries
+- Version 5.0.0 introduced a regression which can cause some ``JOIN`` queries
   to return no results when the query optimizer re-orders the joined tables.
   As a workaround, users should apply the following session settings before
   running such queries to prevent the query optimizer from re-ordering them
-  and therefore produce the correct results::
+  and therefore produce the correct results:
+
+  On CrateDB >= 5.4.0::
 
     SET optimizer_reorder_hash_join = false
     SET optimizer_reorder_nested_loop_join = false
+
+  On CrateDB < 5.4.0 (this will disable the hash-join algorithm which may lead
+  to poor performance)::
+
+    SET enable_hashjoin = false
 
 Breaking Changes
 ================
@@ -83,10 +90,10 @@ Breaking Changes
     - **Added**: ``prokind``, ``prosqlbody``, ``prosupport``
     - **Removed**: ``proisagg``, ``proiswindow``, ``protransform``
     - **Type Changed**: ``proargdefaults`` from ``OBJECT[]`` to ``STRING``
-    
+
   - ``pg_type``
 
-    - **Added**: ``typacl``, ``typalign``, ``typanalyze``, 
+    - **Added**: ``typacl``, ``typalign``, ``typanalyze``,
       ``typdefaultbin``, ``typmodin``, ``typmodout``, ``typstorage``,
       ``typsubscript``
 
