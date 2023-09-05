@@ -163,6 +163,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                                                                           final Reference ref,
                                                                           String fieldName) {
         final MappedFieldType fieldType = fieldTypeLookup.get(fieldName);
+        //TODO: FieldTypeLookup should use oids
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
