@@ -57,14 +57,9 @@ public interface InsertSourceGen {
                               NodeContext nodeCtx,
                               DocTableInfo table,
                               String indexName,
-                              boolean validate,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
-            if (!validate && table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
-                return new RawInsertSource();
-            } else {
-                return new ValidatedRawInsertSource(table, txnCtx, nodeCtx, indexName);
-            }
+            return new ValidatedRawInsertSource(table, txnCtx, nodeCtx, indexName);
         }
         throw new UnsupportedOperationException("InsertSourceGen is only available for _raw, Use Indexer for other use-cases");
     }

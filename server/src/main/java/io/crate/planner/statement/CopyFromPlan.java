@@ -36,8 +36,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,6 +94,8 @@ import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
 
+    private static final Logger LOGGER = LogManager.getLogger(CopyFromPlan.class);
+    static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -168,6 +173,12 @@ public final class CopyFromPlan implements Plan {
         var nodeFiltersPredicate = discoveryNodePredicate(
             properties.properties().getOrDefault(NodeFilters.NAME, null));
         var settings = Settings.builder().put(properties).build();
+
+        if (properties.properties().containsKey("validation")) {
+            DEPRECATION_LOGGER.deprecatedAndMaybeLog(
+                "copy_from.validation",
+                "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+        }
         var inputFormat = settingAsEnum(
             FileUriCollectPhase.InputFormat.class,
             settings.get(INPUT_FORMAT_SETTING.getKey(), INPUT_FORMAT_SETTING.getDefault(Settings.EMPTY)));

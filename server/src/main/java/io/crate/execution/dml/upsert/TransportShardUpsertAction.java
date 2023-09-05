@@ -32,8 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -66,6 +64,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -196,7 +195,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 nodeCtx,
                 tableInfo,
                 indexName,
-                request.validation(),
                 insertColumns
             );
             if (request.returnValues() != null) {
@@ -511,8 +509,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        @Nullable ReturnValueGen returnGen,
                                        InsertSourceGen insertSourceGen,
                                        long version) throws Exception {
-        if (insertSourceGen instanceof RawInsertSource
-                || insertSourceGen instanceof ValidatedRawInsertSource) {
+        if (insertSourceGen instanceof ValidatedRawInsertSource) {
             return legacyInsert(request, item, indexShard, isRetry, returnGen, insertSourceGen);
         }
 
@@ -583,14 +580,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         BytesReference rawSource;
         Map<String, Object> source = null;
         try {
-            // This optimizes for the case where the insert value is already string-based, so we can take directly
-            // the rawSource
-            if (insertSourceGen instanceof RawInsertSource) {
-                rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
-            } else {
-                source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues(), item.pkValues());
-                rawSource = BytesReference.bytes(JsonXContent.builder().map(source, SOURCE_WRITERS));
-            }
+            source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues(), item.pkValues());
+            rawSource = BytesReference.bytes(JsonXContent.builder().map(source, SOURCE_WRITERS));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

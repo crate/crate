@@ -151,7 +151,7 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_7_0);
 
-        assertThat(new SourceIndexWriterProjection(in).validation()).isTrue(); // validation flag value lost and set to default (true)
+        new SourceIndexWriterProjection(in);
 
         BytesStreamOutput out2 = new BytesStreamOutput();
         out2.setVersion(Version.V_4_8_0);
@@ -160,6 +160,6 @@ public class SourceIndexWriterProjectionSerializationTest {
         StreamInput in2 = out2.bytes().streamInput();
         in2.setVersion(Version.V_4_8_0);
 
-        assertThat(new SourceIndexWriterProjection(in2).validation()).isFalse(); // validation flag value recovered
+        new SourceIndexWriterProjection(in2);
     }
 }

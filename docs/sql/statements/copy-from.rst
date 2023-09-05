@@ -562,26 +562,6 @@ An example of using input file with no header
     COPY OK, 3 rows affected (... sec)
 
 
-.. _sql-copy-from-validation:
-
-``validation``
-''''''''''''''
-
-Default: ``true``
-
-Enables or disables parsing and validation of source data.
-
-If set to ``false`` CrateDB will not validate the data in any way. Use this
-with caution if you're sure the data is in the right format - for example if
-you exported the data using :ref:`COPY TO <sql-copy-to>`.
-
-All constraints - including type value constraints are bypassed. If you import
-invalid data this way, subsequent queries can fail.
-
-If the table has generated columns or default expressions, validation
-will always take place and the parameter is ignored.
-
-
 .. _sql-copy-from-skip:
 
 ``skip``

@@ -261,8 +261,8 @@ public class InsertFromValues implements LogicalPlan {
             onConflictColumns,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
-            plannerContext.jobId(),
-            false);
+            plannerContext.jobId()
+        );
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
@@ -368,8 +368,8 @@ public class InsertFromValues implements LogicalPlan {
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
-            plannerContext.jobId(),
-            true);
+            plannerContext.jobId()
+        );
         var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
         HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();

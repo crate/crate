@@ -21,8 +21,8 @@
 
 package io.crate.execution.dml.upsert;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -39,8 +39,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
@@ -66,6 +64,7 @@ import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -207,8 +206,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new SimpleReference[]{ID_REF},
             null,
-            UUID.randomUUID(),
-            false
+            UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
@@ -229,8 +227,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new SimpleReference[]{ID_REF},
             null,
-            UUID.randomUUID(),
-            false
+            UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
@@ -275,8 +272,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new SimpleReference[]{ID_REF},
             null,
-            UUID.randomUUID(),
-            false
+            UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
@@ -297,8 +293,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new SimpleReference[]{ID_REF},
             null,
-            UUID.randomUUID(),
-            false
+            UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
         request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
@@ -331,8 +326,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new SimpleReference[]{dynamicRefConvertedToSimpleRef},
             null,
-            UUID.randomUUID(),
-            false
+            UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1,
                     ShardUpsertRequest.Item.forInsert(
@@ -360,8 +354,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 null,
                 new SimpleReference[]{ID_REF},
                 null,
-                UUID.randomUUID(),
-                false
+                UUID.randomUUID()
         ).newRequest(shardId);
 
         var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
