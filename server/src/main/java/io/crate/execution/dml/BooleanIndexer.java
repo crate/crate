@@ -43,10 +43,12 @@ import io.crate.metadata.Reference;
 public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     private final Reference ref;
+    private final String name;
     private final FieldType fieldType;
 
     public BooleanIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
+        this.name = ref.column().fqn();
         this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
@@ -56,10 +58,8 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xContentBuilder.value(value);
-        String name = luceneFieldNameProvider.apply(ref);
         if (ref.indexType() != IndexType.NONE || fieldType.stored()) {
             addField.accept(new Field(name, value ? "T" : "F", fieldType));
         }

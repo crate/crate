@@ -47,9 +47,11 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
 
     private final Reference ref;
     private final FieldType fieldType;
+    private final String name;
 
     public GeoPointIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
+        this.name = ref.column().fqn();
         this.fieldType = fieldType == null ? GeoShapeFieldMapper.FIELD_TYPE : fieldType;
     }
 
@@ -59,14 +61,12 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
 
         xcontentBuilder.startArray()
             .value(point.getX())
             .value(point.getY())
             .endArray();
-        String name = luceneFieldNameProvider.apply(ref);
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
         }

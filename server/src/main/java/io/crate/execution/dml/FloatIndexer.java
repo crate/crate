@@ -47,9 +47,11 @@ public class FloatIndexer implements ValueIndexer<Float> {
 
     private final Reference ref;
     private final FieldType fieldType;
+    private String name;
 
     public FloatIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
+        this.name = ref.column().fqn();
         this.fieldType = fieldType;
     }
 
@@ -59,10 +61,8 @@ public class FloatIndexer implements ValueIndexer<Float> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xcontentBuilder.value(value);
-        String name = luceneFieldNameProvider.apply(ref);
         float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new FloatField(name, floatValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));

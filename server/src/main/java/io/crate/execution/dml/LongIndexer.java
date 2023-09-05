@@ -45,11 +45,13 @@ import io.crate.metadata.Reference;
 public class LongIndexer implements ValueIndexer<Long> {
 
     private final Reference ref;
+    private final String name;
     private final FieldType fieldType;
 
     public LongIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
+        this.name = ref.column().fqn();
     }
 
     @Override
@@ -58,10 +60,8 @@ public class LongIndexer implements ValueIndexer<Long> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xcontentBuilder.value(value);
-        String name = luceneFieldNameProvider.apply(ref);
         long longValue = value.longValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new LongField(name, longValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));

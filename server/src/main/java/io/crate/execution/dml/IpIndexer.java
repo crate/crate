@@ -48,9 +48,11 @@ public class IpIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
     private final FieldType fieldType;
+    private final String name;
 
     public IpIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
+        this.name = ref.column().fqn();
         this.fieldType = fieldType;
     }
 
@@ -60,10 +62,8 @@ public class IpIndexer implements ValueIndexer<String> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xContentBuilder.value(value);
-        String name = luceneFieldNameProvider.apply(ref);
         InetAddress address = InetAddresses.forString(value);
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new InetAddressPoint(name, address));

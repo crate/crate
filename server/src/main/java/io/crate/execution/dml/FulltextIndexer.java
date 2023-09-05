@@ -53,13 +53,12 @@ public class FulltextIndexer implements ValueIndexer<String> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider,
-                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider) throws IOException {
         xcontentBuilder.value(value);
         if (value == null) {
             return;
         }
-        String name = luceneFieldNameProvider.apply(ref);
+        String name = ref.column().fqn();
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(name, value, fieldType);
             addField.accept(field);
