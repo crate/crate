@@ -49,12 +49,10 @@ public class DoubleIndexer implements ValueIndexer<Number> {
 
     private final Reference ref;
     private final FieldType fieldType;
-    private final String name;
 
     public DoubleIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
-        this.name = ref.column().fqn();
     }
 
     @Override
@@ -63,9 +61,11 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();
+        String name = luceneFieldNameProvider.apply(ref);
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new DoubleField(name, doubleValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
         } else {

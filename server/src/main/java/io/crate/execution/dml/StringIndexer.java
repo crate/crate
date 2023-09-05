@@ -57,9 +57,10 @@ public class StringIndexer implements ValueIndexer<String> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         xcontentBuilder.value(value);
-        String name = ref.column().fqn();
+        String name = luceneFieldNameProvider.apply(ref);
         BytesRef binaryValue = new BytesRef(value);
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(name, binaryValue, fieldType);

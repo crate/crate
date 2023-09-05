@@ -128,6 +128,7 @@ public class Indexer {
     private final BytesStreamOutput stream;
     private final boolean writeOids;
     private final Function<Reference, String> columnKeyProvider;
+    private final Function<Reference, String> luceneFieldNameProvider;
     private final Map<ColumnIdent, Reference> columnsByIdent = new HashMap<>();
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
@@ -381,8 +382,10 @@ public class Indexer {
         this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
         if (writeOids) {
             columnKeyProvider = reference -> Long.toString(reference.oid());
+            luceneFieldNameProvider = reference -> Long.toString(reference.oid());
         } else {
             columnKeyProvider = reference -> reference.column().leafName();
+            luceneFieldNameProvider = reference -> reference.column().fqn();
         }
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
@@ -687,7 +690,8 @@ public class Indexer {
                     addField,
                     synthetics,
                     columnConstraints,
-                    columnKeyProvider
+                    columnKeyProvider,
+                    luceneFieldNameProvider
                 );
             }
             for (var entry : synthetics.entrySet()) {
@@ -708,7 +712,8 @@ public class Indexer {
                     addField,
                     synthetics,
                     columnConstraints,
-                    columnKeyProvider
+                    columnKeyProvider,
+                    luceneFieldNameProvider
                 );
             }
             xContentBuilder.endObject();

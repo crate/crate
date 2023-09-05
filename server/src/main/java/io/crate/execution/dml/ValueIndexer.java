@@ -64,6 +64,7 @@ public interface ValueIndexer<T> {
         Consumer<? super IndexableField> addField,
         Map<ColumnIdent, Indexer.Synthetic> synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate,
-        Function<Reference, String> columnKeyProvider
+        Function<Reference, String> columnKeyProvider,
+        Function<Reference, String> luceneFieldNameProvider
     ) throws IOException;
 }

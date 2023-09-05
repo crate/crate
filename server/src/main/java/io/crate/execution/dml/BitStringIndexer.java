@@ -48,11 +48,9 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
 
     private final Reference ref;
     private final FieldType fieldType;
-    private final String name;
 
     public BitStringIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
         this.fieldType = fieldType == null
             ? BitStringFieldMapper.Defaults.FIELD_TYPE
             : fieldType;
@@ -64,10 +62,12 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         BitSet bitSet = value.bitSet();
         byte[] bytes = bitSet.toByteArray();
         xcontentBuilder.value(bytes);
+        String name = luceneFieldNameProvider.apply(ref);
 
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {

@@ -104,7 +104,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         xContentBuilder.startObject();
         for (var entry : innerTypes.entrySet()) {
             String innerName = entry.getKey();
@@ -138,7 +139,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     addField,
                     synthetics,
                     checks,
-                    columnKeyProvider
+                    columnKeyProvider,
+                    luceneFieldNameProvider
                 );
             }
         }

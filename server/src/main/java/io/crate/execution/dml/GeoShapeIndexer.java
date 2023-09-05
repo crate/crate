@@ -44,14 +44,13 @@ import io.crate.metadata.Reference;
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final GeoReference ref;
-    private final String name;
     private final RecursivePrefixTreeStrategy strategy;
 
     public GeoShapeIndexer(Reference ref, FieldType fieldType) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         this.ref = (GeoReference) ref;
-        this.name = ref.column().fqn();
-        this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), name);
+        //TODO, pass version created the valueIndexer() method
+        this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), "todo");
         Double distanceErrorPct = this.ref.distanceErrorPct();
         if (distanceErrorPct != null) {
             this.strategy.setDistErrPct(distanceErrorPct);
@@ -65,13 +64,16 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         xcontentBuilder.map(value);
+        String name = luceneFieldNameProvider.apply(ref);
         Shape shape = GeoJSONUtils.map2Shape(value);
         Field[] fields = strategy.createIndexableFields(shape);
         for (var field : fields) {
             addField.accept(field);
         }
+
         addField.accept(new Field(
             FieldNamesFieldMapper.NAME,
             name,

@@ -48,7 +48,6 @@ import io.crate.types.FloatVectorType;
 public class FloatVectorIndexer implements ValueIndexer<float[]> {
 
     final FieldType fieldType;
-    private final String name;
     private final Reference ref;
 
     public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
@@ -61,7 +60,6 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             );
         }
         this.ref = ref;
-        this.name = ref.column().fqn();
         this.fieldType = fieldType;
     }
 
@@ -71,7 +69,8 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         if (values == null) {
             return;
         }
@@ -80,7 +79,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             xcontentBuilder.value(value);
         }
         xcontentBuilder.endArray();
-
+        String name = luceneFieldNameProvider.apply(ref);
         createFields(
             name,
             fieldType,

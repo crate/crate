@@ -48,7 +48,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
-                           Function<Reference, String> columnKeyProvider) throws IOException {
+                           Function<Reference, String> columnKeyProvider,
+                           Function<Reference, String> luceneFieldNameProvider) throws IOException {
         xContentBuilder.startArray();
         if (values != null) {
             for (T value : values) {
@@ -61,7 +62,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         addField,
                         synthetics,
                         toValidate,
-                        columnKeyProvider
+                        columnKeyProvider,
+                        luceneFieldNameProvider
                     );
                 }
             }
