@@ -26,10 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.annotations.VisibleForTesting;
@@ -122,8 +121,7 @@ public final class UpdateById implements Plan {
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
-            plannerContext.jobId(),
-            false
+            plannerContext.jobId()
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(

@@ -949,24 +949,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseIgnoresTypeValidation() throws Exception {
-
-        // copying an empty string to a boolean column
-
-        execute("create table t (a boolean)");
-
-        List<String> lines = List.of("{\"a\": \"\"}");
-        File file = folder.newFile(UUID.randomUUID().toString());
-        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-
-        execute("copy t from ? with (shared = true, validation = false) return summary",
-                new Object[]{Paths.get(file.toURI()).toUri().toString()});
-        execute("refresh table t");
-        execute("select a from t");
-        assertThat(response.rows()[0][0]).isEqualTo(false); // empty string inserted as a false, implying validation skipped
-    }
-
-    @Test
     public void testCopyFromWithValidationSetToTrueDoesTypeValidation() throws Exception {
 
         // copying an empty string to a boolean column
@@ -1025,7 +1007,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseAndInsertingToNonPartitionedByColumn() throws Exception {
+    public void test_validation_set_to_false_has_no_effect_and_results_in_validation_errors() throws Exception {
         // copying an empty string to a boolean column
 
         execute("create table t (a boolean, b boolean) partitioned by (b)");
@@ -1036,9 +1018,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy t from ? with (shared = true, validation = false) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
-        execute("refresh table t");
-        execute("select a from t");
-        assertThat(response.rows()[0][0]).isEqualTo(false); // empty string inserted as a false, implying validation skipped
+
+        assertThat(response.rows()[0][4].toString()).contains("Cannot cast value `` to type `boolean`");
     }
 
     @Test
@@ -1055,28 +1036,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table t");
         execute("select count(*) from t");
         assertThat(response.rows()[0][0]).isEqualTo(0L);
-    }
-
-    @Test
-    public void testCopyFromWithValidationSetToFalseIgnoreCheckConstraints() throws Exception {
-        execute("create table t (a boolean check (a = true))");
-
-        List<String> lines = List.of("{\"a\": false}");
-        File file = folder.newFile(UUID.randomUUID().toString());
-        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-
-        //validation=true to show comparison
-        execute("copy t from ? with (shared = true, validation = true) return summary",
-                new Object[]{Paths.get(file.toURI()).toUri().toString()});
-        assertThat(printedTable(response.rows())).contains(
-            "CHECK (\"a\" = true) and values {a=false}={count=1, line_numbers=[1]}");
-
-        //validation=false
-        execute("copy t from ? with (shared = true, validation = false) return summary",
-                new Object[]{Paths.get(file.toURI()).toUri().toString()});
-        assertThat(printedTable(response.rows())).doesNotContain(
-            // NOT contains the validation error
-            "CHECK (\"a\" = true) and values {a=false}={count=1, line_numbers=[1]}");
     }
 
     @Test
