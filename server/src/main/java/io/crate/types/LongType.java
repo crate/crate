@@ -53,8 +53,9 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
                                                Function<ColumnIdent, FieldType> getFieldType,
-                                               Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref, getFieldType.apply(ref.column()));
+                                               Function<ColumnIdent, Reference> getRef,
+                                               Function<Reference, String> luceneFieldNameProvider) {
+            return new LongIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

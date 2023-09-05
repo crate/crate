@@ -97,8 +97,9 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
-                                                 Function<ColumnIdent, Reference> getRef) {
-            return new DoubleIndexer(ref, getFieldType.apply(ref.column()));
+                                                 Function<ColumnIdent, Reference> getRef,
+                                                 Function<Reference, String> luceneFieldNameProvider) {
+            return new DoubleIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

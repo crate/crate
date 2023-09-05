@@ -49,9 +49,9 @@ public class FloatIndexer implements ValueIndexer<Float> {
     private final FieldType fieldType;
     private String name;
 
-    public FloatIndexer(Reference ref, FieldType fieldType) {
+    public FloatIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType;
     }
 

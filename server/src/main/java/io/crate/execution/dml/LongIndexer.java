@@ -48,10 +48,10 @@ public class LongIndexer implements ValueIndexer<Long> {
     private final String name;
     private final FieldType fieldType;
 
-    public LongIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public LongIndexer(Reference ref, @Nullable FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
     }
 
     @Override

@@ -47,10 +47,10 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     private final String name;
     private final RecursivePrefixTreeStrategy strategy;
 
-    public GeoShapeIndexer(Reference ref, FieldType fieldType) {
+    public GeoShapeIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         this.ref = (GeoReference) ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), name);
         Double distanceErrorPct = this.ref.distanceErrorPct();
         if (distanceErrorPct != null) {

@@ -53,8 +53,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
                                                 Function<ColumnIdent, FieldType> getFieldType,
-                                                Function<ColumnIdent, Reference> getRef) {
-            return new GeoPointIndexer(ref, getFieldType.apply(ref.column()));
+                                                Function<ColumnIdent, Reference> getRef,
+                                                Function<Reference, String> luceneFieldNameProvider) {
+            return new GeoPointIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

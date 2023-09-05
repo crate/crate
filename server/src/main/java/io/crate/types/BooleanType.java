@@ -83,8 +83,9 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         public ValueIndexer<Boolean> valueIndexer(RelationName table,
                                                   Reference ref,
                                                   Function<ColumnIdent, FieldType> getFieldType,
-                                                  Function<ColumnIdent, Reference> getRef) {
-            return new BooleanIndexer(ref, getFieldType.apply(ref.column()));
+                                                  Function<ColumnIdent, Reference> getRef,
+                                                  Function<Reference, String> luceneFieldNameProvider) {
+            return new BooleanIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

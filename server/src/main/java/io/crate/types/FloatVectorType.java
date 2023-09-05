@@ -82,8 +82,9 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         public ValueIndexer<? super float[]> valueIndexer(RelationName table,
                                                           Reference ref,
                                                           Function<ColumnIdent, FieldType> getFieldType,
-                                                          Function<ColumnIdent, Reference> getRef) {
-            return new FloatVectorIndexer(ref, getFieldType.apply(ref.column()));
+                                                          Function<ColumnIdent, Reference> getRef,
+                                                          Function<Reference, String> luceneFieldNameProvider) {
+            return new FloatVectorIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

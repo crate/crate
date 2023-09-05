@@ -87,8 +87,9 @@ public class IpType extends DataType<String> implements Streamer<String> {
         public ValueIndexer<String> valueIndexer(RelationName table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
-                                                 Function<ColumnIdent, Reference> getRef) {
-            return new IpIndexer(ref, getFieldType.apply(ref.column()));
+                                                 Function<ColumnIdent, Reference> getRef,
+                                                 Function<Reference, String> luceneFieldNameProvider) {
+            return new IpIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

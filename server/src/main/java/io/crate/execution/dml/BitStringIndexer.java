@@ -50,9 +50,9 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
     private final FieldType fieldType;
     private final String name;
 
-    public BitStringIndexer(Reference ref, FieldType fieldType) {
+    public BitStringIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType == null
             ? BitStringFieldMapper.Defaults.FIELD_TYPE
             : fieldType;

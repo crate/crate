@@ -39,11 +39,11 @@ import io.crate.metadata.Reference;
 
 public class FulltextIndexer implements ValueIndexer<String> {
 
-    private final Reference ref;
     private final FieldType fieldType;
+    private final String name;
 
-    public FulltextIndexer(Reference ref, FieldType fieldType) {
-        this.ref = ref;
+    public FulltextIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType;
     }
 
@@ -58,7 +58,6 @@ public class FulltextIndexer implements ValueIndexer<String> {
         if (value == null) {
             return;
         }
-        String name = ref.column().fqn();
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(name, value, fieldType);
             addField.accept(field);

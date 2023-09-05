@@ -63,14 +63,17 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final Reference ref;
     private final Function<ColumnIdent, FieldType> getFieldType;
     private final HashMap<String, DataType<?>> innerTypes;
+    private final Function<Reference, String> luceneFieldNameProvider;
 
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
                          Function<ColumnIdent, FieldType> getFieldType,
-                         Function<ColumnIdent, Reference> getRef) {
+                         Function<ColumnIdent, Reference> getRef,
+                         Function<Reference, String> luceneFieldNameProvider) {
         this.table = table;
         this.ref = ref;
+        this.luceneFieldNameProvider = luceneFieldNameProvider;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.column = ref.column();
@@ -91,7 +94,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     table,
                     childRef,
                     getFieldType,
-                    getRef
+                    getRef,
+                    luceneFieldNameProvider
                 );
                 innerIndexers.put(entry.getKey(), (ValueIndexer<Object>) valueIndexer);
             }
@@ -239,7 +243,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 table,
                 newColumn,
                 getFieldType,
-                getRef
+                getRef,
+                luceneFieldNameProvider
             );
             innerIndexers.put(innerName, valueIndexer);
             innerTypes.put(innerName, type);

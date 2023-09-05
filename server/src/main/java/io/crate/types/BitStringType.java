@@ -89,8 +89,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         public ValueIndexer<BitString> valueIndexer(RelationName table,
                                                     Reference ref,
                                                     Function<ColumnIdent, FieldType> getFieldType,
-                                                    Function<ColumnIdent, Reference> getRef) {
-            return new BitStringIndexer(ref, getFieldType.apply(ref.column()));
+                                                    Function<ColumnIdent, Reference> getRef,
+                                                    Function<Reference, String> luceneFieldNameProvider) {
+            return new BitStringIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

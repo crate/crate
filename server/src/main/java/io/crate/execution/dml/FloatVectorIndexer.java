@@ -51,7 +51,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     private final String name;
     private final Reference ref;
 
-    public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         if (fieldType == null) {
             fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
             fieldType.setVectorAttributes(
@@ -61,7 +61,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             );
         }
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType;
     }
 

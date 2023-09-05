@@ -101,7 +101,8 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 table.ident(),
                 reference,
                 column -> mapperService.getLuceneFieldType(column.fqn()),
-                table::getReference
+                table::getReference,
+                ref -> Long.toString(ref.oid())
             );
 
             IndexWriter writer = indexEnv.writer();

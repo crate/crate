@@ -49,9 +49,9 @@ public class IntIndexer implements ValueIndexer<Number> {
     private final Reference ref;
     private final FieldType fieldType;
 
-    public IntIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public IntIndexer(Reference ref, @Nullable FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
     }
 

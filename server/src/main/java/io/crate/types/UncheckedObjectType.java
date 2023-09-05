@@ -53,7 +53,8 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
         public ValueIndexer<Map<Object, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
                                                               Function<ColumnIdent, FieldType> getFieldType,
-                                                              Function<ColumnIdent, Reference> getRef) {
+                                                              Function<ColumnIdent, Reference> getRef,
+                                                              Function<Reference, String> luceneFieldNameProvider) {
             throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
         }
     };

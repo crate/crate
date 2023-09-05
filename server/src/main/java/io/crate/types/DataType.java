@@ -250,9 +250,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
                                                       Function<ColumnIdent, FieldType> getFieldType,
-                                                      Function<ColumnIdent, Reference> getRef) {
+                                                      Function<ColumnIdent, Reference> getRef,
+                                                      Function<Reference, String> luceneFieldNameProvider) {
         StorageSupport<? super T> storageSupport = storageSupportSafe();
-        return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
+        return storageSupport.valueIndexer(table, ref, getFieldType, getRef, luceneFieldNameProvider);
     }
 
 

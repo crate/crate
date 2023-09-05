@@ -51,10 +51,10 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     private final FieldType fieldType;
     private final String name;
 
-    public DoubleIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public DoubleIndexer(Reference ref, @Nullable FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
     }
 
     @Override

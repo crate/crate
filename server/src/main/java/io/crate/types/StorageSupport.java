@@ -65,7 +65,8 @@ public abstract class StorageSupport<T> {
         RelationName table,
         Reference ref,
         Function<ColumnIdent, FieldType> getFieldType,
-        Function<ColumnIdent, Reference> getRef);
+        Function<ColumnIdent, Reference> getRef,
+        Function<Reference, String> luceneFieldNameProvider);
 
 
     public boolean docValuesDefault() {

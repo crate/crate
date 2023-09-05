@@ -59,17 +59,21 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     private final ReferenceIdent refIdent;
     private final Function<ColumnIdent, FieldType> getFieldType;
     private final Function<ColumnIdent, Reference> getRef;
+    private final Function<Reference, String> luceneFieldNameProvider;
     private final int position;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
 
+
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
                           Function<ColumnIdent, FieldType> getFieldType,
-                          Function<ColumnIdent, Reference> getRef) {
+                          Function<ColumnIdent, Reference> getRef,
+                          Function<Reference, String> luceneFieldNameProvider) {
         this.refIdent = refIdent;
         this.getFieldType = getFieldType;
         this.getRef = getRef;
+        this.luceneFieldNameProvider = luceneFieldNameProvider;
         this.position = position;
     }
 
@@ -109,7 +113,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 refIdent.tableIdent(),
                 newColumn,
                 getFieldType,
-                getRef
+                getRef,
+                luceneFieldNameProvider
             );
             onDynamicColumn.accept(newColumn);
         }
@@ -167,7 +172,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 refIdent.tableIdent(),
                 newColumn,
                 getFieldType,
-                getRef
+                getRef,
+                luceneFieldNameProvider
             );
         }
         value = type.sanitizeValue(value);

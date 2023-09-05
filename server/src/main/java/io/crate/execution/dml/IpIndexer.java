@@ -50,9 +50,9 @@ public class IpIndexer implements ValueIndexer<String> {
     private final FieldType fieldType;
     private final String name;
 
-    public IpIndexer(Reference ref, FieldType fieldType) {
+    public IpIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType;
     }
 

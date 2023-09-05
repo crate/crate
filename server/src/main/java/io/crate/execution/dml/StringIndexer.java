@@ -45,9 +45,11 @@ public class StringIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
     private final FieldType fieldType;
+    private final String name;
 
-    public StringIndexer(Reference ref, @Nullable FieldType fieldType) {
+    public StringIndexer(Reference ref, @Nullable FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType == null ? KeywordFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
@@ -59,7 +61,6 @@ public class StringIndexer implements ValueIndexer<String> {
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate,
                            Function<Reference, String> columnKeyProvider) throws IOException {
         xcontentBuilder.value(value);
-        String name = ref.column().fqn();
         BytesRef binaryValue = new BytesRef(value);
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(name, binaryValue, fieldType);

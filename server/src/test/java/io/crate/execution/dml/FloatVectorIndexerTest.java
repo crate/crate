@@ -45,7 +45,7 @@ public class FloatVectorIndexerTest {
             1,
             null
         );
-        FloatVectorIndexer floatVectorIndexer = new FloatVectorIndexer(ref, null);
+        FloatVectorIndexer floatVectorIndexer = new FloatVectorIndexer(ref, null, reference -> Long.toString(reference.oid()));
         assertThat(floatVectorIndexer.fieldType).isNotNull();
         assertThat(floatVectorIndexer.fieldType.vectorDimension()).isEqualTo(4);
     }

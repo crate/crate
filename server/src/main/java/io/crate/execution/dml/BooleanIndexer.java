@@ -46,9 +46,9 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
     private final String name;
     private final FieldType fieldType;
 
-    public BooleanIndexer(Reference ref, FieldType fieldType) {
+    public BooleanIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 

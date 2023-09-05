@@ -97,9 +97,10 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
                                                     Function<ColumnIdent, FieldType> getFieldType,
-                                                    Function<ColumnIdent, Reference> getRef) {
+                                                    Function<ColumnIdent, Reference> getRef,
+                                                    Function<Reference, String> luceneFieldNameProvider) {
                     return new ArrayIndexer<>(
-                        innerStorage.valueIndexer(table, ref, getFieldType, getRef));
+                        innerStorage.valueIndexer(table, ref, getFieldType, getRef, luceneFieldNameProvider));
                 }
             };
         }

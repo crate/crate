@@ -49,9 +49,9 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
     private final FieldType fieldType;
     private final String name;
 
-    public GeoPointIndexer(Reference ref, FieldType fieldType) {
+    public GeoPointIndexer(Reference ref, FieldType fieldType, Function<Reference, String> luceneFieldNameProvider) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = luceneFieldNameProvider.apply(ref);
         this.fieldType = fieldType == null ? GeoShapeFieldMapper.FIELD_TYPE : fieldType;
     }
 

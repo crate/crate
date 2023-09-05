@@ -97,8 +97,9 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         public ValueIndexer<Float> valueIndexer(RelationName table,
                                                 Reference ref,
                                                 Function<ColumnIdent, FieldType> getFieldType,
-                                                Function<ColumnIdent, Reference> getRef) {
-            return new FloatIndexer(ref, getFieldType.apply(ref.column()));
+                                                Function<ColumnIdent, Reference> getRef,
+                                                Function<Reference, String> luceneFieldNameProvider) {
+            return new FloatIndexer(ref, getFieldType.apply(ref.column()), luceneFieldNameProvider);
         }
     };
 

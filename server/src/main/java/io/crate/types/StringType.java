@@ -105,14 +105,15 @@ public class StringType extends DataType<String> implements Streamer<String> {
         public ValueIndexer<Object> valueIndexer(RelationName table,
                                                  Reference ref,
                                                  Function<ColumnIdent, FieldType> getFieldType,
-                                                 Function<ColumnIdent, Reference> getRef) {
+                                                 Function<ColumnIdent, Reference> getRef,
+                                                 Function<Reference, String> luceneFieldNameProvider) {
             FieldType fieldType = getFieldType.apply(ref.column());
             if (fieldType == null) {
-                return (ValueIndexer) new StringIndexer(ref, fieldType);
+                return (ValueIndexer) new StringIndexer(ref, fieldType, luceneFieldNameProvider);
             }
             return switch (ref.indexType()) {
-                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref, fieldType);
-                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref, fieldType);
+                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref, fieldType, luceneFieldNameProvider);
+                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref, fieldType, luceneFieldNameProvider);
             };
         }
     };
