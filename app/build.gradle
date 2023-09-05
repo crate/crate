@@ -143,12 +143,10 @@ ext {
 
 def rootDir = project.parent.projectDir
 
-// For releases choose the file under the release_notes structure
-// and for all other builds choose CHANGES.txt which contains the unreleased changes
 task chooseReleaseNotes(dependsOn: [':server:getVersion']) {
     doLast {
         def version = project(':server').getVersion.version
-        def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
+        def releaseNotesDir = "$rootDir/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
         def file = new File(releaseNotesDir + '/' + releaseNotesFile)
         if (!file.exists()) { // End of life for a branch
