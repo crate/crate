@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.lucene.search.Scorable;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -68,13 +69,16 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     private final FieldTypeLookup fieldTypeLookup;
     private final List<Reference> partitionColumns;
     private final String indexName;
+    private final Function<Reference, String> luceneFieldNameProvider;
 
     public LuceneReferenceResolver(final String indexName,
                                    final FieldTypeLookup fieldTypeLookup,
-                                   final List<Reference> partitionColumns) {
+                                   final List<Reference> partitionColumns,
+                                   Function<Reference, String> luceneFieldNameProvider) {
         this.indexName = indexName;
         this.fieldTypeLookup = fieldTypeLookup;
         this.partitionColumns = partitionColumns;
+        this.luceneFieldNameProvider = luceneFieldNameProvider;
     }
 
     @Override
@@ -127,7 +131,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                     );
                 }
                 return maybeInjectPartitionValue(
-                    typeSpecializedExpression(fieldTypeLookup, ref),
+                    typeSpecializedExpression(fieldTypeLookup, ref, luceneFieldNameProvider.apply(ref)),
                     indexName,
                     partitionColumns,
                     column
@@ -155,9 +159,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return result;
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final Reference ref) {
-        final String fqn = ref.column().fqn();
-        final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup,
+                                                                          final Reference ref,
+                                                                          String fieldName) {
+        final MappedFieldType fieldType = fieldTypeLookup.get(fieldName);
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
@@ -168,34 +173,34 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
         switch (ref.valueType().id()) {
             case BitStringType.ID:
-                return new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
+                return new BitStringColumnReference(fieldName, ((BitStringType) ref.valueType()).length());
             case ByteType.ID:
-                return new ByteColumnReference(fqn);
+                return new ByteColumnReference(fieldName);
             case ShortType.ID:
-                return new ShortColumnReference(fqn);
+                return new ShortColumnReference(fieldName);
             case IpType.ID:
-                return new IpColumnReference(fqn);
+                return new IpColumnReference(fieldName);
             case StringType.ID:
             case CharacterType.ID:
-                return new BytesRefColumnReference(fqn);
+                return new BytesRefColumnReference(fieldName);
             case DoubleType.ID:
-                return new DoubleColumnReference(fqn);
+                return new DoubleColumnReference(fieldName);
             case BooleanType.ID:
-                return new BooleanColumnReference(fqn);
+                return new BooleanColumnReference(fieldName);
             case FloatType.ID:
-                return new FloatColumnReference(fqn);
+                return new FloatColumnReference(fieldName);
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return new LongColumnReference(fqn);
+                return new LongColumnReference(fieldName);
             case IntegerType.ID:
-                return new IntegerColumnReference(fqn);
+                return new IntegerColumnReference(fieldName);
             case GeoPointType.ID:
-                return new GeoPointColumnReference(fqn);
+                return new GeoPointColumnReference(fieldName);
             case ArrayType.ID:
                 return DocCollectorExpression.create(toSourceLookup(ref));
             case FloatVectorType.ID:
-                return new FloatVectorColumnReference(fqn);
+                return new FloatVectorColumnReference(fieldName);
             default:
                 throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }

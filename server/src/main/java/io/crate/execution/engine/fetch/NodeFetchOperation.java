@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexService;
 import org.jetbrains.annotations.Nullable;
@@ -79,10 +80,12 @@ public class NodeFetchOperation {
         FetchCollector createCollector(int readerId, RamAccounting ramAccounting) {
             IndexService indexService = fetchTask.indexService(readerId);
             var mapperService = indexService.mapperService();
+            DocTableInfo table = fetchTask.table(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
                 indexService.index().getName(),
                 mapperService::fieldType,
-                fetchTask.table(readerId).partitionedByColumns()
+                table.partitionedByColumns(),
+                table.luceneFieldNameProvider()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {

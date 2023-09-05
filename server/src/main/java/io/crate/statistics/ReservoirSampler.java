@@ -227,7 +227,8 @@ public final class ReservoirSampler {
                 new LuceneReferenceResolver(
                     indexService.index().getName(),
                     fieldTypeLookup,
-                    docTable.partitionedByColumns()
+                    docTable.partitionedByColumns(),
+                    docTable.luceneFieldNameProvider()
                 )
             ).getCtx(coordinatorTxnCtx);
             ctx.add(columns);

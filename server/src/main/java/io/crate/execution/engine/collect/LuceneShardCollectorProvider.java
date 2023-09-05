@@ -118,7 +118,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.referenceResolver = new LuceneReferenceResolver(
             indexShard.shardId().getIndexName(),
             fieldTypeLookup,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.luceneFieldNameProvider()
         );
         this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
         this.bigArrays = bigArrays;

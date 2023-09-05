@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -237,6 +238,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .max()
                 .orElse(0)
         );
+    }
+
+    public Function<Reference, String> luceneFieldNameProvider() {
+        if (versionCreated.onOrAfter(Version.V_5_5_0)) {
+            return reference -> Long.toString(reference.oid());
+        } else {
+            return reference -> reference.column().fqn();
+        }
     }
 
     public List<Reference> defaultExpressionColumns() {

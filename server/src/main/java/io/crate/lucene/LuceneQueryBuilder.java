@@ -99,7 +99,8 @@ public class LuceneQueryBuilder {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             mapperService::fieldType,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.luceneFieldNameProvider()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
@@ -156,7 +157,8 @@ public class LuceneQueryBuilder {
                 new LuceneReferenceResolver(
                     indexName,
                     typeLookup,
-                    partitionColumns
+                    partitionColumns,
+                    table.luceneFieldNameProvider()
                 )
             );
             this.mapperService = mapperService;

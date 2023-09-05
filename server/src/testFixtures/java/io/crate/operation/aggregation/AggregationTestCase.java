@@ -214,7 +214,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
             mapperService::fieldType,
-            List.of()
+            List.of(),
+            ref -> Long.toString(ref.oid())
         );
         when(indexService.getShard(shard.shardId().id()))
             .thenReturn(shard);

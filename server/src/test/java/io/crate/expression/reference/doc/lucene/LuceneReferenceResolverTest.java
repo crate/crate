@@ -51,7 +51,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
         i -> new KeywordFieldType("dummy", true, false),
-        List.of()
+        List.of(),
+        ref -> Long.toString(ref.oid())
     );
 
     @Test
@@ -108,7 +109,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
             i -> new KeywordFieldType("dummy", true, false),
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.luceneFieldNameProvider()
         );
         Reference year = table.getReference(new ColumnIdent("year"));
         LuceneCollectorExpression<?> impl1 = refResolver.getImplementation(year);
