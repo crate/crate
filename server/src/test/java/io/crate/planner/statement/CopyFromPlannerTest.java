@@ -41,6 +41,7 @@ import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
@@ -140,7 +141,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(toCollectSymbols).hasSize(1);
         assertThat(toCollectSymbols.get(0)).isInstanceOf(Reference.class);
         Reference refToCollect = (Reference) toCollectSymbols.get(0);
-        assertThat(refToCollect.column().fqn()).isEqualTo("_raw");
+        assertThat(refToCollect.column()).isEqualTo(DocSysColumns.DOC);
     }
 
     @Test

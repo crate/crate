@@ -62,6 +62,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -69,10 +71,10 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
-    private static final SimpleReference RAW_SOURCE_REFERENCE = new SimpleReference(
-        new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"),
+    private static final SimpleReference DOC_SOURCE_REF = new SimpleReference(
+        new ReferenceIdent(BULK_IMPORT_IDENT, DocSysColumns.DOC.name()),
         RowGranularity.DOC,
-        DataTypes.STRING,
+        DataTypes.UNTYPED_OBJECT,
         0,
         null);
 
@@ -107,12 +109,13 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             executor,
             CoordinatorTxnCtx.systemTransactionContext(),
             createNodeContext(),
+            mock(DocTableInfo.class),
             Settings.EMPTY,
             5,
             1,
             mock(ElasticsearchClient.class),
             IndexNameResolver.forTable(BULK_IMPORT_IDENT),
-            RAW_SOURCE_REFERENCE,
+            DOC_SOURCE_REF,
             Collections.singletonList(ID_IDENT),
             Collections.<Symbol>singletonList(new InputColumn(1)),
             null,

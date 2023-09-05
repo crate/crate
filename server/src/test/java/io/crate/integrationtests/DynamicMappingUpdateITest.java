@@ -390,15 +390,15 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             tb| 1
             p| 2
             tb['t1']| 3
-            tb['t2']| 4
-            tb['t1']['t3']| 5
-            tb['t1']['t6']| 6
-            tb['t1']['t3']['t4']| 7
-            tb['t1']['t3']['t4']['t5']| 8
+            tb['t1']['t3']| 4
+            tb['t1']['t3']['t4']| 5
+            tb['t1']['t3']['t4']['t5']| 6
+            tb['t1']['t6']| 7
+            tb['t2']| 8
             o| 9
             o['a']| 10
-            o['b']| 11
-            o['a']['b']| 12
+            o['a']['b']| 11
+            o['b']| 12
             """);
     }
 }

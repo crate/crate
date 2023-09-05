@@ -929,7 +929,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy t from ? return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains(
-            "mapping set to strict, dynamic introduction of [b] within [o] is not allowed");
+            "Cannot add column `b` to strict object `o`");
     }
 
     @Test

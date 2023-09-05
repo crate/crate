@@ -136,6 +136,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.SubQueryResults;
@@ -442,6 +443,8 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
+
+        DocTableInfo table = schemas.getTableInfo(projection.tableIdent());
         Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
@@ -471,6 +474,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             context.txnCtx,
             nodeCtx,
+            table,
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,

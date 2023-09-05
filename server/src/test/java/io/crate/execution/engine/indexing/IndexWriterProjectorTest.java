@@ -22,13 +22,12 @@
 package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -63,8 +62,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorTest extends IntegTestCase {
@@ -84,6 +85,8 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         ClusterState state = clusterService().state();
         Settings tableSettings = TableSettingsResolver.get(state.metadata(), bulkImportIdent, false);
         ThreadPool threadPool = cluster().getInstance(ThreadPool.class);
+        Schemas schemas = cluster().getInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(bulkImportIdent);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
@@ -93,14 +96,15 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
             new NodeContext(cluster().getInstance(Functions.class), null),
+            table,
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize()),
             cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
-            new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
+            new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.DOC),
                           RowGranularity.DOC,
-                          DataTypes.STRING,
+                          DataTypes.UNTYPED_OBJECT,
                           0,
                           null),
             Collections.singletonList(ID_IDENT),
@@ -119,18 +123,20 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         );
 
         BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
-            .mapToObj(i -> new RowN(new Object[]{i, "{\"id\": " + i + ", \"name\": \"Arthur\"}"}))
+            .mapToObj(i -> new RowN(new Object[]{i, Map.of("id", i, "name", "Arthur") }))
             .collect(Collectors.toList()), SENTINEL, true);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(writerProjector.apply(rowsIterator), null);
         Bucket objects = consumer.getBucket();
 
-        assertThat(objects, contains(isRow(100L)));
+        assertThat(objects).satisfiesExactly(
+            row1 -> assertThat(row1.get(0)).isEqualTo(100L)
+        );
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(100L));
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("100");
     }
 }

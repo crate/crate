@@ -50,8 +50,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final boolean failFast;
     private final Boolean overwriteDuplicates;
-    private final Reference rawSourceReference;
-    private final InputColumn rawSourceSymbol;
+    private final Reference docReference;
+    private final InputColumn docRefInputPtr;
     private final List<? extends Symbol> outputs;
 
 
@@ -60,8 +60,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
-                                       Reference rawSourceReference,
-                                       InputColumn rawSourcePtr,
+                                       Reference docReference,
+                                       InputColumn docRefPtr,
                                        List<ColumnIdent> primaryKeys,
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -72,11 +72,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<? extends Symbol> outputs,
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
-        this.rawSourceReference = rawSourceReference;
+        this.docReference = docReference;
         this.excludes = excludes;
         this.partitionedBySymbols = partitionedBySymbols;
         this.clusteredBySymbol = clusteredBySymbol;
-        this.rawSourceSymbol = rawSourcePtr;
+        this.docRefInputPtr = docRefPtr;
         this.outputs = outputs;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         this.failFast = settings.getAsBoolean(FAIL_FAST, false);
@@ -91,8 +91,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             failFast = false;
         }
         overwriteDuplicates = in.readBoolean();
-        rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
+        docReference = Reference.fromStream(in);
+        docRefInputPtr = (InputColumn) Symbols.fromStream(in);
 
         if (version.before(Version.V_5_3_0)) {
             if (in.readBoolean()) {
@@ -127,8 +127,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(failFast);
         }
         out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(out, rawSourceReference);
-        Symbols.toStream(rawSourceSymbol, out);
+        Reference.toStream(out, docReference);
+        Symbols.toStream(docRefInputPtr, out);
 
         if (version.before(Version.V_5_3_0)) {
             // no includes
@@ -155,11 +155,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     public InputColumn rawSource() {
-        return rawSourceSymbol;
+        return docRefInputPtr;
     }
 
     public Reference rawSourceReference() {
-        return rawSourceReference;
+        return docReference;
     }
 
     @Nullable
@@ -184,8 +184,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         if (!super.equals(o)) return false;
         SourceIndexWriterProjection that = (SourceIndexWriterProjection) o;
         return Objects.equals(overwriteDuplicates, that.overwriteDuplicates) &&
-               Objects.equals(rawSourceReference, that.rawSourceReference) &&
-               Objects.equals(rawSourceSymbol, that.rawSourceSymbol) &&
+               Objects.equals(docReference, that.docReference) &&
+               Objects.equals(docRefInputPtr, that.docRefInputPtr) &&
                Arrays.equals(excludes, that.excludes) &&
                failFast == that.failFast;
     }
@@ -194,8 +194,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public int hashCode() {
         int result = Objects.hash(super.hashCode(),
                                   overwriteDuplicates,
-                                  rawSourceReference,
-                                  rawSourceSymbol,
+                                  docReference,
+                                  docRefInputPtr,
                                   failFast);
         result = 31 * result + Arrays.hashCode(excludes);
         return result;

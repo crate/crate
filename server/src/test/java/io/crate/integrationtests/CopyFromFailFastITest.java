@@ -33,16 +33,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.MockLogAppender;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,11 +43,12 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
+import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.exceptions.JobKilledException;
-import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.user.User;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CopyFromFailFastITest extends IntegTestCase {
@@ -95,7 +89,6 @@ public class CopyFromFailFastITest extends IntegTestCase {
     }
 
     @UseRandomizedOptimizerRules(0)
-    @TestLogging("io.crate.execution.dml.upsert:DEBUG")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_non_handler_node() throws Exception {
         cluster().startNode();
@@ -111,26 +104,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
-        var nodeNameOfShard1 = (String) response.rows()[1][0];
-
-        var clientProvider = new SQLTransportExecutor.ClientProvider() {
-
-            @Override
-            public Client client() {
-                return cluster().client(nodeNameOfShard0);
-            }
-
-            @Override
-            public String pgUrl() {
-                return null;
-            }
-
-            @Override
-            public Sessions sqlOperations() {
-                return cluster().getInstance(Sessions.class, nodeNameOfShard0);
-            }
-        };
-        var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);
+        Sessions sessions = cluster().getInstance(Sessions.class, nodeNameOfShard0);
 
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         Path target = Files.createDirectories(tmpDir.resolve("target"));
@@ -152,27 +126,20 @@ public class CopyFromFailFastITest extends IntegTestCase {
         }
 
         tmpFileWithLines(rows, "data1.json", target);
-        assertExpectedLogMessages(
-            () -> { // fail_fast = true
-                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
-                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                            new Object[]{target.toUri() + "*"}))
-                    .isExactlyInstanceOf(JobKilledException.class)
-                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
-            },
-            new MockLogAppender.PatternSeenEventExcpectation(
-                "assert failure on node=" + nodeNameOfShard1,
-                "io.crate.execution.dml.upsert.TransportShardUpsertAction",
-                Level.DEBUG,
-                "Failed to execute upsert on nodeName=" + nodeNameOfShard1 + ".*")
-        );
+        try (Session session = sessions.newSession("doc", User.CRATE_USER)) {
+            Assertions.assertThatThrownBy(() -> execute(
+                        "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+                        new Object[]{target.toUri() + "*"},
+                        session))
+                .isExactlyInstanceOf(JobKilledException.class)
+                .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
+        }
 
         execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
         assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(numDocs - failedNumDocs);
     }
 
-    @TestLogging("io.crate.execution.dml.upsert:DEBUG")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_handler_node() throws Exception {
         cluster().startNode();
@@ -188,25 +155,6 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
-
-        var clientProvider = new SQLTransportExecutor.ClientProvider() {
-
-            @Override
-            public Client client() {
-                return cluster().client(nodeNameOfShard0);
-            }
-
-            @Override
-            public String pgUrl() {
-                return null;
-            }
-
-            @Override
-            public Sessions sqlOperations() {
-                return cluster().getInstance(Sessions.class, nodeNameOfShard0);
-            }
-        };
-        var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);
 
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         Path target = Files.createDirectories(tmpDir.resolve("target"));
@@ -228,20 +176,15 @@ public class CopyFromFailFastITest extends IntegTestCase {
         }
 
         tmpFileWithLines(rows, "data1.json", target);
-        assertExpectedLogMessages(
-            () -> { // fail_fast = true
-                Assertions.assertThatThrownBy(() -> handlerNodeExecutor.exec(
-                            "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
-                            new Object[]{target.toUri() + "*"}))
-                    .isExactlyInstanceOf(JobKilledException.class)
-                    .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
-            },
-            new MockLogAppender.PatternSeenEventExcpectation(
-                "assert failure on node=" + nodeNameOfShard0,
-                "io.crate.execution.dml.upsert.TransportShardUpsertAction",
-                Level.DEBUG,
-                "Failed to execute upsert on nodeName=" + nodeNameOfShard0 + ".*")
-        );
+        Sessions sessions = cluster().getInstance(Sessions.class, nodeNameOfShard0);
+        try (Session session = sessions.newSession("doc", User.CRATE_USER)) {
+            Assertions.assertThatThrownBy(() -> execute(
+                        "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)",
+                        new Object[]{target.toUri() + "*"},
+                        session))
+                .isExactlyInstanceOf(JobKilledException.class)
+                .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
+        }
 
         execute("REFRESH TABLE doc.t");
         execute("SELECT COUNT(*) FROM doc.t");
@@ -266,20 +209,4 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("select * from t");
         assertThat(response.rowCount()).isEqualTo(cluster().numDataNodes());
     }
-
-    private void assertExpectedLogMessages(Runnable command,
-                                           MockLogAppender.LoggingExpectation ... expectations) throws IllegalAccessException {
-        Logger testLogger = LogManager.getLogger("io.crate.execution.dml.upsert");
-        MockLogAppender appender = new MockLogAppender();
-        Loggers.addAppender(testLogger, appender);
-        try {
-            appender.start();
-            Arrays.stream(expectations).forEach(appender::addExpectation);
-            command.run();
-            appender.assertAllExpectationsMatched();
-        } finally {
-            Loggers.removeAppender(testLogger, appender);
-        }
-    }
-
 }

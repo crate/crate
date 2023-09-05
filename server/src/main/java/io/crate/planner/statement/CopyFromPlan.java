@@ -242,9 +242,9 @@ public final class CopyFromPlan implements Plan {
             table.partitionedByColumns(),
             clusteredBy == null ? null : table.getReference(clusteredBy)
         );
-        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
-        final int rawOrDocIdx = toCollect.size();
-        toCollect.add(rawOrDoc);
+        Reference doc = table.getReference(DocSysColumns.DOC);
+        final int docIdx = toCollect.size();
+        toCollect.add(doc);
 
         String[] excludes = partitionedByNames.size() > 0
             ? partitionedByNames.toArray(new String[0]) : null;
@@ -280,8 +280,8 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                doc,
+                new InputColumn(docIdx, doc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
                 clusteredBy,
@@ -300,8 +300,8 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
-                new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
+                doc,
+                new InputColumn(docIdx, doc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
                 clusteredBy,
@@ -397,26 +397,6 @@ public final class CopyFromPlan implements Plan {
         } else {
             toCollectUnique.add(ref);
         }
-    }
-
-    /**
-     * Return RAW or DOC Reference:
-     *
-     * Copy from has two "modes" on how the json-object-lines are processed:
-     *
-     * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
-     *    -> collect raw source and import as is
-     *
-     * 2: partitioned table without partition ident
-     *    -> collect document and partition by values
-     *    -> exclude partitioned by columns from document
-     *    -> insert into es index (partition determined by partition by value)
-     */
-    private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
-        if (table.isPartitioned() && selectedPartitionIdent == null) {
-            return table.getReference(DocSysColumns.DOC);
-        }
-        return table.getReference(DocSysColumns.RAW);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
