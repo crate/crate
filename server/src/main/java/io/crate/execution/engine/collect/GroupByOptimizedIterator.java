@@ -165,7 +165,7 @@ final class GroupByOptimizedIterator {
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns());
+        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(

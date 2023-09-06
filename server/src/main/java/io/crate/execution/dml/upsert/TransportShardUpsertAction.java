@@ -29,11 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import io.crate.execution.ddl.tables.AddColumnResponse;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -70,6 +68,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.AddColumnRequest;
+import io.crate.execution.ddl.tables.AddColumnResponse;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -462,7 +461,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     if (item.updateAssignments() != null && item.updateAssignments().length > 0) {
                         // Use the source parser without registering any concrete column to get the complete
                         // source which is required to write a new document with the updated values
-                        sourceParser = new SourceParser(tableInfo.droppedColumns());
+                        sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
                     } else {
                         // No source is required for simple inserts and duplicate detection
                         sourceParser = null;

@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -126,7 +127,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of()),
+            new CollectorContext(Set.of(), Function.identity()),
             AggregateMode.ITER_FINAL
         );
     }
