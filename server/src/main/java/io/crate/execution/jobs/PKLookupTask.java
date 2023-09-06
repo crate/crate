@@ -112,7 +112,7 @@ public final class PKLookupTask extends AbstractTask {
         if (shardIt.hasNext()) {
             var relationName = RelationName.fromIndexName(shardIt.next().getIndexName());
             DocTableInfo table = schemas.getTableInfo(relationName);
-            sourceParser = new SourceParser(table.droppedColumns());
+            sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
             sourceParser.register(toCollect);
         } else {
             sourceParser = null;
