@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import org.jetbrains.annotations.Nullable;
@@ -392,7 +393,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(Set.of()),
+            new CollectorContext(Set.of(), Function.identity()),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,

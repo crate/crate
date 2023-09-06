@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.bytes.BytesReference;
@@ -69,10 +70,12 @@ public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
     private final Set<String> droppedColumns;
+    private final Function<String, String> lookupNameBySourceKey;
 
-    public SourceParser(Set<ColumnIdent> droppedColumns) {
+    public SourceParser(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
         // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
         this.droppedColumns = droppedColumns.stream().map(ColumnIdent::fqn).collect(Collectors.toUnmodifiableSet());
+        this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -116,7 +119,7 @@ public final class SourceParser {
             if (token == null) {
                 parser.nextToken();
             }
-            return parseObject(parser, null, requiredColumns, droppedColumns, new StringBuilder(), includeUnknownCols);
+            return parseObject(parser, null, requiredColumns, droppedColumns, lookupNameBySourceKey, new StringBuilder(), includeUnknownCols);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -131,6 +134,7 @@ public final class SourceParser {
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
                                      Set<String> droppedColumns,
+                                     Function<String, String> lookupNameBySourceKey,
                                      StringBuilder colPath) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
@@ -149,7 +153,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns, droppedColumns, colPath));
+                values.add(parseValue(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath));
             }
             return values;
         }
@@ -160,6 +164,7 @@ public final class SourceParser {
                                                    @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns,
                                                    Set<String> droppedColumns,
+                                                   Function<String, String> lookupNameBySourceKey,
                                                    StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
         if (requiredColumns == null || requiredColumns.isEmpty()) {
@@ -168,7 +173,7 @@ public final class SourceParser {
             HashMap<String, Object> values = new HashMap<>();
             XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-                String fieldName = parser.currentName();
+                String fieldName = lookupNameBySourceKey.apply(parser.currentName());
                 boolean dropped = false;
                 if (droppedColumns.isEmpty() == false) {
                     String path = fieldName;
@@ -200,18 +205,18 @@ public final class SourceParser {
                 } else if (required instanceof ObjectType objectType) {
                     var prevLength = appendToColPath(colPath, fieldName);
                     values.put(fieldName, parseObject(
-                        parser, objectType, (Map) objectType.innerTypes(), droppedColumns, colPath, true));
+                        parser, objectType, (Map) objectType.innerTypes(), droppedColumns, lookupNameBySourceKey, colPath, true));
                     colPath.delete(prevLength, colPath.length());
                 } else if (required instanceof DataType<?> dataType) {
                     if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
                         var prevLength = appendToColPath(colPath, fieldName);
-                        values.put(fieldName, parseValue(parser, arrayType.innerType(), (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns, colPath));
+                        values.put(fieldName, parseValue(parser, arrayType.innerType(), (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns, lookupNameBySourceKey, colPath));
                         colPath.delete(prevLength, colPath.length());
                     } else {
-                        values.put(fieldName, parseValue(parser, dataType, null, droppedColumns, colPath));
+                        values.put(fieldName, parseValue(parser, dataType, null, droppedColumns, lookupNameBySourceKey, colPath));
                     }
                 } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns, colPath));
+                    values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns, lookupNameBySourceKey, colPath));
                 }
             }
             return values;
@@ -237,11 +242,12 @@ public final class SourceParser {
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
                                      Set<String> droppedColumns,
+                                     Function<String, String> lookupNameBySourceKey,
                                      StringBuilder colPath) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, colPath);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, colPath, false);
+            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath, false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);

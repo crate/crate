@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -239,7 +240,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
-        CollectorContext collectorContext = new CollectorContext(Set.of());
+        CollectorContext collectorContext = new CollectorContext(Set.of(), Function.identity());
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(
