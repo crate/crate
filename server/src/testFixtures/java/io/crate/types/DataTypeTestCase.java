@@ -163,7 +163,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             );
 
             Scorer scorer = weight.scorer(leafReader);
-            CollectorContext collectorContext = new CollectorContext(1, Set.of());
+            CollectorContext collectorContext = new CollectorContext(1, Set.of(), table.lookupNameBySourceKey());
             ReaderContext readerContext = new ReaderContext(leafReader);
             DocIdSetIterator iterator = scorer.iterator();
             int nextDoc = iterator.nextDoc();

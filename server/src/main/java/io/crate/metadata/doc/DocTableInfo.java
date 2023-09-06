@@ -23,10 +23,12 @@ package io.crate.metadata.doc;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -122,6 +124,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
+    private final Map<String, String> leafNamesByOid;
     private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     private final List<ColumnIdent> primaryKeys;
@@ -181,6 +184,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.notNullColumns = notNullColumns;
         this.indexColumns = indexColumns;
         this.references = references;
+        leafNamesByOid = new HashMap<>();
+        for (Reference reference: references.values()) {
+            leafNamesByOid.put(Long.toString(reference.oid()), reference.column().leafName());
+        }
         this.analyzers = analyzers;
         this.ident = ident;
         this.primaryKeys = primaryKeys;
@@ -491,5 +498,24 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public Collection<ColumnIdent> notNullColumns() {
         return notNullColumns;
+    }
+
+    /**
+     * Starting from 5.5 column OID-s are used as source keys.
+     * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
+     * <ul>
+     *  <li>OBJECT (IGNORED) sub-columns</li>
+     *  <li>Empty arrays, or arrays with only null values</li>
+     * </ul>
+     */
+    public Function<String, String> lookupNameBySourceKey() {
+        if (versionCreated.onOrAfter(Version.V_5_5_0)) {
+            return oidOrName -> {
+                String leafName = leafNamesByOid.get(oidOrName);
+                return leafName != null ? leafName : oidOrName;
+            };
+        } else {
+            return Function.identity();
+        }
     }
 }
