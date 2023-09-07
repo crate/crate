@@ -140,8 +140,8 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
-        return Set.of(tableRelation.relationName());
+    public List<RelationName> getRelationNames() {
+        return List.of(tableRelation.relationName());
     }
 
     @Override

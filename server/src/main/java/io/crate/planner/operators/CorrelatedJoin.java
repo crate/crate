@@ -188,7 +188,7 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public Set<RelationName> getRelationNames() {
+    public List<RelationName> getRelationNames() {
         return inputPlan.getRelationNames();
     }
 

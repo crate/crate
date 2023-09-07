@@ -219,7 +219,11 @@ public interface LogicalPlan extends Plan {
         return StatementType.SELECT;
     }
 
-    Set<RelationName> getRelationNames();
+    /**
+     *
+     * @return RelationNames of the sources in order from left to right without duplicates
+     */
+    List<RelationName> getRelationNames();
 
     default void print(PrintContext printContext) {
         printContext

@@ -31,6 +31,8 @@ import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,8 +60,8 @@ final class FilterOnJoinsUtil {
         }
         LogicalPlan lhs = join.lhs();
         LogicalPlan rhs = join.rhs();
-        Symbol queryForLhs = splitQuery.remove(lhs.getRelationNames());
-        Symbol queryForRhs = splitQuery.remove(rhs.getRelationNames());
+        Symbol queryForLhs = splitQuery.remove(new HashSet<>(lhs.getRelationNames()));
+        Symbol queryForRhs = splitQuery.remove(new HashSet<>(rhs.getRelationNames()));
         LogicalPlan newLhs = getNewSource(queryForLhs, lhs);
         LogicalPlan newRhs = getNewSource(queryForRhs, rhs);
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
