@@ -150,7 +150,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             valueType = ArrayType.unnest(valueType);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
-        if (storageSupport == null && ref instanceof DynamicReference) {
+        if (ref instanceof DynamicReference) {
+            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                // Not indexed, need to use source lookup
+                return null;
+            }
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);

@@ -57,6 +57,9 @@ Fixes
 
   returning the value for ``o['a']`` instead of a ``null``.
 
+- Fixed an issue that caused ``IS NULL`` predicate to be ineffective on
+  sub-columns of ``ignored`` object types.
+
 - Fixed a regression introduced with CrateDB 5.3.1 which caused a
   ``NullPointerException`` when creating a repository on S3 with authentication
   provided by IAM role attached to the EC2 instance running the CrateDB node.
