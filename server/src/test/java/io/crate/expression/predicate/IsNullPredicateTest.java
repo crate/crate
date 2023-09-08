@@ -33,6 +33,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.GenericFunctionQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.ReferenceIdent;
@@ -79,6 +80,31 @@ public class IsNullPredicateTest extends ScalarTestCase {
             );
             Query refExistsQuery = IsNullPredicate.refExistsQuery(ref, context, true);
             assertThat(refExistsQuery).isNull();
+        }
+    }
+
+    @Test
+    public void test_refExistsQuery_falls_back_to_generic_function_query_on_sub_columns_of_ignored_objects() throws Exception {
+        LuceneQueryBuilder luceneQueryBuilder = new LuceneQueryBuilder(sqlExpressions.nodeCtx);
+        DocTableRelation relation = (DocTableRelation) tableSources.get(new RelationName("doc", "users"));
+        DocTableInfo table = relation.tableInfo();
+        try (var indexEnv = new IndexEnv(
+            THREAD_POOL,
+            table,
+            clusterService.state(),
+            Version.CURRENT,
+            createTempDir())) {
+            Query query = luceneQueryBuilder.convert(
+                sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
+                txnCtx,
+                indexEnv.mapperService(),
+                indexEnv.indexService().index().getName(),
+                indexEnv.queryShardContext(),
+                table,
+                indexEnv.queryCache()
+            ).query();
+            assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+            assertThat(query.toString()).isEqualTo("(_doc['obj_ignored']['x'] IS NULL)");
         }
     }
 

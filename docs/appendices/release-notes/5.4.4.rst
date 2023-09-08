@@ -62,6 +62,9 @@ Fixes
   hand side. With this fix, the output object column will contain the
   merged sub-columns of the respective objects of both relations.
 
+- Fixed an issue that caused ``IS NULL`` predicate to be ineffective on
+  sub-columns of ``ignored`` object types.
+
 - Fixed a regression introduced with CrateDB 5.3.1 which caused a
   ``NullPointerException`` when creating a repository on S3 with authentication
   provided by IAM role attached to the EC2 instance running the CrateDB node.
