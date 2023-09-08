@@ -57,12 +57,8 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-
-/**
- * Using TEST scope to reset OID after each test run otherwise OID assertions are non-deterministic.
- */
 @UseRandomizedOptimizerRules(0)
-@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
+@IntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends IntegTestCase {
 

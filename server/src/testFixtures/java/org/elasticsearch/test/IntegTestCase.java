@@ -26,8 +26,10 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPA
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
+import static org.elasticsearch.test.ClusterServiceUtils.setState;
 import static org.elasticsearch.test.XContentTestUtils.convertToMap;
 import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgnoringArrayOrder;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
@@ -1645,6 +1647,17 @@ public abstract class IntegTestCase extends ESTestCase {
         assertThat(numInstances)
                 .as("There must only be as many NodeLimits instances as there are nodes in the cluster")
                 .isEqualTo(cluster().numNodes());
+    }
+
+    /**
+     * Tests share same cluster state by default, need to reset OID in order to keep OID assertions deterministic.
+     */
+    @After
+    public void resetOidSupplier() {
+        var clusterService = cluster().getCurrentMasterNodeInstance(ClusterService.class);
+        Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata()).columnOID(COLUMN_OID_UNASSIGNED);
+        var newState =  ClusterState.builder(clusterService.state()).metadata(mdBuilder).build();
+        setState(clusterService.getMasterService(), newState);
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {
