@@ -26,6 +26,7 @@ import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,5 +59,11 @@ public class SourceLookupTest {
         Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));
         Object o = SourceLookup.extractValue(m, singletonList("x"), 0);
         assertThat((Collection<Integer>) o, contains(is(10), is(20)));
+    }
+
+    @Test
+    public void test_extractValue_from_object_with_unknown_subscript_returns_null() {
+        Map<String, Map<String, Integer>> m = singletonMap("x", singletonMap("a", 1)); // such that x['a'] = 1
+        assertThat(SourceLookup.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
     }
 }
