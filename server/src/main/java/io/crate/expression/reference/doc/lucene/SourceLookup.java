@@ -115,6 +115,9 @@ public final class SourceLookup {
                 }
                 return newList;
             } else {
+                if (i + 1 != path.size()) {
+                    return null;
+                }
                 break;
             }
         }
