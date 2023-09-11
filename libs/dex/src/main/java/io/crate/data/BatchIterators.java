@@ -55,6 +55,10 @@ public class BatchIterators {
         return resultFuture;
     }
 
+
+    public static class NewPartitionException extends RuntimeException {
+    }
+
     /**
      * Partition the items of a BatchIterator into blocks of {@code size}.
      *
@@ -82,6 +86,7 @@ public class BatchIterators {
             private A element = null;
             private A state = supplier.get();
             private int idx = 0;
+            private boolean retryCurrent = false;
 
             @Override
             protected BatchIterator<T> delegate() {
@@ -90,9 +95,20 @@ public class BatchIterators {
 
             @Override
             public boolean moveNext() {
+                if (retryCurrent) {
+                    retryCurrent = false;
+                    accumulator.accept(state, bi.currentElement());
+                    idx++;
+                }
                 boolean stateLimitReached = false;
                 while (idx < size && stateLimitReached == false && bi.moveNext()) {
-                    accumulator.accept(state, bi.currentElement());
+                    try {
+                        accumulator.accept(state, bi.currentElement());
+                    } catch (NewPartitionException ignored) {
+                        stateLimitReached = true;
+                        retryCurrent = true;
+                        break;
+                    }
                     stateLimitReached = stateLimiter.test(state);
                     idx++;
                 }

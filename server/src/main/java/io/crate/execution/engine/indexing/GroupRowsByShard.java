@@ -39,6 +39,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
@@ -182,7 +183,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 shardedRequests.add(item, shardLocation, rowSourceInfo);
             }
             return item;
-        } catch (CircuitBreakingException e) {
+        } catch (CircuitBreakingException | BatchIterators.NewPartitionException e) {
             throw e;
         } catch (Throwable t) {
             if (propagateError) {
