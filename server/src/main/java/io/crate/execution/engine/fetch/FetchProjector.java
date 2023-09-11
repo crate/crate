@@ -67,7 +67,7 @@ public final class FetchProjector {
         EstimateCellsSize estimateRowSize = new EstimateCellsSize(projection.inputTypes());
         return (BatchIterator<Row> source) -> {
             final long maxBucketsSizeInBytes = getBucketsBytesThreshold.getAsLong();
-            BatchIterator<ReaderBuckets> buckets = BatchIterators.partition(
+            BatchIterator<ReaderBuckets> buckets = BatchIterators.chunks(
                 source,
                 projection.getFetchSize(),
                 () -> new ReaderBuckets(fetchRows, projection::getFetchSourceByReader, estimateRowSize, ramAccounting),
