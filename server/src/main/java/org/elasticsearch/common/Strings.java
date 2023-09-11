@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -484,55 +483,6 @@ public class Strings {
         String[] tokens = commaDelimitedListToStringArray(str);
         set.addAll(Arrays.asList(tokens));
         return set;
-    }
-
-    /**
-     * Convenience method to return a Collection as a delimited (e.g. CSV)
-     * String. E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll   the Collection to display
-     * @param delim  the delimiter to use (probably a ",")
-     * @param prefix the String to start each element with
-     * @param suffix the String to end each element with
-     * @return the delimited String
-     */
-    public static String collectionToDelimitedString(Iterable<?> coll, String delim, String prefix, String suffix) {
-        StringBuilder sb = new StringBuilder();
-        collectionToDelimitedString(coll, delim, prefix, suffix, sb);
-        return sb.toString();
-    }
-
-    public static void collectionToDelimitedString(Iterable<?> coll, String delim, String prefix, String suffix, StringBuilder sb) {
-        Iterator<?> it = coll.iterator();
-        while (it.hasNext()) {
-            sb.append(prefix).append(it.next()).append(suffix);
-            if (it.hasNext()) {
-                sb.append(delim);
-            }
-        }
-    }
-
-    /**
-     * Convenience method to return a Collection as a delimited (e.g. CSV)
-     * String. E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll  the Collection to display
-     * @param delim the delimiter to use (probably a ",")
-     * @return the delimited String
-     */
-    public static String collectionToDelimitedString(Iterable<?> coll, String delim) {
-        return collectionToDelimitedString(coll, delim, "", "");
-    }
-
-    /**
-     * Convenience method to return a Collection as a CSV String.
-     * E.g. useful for <code>toString()</code> implementations.
-     *
-     * @param coll the Collection to display
-     * @return the delimited String
-     */
-    public static String collectionToCommaDelimitedString(Iterable<?> coll) {
-        return collectionToDelimitedString(coll, ",");
     }
 
     /**
