@@ -216,6 +216,7 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestExecutionConfig;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -1099,6 +1100,10 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     private Scope getCurrentClusterScope() {
+        UseNewCluster createNewCluster = getTestAnnotation(UseNewCluster.class);
+        if (createNewCluster != null) {
+            return Scope.TEST;
+        }
         return getCurrentClusterScope(this.getClass());
     }
 
