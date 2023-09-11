@@ -55,7 +55,6 @@ import org.apache.lucene.codecs.PostingsFormat;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.JarHell;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -164,8 +163,8 @@ public class PluginsService {
                 final String message = String.format(
                         Locale.ROOT,
                         "missing mandatory plugins [%s], found plugins [%s]",
-                        Strings.collectionToDelimitedString(missingPlugins, ", "),
-                        Strings.collectionToDelimitedString(pluginsNames, ", "));
+                        String.join(", ", missingPlugins),
+                        String.join(", ", pluginsNames));
                 throw new IllegalStateException(message);
             }
         }
