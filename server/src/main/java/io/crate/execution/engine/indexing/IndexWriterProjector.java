@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,8 +95,10 @@ public class IndexWriterProjector implements Projector {
                                 UpsertResultContext upsertResultContext,
                                 boolean failFast) {
 
+        // TODO: if the request came from a earlier version, this might still be _raw
         assert docReference.column().equals(DocSysColumns.DOC)
             : "IndexWriterProjector supports only _doc reference";
+
         Input<Map<String, Object>> docInput = (Input<Map<String, Object>>) sourceInput;
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
@@ -128,9 +131,8 @@ public class IndexWriterProjector implements Projector {
             Map<String, Object> doc = docInput.value();
             // TODO: ensure target columns are not changing?
             // Or if, force new request?
-            Reference[] references = targetColumns.get();
             Set<String> keys = doc.keySet();
-            references = new Reference[keys.size()];
+            Reference[] references = new Reference[keys.size()];
             int i = 0;
             for (String key : doc.keySet()) {
                 ColumnIdent column = ColumnIdent.fromNameSafe(key, List.of());
@@ -141,7 +143,11 @@ public class IndexWriterProjector implements Projector {
                 references[i] = reference;
                 i++;
             }
+            Reference[] prevReferences = targetColumns.get();
             targetColumns.set(references);
+            if (prevReferences != null && !Arrays.deepEquals(prevReferences, references)) {
+                throw new IllegalArgumentException("All lines must contain the same columns in COPY FROM");
+            }
             try {
                 Object[] values = new Object[references.length];
                 for (int j = 0; j < references.length; j++) {
