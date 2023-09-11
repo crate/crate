@@ -111,7 +111,7 @@ public class DocIndexMetadata {
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
 
-    private final Set<ColumnIdent> droppedColumns = new HashSet<>();
+    private final Set<String> droppedColumnOids = new HashSet<>();
 
     private final NodeContext nodeCtx;
     private final RelationName ident;
@@ -453,17 +453,20 @@ public class DocIndexMetadata {
 
         for (Map.Entry<String, Object> columnEntry : cols.entrySet()) {
             Map<String, Object> columnProperties = (Map<String, Object>) columnEntry.getValue();
-            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             String columnName = columnEntry.getKey();
             ColumnIdent newIdent = columnIdent(parent, columnName);
-            if (isDropped) {
-                droppedColumns.add(newIdent);
-                continue; // skip column
-            }
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
+            // columnProperties.getOrDefault doesn't work here for OID values fitting into int.
+            // Jackson optimizes writes of small long values as stores them as ints:
+            long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
+            boolean isDropped = (Boolean) columnProperties.getOrDefault("dropped", false);
+            if (isDropped) {
+                droppedColumnOids.add(Long.toString(oid));
+                continue; // skip column
+            }
             assert columnProperties.containsKey("position") && columnProperties.get("position") != null : "Column position is missing: " + newIdent.fqn();
             // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             int position = (int) columnProperties.getOrDefault("position", 0);
@@ -481,10 +484,6 @@ public class DocIndexMetadata {
             StorageSupport<?> storageSupport = columnDataType.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(columnIndexType);
             boolean hasDocValues = Booleans.parseBoolean(columnProperties.getOrDefault(DOC_VALUES, docValuesDefault).toString());
-
-            // columnProperties.getOrDefault doesn't work here for OID values fitting into int.
-            // Jackson optimizes writes of small long values as stores them as ints:
-            long oid = ((Number) columnProperties.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
 
             DataType<?> elementType = ArrayType.unnest(columnDataType);
             if (elementType.equals(DataTypes.GEO_SHAPE)) {
@@ -745,8 +744,8 @@ public class DocIndexMetadata {
         return columns;
     }
 
-    public Set<ColumnIdent> droppedColumns() {
-        return droppedColumns;
+    public Set<String> droppedColumnOids() {
+        return droppedColumnOids;
     }
 
     public Map<ColumnIdent, IndexReference> indices() {

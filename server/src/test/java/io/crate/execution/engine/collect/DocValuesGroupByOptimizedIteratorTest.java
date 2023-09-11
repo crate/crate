@@ -28,7 +28,6 @@ import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -153,7 +152,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Function.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -232,7 +231,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Function.identity())
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -312,7 +311,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
             new MatchAllDocsQuery(),
-            new CollectorContext(Set.of(), Function.identity())
+            new CollectorContext(Function.identity())
         );
     }
 }

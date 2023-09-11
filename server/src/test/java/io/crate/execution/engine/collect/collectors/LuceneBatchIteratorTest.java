@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.collectors;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -75,7 +74,7 @@ public class LuceneBatchIteratorTest {
                 new MatchAllDocsQuery(),
                 null,
                 false,
-                new CollectorContext(Set.of(), Function.identity()),
+                new CollectorContext(Function.identity()),
                 columnRefs,
                 columnRefs
             )

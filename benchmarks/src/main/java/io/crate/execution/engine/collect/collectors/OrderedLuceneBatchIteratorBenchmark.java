@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.collectors;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -103,7 +102,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         iw.commit();
         iw.forceMerge(1, true);
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
-        collectorContext = new CollectorContext(Set.of(), Function.identity());
+        collectorContext = new CollectorContext(Function.identity());
         reference = new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
             RowGranularity.DOC,

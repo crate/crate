@@ -21,36 +21,28 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.util.Set;
 import java.util.function.Function;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public class CollectorContext {
 
     private final int readerId;
-    private final Set<ColumnIdent> droppedColumns;
     private final Function<String, String> lookupNameBySourceKey;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
-        this(-1, droppedColumns, lookupNameBySourceKey);
+    public CollectorContext(Function<String, String> lookupNameBySourceKey) {
+        this(-1, lookupNameBySourceKey);
     }
 
-    public CollectorContext(int readerId, Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    public CollectorContext(int readerId, Function<String, String> lookupNameBySourceKey) {
         this.readerId = readerId;
-        this.droppedColumns = droppedColumns;
         this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
     public int readerId() {
         return readerId;
-    }
-
-    public Set<ColumnIdent> droppedColumns() {
-        return droppedColumns;
     }
 
     public Function<String, String> lookupNameBySourceKey() {
@@ -59,14 +51,14 @@ public class CollectorContext {
 
     public SourceLookup sourceLookup() {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+            sourceLookup = new SourceLookup(lookupNameBySourceKey);
         }
         return sourceLookup;
     }
 
     public SourceLookup sourceLookup(Reference ref) {
         if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+            sourceLookup = new SourceLookup(lookupNameBySourceKey);
         }
         return sourceLookup.registerRef(ref);
     }

@@ -150,7 +150,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey()),
+                new CollectorContext(table.lookupNameBySourceKey()),
                 Collections.singletonList(input),
                 ctx.expressions()
             );

@@ -43,7 +43,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -70,7 +69,7 @@ public class LuceneBatchIteratorBenchmark {
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
-        collectorContext = new CollectorContext(Set.of(), Function.identity());
+        collectorContext = new CollectorContext(Function.identity());
     }
 
     @Benchmark

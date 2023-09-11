@@ -32,9 +32,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -69,12 +67,9 @@ import io.crate.types.UndefinedType;
 public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
-    private final Set<String> droppedColumns;
     private final Function<String, String> lookupNameBySourceKey;
 
-    public SourceParser(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
-        // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
-        this.droppedColumns = droppedColumns.stream().map(ColumnIdent::fqn).collect(Collectors.toUnmodifiableSet());
+    public SourceParser(Function<String, String> lookupNameBySourceKey) {
         this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
@@ -123,9 +118,7 @@ public final class SourceParser {
                 parser,
                 null,
                 requiredColumns,
-                droppedColumns,
                 lookupNameBySourceKey,
-                new StringBuilder(),
                 includeUnknownCols
             );
         } catch (IOException e) {
@@ -141,9 +134,7 @@ public final class SourceParser {
     private static Object parseArray(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
-                                     Set<String> droppedColumns,
-                                     Function<String, String> lookupNameBySourceKey,
-                                     StringBuilder colPath) throws IOException {
+                                     Function<String, String> lookupNameBySourceKey) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
@@ -161,7 +152,7 @@ public final class SourceParser {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
-                values.add(parseValue(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey, colPath));
+                values.add(parseValue(parser, type, requiredColumns, lookupNameBySourceKey));
             }
             return values;
         }
@@ -171,9 +162,7 @@ public final class SourceParser {
     private static Map<String, Object> parseObject(XContentParser parser,
                                                    @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns,
-                                                   Set<String> droppedColumns,
                                                    Function<String, String> lookupNameBySourceKey,
-                                                   StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
         if (requiredColumns == null || requiredColumns.isEmpty()) {
             return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
@@ -182,14 +171,7 @@ public final class SourceParser {
             XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
                 String fieldName = lookupNameBySourceKey.apply(parser.currentName());
-                boolean dropped = false;
-                if (droppedColumns.isEmpty() == false) {
-                    String path = fieldName;
-                    if (colPath.isEmpty() == false) {
-                        path = colPath + "." + fieldName;
-                    }
-                    dropped = droppedColumns.contains(path);
-                }
+                boolean dropped = fieldName == null;
 
                 token = parser.nextToken(); // Move to the current field's value
                 var required = requiredColumns.get(fieldName);
@@ -211,46 +193,28 @@ public final class SourceParser {
                     // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
                     values.put(fieldName, null);
                 } else if (required instanceof ObjectType objectType) {
-                    var prevLength = appendToColPath(colPath, fieldName);
                     values.put(fieldName, parseObject(
                         parser,
                         objectType,
                         (Map) objectType.innerTypes(),
-                        droppedColumns,
                         lookupNameBySourceKey,
-                        colPath,
                         true)
                     );
-                    colPath.delete(prevLength, colPath.length());
                 } else if (required instanceof DataType<?> dataType) {
                     if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
-                        var prevLength = appendToColPath(colPath, fieldName);
                         values.put(fieldName, parseValue(parser, arrayType.innerType(),
-                            (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns,
-                            lookupNameBySourceKey, colPath)
+                            (Map) ((ObjectType) arrayType.innerType()).innerTypes(), lookupNameBySourceKey)
                         );
-                        colPath.delete(prevLength, colPath.length());
                     } else {
-                        values.put(fieldName, parseValue(parser, dataType, null, droppedColumns,
-                            lookupNameBySourceKey, colPath)
+                        values.put(fieldName, parseValue(parser, dataType, null, lookupNameBySourceKey)
                         );
                     }
                 } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns,
-                        lookupNameBySourceKey, colPath));
+                    values.put(fieldName, parseValue(parser, null, (Map) required, lookupNameBySourceKey));
                 }
             }
             return values;
         }
-    }
-
-    private static int appendToColPath(StringBuilder colPath, String fieldName) {
-        var prevLength = colPath.length();
-        if (colPath.isEmpty() == false) {
-            colPath.append('.');
-        }
-        colPath.append(fieldName);
-        return prevLength;
     }
 
     /**
@@ -262,15 +226,11 @@ public final class SourceParser {
     private static Object parseValue(XContentParser parser,
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns,
-                                     Set<String> droppedColumns,
-                                     Function<String, String> lookupNameBySourceKey,
-                                     StringBuilder colPath) throws IOException {
+                                     Function<String, String> lookupNameBySourceKey) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
-            case START_ARRAY -> parseArray(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
-                colPath);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns, droppedColumns, lookupNameBySourceKey,
-                colPath, false);
+            case START_ARRAY -> parseArray(parser, type, requiredColumns, lookupNameBySourceKey);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, lookupNameBySourceKey, false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);

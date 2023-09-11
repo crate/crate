@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.common.bytes.BytesArray;
@@ -46,7 +45,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         var column = new ColumnIdent("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
@@ -60,7 +59,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_unnecessary_leafs_of_object_columns_are_not_collected() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         var z = new ColumnIdent("_doc", List.of("obj", "z"));
         sourceParser.register(x, DataTypes.INTEGER);
@@ -77,7 +76,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_full_object_is_collected_if_full_object_requested() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         var obj = new ColumnIdent("_doc", List.of("obj"));
         var x = new ColumnIdent("_doc", List.of("obj", "x"));
         // the order in which the columns are registered must not matter
@@ -100,7 +99,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_numbers_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         sourceParser.register(new ColumnIdent("_doc", List.of("i")), DataTypes.INTEGER);
         sourceParser.register(new ColumnIdent("_doc", List.of("l")), DataTypes.LONG);
         sourceParser.register(new ColumnIdent("_doc", List.of("f")), DataTypes.FLOAT);
@@ -126,7 +125,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BOOLEAN);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
@@ -138,7 +137,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_uses_inner_type_info_to_parse_objects() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         BitStringType bitStringType = new BitStringType(4);
         ObjectType objectType = ObjectType.builder()
             .setInnerType("bs", bitStringType)
@@ -161,7 +160,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_sibling_subcolumn_has_same_name() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         ObjectType innerObjectType = ObjectType.builder()
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -193,7 +192,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_next_not_sibling_column_has_same_name() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         ObjectType objectType = ObjectType.builder()
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -219,7 +218,7 @@ public class SourceParserTest extends ESTestCase {
     // tracks a bug: https://github.com/crate/crate/issues/13504
     @Test
     public void test_nested_array_access() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         // ex:
         //   CREATE TABLE test (
         //   "a" array(object as (
@@ -260,7 +259,7 @@ public class SourceParserTest extends ESTestCase {
     // https://github.com/crate/crate/issues/13990
     @Test
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         var type = ObjectType.UNTYPED;
         sourceParser.register(new ColumnIdent("_doc", List.of("x")), type);
         var result = sourceParser.parse(
@@ -279,7 +278,7 @@ public class SourceParserTest extends ESTestCase {
     // https://github.com/crate/crate/issues/14451
     @Test
     public void test_nested_arrays_from_ignored_objects() {
-        SourceParser sourceParser = new SourceParser(Set.of(), Function.identity());
+        SourceParser sourceParser = new SourceParser(Function.identity());
         sourceParser.register(new ColumnIdent("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
         var result = sourceParser.parse(
             new BytesArray(
@@ -296,12 +295,22 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_dropped_leaf_sub_column() {
+        Map<String, String> leafNamesByOid = new HashMap<>();
+        leafNamesByOid.put("1", "o");  // o
+        leafNamesByOid.put("2", "a");  // o['a']
+        leafNamesByOid.put("3", "b");  // o['b']
+        leafNamesByOid.put("4", "s");  // o['s']
+        leafNamesByOid.put("5", "t");  // o['t']
+        leafNamesByOid.put("6", "oo"); // o['oo']
+        leafNamesByOid.put("7", "a");  // o['oo']['a']
+        // o['oo']['b'] is written to the source below with OID 8, imitating dropped state by skipping an entry.
+        leafNamesByOid.put("9", "c");  // o['oo']['c']
+        // o['oo']['s'] is written to the source below with OID 10, imitating dropped state by skipping an entry.
+        leafNamesByOid.put("11", "t"); // o['oo']['t']
+
+        Function<String, String> lookupNameBySourceKey = leafNamesByOid::get;
         SourceParser sourceParser = new SourceParser(
-            Set.of(
-                new ColumnIdent("o", List.of("oo", "b")),
-                new ColumnIdent("o", List.of("oo", "s"))
-            ),
-            Function.identity()
+            lookupNameBySourceKey
         );
         var ooType = new ObjectType.Builder()
             .setInnerType("a", DataTypes.INTEGER)
@@ -320,7 +329,7 @@ public class SourceParserTest extends ESTestCase {
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a":1, "b":2, "oo":{"a": 11, "b":22, "c":33, "s":33, "t":44}, "s":3, "t":4}}
+                {"1": {"2":1, "3":2, "6":{"7": 11, "8":22, "9":33, "10":33, "11":44}, "4":3, "5":4}}
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
@@ -335,7 +344,16 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_drop_sub_column_with_children() {
-        SourceParser sourceParser = new SourceParser(Set.of(new ColumnIdent("o", List.of("oo"))), Function.identity());
+        Map<String, String> leafNamesByOid = new HashMap<>();
+        leafNamesByOid.put("1", "o");  // o
+        leafNamesByOid.put("2", "a");  // o['a']
+        leafNamesByOid.put("3", "b");  // o['b']
+        // o['oo'] and its children are written to the source below with OIDs 4-7,
+        // imitating dropped state by skipping entries.
+        Function<String, String> lookupNameBySourceKey = leafNamesByOid::get;
+        SourceParser sourceParser = new SourceParser(
+            lookupNameBySourceKey
+        );
         var ooType = new ObjectType.Builder()
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
@@ -350,7 +368,7 @@ public class SourceParserTest extends ESTestCase {
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}}
+                {"1": {"2" : 1, "3": 2, "4": {"5": 11, "6": 22, "7": 3}}}
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
@@ -360,11 +378,21 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
+        Map<String, String> leafNamesByOid = new HashMap<>();
+        leafNamesByOid.put("1", "o");  // o
+        leafNamesByOid.put("2", "a");  // o['a']
+        leafNamesByOid.put("3", "b");  // o['b']
+        leafNamesByOid.put("4", "s");  // o['s']
+        leafNamesByOid.put("5", "t");  // o['t']
+        leafNamesByOid.put("6", "oo"); // o['oo']
+        leafNamesByOid.put("7", "a");  // o['oo']['a']
+        // o['oo']['b'] is written to the source below with OID 8, imitating dropped state by skipping an entry.
+        leafNamesByOid.put("9", "c");  // o['oo']['c']
+        leafNamesByOid.put("10", "s"); // o['oo']['s']
+        // o['oo']['t'] is written to the source below with OID 11, imitating dropped state by skipping an entry.
+        Function<String, String> lookupNameBySourceKey = leafNamesByOid::get;
         SourceParser sourceParser = new SourceParser(
-            Set.of(
-                new ColumnIdent("o", List.of("oo", "b")),
-                new ColumnIdent("o", List.of("oo", "t"))),
-            Function.identity()
+            lookupNameBySourceKey
         );
         var ooType = new ObjectType.Builder()
             .setInnerType("a", DataTypes.INTEGER)
@@ -383,7 +411,7 @@ public class SourceParserTest extends ESTestCase {
         sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a":1, "b":2, "oo":[{"a": 11, "b":22, "c":33, "s":33, "t":44}], "s":3, "t":4}}
+                {"1": {"2":1, "3":2, "6":[{"7": 11, "8":22, "9":33, "10":33, "11":44}], "4":3, "5":4}}
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);

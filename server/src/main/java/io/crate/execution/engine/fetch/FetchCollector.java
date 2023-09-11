@@ -61,7 +61,7 @@ class FetchCollector {
         this.ramAccounting = ramAccounting;
         this.readerId = readerId;
         var table = fetchTask.table(readerId);
-        CollectorContext collectorContext = new CollectorContext(readerId, table.droppedColumns(), table.lookupNameBySourceKey());
+        CollectorContext collectorContext = new CollectorContext(readerId, table.lookupNameBySourceKey());
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

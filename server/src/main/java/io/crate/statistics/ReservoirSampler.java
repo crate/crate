@@ -229,7 +229,7 @@ public final class ReservoirSampler {
             ctx.add(columns);
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-            CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
+            CollectorContext collectorContext = new CollectorContext(docTable.lookupNameBySourceKey());
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.startCollect(collectorContext);
             }

@@ -27,13 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.common.bytes.BytesReference;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public final class SourceLookup {
@@ -45,8 +43,8 @@ public final class SourceLookup {
     private Map<String, Object> source;
     private boolean docVisited = false;
 
-    SourceLookup(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
-        sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
+    SourceLookup(Function<String, String> lookupNameBySourceKey) {
+        sourceParser = new SourceParser(lookupNameBySourceKey);
     }
 
     public void setSegmentAndDocument(ReaderContext context, int doc) {

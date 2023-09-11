@@ -117,7 +117,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final Collection<Reference> columns;
-    private final Set<ColumnIdent> droppedColumns;
+    private final Set<String> droppedColumnOids;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
     private final List<Reference> defaultExpressionColumns;
@@ -152,7 +152,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo(RelationName ident,
                         Collection<Reference> columns,
-                        Set<ColumnIdent> droppedColumns,
+                        Set<String> droppedColumnOids,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
@@ -178,7 +178,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         assert (partitionedBy.size() ==
                 partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.columns = columns;
-        this.droppedColumns = droppedColumns;
+        this.droppedColumnOids = droppedColumnOids;
         this.partitionedByColumns = partitionedByColumns;
         this.generatedColumns = generatedColumns;
         this.notNullColumns = notNullColumns;
@@ -226,10 +226,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> columns() {
         return columns;
-    }
-
-    public Set<ColumnIdent> droppedColumns() {
-        return droppedColumns;
     }
 
     public int maxPosition() {
@@ -507,10 +503,15 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      *  <li>OBJECT (IGNORED) sub-columns</li>
      *  <li>Empty arrays, or arrays with only null values</li>
      * </ul>
+     *
+     * @return NULL for dropped columns.
      */
     public Function<String, String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
+                if (droppedColumnOids.contains(oidOrName)) {
+                    return null;
+                }
                 String leafName = leafNamesByOid.get(oidOrName);
                 return leafName != null ? leafName : oidOrName;
             };

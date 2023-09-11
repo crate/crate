@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
@@ -393,7 +392,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(Set.of(), Function.identity()),
+            new CollectorContext(Function.identity()),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,
