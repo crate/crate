@@ -56,7 +56,7 @@ public class BatchIterators {
     }
 
     /**
-     * Partition the items of a BatchIterator into blocks of {@code size}.
+     * Create chunks of items of a BatchIterator of {@code size}.
      *
      * Example:
      * <pre>
@@ -66,17 +66,17 @@ public class BatchIterators {
      *     partition(inputBi, 2, ArrayList::new, List::add) -> [[1, 2], [3, 4], [5]]
      * }
      * </pre>
-     * @param supplier Used to create the state per partition
-     * @param accumulator Used to add items to the partitions state
-     * @param stateLimiter Used to dynamically adjust the partition size.
+     * @param supplier Used to create the state per chunk
+     * @param accumulator Used to add items to the chunk
+     * @param stateLimiter Used to dynamically adjust the chunk size.
      * @param <T> input item type
      * @param <A> output item type
      */
-    public static <T, A> BatchIterator<A> partition(BatchIterator<T> bi,
-                                                    int size,
-                                                    Supplier<A> supplier,
-                                                    BiConsumer<A, T> accumulator,
-                                                    Predicate<? super A> stateLimiter) {
+    public static <T, A> BatchIterator<A> chunks(BatchIterator<T> bi,
+                                                 int size,
+                                                 Supplier<A> supplier,
+                                                 BiConsumer<A, T> accumulator,
+                                                 Predicate<? super A> stateLimiter) {
         return new MappedForwardingBatchIterator<T, A>() {
 
             private A element = null;

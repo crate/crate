@@ -35,8 +35,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -46,6 +44,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.exceptions.Exceptions;
@@ -197,7 +196,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
-        BatchIterator<TReq> reqBatchIterator = BatchIterators.partition(
+        BatchIterator<TReq> reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
             requestFactory,

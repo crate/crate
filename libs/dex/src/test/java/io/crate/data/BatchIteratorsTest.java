@@ -49,7 +49,7 @@ public class BatchIteratorsTest {
     @Test
     public void testBatchBySize() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator,
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(batchIterator,
                                                                           2,
                                                                           ArrayList::new,
                                                                           List::add,
@@ -71,7 +71,7 @@ public class BatchIteratorsTest {
             2,
             null
         );
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
         CompletableFuture<List<List<Integer>>> future = batchedIt.toList();
         assertThat(future.get(10, TimeUnit.SECONDS)).isEqualTo(Arrays.asList(
@@ -85,8 +85,13 @@ public class BatchIteratorsTest {
     public void testBatchBySizeWithDynamicLimiter() {
         var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         final AtomicInteger rowCount = new AtomicInteger();
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add,
-                                                                          r -> rowCount.incrementAndGet() == 3);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.chunks(
+            batchIterator,
+            2,
+            ArrayList::new,
+            List::add,
+            r -> rowCount.incrementAndGet() == 3
+        );
 
         assertThat(batchedIt.moveNext()).isTrue();
         assertThat(batchedIt.currentElement()).isEqualTo(Arrays.asList(0, 1));

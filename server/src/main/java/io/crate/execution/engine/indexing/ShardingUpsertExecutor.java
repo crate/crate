@@ -266,7 +266,7 @@ public class ShardingUpsertExecutor
         final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         long startTime = nodeLimit.startSample();
         var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
-        var reqBatchIterator = BatchIterators.partition(
+        var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
             () -> new ShardedRequests<>(requestFactory, ramAccounting),
