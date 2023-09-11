@@ -48,6 +48,9 @@ Breaking Changes
 - Added ``CURRENT_DATE``, ``CURRENT_TIME`` and ``CURRENT_TIMESTAMP`` to
   non-reserved keywords.
 
+- Validation for ``COPY FROM`` is now enforced. The ``validation`` parameter is
+  deprecated and using it results in a deprecation message in the logs.
+
 Deprecations
 ============
 

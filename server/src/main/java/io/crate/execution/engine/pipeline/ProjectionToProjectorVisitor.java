@@ -489,8 +489,7 @@ public class ProjectionToProjectorVisitor
             projection.overwriteDuplicates(),
             context.jobId,
             upsertResultContext,
-            projection.failFast(),
-            projection.validation()
+            projection.failFast()
         );
     }
 
@@ -588,8 +587,7 @@ public class ProjectionToProjectorVisitor
             projection.assignmentsColumns(),
             null,
             projection.returnValues(),
-            context.jobId,
-            true
+            context.jobId
         );
 
         return new ShardDMLExecutor<>(
