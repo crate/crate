@@ -384,7 +384,7 @@ public class IndexNameExpressionResolver {
             boolean wildcardSeen = false;
             for (int i = 0; i < expressions.size(); i++) {
                 String expression = expressions.get(i);
-                if (Strings.isEmpty(expression)) {
+                if (Strings.isNullOrEmpty(expression)) {
                     throw indexNotFoundException(expression);
                 }
                 if (aliasOrIndexExists(options, metadata, expression)) {

@@ -80,7 +80,7 @@ public final class AzureStorageSettings {
         if (proxyType.equals(Proxy.Type.DIRECT) && ((proxyPort != 0) || Strings.hasText(proxyHost))) {
             throw new SettingsException("Azure Proxy port or host have been set but proxy type is not defined.");
         }
-        if ((proxyType.equals(Proxy.Type.DIRECT) == false) && ((proxyPort == 0) || Strings.isEmpty(proxyHost))) {
+        if ((proxyType.equals(Proxy.Type.DIRECT) == false) && ((proxyPort == 0) || Strings.isNullOrEmpty(proxyHost))) {
             throw new SettingsException("Azure Proxy type has been set but proxy host or port is not defined.");
         }
 
