@@ -93,7 +93,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         String hostname;
         int port = 53;
         String resolverAddress = DISCOVERY_SRV_RESOLVER.get(settings);
-        if (!Strings.isNullOrEmpty(resolverAddress)) {
+        if (Strings.hasLength(resolverAddress)) {
             String[] parts = resolverAddress.split(":");
             if (parts.length > 0) {
                 hostname = parts[0];

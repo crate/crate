@@ -30,14 +30,13 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 
 public class Strings {
@@ -127,7 +126,7 @@ public class Strings {
      * @return <code>true</code> if the CharSequence is not null and has length
      * @see #hasText(String)
      */
-    public static boolean hasLength(CharSequence str) {
+    public static boolean hasLength(@Nullable CharSequence str) {
         return (str != null && str.length() > 0);
     }
 
@@ -149,18 +148,6 @@ public class Strings {
         return sb.toString();
     }
 
-    /**
-     * Check that the given String is neither <code>null</code> nor of length 0.
-     * Note: Will return <code>true</code> for a String that purely consists of whitespace.
-     *
-     * @param str the String to check (may be <code>null</code>)
-     * @return <code>true</code> if the String is not null and has length
-     * @see #hasLength(CharSequence)
-     */
-    public static boolean hasLength(String str) {
-        return hasLength((CharSequence) str);
-    }
-
 
     /**
      * Check that the given CharSequence is either <code>null</code> or of length 0.
@@ -175,7 +162,7 @@ public class Strings {
      * @param str the CharSequence to check (may be <code>null</code>)
      * @return <code>true</code> if the CharSequence is either null or has a zero length
      */
-    public static boolean isEmpty(CharSequence str) {
+    public static boolean isNullOrEmpty(@Nullable CharSequence str) {
         return !hasLength(str);
     }
 
@@ -208,20 +195,6 @@ public class Strings {
             }
         }
         return false;
-    }
-
-    /**
-     * Check whether the given String has actual text.
-     * More specifically, returns <code>true</code> if the string not <code>null</code>,
-     * its length is greater than 0, and it contains at least one non-whitespace character.
-     *
-     * @param str the String to check (may be <code>null</code>)
-     * @return <code>true</code> if the String is not <code>null</code>, its length is
-     *         greater than 0, and it does not contain whitespace only
-     * @see #hasText(CharSequence)
-     */
-    public static boolean hasText(String str) {
-        return hasText((CharSequence) str);
     }
 
     /**
@@ -692,10 +665,6 @@ public class Strings {
             builder.humanReadable(true);
         }
         return builder;
-    }
-
-    public static boolean isNullOrEmpty(@Nullable String s) {
-        return s == null || s.isEmpty();
     }
 
     public static String padStart(String s, int minimumLength, char c) {
