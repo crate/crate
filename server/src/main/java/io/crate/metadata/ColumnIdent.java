@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.StringJoiner;
-import java.util.regex.Pattern;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -49,7 +48,6 @@ import io.crate.sql.tree.QualifiedName;
 public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
-    private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
 
     private static final Comparator<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
 
@@ -207,7 +205,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     public static void validateColumnName(String columnName) {
         validateDotInColumnName(columnName);
         validateSubscriptPatternInColumnName(columnName);
-        validateUnderscorePatternInColumnName(columnName);
+        if (isSystemColumn(columnName)) {
+            throw new InvalidColumnNameException(columnName, "conflicts with system column pattern");
+        }
     }
 
     /**
@@ -247,14 +247,28 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     }
 
     /**
-     * Checks if a column name contains a underscore pattern and throws an exception if it does.
+     * Returns true if the name is reserved for system columns.
      *
-     * @param columnName column name to check for validity
+     * See {@link ColumnIdent#isSystemColumn()} for system column naming scheme.
      */
-    private static void validateUnderscorePatternInColumnName(String columnName) {
-        if (UNDERSCORE_PATTERN.matcher(columnName).matches()) {
-            throw new InvalidColumnNameException(columnName, "conflicts with system column pattern");
+    private static boolean isSystemColumn(String name) {
+        int length = name.length();
+        if (length == 0) {
+            return false;
         }
+        if (name.charAt(0) != '_') {
+            return false;
+        }
+        for (int i = 1; i < length; i++) {
+            char ch = name.charAt(i);
+            if (ch == '_' && (name.charAt(i - 1) == '_' || i + 1 == length)) {
+                return false;
+            }
+            if (ch != '_' && (ch < 'a' || ch > 'z')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -300,10 +314,24 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     }
 
     /**
-     * returns true if this is a system column
-     */
+     * Returns true if this is a system column.
+     *
+     * System column naming rules:
+     * <ul>
+     * <li>Start with an _</li>
+     * <li>Followed by one or more lowercase letters (a-z)</li>
+     * <li>Can contain more _ between letters, but not successive, and not at the end</li>
+     * </ul>
+     *
+     * <pre>
+     *  _name    -> system column
+     *  _foo_bar -> system column
+     *  __name   -> no system column
+     *  _name_   -> no system column
+     * </pre>
+     **/
     public boolean isSystemColumn() {
-        return UNDERSCORE_PATTERN.matcher(name).matches();
+        return isSystemColumn(name);
     }
 
     /**
