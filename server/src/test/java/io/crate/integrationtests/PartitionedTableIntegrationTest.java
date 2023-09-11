@@ -89,14 +89,12 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
-/**
- * Using TEST scope to reset OID after each test run otherwise OID assertions are non-deterministic.
- */
 @UseRandomizedOptimizerRules(0)
-@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2, scope = IntegTestCase.Scope.TEST)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -1733,6 +1731,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)
+    @UseNewCluster
     public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
         execute("create table t (id int primary key, date timestamp with time zone primary key) " +
                 "partitioned by (date) " +
