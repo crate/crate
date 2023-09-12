@@ -803,6 +803,62 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "empty_parted2");
     }
 
+    @Test
+    public void test_can_restore_snapshots_taken_interleaved_with_swap_table() throws Exception {
+        execute("CREATE TABLE t01 as SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 as SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("refresh table t01");
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+            "10",
+            "11",
+            "12"
+        );
+    }
+
+    @Test
+    public void test_can_restore_snapshots_after_swapped_table_back_and_forth() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 AS SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+        execute("ALTER CLUSTER SWAP TABLE t02 TO t01");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("refresh table t01");
+        assertThat(execute("select a from t01 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
+        );
+    }
+
+    @Test
+    public void test_can_restore_snapshot_after_swap_table_with_drop_source() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+        execute("CREATE TABLE t02 AS SELECT a, random() b FROM generate_series(10, 20, 1) as t(a)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02 WITH (drop_source = true)");
+
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+        execute("refresh table t02");
+        assertThat(execute("select a from t02 order by a limit 3")).hasRows(
+            "1",
+            "2",
+            "3"
+        );
+    }
+
     private void createSnapshotWithTablesAndMetadata() throws Exception {
         createTable("my_table", false);
         // creates custom metadata

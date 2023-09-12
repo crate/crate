@@ -50,3 +50,7 @@ Fixes
 - Fixed an issue that caused privileges checks to be bypassed when using scalar
   sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
   etc.
+
+- Fixed an issue that led to file not found errors when trying to restore a
+  snapshot that was taken after a table had been swapped. A new snapshot
+  must be taken to apply the fix and solve the issue.
