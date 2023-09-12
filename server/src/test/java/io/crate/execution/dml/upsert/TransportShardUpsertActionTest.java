@@ -75,6 +75,7 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.Indexer;
+import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
@@ -132,8 +133,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard,
                                            boolean isRetry,
-                                           @Nullable ReturnValueGen returnGen,
-                                           @Nullable InsertSourceGen insertSourceGen,
+                                           @Nullable RawIndexer rawIndexer,
                                            long version) throws Exception {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),

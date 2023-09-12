@@ -731,6 +731,10 @@ public class Indexer {
         return !undeterministic.isEmpty();
     }
 
+    public List<Reference> columns() {
+        return columns;
+    }
+
     public Collection<Reference> insertColumns(List<Reference> columns) {
         if (undeterministic.isEmpty()) {
             return columns;
