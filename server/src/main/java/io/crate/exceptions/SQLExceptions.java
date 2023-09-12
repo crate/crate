@@ -53,7 +53,6 @@ import org.elasticsearch.transport.RemoteTransportException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 
@@ -137,7 +136,7 @@ public class SQLExceptions {
             || t instanceof ElasticsearchTimeoutException;
     }
 
-    public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
+    public static Throwable prepareForClientTransmission(AccessControl accessControl, Throwable e) {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         e = esToCrateException(unwrappedError);
         try {
@@ -145,7 +144,7 @@ public class SQLExceptions {
         } catch (Exception mpe) {
             e = mpe;
         }
-        return Exceptions.toRuntimeException(e);
+        return e;
     }
 
     private static Throwable esToCrateException(Throwable unwrappedError) {

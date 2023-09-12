@@ -290,7 +290,8 @@ public class SQLTransportExecutor {
         FutureActionListener<SQLResponse, SQLResponse> future = FutureActionListener.newInstance();
         execute(stmt, args, future, session);
         return future.exceptionally(err -> {
-            throw SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err);
+            Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
+            return null;
         });
     }
 

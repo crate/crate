@@ -147,8 +147,8 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                 RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
                 String[] indices = IndexNameExpressionResolver.concreteIndexNames(currentState, request);
                 for (String filteredIndex : indices) {
-                    if (currentState.routingTable().getIndicesRouting().containsKey(filteredIndex)) {
-                        routingTableBuilder.add(currentState.routingTable().getIndicesRouting().get(filteredIndex));
+                    if (currentState.routingTable().indicesRouting().containsKey(filteredIndex)) {
+                        routingTableBuilder.add(currentState.routingTable().indicesRouting().get(filteredIndex));
                     }
                 }
                 builder.routingTable(routingTableBuilder.build());
