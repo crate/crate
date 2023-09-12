@@ -65,4 +65,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that led to file not found errors when trying to restore a
+  snapshot that was taken after a table had been swapped. A new snapshot
+  must be taken to apply the fix and solve the issue.
