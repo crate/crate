@@ -71,23 +71,31 @@ public final class SourceParser {
     private final Map<String, Object> requiredColumns = new HashMap<>();
     private final Set<String> droppedColumns;
     private final Function<String, String> lookupNameBySourceKey;
+    private boolean registerAll;
 
     public SourceParser(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
         // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
         this.droppedColumns = droppedColumns.stream().map(ColumnIdent::fqn).collect(Collectors.toUnmodifiableSet());
         this.lookupNameBySourceKey = lookupNameBySourceKey;
+        this.registerAll = false;
     }
 
     /**
      * Similar to {@link #register(ColumnIdent, DataType)} but doesn't have _doc semantics
      * so that it's possible to directly register references without creating an intermediate _doc reference.
+     * <p>
+     * If all columns are required, we need to restrict registration of specific references.
+     * It can happen on "SELECT _doc, x..." query.
+     * We need to keep requiredColumns clean, so that parsing falls to behavior "return source as map".
      */
     public void register(Reference reference) {
-        List<String> path = reference.column().path();
-        if (path.isEmpty()) {
-            requiredColumns.put(reference.column().name(), reference.valueType());
-        } else {
-            registerPath(reference.column().path(), reference.valueType());
+        if (!registerAll) {
+            List<String> path = reference.column().path();
+            if (path.isEmpty()) {
+                requiredColumns.put(reference.column().name(), reference.valueType());
+            } else {
+                registerPath(reference.column().path(), reference.valueType());
+            }
         }
     }
 
@@ -123,6 +131,18 @@ public final class SourceParser {
                 }
             }
         }
+    }
+
+    /**
+     * _doc needs registering of ALL columns.
+     * By default, if no column is registered, SourceParser falls back to such behavior.
+     * In case of mixed select (both _doc and some regular column),
+     * parser would see only specific column and select _doc will be broken.
+     * We need to ensure that _doc selection makes all columns required.
+     */
+    public void registerAll() {
+        registerAll = true;
+        requiredColumns.clear();
     }
 
     public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
