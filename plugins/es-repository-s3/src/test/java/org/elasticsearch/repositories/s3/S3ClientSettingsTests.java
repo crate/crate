@@ -24,6 +24,9 @@ package org.elasticsearch.repositories.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -117,5 +120,13 @@ public class S3ClientSettingsTests extends ESTestCase {
         assertThat(credentials.getAWSAccessKeyId()).isEqualTo("access_key");
         assertThat(credentials.getAWSSecretKey()).isEqualTo("secret_key");
         assertThat(credentials.getSessionToken()).isEqualTo("session_token");
+    }
+
+    @Test
+    public void test_hashcode_does_not_throw_NPE_with_null_credentials() {
+        final S3ClientSettings settings = S3ClientSettings.getClientSettings(Settings.EMPTY);
+        Set<S3ClientSettings> cache = new HashSet<>();
+        cache.add(settings);
+        assertThat(cache.contains(settings)).isTrue();
     }
 }
