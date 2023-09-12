@@ -978,8 +978,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         // If there are older version nodes in the cluster, we don't need to run this cleanup as it will have already happened
         // when writing the index-${N} to each shard directory.
         final boolean writeShardGens = SnapshotsService.useShardGenerations(repositoryMetaVersion);
-        final Consumer<Exception> onUpdateFailure =
-            e -> listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        final Consumer<Exception> onUpdateFailure = e -> {
+            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        };
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
 
@@ -1029,8 +1030,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         final IndexMetadata indexMetaData = clusterMetadata.index(index.getName());
                         if (writeIndexGens) {
                             final String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
-                            String metaUUID = existingRepositoryData.indexMetaDataGenerations().getIndexMetaBlobId(identifiers);
-                            if (metaUUID == null) {
+
+                            // If the existing IndexMetadataGenerations contain a indexUUID that's different from the current indexMetadata
+                            // the table may have been swapped, in which case we need to reset it, otherwise a subsequent restore
+                            // will try to access files which don't exist.
+                            IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
+                            String indexUUID = existingIndexMetaGenerations.getIndexUUID(index.getName());
+                            String metaUUID = existingIndexMetaGenerations.getIndexMetaBlobId(identifiers);
+                            if (metaUUID == null || (indexUUID != null && !indexUUID.equals(indexMetaData.getIndexUUID()))) {
                                 // We don't yet have this version of the metadata so we write it
                                 metaUUID = UUIDs.base64UUID();
                                 INDEX_METADATA_FORMAT.write(indexMetaData, indexContainer(index), metaUUID, compress);
@@ -1703,9 +1710,15 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void snapshotShard(Store store, MapperService mapperService, SnapshotId snapshotId, IndexId indexId,
-                              IndexCommit snapshotIndexCommit, String shardStateIdentifier, IndexShardSnapshotStatus snapshotStatus,
-                              Version repositoryMetaVersion, ActionListener<String> listener) {
+    public void snapshotShard(Store store,
+                              MapperService mapperService,
+                              SnapshotId snapshotId,
+                              IndexId indexId,
+                              IndexCommit snapshotIndexCommit,
+                              String shardStateIdentifier,
+                              IndexShardSnapshotStatus snapshotStatus,
+                              Version repositoryMetaVersion,
+                              ActionListener<String> listener) {
         final ShardId shardId = store.shardId();
         final long startTime = threadPool.absoluteTimeInMillis();
         try {
@@ -1879,7 +1892,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 // now create and write the commit point
                 LOGGER.trace("[{}] [{}] writing shard snapshot file", shardId, snapshotId);
                 try {
-                    INDEX_SHARD_SNAPSHOT_FORMAT.write(new BlobStoreIndexShardSnapshot(snapshotId.getName(),
+                    INDEX_SHARD_SNAPSHOT_FORMAT.write(new BlobStoreIndexShardSnapshot(
+                            snapshotId.getName(),
                             lastSnapshotStatus.getIndexVersion(),
                             indexCommitPointFiles,
                             lastSnapshotStatus.getStartTime(),

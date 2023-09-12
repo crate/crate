@@ -19,9 +19,6 @@
 
 package org.elasticsearch.repositories;
 
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.snapshots.SnapshotId;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +27,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.snapshots.SnapshotId;
 
 /**
  * Tracks the blob uuids of blobs containing {@link IndexMetadata} for snapshots as well an identifier for each of these blobs.
@@ -172,6 +172,27 @@ public final class IndexMetaDataGenerations {
     public static String buildUniqueIdentifier(IndexMetadata indexMetadata) {
         return indexMetadata.getIndexUUID() +
                 "-" + indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID, IndexMetadata.INDEX_UUID_NA_VALUE) +
-                "-" + indexMetadata.getSettingsVersion() + "-" + indexMetadata.getMappingVersion();
+                "-" + indexMetadata.getSettingsVersion() +
+                "-" + indexMetadata.getMappingVersion();
+    }
+
+    /**
+     * Extract the indexUUID from the identifier.
+     * Only works if the identifier was created using {@link #buildUniqueIdentifier(IndexMetadata)}
+     */
+    @Nullable
+    public String getIndexUUID(String indexName) {
+        for (Map<IndexId, String> indices : lookup.values()) {
+            for (var entry : indices.entrySet()) {
+                IndexId key = entry.getKey();
+                String entryIndexName = key.getName();
+                if (entryIndexName.equals(indexName)) {
+                    String identifier = entry.getValue();
+                    assert UUIDs.randomBase64UUID().length() == 22 : "Length of random UUID should be 22";
+                    return identifier.substring(0, 22);
+                }
+            }
+        }
+        return null;
     }
 }
