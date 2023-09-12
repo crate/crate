@@ -46,6 +46,10 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to file not found errors when trying to restore a
+  snapshot that was taken after a table had been swapped. A new snapshot
+  must be taken to apply the fix and solve the issue.
+
 - Fixed an issue that caused nested accesses to ``ignored`` objects with
   unknown object keys from returning non ``nulls``. For example::
 
