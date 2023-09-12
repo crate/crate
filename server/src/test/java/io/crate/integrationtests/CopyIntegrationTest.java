@@ -317,13 +317,17 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithCompression() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string)");
-        ensureGreen();
-
         execute("copy quotes from ? with (compression='gzip')", new Object[]{copyFilePath + "test_copy_from.gz"});
-        refresh();
-
-        execute("select * from quotes");
-        assertThat(response).hasRowCount(6L);
+        execute("refresh table quotes");
+        execute("select * from quotes order by quote");
+        assertThat(response).hasRows(
+            "1| Don't pañic.",
+            "1| Don't pañic.",
+            "3| Time is an illusion. Lunchtime doubly so.",
+            "3| Time is an illusion. Lunchtime doubly so.",
+            "2| Would it save you a lot of time if I just gave up and went mad now?",
+            "2| Would it save you a lot of time if I just gave up and went mad now?"
+        );
     }
 
     @Test
@@ -929,7 +933,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy t from ? return summary", new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains(
-            "mapping set to strict, dynamic introduction of [b] within [o] is not allowed");
+            "Cannot add column `b` to strict object `o`");
     }
 
     @Test
