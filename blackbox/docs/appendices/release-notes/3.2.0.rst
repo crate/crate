@@ -78,7 +78,7 @@ Breaking Changes
 ----------------
 
 - The ``*`` of ``SELECT *`` statements in the query clause of 
-  `view definitions <views>`_
+  :ref:`view definitions <views>`
   is no longer expanded at view creation time but lazy whenever a view is
   evaluated. That means columns added to a table after the views initial
   creation will show up in queries on the view. It is generally recommended to
@@ -91,35 +91,35 @@ New Features
 ~~~~~~~~~~~~
 
 - Added support for executing existing aggregation functions as 
-  `window functions <window-functions>`_ using the 
-  `OVER <over>`_ clause.
+  :ref:`window functions <window-functions>` using the
+  :ref:`OVER <over>` clause.
 
 - Added support for CrateDB license management enabling users to 
-  `trial <enterprise_trial>`_ the
+  :ref:`trial <enterprise_trial>` the
   enterprise features, set a production enterprise license or continue
   using the community edition. Additionally, a new 
-  `SET LICENSE <ref-set-license>`_ statement
+  :ref:`SET LICENSE <ref-set-license>` statement
   has been added for license registration, and the ``license.ident`` setting
   has become ``@deprecated``.
 
 SQL Improvements
 ~~~~~~~~~~~~~~~~
 
-- Added the `REPLACE <scalar-replace>`_ scalar function replacing
+- Added the :ref:`REPLACE <scalar-replace>` scalar function replacing
   substrings in a string with another string.
 
 - Added the 
   `GENERATE_SERIES(start, stop [, step ]) <table-functions-generate-series>`_ 
   table function which can generate a series of numbers.
 
-- Implemented the `ARRAY_UPPER <scalar-array-upper>`_, 
-  `ARRAY_LENGTH <scalar-array-length>`_ and 
-  `ARRAY_LOWER <_scalar-array-lower>`_ scalars
+- Implemented the :ref:`ARRAY_UPPER <scalar-array-upper>`,
+  :ref:`ARRAY_LENGTH <scalar-array-length>` and
+  :ref:`ARRAY_LOWER <scalar-array-lower>` scalars
   that return the upper and respectively lower bound of a given array
   dimension.
 
 - Added support for the 
-  `ARRAY(subquery) <_sql_expressions_array_subquery>`_ expression,
+  `ARRAY(subquery) <sql_expressions_array_subquery>`_ expression,
   which can turn the result from a subquery into an array.
 
 - The `= ANY <sql_dql_any_array>`_ operator now also supports 
@@ -135,18 +135,18 @@ SQL Improvements
   lowercase.
 
 - Added the scalar expression 
-  `CURRENT_DATABASE <scalar_current_database>`_ which returns the
+  :ref:`CURRENT_DATABASE <scalar_current_database>` which returns the
   current database.
 
-- Functions like `CURRENT_SCHEMA <scalar_current_schema>`_ and 
-  `CURRENT_USER <current_user>`_ which depend on the
+- Functions like :ref:`CURRENT_SCHEMA <scalar_current_schema>` and
+  :ref:`CURRENT_USER <current_user>` which depend on the
   active session can now be used as 
-  `generated columns <sql-ddl-generated-columns>`_.
+  :ref:`generated columns <sql-ddl-generated-columns>`.
 
-- Added support for using `table functions <ref-table-functions>`_ in the 
+- Added support for using :ref:`table functions <ref-table-functions>` in the
   select list of a query.
 
-- `geo_shape <geo_shape_data_type>`_ columns can now be casted to ``object``
+- :ref:`geo_shape <geo_shape_data_type>` columns can now be casted to ``object``
   with ``cast`` in addition to ``try_cast``.
 
 - Improved the handling of function expressions inside subscripts used on
@@ -169,7 +169,7 @@ PostgreSQL Compatibility
 
 - Added ``pg_class``, ``pg_namespace``, ``pg_attribute``, ``pg_attrdef``,
   ``pg_index`` and ``pg_constraint`` tables to the 
-  `pg_catalog <postgres_pg_catalog>`_ schema for
+  :ref:`pg_catalog <postgres_pg_catalog>` schema for
   improved compatibility with PostgreSQL.
 
 - Improved the compatibility with PostgreSQL clients that use the ``text`` type
@@ -179,33 +179,33 @@ PostgreSQL Compatibility
 
 - Added some type aliases for improved compatibility with PostgreSQL.
 
-- Expand the `search_path <conf-session-search-path>`_ setting to 
+- Expand the :ref:`search_path <conf-session-search-path>` setting to
   accept a list of schemas that will be
   searched when a relation (table, view or user defined function) is referenced
   without specifying a schema. The system 
-  `pg_catalog <postgres_pg_catalog>`_ schema is implicitly
+  :ref:`pg_catalog <postgres_pg_catalog>` schema is implicitly
   included as the first one in the path.
 
 Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for changing the number of shards on an existing table or
-  partition using the `ALTER TABLE SET <alter_table_set_reset>`_ 
+  partition using the :ref:`ALTER TABLE SET <alter_table_set_reset>`
   statement.
 
-- Improved resiliency of the `ALTER TABLE RENAME <alter_table_rename>`_
+- Improved resiliency of the :ref:`ALTER TABLE RENAME <alter_table_rename>`
   operation by making it an atomic operation.
 
-- Added an `ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>`_
+- Added an :ref:`ALTER CLUSTER SWAP TABLE <alter_cluster_swap_table>`
   statement that can be used to switch the names of two tables.
 
-- Added a `ALTER CLUSTER GC DANGLING ARTIFACTS <alter_cluster_gc_dangling_artifacts>`_
+- Added a :ref:`ALTER CLUSTER GC DANGLING ARTIFACTS <alter_cluster_gc_dangling_artifacts>`
   statement that can be used to
   clean up internal structures that weren't properly cleaned up due to cluster
   failures during operations which create such temporary artifacts.
 
 - Added support for per-table 
-  `shard allocation filtering <ddl_shard_allocation>`_.
+  :ref:`shard allocation filtering <ddl_shard_allocation>`.
 
 Admin UI Upgrade to 1.11.3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ Admin UI Upgrade to 1.11.3
 Deprecations
 ~~~~~~~~~~~~
 
-- The `MQTT <ingest_mqtt>`_ endpoint has been deprecated and will be 
+- The :ref:`MQTT <ingest_mqtt>` endpoint has been deprecated and will be
   removed in a future version.
 
 - Deprecated the ``http.enabled`` setting which will be always on in future.
@@ -236,13 +236,13 @@ Other
 - Upgraded to Elasticsearch 6.5.1, which includes changes to the default logging
   configuration.
 
-- Added a `remove_duplicates <analyzers_remove_duplicates>`_ token 
+- Added a :ref:`remove_duplicates <analyzers_remove_duplicates>` token
   filter.
 
-- Added a `char_group <analyzers_char_group>`_ tokenizer.
+- Added a :ref:`char_group <analyzers_char_group>` tokenizer.
 
 - Renamed the ``delimited_payload_filter`` token filter to
-  `delimited_payload <delimited_payload-tokenfilter>`_. The old name 
+  :ref:`delimited_payload <delimited_payload-tokenfilter>`. The old name
   can still be used, but is deprecated.
 
 For further information on CrateDB 3.2.0 see our
