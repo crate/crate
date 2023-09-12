@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -69,6 +71,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedSchema;
 
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
@@ -802,6 +805,54 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "empty_parted1",
             "empty_parted2");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_can_restore_snapshots_taken_interleaved_with_swap_table() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT random() a, random() b FROM generate_series(1, 10, 1)");
+        execute("CREATE TABLE t02 AS SELECT random() a, random() b FROM generate_series(1, 10, 1)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+
+        RepositoriesService repositoriesService = cluster().getMasterNodeInstance(RepositoriesService.class);
+        Repository myRepo = repositoriesService.repository("my_repo");
+
+        CompletableFuture<RepositoryData> repoData1 = myRepo.getRepositoryData();
+        assertThat(repoData1).succeedsWithin(5, TimeUnit.SECONDS);
+        Map<String, IndexId> indices1 = repoData1.join().getIndices();
+        assertThat(indices1).containsOnlyKeys("t01", "t02");
+        IndexId indexId01_1 = indices1.get("t01");
+        IndexId indexId02_1 = indices1.get("t02");
+
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+
+        CompletableFuture<RepositoryData> repoData2 = myRepo.getRepositoryData();
+        assertThat(repoData2).succeedsWithin(5, TimeUnit.SECONDS);
+        Map<String, IndexId> indices2 = repoData2.join().getIndices();
+        assertThat(indices2).containsOnlyKeys("t01", "t02");
+        IndexId indexId01_2 = indices2.get("t01");
+        IndexId indexId02_2 = indices2.get("t02");
+
+        //assertThat(indexId01_1.getId()).isEqualTo(indexId01_2.getId());
+        //assertThat(indexId02_1.getId()).isEqualTo(indexId02_2.getId());
+
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
+    }
+
+    @Test
+    public void test_can_restore_snapshots_after_swapped_table_back_and_forth() throws Exception {
+        execute("CREATE TABLE t01 AS SELECT random() a, random() b FROM generate_series(1, 10, 1)");
+        execute("CREATE TABLE t02 AS SELECT random() a, random() b FROM generate_series(1, 10, 1)");
+        execute("CREATE SNAPSHOT my_repo.s1 ALL WITH (wait_for_completion=true)");
+        execute("ALTER CLUSTER SWAP TABLE t01 TO t02");
+        execute("ALTER CLUSTER SWAP TABLE t02 TO t01");
+        execute("CREATE SNAPSHOT my_repo.s2 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE t01");
+        execute("DROP TABLE t02");
+        execute("RESTORE SNAPSHOT my_repo.s2 ALL");
     }
 
     private void createSnapshotWithTablesAndMetadata() throws Exception {

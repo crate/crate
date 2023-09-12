@@ -215,21 +215,6 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
 
 
     /**
-     * Gets the {@link RepositoryData} for the given repository.
-     *
-     * @param repositoryName repository name
-     * @return repository data
-     */
-    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
-        try {
-            Repository repository = repositoriesService.repository(repositoryName);
-            return repository.getRepositoryData();
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    /**
      * Returns a list of snapshots from repository sorted by snapshot creation date
      *
      * @param snapshotsInProgress snapshots in progress in the cluster state

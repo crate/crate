@@ -55,6 +55,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 /**
  * Tests for the {@link RepositoryData} class.
@@ -80,13 +81,14 @@ public class RepositoryDataTests extends ESTestCase {
             Collections.singleton(randomSnapshot)), containsInAnyOrder(indicesToUpdate));
     }
 
+    @Test
     public void testXContent() throws IOException {
         RepositoryData repositoryData = generateRandomRepoData();
         XContentBuilder builder = JsonXContent.builder();
         repositoryData.snapshotsToXContent(builder, Version.CURRENT);
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             long gen = (long) randomIntBetween(0, 500);
-            RepositoryData fromXContent = RepositoryData.snapshotsFromXContent(parser, gen, randomBoolean());
+            RepositoryData fromXContent = RepositoryData.snapshotsFromXContent(parser, gen, randomBoolean(), null);
             assertEquals(repositoryData, fromXContent);
             assertEquals(gen, fromXContent.getGenId());
         }
@@ -202,7 +204,7 @@ public class RepositoryDataTests extends ESTestCase {
         repositoryData.snapshotsToXContent(builder, Version.CURRENT);
         RepositoryData parsedRepositoryData;
         try (XContentParser xParser = createParser(builder)) {
-            parsedRepositoryData = RepositoryData.snapshotsFromXContent(xParser, repositoryData.getGenId(), randomBoolean());
+            parsedRepositoryData = RepositoryData.snapshotsFromXContent(xParser, repositoryData.getGenId(), randomBoolean(), null);
         }
         assertEquals(repositoryData, parsedRepositoryData);
 
@@ -241,7 +243,7 @@ public class RepositoryDataTests extends ESTestCase {
 
         try (XContentParser xParser = createParser(corruptedBuilder)) {
             ElasticsearchParseException e = expectThrows(ElasticsearchParseException.class, () ->
-                RepositoryData.snapshotsFromXContent(xParser, corruptedRepositoryData.getGenId(), randomBoolean()));
+                RepositoryData.snapshotsFromXContent(xParser, corruptedRepositoryData.getGenId(), randomBoolean(), null));
             assertThat(e.getMessage(), equalTo("Detected a corrupted repository, index " + corruptedIndexId + " references an unknown " +
                                                "snapshot uuid [_does_not_exist]"));
         }
@@ -278,7 +280,7 @@ public class RepositoryDataTests extends ESTestCase {
 
         try (XContentParser xParser = createParser(builder)) {
             ElasticsearchParseException e = expectThrows(ElasticsearchParseException.class, () ->
-                RepositoryData.snapshotsFromXContent(xParser, randomNonNegativeLong(), randomBoolean()));
+                RepositoryData.snapshotsFromXContent(xParser, randomNonNegativeLong(), randomBoolean(), null));
             assertThat(e.getMessage(), equalTo("Detected a corrupted repository, " +
                                                "index [docs/_id] references an unknown snapshot uuid [null]"));
         }

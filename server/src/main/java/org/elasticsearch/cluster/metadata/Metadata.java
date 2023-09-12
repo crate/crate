@@ -278,20 +278,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return allClosedIndices;
     }
 
-    public boolean hasIndex(String index) {
-        return indices.containsKey(index);
+    public boolean hasIndex(String indexName) {
+        return indices.containsKey(indexName);
     }
 
     public boolean hasIndex(Index index) {
         return indicesByUUID.containsKey(index.getUUID());
     }
 
-    public boolean hasConcreteIndex(String index) {
-        return getAliasAndIndexLookup().containsKey(index);
+    public boolean hasConcreteIndex(String indexName) {
+        return getAliasAndIndexLookup().containsKey(indexName);
     }
 
-    public IndexMetadata index(String index) {
-        return indices.get(index);
+    public IndexMetadata index(String indexName) {
+        return indices.get(indexName);
     }
 
     public IndexMetadata index(Index index) {

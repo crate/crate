@@ -981,8 +981,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         // If there are older version nodes in the cluster, we don't need to run this cleanup as it will have already happened
         // when writing the index-${N} to each shard directory.
         final boolean writeShardGens = SnapshotsService.useShardGenerations(repositoryMetaVersion);
-        final Consumer<Exception> onUpdateFailure =
-            e -> listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        final Consumer<Exception> onUpdateFailure = e -> {
+            listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
+        };
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         final boolean writeIndexGens = SnapshotsService.useIndexGenerations(repositoryMetaVersion);
@@ -1347,7 +1348,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             try (InputStream blob = blobContainer().readBlob(snapshotsIndexBlobName);
                  XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
                      LoggingDeprecationHandler.INSTANCE, blob)) {
-                return RepositoryData.snapshotsFromXContent(parser, indexGen, false);
+                return RepositoryData.snapshotsFromXContent(parser, indexGen, false, clusterService.state().metadata());
             }
         } catch (IOException ioe) {
             if (bestEffortConsistency) {
@@ -1718,9 +1719,15 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void snapshotShard(Store store, MapperService mapperService, SnapshotId snapshotId, IndexId indexId,
-                              IndexCommit snapshotIndexCommit, String shardStateIdentifier, IndexShardSnapshotStatus snapshotStatus,
-                              Version repositoryMetaVersion, ActionListener<String> listener) {
+    public void snapshotShard(Store store,
+                              MapperService mapperService,
+                              SnapshotId snapshotId,
+                              IndexId indexId,
+                              IndexCommit snapshotIndexCommit,
+                              String shardStateIdentifier,
+                              IndexShardSnapshotStatus snapshotStatus,
+                              Version repositoryMetaVersion,
+                              ActionListener<String> listener) {
         final ShardId shardId = store.shardId();
         final long startTime = threadPool.absoluteTimeInMillis();
         try {
