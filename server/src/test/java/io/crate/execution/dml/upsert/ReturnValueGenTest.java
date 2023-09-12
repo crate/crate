@@ -27,6 +27,8 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.Map;
 
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.analyze.AnalyzedUpdateStatement;
@@ -79,7 +81,7 @@ public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
         assertThat(objects[0], is(3L));
     }
 
-    private Object[] returnValues(String id, Map<String, Object> content) {
+    private Object[] returnValues(String id, Map<String, Object> content) throws IOException {
         return returnValueGen.generateReturnValues(doc(id, content));
     }
 
@@ -93,8 +95,9 @@ public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
                                             update.outputs() == null ? null : update.outputs().toArray(new Symbol[0]));
     }
 
-    private Doc doc(String id, Map<String, Object> content) {
-        return new Doc(1, tableInfo.concreteIndices()[0], id, 1, 1, 1, content, () -> "");
+    private Doc doc(String id, Map<String, Object> content) throws IOException {
+        BytesReference source = BytesReference.bytes(JsonXContent.builder().map(content));
+        return new Doc(1, tableInfo.concreteIndices()[0], id, 1, 1, 1, source, () -> "");
     }
 
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();

@@ -21,12 +21,13 @@
 
 package io.crate.expression.reference;
 
-import java.util.Map;
+import org.elasticsearch.common.bytes.BytesReference;
+
 import java.util.function.Supplier;
 
 public final class Doc {
 
-    private final Map<String, Object> source;
+    private final BytesReference source;
     private final Supplier<String> raw;
     private final int docId;
     private final String index;
@@ -41,7 +42,7 @@ public final class Doc {
                long version,
                long seqNo,
                long primaryTerm,
-               Map<String, Object> source,
+               BytesReference source,
                Supplier<String> raw) {
         this.docId = docId;
         this.index = index;
@@ -77,7 +78,7 @@ public final class Doc {
         return raw.get();
     }
 
-    public Map<String, Object> getSource() {
+    public BytesReference getSource() {
         return source;
     }
 
