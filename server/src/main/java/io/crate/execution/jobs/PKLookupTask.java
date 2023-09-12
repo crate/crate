@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.data.BatchIterator;
@@ -77,6 +78,7 @@ public final class PKLookupTask extends AbstractTask {
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,
                  List<ColumnIdent> partitionedByColumns,
+                 SourceParser sourceParser,
                  List<Symbol> toCollect,
                  Map<ShardId, List<PKAndVersion>> idsByShard,
                  Collection<? extends Projection> shardProjections,
@@ -94,7 +96,7 @@ public final class PKLookupTask extends AbstractTask {
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
-        DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
+        DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns, sourceParser);
 
         InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(txnCtx, docRefResolver);
         ctx.add(toCollect);

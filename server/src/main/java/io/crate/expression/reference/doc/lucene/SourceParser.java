@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.crate.metadata.Reference;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -43,7 +44,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -78,6 +78,19 @@ public final class SourceParser {
         this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
+    /**
+     * Similar to {@link #register(ColumnIdent, DataType)} but doesn't have _doc semantics
+     * so that it's possible to directly register references without creating an intermediate _doc reference.
+     */
+    public void register(Reference reference) {
+        List<String> path = reference.column().path();
+        if (path.isEmpty()) {
+            requiredColumns.put(reference.column().name(), reference.valueType());
+        } else {
+            registerPath(reference.column().path(), reference.valueType());
+        }
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
@@ -87,22 +100,26 @@ public final class SourceParser {
         if (path.size() == 1) {
             requiredColumns.put(docColumn.path().get(0), type);
         } else {
-            Map<String, Object> columns = requiredColumns;
-            for (int i = 0; i < path.size(); i++) {
-                String part = path.get(i);
-                if (i + 1 == path.size()) {
-                    columns.put(part, type);
+            registerPath(path, type);
+        }
+    }
+
+    private void registerPath(List<String> path, DataType<?> type) {
+        Map<String, Object> columns = requiredColumns;
+        for (int i = 0; i < path.size(); i++) {
+            String part = path.get(i);
+            if (i + 1 == path.size()) {
+                columns.put(part, type);
+            } else {
+                Object object = columns.get(part);
+                if (object instanceof Map map) {
+                    columns = map;
+                } else if (object instanceof DataType) {
+                    break;
                 } else {
-                    Object object = columns.get(part);
-                    if (object instanceof Map map) {
-                        columns = map;
-                    } else if (object instanceof DataType) {
-                        break;
-                    } else {
-                        HashMap<String, Object> children = new HashMap<>();
-                        columns.put(part, children);
-                        columns = children;
-                    }
+                    HashMap<String, Object> children = new HashMap<>();
+                    columns.put(part, children);
+                    columns = children;
                 }
             }
         }
@@ -133,8 +150,7 @@ public final class SourceParser {
         }
     }
 
-    @VisibleForTesting
-    Map<String, Object> parse(BytesReference bytes) {
+    public Map<String, Object> parse(BytesReference bytes) {
         return parse(bytes, false);
     }
 

@@ -31,12 +31,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 
+
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -113,12 +122,9 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Routing;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.distribution.DistributionType;
@@ -628,6 +634,15 @@ public class JobSetup {
                 consumerMemoryManager,
                 projectorFactory
             );
+
+            SourceParser sourceParser;
+            RelationName relationName = pkLookupPhase.relationName();
+            if (relationName == null) {
+                sourceParser = new SourceParser(Set.of(), Function.identity());
+            } else {
+                DocTableInfo table = schemas.getTableInfo(relationName);
+                sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
+            }
             context.registerSubContext(new PKLookupTask(
                 pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
@@ -639,6 +654,7 @@ public class JobSetup {
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),
+                sourceParser,
                 pkLookupPhase.toCollect(),
                 idsByShardId,
                 shardProjections,

@@ -23,7 +23,6 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -31,6 +30,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
@@ -49,14 +50,16 @@ import io.crate.testing.SQLExecutor;
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     private static Doc doc(String index, Map<String, Object> source) {
-        Supplier<String> rawSource = () -> {
-            try {
-                return Strings.toString(JsonXContent.builder().map(source));
-            } catch (IOException e1) {
-                throw new RuntimeException(e1);
-            }
-        };
-        return new Doc(1, index, "id-1", 1, 1, 1, source, rawSource);
+        BytesReference rawSource;
+        Supplier<String> rawSourceSupplier;
+        try {
+            XContentBuilder xContentBuilder = JsonXContent.builder().map(source);
+            rawSource = BytesReference.bytes(xContentBuilder);
+            rawSourceSupplier = () -> Strings.toString(xContentBuilder);
+        } catch (IOException e1) {
+            throw new RuntimeException(e1);
+        }
+        return new Doc(1, index, "id-1", 1, 1, 1, rawSource, rawSourceSupplier);
     }
 
     @Test

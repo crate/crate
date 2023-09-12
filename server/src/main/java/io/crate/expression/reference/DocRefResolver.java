@@ -23,23 +23,19 @@ package io.crate.expression.reference;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.Function;
 
 import io.crate.common.collections.Maps;
-import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.ValueExtractors;
+import io.crate.execution.engine.collect.ParsedSourceCollectExpression;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.ObjectType;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -48,9 +44,11 @@ import io.crate.types.ObjectType;
 public final class DocRefResolver implements ReferenceResolver<CollectExpression<Doc, ?>> {
 
     private final List<ColumnIdent> partitionedByColumns;
+    private final SourceParser sourceParser;
 
-    public DocRefResolver(List<ColumnIdent> partitionedByColumns) {
+    public DocRefResolver(List<ColumnIdent> partitionedByColumns, SourceParser sourceParser) {
         this.partitionedByColumns = partitionedByColumns;
+        this.sourceParser = sourceParser;
     }
 
     @Override
@@ -77,7 +75,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                 return forFunction(Doc::getRaw);
 
             case DocSysColumns.Names.DOC:
-                return forFunction(Doc::getSource);
+                return forFunction(doc -> sourceParser.parse(doc.getSource()));
 
             default:
                 final ColumnIdent column = columnIdent.name().equals(DocSysColumns.Names.DOC)
@@ -93,53 +91,22 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                         );
                     } else if (pColumn.isChildOf(column)) {
                         final int idx = i;
-                        return forFunction(response -> {
-                            if (response == null) {
-                                return null;
-                            }
-                            var partitionName = PartitionName.fromIndexOrTemplate(response.getIndex());
+                        sourceParser.register(ref);
+
+                        Function<Doc, Map<String, Object>> parse = doc -> {
+                            // NULL check for doc is done in expression.
+                            var partitionName = PartitionName.fromIndexOrTemplate(doc.getIndex());
                             var partitionValue = partitionName.values().get(idx);
-                            var source = response.getSource();
-                            Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
-                            Object value = ValueExtractors.fromMap(source, column);
-                            return ref.valueType().implicitCast(value);
-                        });
+                            Map<String, Object> parsedSource = sourceParser.parse(doc.getSource());
+                            Maps.mergeInto(parsedSource, pColumn.name(), pColumn.path(), partitionValue);
+                            return parsedSource;
+                        };
+                        return new ParsedSourceCollectExpression(parse, column, ref.valueType());
                     }
                 }
 
-                return forFunction(response -> {
-                    if (response == null) {
-                        return null;
-                    }
-                    try {
-                        return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), column));
-                    } catch (ClassCastException | ConversionException e) {
-                        // due to a bug: https://github.com/crate/crate/issues/13990
-                        Object value = ValueExtractors.fromMap(response.getSource(), column);
-                        return replaceArraysWithNull(value, ref.valueType(), e);
-                    }
-                });
-        }
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Object replaceArraysWithNull(Object value, DataType<?> valueType, RuntimeException e)
-        throws RuntimeException {
-
-        if (value instanceof List<?> list && list.stream().allMatch(Objects::isNull) &&
-            valueType.id() != ArrayType.ID) {
-            return null;
-        } else if (value instanceof Map<?, ?> valueMap) {
-            Map newMap = new HashMap<>(valueMap.size());
-            for (var entry : valueMap.entrySet()) {
-                Object entryKey = entry.getKey();
-                Object entryValue = entry.getValue();
-                DataType<?> innerType = ((ObjectType) valueType).innerType((String) entryKey);
-                newMap.put(entryKey, replaceArraysWithNull(entryValue, innerType, e));
-            }
-            return newMap;
-        } else {
-            throw e;
+                sourceParser.register(ref);
+                return new ParsedSourceCollectExpression(doc -> sourceParser.parse(doc.getSource()), column, ref.valueType());
         }
     }
 }
