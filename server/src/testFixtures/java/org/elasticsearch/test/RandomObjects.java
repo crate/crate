@@ -126,7 +126,7 @@ public final class RandomObjects {
                     throw new UnsupportedOperationException();
             }
         }
-        return Tuple.tuple(originalValues, expectedParsedValues);
+        return new Tuple<>(originalValues, expectedParsedValues);
     }
 
     /**

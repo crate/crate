@@ -510,16 +510,16 @@ class S3BlobContainer extends AbstractBlobContainer {
         }
 
         if ((totalSize == 0L) || (totalSize <= partSize)) {
-            return Tuple.tuple(1L, totalSize);
+            return new Tuple<>(1L, totalSize);
         }
 
         final long parts = totalSize / partSize;
         final long remaining = totalSize % partSize;
 
         if (remaining == 0) {
-            return Tuple.tuple(parts, partSize);
+            return new Tuple<>(parts, partSize);
         } else {
-            return Tuple.tuple(parts + 1, remaining);
+            return new Tuple<>((parts + 1), remaining);
         }
     }
 }

@@ -247,7 +247,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
      */
     public synchronized Tuple<Boolean, RetentionLeases> getRetentionLeases(final boolean expireLeases) {
         if (expireLeases == false) {
-            return Tuple.tuple(false, retentionLeases);
+            return new Tuple<>(false, retentionLeases);
         }
         assert primaryMode;
         // the primary calculates the non-expired retention leases and syncs them to replicas
@@ -280,13 +280,13 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         if (expiredLeases == null) {
             // early out as no retention leases have expired
             logger.debug("no retention leases are expired from current retention leases [{}]", retentionLeases);
-            return Tuple.tuple(false, retentionLeases);
+            return new Tuple<>(false, retentionLeases);
         }
         final Collection<RetentionLease> nonExpiredLeases =
                 partitionByExpiration.get(false) != null ? partitionByExpiration.get(false) : Collections.emptyList();
         logger.debug("expiring retention leases [{}] from current retention leases [{}]", expiredLeases, retentionLeases);
         retentionLeases = new RetentionLeases(operationPrimaryTerm, retentionLeases.version() + 1, nonExpiredLeases);
-        return Tuple.tuple(true, retentionLeases);
+        return new Tuple<>(true, retentionLeases);
     }
 
     private long getMinimumReasonableRetainedSeqNo() {

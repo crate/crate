@@ -881,7 +881,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     entry.version(),
                     state -> stateWithoutSnapshot(state, snapshot),
                     ActionListener.wrap(newRepoData -> {
-                        completeListenersIgnoringException(endAndGetListenersToResolve(snapshot), Tuple.tuple(newRepoData, snapshotInfo));
+                        completeListenersIgnoringException(endAndGetListenersToResolve(snapshot), new Tuple<>(newRepoData, snapshotInfo));
                         LOGGER.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
                         runNextQueuedOperation(newRepoData, repository, true);
                     }, e -> handleFinalizationFailure(e, entry, repositoryData)));
@@ -1007,7 +1007,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final SnapshotDeletionsInProgress deletions =
                 currentState.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY);
         if (deletions.hasDeletionsInProgress() == false) {
-            return Tuple.tuple(currentState, Collections.emptyList());
+            return new Tuple<>(currentState, Collections.emptyList());
         }
         final SnapshotsInProgress snapshotsInProgress = currentState.custom(SnapshotsInProgress.TYPE);
         assert snapshotsInProgress != null;
@@ -1028,8 +1028,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 newDeletes.add(entry);
             }
         }
-        return Tuple.tuple(changed ? ClusterState.builder(currentState).putCustom(
-                SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.of(newDeletes)).build() : currentState, readyDeletions);
+        return new Tuple<>(changed ? ClusterState.builder(currentState).putCustom(
+        SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.of(newDeletes)).build() : currentState, readyDeletions);
     }
 
     /**
@@ -2317,7 +2317,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             }
             nextEntry = queued.pollFirst();
             assert nextEntry != null;
-            final Tuple<SnapshotsInProgress.Entry, Metadata> res = Tuple.tuple(nextEntry, latestKnownMetaData);
+            final Tuple<SnapshotsInProgress.Entry, Metadata> res = new Tuple<>(nextEntry, latestKnownMetaData);
             if (queued.isEmpty()) {
                 snapshotsToFinalize.remove(repository);
             }
