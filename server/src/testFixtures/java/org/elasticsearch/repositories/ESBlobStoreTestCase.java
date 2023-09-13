@@ -30,7 +30,7 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.util.concurrent.TestFutureUtils;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.test.ESTestCase;
 
@@ -89,6 +89,6 @@ public abstract class ESBlobStoreTestCase extends ESTestCase {
     protected abstract BlobStore newBlobStore() throws IOException;
 
     public static RepositoryData getRepositoryData(Repository repository) {
-        return TestFutureUtils.get(repository::getRepositoryData);
+        return FutureUtils.get(repository.getRepositoryData());
     }
 }

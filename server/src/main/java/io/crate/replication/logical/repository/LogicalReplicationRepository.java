@@ -34,8 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
@@ -72,6 +70,7 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.exceptions.Exceptions;
@@ -221,11 +220,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
             return indexMdBuilder.build();
         });
-    }
-
-    @Override
-    public void getRepositoryData(ActionListener<RepositoryData> listener) {
-        getRepositoryData().whenComplete(listener);
     }
 
     @Override

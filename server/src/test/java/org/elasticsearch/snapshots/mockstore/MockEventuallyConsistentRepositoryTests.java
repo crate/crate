@@ -28,6 +28,8 @@ import java.io.InputStream;
 import java.nio.file.NoSuchFileException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.elasticsearch.Version;
@@ -49,11 +51,14 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
+
 public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
 
     private final RecoverySettings recoverySettings = new RecoverySettings(Settings.EMPTY,
         new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS));
 
+    @Test
     public void testReadAfterWriteConsistently() throws IOException {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
@@ -74,6 +79,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testReadAfterWriteAfterReadThrows() throws IOException {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
@@ -90,6 +96,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testReadAfterDeleteAfterWriteThrows() throws IOException {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
@@ -161,28 +168,45 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             final SnapshotId snapshotId = new SnapshotId("foo", UUIDs.randomBase64UUID());
             TestFutureUtils.<RepositoryData, Exception>get(f ->
                 // We try to write another snap- blob for "foo" in the next generation. It fails because the content differs.
-                repository.finalizeSnapshot(ShardGenerations.EMPTY, RepositoryData.EMPTY_REPO_GEN, Metadata.EMPTY_METADATA,
-                    new SnapshotInfo(snapshotId, Collections.emptyList(),
-                        0L, null, 1L, 5, Collections.emptyList(), true),
-                    Version.CURRENT, Function.identity(), f));
+                repository.finalizeSnapshot(
+                    ShardGenerations.EMPTY,
+                    RepositoryData.EMPTY_REPO_GEN,
+                    Metadata.EMPTY_METADATA,
+                    new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 5, Collections.emptyList(), true),
+                    Version.CURRENT,
+                    Function.identity(),
+                    f
+                ));
 
             // We try to write another snap- blob for "foo" in the next generation. It fails because the content differs.
-            assertThatThrownBy(
-                () -> TestFutureUtils.<RepositoryData, Exception>get(f ->
-                    repository.finalizeSnapshot(ShardGenerations.EMPTY, 0L, Metadata.EMPTY_METADATA,
-                        new SnapshotInfo(snapshotId, Collections.emptyList(),
-                            0L, null, 1L, 6, Collections.emptyList(), true),
-                        Version.CURRENT, Function.identity(), f))
-            ).isInstanceOf(AssertionError.class)
-                .hasMessage("\nExpected: <6>\n     but: was <5>");
+            FutureActionListener<RepositoryData, RepositoryData> fut = FutureActionListener.newInstance();
+            repository.finalizeSnapshot(
+                ShardGenerations.EMPTY,
+                0L,
+                Metadata.EMPTY_METADATA,
+                new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 6, Collections.emptyList(), true),
+                Version.CURRENT,
+                Function.identity(),
+                fut
+            );
+            assertThat(fut).failsWithin(5, TimeUnit.SECONDS)
+                .withThrowableOfType(ExecutionException.class)
+                .havingCause()
+                    .isExactlyInstanceOf(AssertionError.class)
+                    .withMessage("\nExpected: <6>\n     but: was <5>");
 
             // We try to write yet another snap- blob for "foo" in the next generation.
             // It passes cleanly because the content of the blob except for the timestamps.
             TestFutureUtils.<RepositoryData, Exception>get(f ->
-                repository.finalizeSnapshot(ShardGenerations.EMPTY, 0L, Metadata.EMPTY_METADATA,
-                    new SnapshotInfo(snapshotId, Collections.emptyList(),
-                        0L, null, 2L, 5, Collections.emptyList(), true),
-                    Version.CURRENT, Function.identity(), f));
+                repository.finalizeSnapshot(
+                    ShardGenerations.EMPTY,
+                    0L,
+                    Metadata.EMPTY_METADATA,
+                    new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 2L, 5, Collections.emptyList(), true),
+                    Version.CURRENT,
+                    Function.identity(),
+                    f
+                ));
         }
     }
 

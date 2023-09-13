@@ -138,6 +138,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -371,10 +372,11 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask, String source,
+    public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask,
+                                             String source,
                                              Consumer<Exception> onFailure) {
         final RepositoryMetadata repositoryMetadataStart = metadata;
-        getRepositoryData(ActionListener.wrap(repositoryData -> {
+        getRepositoryData().whenComplete(ActionListener.wrap(repositoryData -> {
             final ClusterStateUpdateTask updateTask = createUpdateTask.apply(repositoryData);
             clusterService.submitStateUpdateTask(source, new ClusterStateUpdateTask(updateTask.priority()) {
 
@@ -983,13 +985,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             e -> listener.onFailure(new SnapshotException(metadata.name(), snapshotId, "failed to update snapshot in repository", e));
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
-
         final boolean writeIndexGens = SnapshotsService.useIndexGenerations(repositoryMetaVersion);
-
-        final StepListener<RepositoryData> repoDataListener = new StepListener<>();
-        executor.execute(ActionRunnable.wrap(repoDataListener, this::getRepositoryData));
-        repoDataListener.whenComplete(existingRepositoryData -> {
-
+        getRepositoryData().whenComplete((existingRepositoryData, err) -> {
+            if (err != null) {
+                onUpdateFailure.accept(Exceptions.toException(err));
+                return;
+            }
             final Map<IndexId, String> indexMetas;
             final Map<String, String> indexMetaIdentifiers;
             if (writeIndexGens) {
@@ -1000,19 +1001,27 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 indexMetaIdentifiers = null;
             }
 
-            final ActionListener<Void> allMetaListener = new GroupedActionListener<>(
-                ActionListener.wrap(v -> {
+            ActionListener<Collection<Void>> onAllIndicesFinishedListener = ActionListener.wrap(
+                v -> {
                     final RepositoryData updatedRepositoryData = existingRepositoryData.addSnapshot(
                         snapshotId, snapshotInfo.state(), Version.CURRENT, shardGenerations, indexMetas, indexMetaIdentifiers);
-                    writeIndexGen(updatedRepositoryData, repositoryStateId, repositoryMetaVersion, stateTransformer,
-                            ActionListener.wrap(
-                                    newRepoData -> {
-                                        if (writeShardGens) {
-                                            cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
-                                        }
-                                        listener.onResponse(newRepoData);
-                                    }, onUpdateFailure));
-                }, onUpdateFailure), 2 + indices.size());
+                    writeIndexGen(
+                        updatedRepositoryData,
+                        repositoryStateId,
+                        repositoryMetaVersion,
+                        stateTransformer,
+                        ActionListener.wrap(newRepoData -> {
+                            if (writeShardGens) {
+                                cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
+                            }
+                            listener.onResponse(newRepoData);
+                        },
+                        onUpdateFailure
+                    ));
+                },
+                onUpdateFailure
+            );
+            final ActionListener<Void> allMetaListener = new GroupedActionListener<>(onAllIndicesFinishedListener, 2 + indices.size());
 
             // We ignore all FileAlreadyExistsException when writing metadata since otherwise a master failover while in this method will
             // mean that no snap-${uuid}.dat blob is ever written for this snapshot. This is safe because any updated version of the
@@ -1047,7 +1056,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             }
             executor.execute(ActionRunnable.run(allMetaListener,
                 () -> SNAPSHOT_FORMAT.write(snapshotInfo, blobContainer(), snapshotId.getUUID(), compress)));
-        }, onUpdateFailure);
+        }).exceptionally(err -> {
+            listener.onFailure(Exceptions.toException(err));
+            return null;
+        });
     }
 
     // Delete all old shard gen blobs that aren't referenced any longer as a result from moving to updated repository data
@@ -1210,12 +1222,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.UNKNOWN_REPO_GEN);
 
     @Override
-    public void getRepositoryData(ActionListener<RepositoryData> listener) {
+    public CompletableFuture<RepositoryData> getRepositoryData() {
         if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
-            listener.onFailure(corruptedStateException(null));
-            return;
+            return CompletableFuture.failedFuture(corruptedStateException(null));
         }
-        threadPool.generic().execute(ActionRunnable.wrap(listener, this::doGetRepositoryData));
+        FutureActionListener<RepositoryData, RepositoryData> listener = FutureActionListener.newInstance();
+        threadPool.generic().execute(ActionRunnable.run(listener, () -> doGetRepositoryData(listener)));
+        return listener;
     }
 
     private void doGetRepositoryData(ActionListener<RepositoryData> listener) {
