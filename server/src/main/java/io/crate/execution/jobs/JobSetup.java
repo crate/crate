@@ -168,7 +168,7 @@ public class JobSetup {
         this.circuitBreakerService = circuitBreakerService;
         this.countOperation = countOperation;
         this.memoryManagerFactory = memoryManagerFactory;
-        this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
+        this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource, schemas);
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(nodeCtx);

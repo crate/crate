@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -63,8 +64,12 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.server.xcontent.XContentHelper;
 
@@ -72,14 +77,22 @@ public final class PKLookupOperation {
 
     private final IndicesService indicesService;
     private final ShardCollectSource shardCollectSource;
+    private final Schemas schemas;
 
-    public PKLookupOperation(IndicesService indicesService, ShardCollectSource shardCollectSource) {
+    public PKLookupOperation(IndicesService indicesService, ShardCollectSource shardCollectSource, Schemas schemas) {
         this.indicesService = indicesService;
         this.shardCollectSource = shardCollectSource;
+        this.schemas = schemas;
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
+    public static Doc lookupDoc(IndexShard shard,
+                                String id,
+                                long version,
+                                VersionType versionType,
+                                long seqNo,
+                                long primaryTerm,
+                                Function<BytesReference, Map<String, Object>> parseSource) {
         Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
@@ -106,7 +119,7 @@ public final class PKLookupOperation {
                 docIdAndVersion.version,
                 docIdAndVersion.seqNo,
                 docIdAndVersion.primaryTerm,
-                XContentHelper.toMap(visitor.source(), XContentType.JSON),
+                parseSource.apply(visitor.source()),
                 () -> visitor.source().utf8ToString()
             );
         }
@@ -122,6 +135,7 @@ public final class PKLookupOperation {
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
+        DocTableInfo table = null;
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
             IndexService indexService = indicesService.indexService(shardId.getIndex());
@@ -138,6 +152,16 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
+            if (table == null) {
+                // Table can be resolved only once using first shard, since all shards related to the same table.
+                table = schemas.getTableInfo(RelationName.fromIndexName(shard.shardId().getIndexName()));
+            }
+            final DocTableInfo finalTable = table; // Used in lambda.
+            Function<BytesReference, Map<String, Object>> parseSource = (source) -> {
+                SourceParser sourceParser = new SourceParser(finalTable.droppedColumns(), finalTable.lookupNameBySourceKey());
+                return sourceParser.parse(source);
+            };
+
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> lookupDoc(
                     shard,
@@ -145,7 +169,9 @@ public final class PKLookupOperation {
                     pkAndVersion.version(),
                     VersionType.EXTERNAL,
                     pkAndVersion.seqNo(),
-                    pkAndVersion.primaryTerm()))
+                    pkAndVersion.primaryTerm(),
+                    parseSource
+                ))
                 .filter(Objects::nonNull)
                 .map(resultToRow);
 
