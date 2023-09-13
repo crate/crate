@@ -82,6 +82,9 @@ class JmxClient:
         with Popen(
             [
                 'java',
+                '--add-exports', 'java.rmi/sun.rmi.server=ALL-UNNAMED',
+                '--add-exports', 'java.rmi/sun.rmi.transport=ALL-UNNAMED',
+                '--add-exports', 'java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED',
                 '-jar', self.jmx_path,
                 'mx',
                 '-s', f'localhost:{self.jmx_port}',
