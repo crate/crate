@@ -93,6 +93,10 @@ public final class SourceParser {
             List<String> path = reference.column().path();
             if (path.isEmpty()) {
                 requiredColumns.put(reference.column().name(), reference.valueType());
+            } else if (path.size() == 1) {
+                HashMap<String, Object> children = new HashMap<>();
+                children.put(path.get(0), reference.valueType());
+                requiredColumns.put(reference.column().name(), children);
             } else {
                 registerPath(reference.column().path(), reference.valueType());
             }
@@ -113,6 +117,7 @@ public final class SourceParser {
     }
 
     private void registerPath(List<String> path, DataType<?> type) {
+        assert path.size() >= 2 : "Path size must be at least 2 to ensure that leaf type is wrapped into a map";
         Map<String, Object> columns = requiredColumns;
         for (int i = 0; i < path.size(); i++) {
             String part = path.get(i);
