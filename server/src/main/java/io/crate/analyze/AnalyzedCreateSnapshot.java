@@ -21,34 +21,41 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.snapshots.Snapshot;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class AnalyzedCreateSnapshot implements DDLStatement {
 
     public static final List<String> ALL_INDICES = List.of("*", "-.blob_*");
 
-    private final Snapshot snapshot;
+    private final String repositoryName;
+    private final String snapshotName;
     private final List<Table<Symbol>> tables;
     private final GenericProperties<Symbol> properties;
 
-    AnalyzedCreateSnapshot(Snapshot snapshot,
+    AnalyzedCreateSnapshot(String repositoryName,
+                           String snapshotName,
                            List<Table<Symbol>> tables,
                            GenericProperties<Symbol> properties) {
-        this.snapshot = snapshot;
+        this.repositoryName = repositoryName;
+        this.snapshotName = snapshotName;
         this.tables = tables;
         this.properties = properties;
     }
 
-    public Snapshot snapshot() {
-        return snapshot;
+    public String repositoryName() {
+        return repositoryName;
     }
+
+    public String snapshotName() {
+        return snapshotName;
+    }
+
 
     public GenericProperties<Symbol> properties() {
         return properties;

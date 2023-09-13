@@ -22,15 +22,17 @@
 package io.crate.exceptions;
 
 
-import org.elasticsearch.snapshots.Snapshot;
-
 import java.util.Locale;
 
 public class CreateSnapshotException extends UnhandledServerException implements ClusterScopeException {
 
-    public CreateSnapshotException(Snapshot snapshot, String message) {
-        super(String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
-            snapshot.getRepository(), snapshot.getSnapshotId().getName(), message));
+    public CreateSnapshotException(String repositoryName, String snapshotName, String message) {
+        super(
+            String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
+            repositoryName,
+            snapshotName,
+            message)
+        );
     }
 
     @Override
