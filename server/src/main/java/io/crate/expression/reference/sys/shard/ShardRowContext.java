@@ -88,7 +88,7 @@ public class ShardRowContext {
         this.sizeSupplier = sizeSupplier;
         ShardId shardId = indexShard.shardId();
         String indexName = shardId.getIndexName();
-        this.id = shardId.getId();
+        this.id = shardId.id();
         this.indexParts = new IndexParts(indexName);
         if (indexParts.isPartitioned()) {
             partitionIdent = indexParts.getPartitionIdent();

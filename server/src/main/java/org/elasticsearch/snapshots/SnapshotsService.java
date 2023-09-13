@@ -1952,7 +1952,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     if (useShardGenerations) {
                         final String inFlightGeneration = inFlightShardStates.generationForShard(index, shardId.id(), shardGenerations);
                         if (inFlightGeneration == null && isNewIndex) {
-                            assert shardGenerations.getShardGen(index, shardId.getId()) == null
+                            assert shardGenerations.getShardGen(index, shardId.id()) == null
                                 : "Found shard generation for new index [" + index + "]";
                             shardRepoGeneration = ShardGenerations.NEW_SHARD_GEN;
                         } else {

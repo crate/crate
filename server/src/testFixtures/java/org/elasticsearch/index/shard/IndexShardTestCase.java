@@ -964,7 +964,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final IndexId indexId = new IndexId(index.getName(), index.getUUID());
         final IndexShardSnapshotStatus snapshotStatus = IndexShardSnapshotStatus.newInitializing(
             ESBlobStoreTestCase.getRepositoryData(repository).shardGenerations().getShardGen(
-                indexId, shard.shardId().getId()));
+                indexId, shard.shardId().id()));
         final FutureActionListener<String, String> future = FutureActionListener.newInstance();
         final String shardGen;
         try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {

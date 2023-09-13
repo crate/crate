@@ -190,7 +190,7 @@ public class ReplicationResponse extends TransportResponse {
                            Exception cause,
                            RestStatus status,
                            boolean primary) {
-                super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.stackTrace(cause), status, cause);
+                super(shardId.getIndexName(), shardId.id(), ExceptionsHelper.stackTrace(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;
@@ -218,7 +218,7 @@ public class ReplicationResponse extends TransportResponse {
 
             public Failure(StreamInput in) throws IOException {
                 shardId = new ShardId(in);
-                super.shardId = shardId.getId();
+                super.shardId = shardId.id();
                 index = shardId.getIndexName();
                 nodeId = in.readOptionalString();
                 cause = in.readException();

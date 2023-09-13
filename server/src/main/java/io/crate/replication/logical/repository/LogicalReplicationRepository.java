@@ -362,7 +362,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
                     snapshotShardId.getIndexName(),
-                    snapshotShardId.getId()
+                    snapshotShardId.id()
                 )
                 .primaryShard();
             var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
@@ -370,7 +370,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
                 publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
-                snapshotShardId.getId()
+                snapshotShardId.id()
             );
             var restoreUUID = UUIDs.randomBase64UUID();
             var getStoreMetadataRequest = new GetStoreMetadataAction.Request(
@@ -423,7 +423,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 );
                 chunkTransferCompleted.whenComplete((result, throwable) -> IOUtils.closeWhileHandlingException(multiChunkTransfer));
                 if (fileMetadata.isEmpty()) {
-                    LOGGER.info("Initializing with empty store for shard: {}", shardId.getId());
+                    LOGGER.info("Initializing with empty store for shard: {}", shardId.id());
                     try {
                         store.createEmpty(store.indexSettings().getIndexVersionCreated().luceneVersion);
                         listener.onResponse(null);

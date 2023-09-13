@@ -159,7 +159,7 @@ public class RemoteCollectorFactory {
 
         Routing routing = new Routing(
             Map.of(
-                nodeId, Map.of(shardId.getIndexName(), IntArrayList.from(shardId.getId()))
+                nodeId, Map.of(shardId.getIndexName(), IntArrayList.from(shardId.id()))
             )
         );
         return new RoutedCollectPhase(
