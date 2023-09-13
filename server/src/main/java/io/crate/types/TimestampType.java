@@ -73,9 +73,9 @@ public final class TimestampType extends DataType<Long>
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
-                                               Function<ColumnIdent, FieldType> getFieldType,
+                                               Function<String, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref, getFieldType.apply(ref.column()));
+            return new LongIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

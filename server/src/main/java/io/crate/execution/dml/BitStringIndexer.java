@@ -51,7 +51,7 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
 
     public BitStringIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null
             ? BitStringFieldMapper.Defaults.FIELD_TYPE
             : fieldType;

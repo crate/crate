@@ -52,7 +52,8 @@ public class RawIndexer {
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
-    private final Function<ColumnIdent, FieldType> getFieldType;
+    private final Function<ColumnIdent, Reference> getRef;
+    private final Function<String, FieldType> getFieldType;
     private final Symbol[] returnValues;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
@@ -66,13 +67,14 @@ public class RawIndexer {
                       DocTableInfo table,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
-                      Function<ColumnIdent, FieldType> getFieldType,
+                      Function<String, FieldType> getFieldType,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
         this.indexName = indexName;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
+        this.getRef = table::getReference;
         this.getFieldType = getFieldType;
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
@@ -143,6 +145,12 @@ public class RawIndexer {
         );
 
         return currentRowIndexer.collectSchemaUpdates(currentItem);
+    }
+
+    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        for (var indexer : indexers.values()) {
+            indexer.updateTargets(getRef);
+        }
     }
 
     /**

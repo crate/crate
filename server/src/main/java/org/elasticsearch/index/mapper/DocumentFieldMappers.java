@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,7 +35,8 @@ public final class DocumentFieldMappers implements Iterable<Mapper> {
     public DocumentFieldMappers(Collection<FieldMapper> mappers) {
         Map<String, Mapper> fieldMappers = new HashMap<>();
         for (FieldMapper mapper : mappers) {
-            fieldMappers.put(mapper.name(), mapper);
+            var name = mapper.columnOID() == COLUMN_OID_UNASSIGNED ? mapper.name() : Long.toString(mapper.columnOID());
+            fieldMappers.put(name, mapper);
         }
         this.fieldMappers = Collections.unmodifiableMap(fieldMappers);
     }

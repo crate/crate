@@ -47,7 +47,7 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
 
     public BooleanIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 

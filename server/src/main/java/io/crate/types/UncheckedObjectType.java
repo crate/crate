@@ -52,7 +52,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
         @Override
         public ValueIndexer<Map<Object, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<ColumnIdent, FieldType> getFieldType,
+                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
             throw new UnsupportedOperationException("Unimplemented method 'valueIndexer'");
         }

@@ -144,7 +144,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             return customSortField(ref.toString(), ref, context);
         }
 
-        MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
+        MappedFieldType fieldType = fieldTypeLookup.get(ref.storageIdent());
         if (fieldType == null) {
             FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
                 ref.valueType(),
@@ -152,7 +152,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 context.nullFirst
             ));
             return new SortField(
-                columnIdent.fqn(),
+                ref.storageIdent(),
                 fieldComparatorSource,
                 context.reverseFlag);
         } else if (ref.valueType().equals(DataTypes.IP)
@@ -172,7 +172,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     static SortField mappedSortField(Reference symbol,
                                      boolean reverse,
                                      NullValueOrder nullValueOrder) {
-        String fieldName = symbol.column().fqn();
+        String fieldName = symbol.storageIdent();
         MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
         switch (symbol.valueType().id()) {
             case StringType.ID, CharacterType.ID -> {

@@ -88,7 +88,7 @@ public class RegexpMatchOperator extends Operator<String> {
     @Override
     public Query toQuery(Reference ref, Literal<?> literal) {
         String pattern = (String) literal.value();
-        Term term = new Term(ref.column().fqn(), pattern);
+        Term term = new Term(ref.storageIdent(), pattern);
         if (RegexpFlags.isPcrePattern(pattern)) {
             return new CrateRegexQuery(term);
         } else {

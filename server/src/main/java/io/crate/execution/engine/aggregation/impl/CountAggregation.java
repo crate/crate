@@ -263,7 +263,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case DoubleType.ID:
             case GeoPointType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    ref.column().fqn(),
+                    ref.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
@@ -274,7 +274,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case StringType.ID:
             case BitStringType.ID:
                 return new BinaryDocValueAggregator<>(
-                    ref.column().fqn(),
+                    ref.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);

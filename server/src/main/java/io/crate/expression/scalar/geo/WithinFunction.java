@@ -49,7 +49,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -204,10 +203,10 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             geometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape);
         }
 
-        return getPolygonQuery(ref.column(), geometry);
+        return getPolygonQuery(ref.storageIdent(), geometry);
     }
 
-    private static Query getPolygonQuery(ColumnIdent column, Geometry geometry) {
+    private static Query getPolygonQuery(String column, Geometry geometry) {
         Coordinate[] coordinates = geometry.getCoordinates();
         // close the polygon shape if startpoint != endpoint
         if (!CoordinateArrays.isRing(coordinates)) {
@@ -221,6 +220,6 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             lats[i] = coordinates[i].y;
             lons[i] = coordinates[i].x;
         }
-        return LatLonPoint.newPolygonQuery(column.fqn(), new Polygon(lats, lons));
+        return LatLonPoint.newPolygonQuery(column, new Polygon(lats, lons));
     }
 }

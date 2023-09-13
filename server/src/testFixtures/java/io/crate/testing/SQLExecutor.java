@@ -259,6 +259,9 @@ public class SQLExecutor {
         private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
         private Planner planner;
 
+        @Nullable
+        private LongSupplier columnOidSupplier;
+
         private Builder(ClusterService clusterService,
                         int numNodes,
                         Random random,
@@ -387,6 +390,11 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder setColumnOidSupplier(LongSupplier columnOidSupplier) {
+            this.columnOidSupplier = columnOidSupplier;
+            return this;
+        }
+
         public SQLExecutor build() {
             RelationAnalyzer relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
             return new SQLExecutor(
@@ -474,7 +482,8 @@ public class SQLExecutor {
 
             // addPartitionedTable can be called multiple times, create supplier based on existing state.
             Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            LongSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+            LongSupplier columnOidSupplier =
+                    this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
             Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
 
             XContentBuilder mappingBuilder = JsonXContent.builder().map(mapping);
@@ -541,7 +550,8 @@ public class SQLExecutor {
 
             // addTable can be called multiple times, create supplier based on existing state.
             Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            LongSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+            LongSupplier columnOidSupplier =
+                    this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
 
             RelationName relationName = boundCreateTable.tableName();
             IndexMetadata indexMetadata = getIndexMetadata(

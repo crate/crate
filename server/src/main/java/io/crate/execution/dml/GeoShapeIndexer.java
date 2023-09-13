@@ -49,7 +49,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public GeoShapeIndexer(Reference ref, FieldType fieldType) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         this.ref = (GeoReference) ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), name);
         Double distanceErrorPct = this.ref.distanceErrorPct();
         if (distanceErrorPct != null) {

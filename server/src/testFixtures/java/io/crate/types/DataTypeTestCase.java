@@ -100,7 +100,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             ValueIndexer<? super T> valueIndexer = storageSupport.valueIndexer(
                 table.ident(),
                 reference,
-                column -> mapperService.getLuceneFieldType(column.fqn()),
+                mapperService::getLuceneFieldType,
                 table::getReference
             );
 
@@ -108,7 +108,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             try (XContentBuilder xContentBuilder = XContentFactory.json(new BytesStreamOutput())) {
                 List<IndexableField> fields = new ArrayList<>();
                 xContentBuilder.startObject()
-                    .field(reference.column().fqn());
+                    .field(reference.storageIdent());
                 valueIndexer.indexValue(
                     value,
                     xContentBuilder,
@@ -128,7 +128,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                     BytesReference.bytes(xContentBuilder),
                     XContentType.JSON
                 ));
-                IndexableField[] fieldsFromMapper = parsedDocument.doc().getFields("x");
+                IndexableField[] fieldsFromMapper = parsedDocument.doc().getFields(reference.storageIdent());
                 assertThat(fieldsFromMapper).hasSize(fields.size());
                 for (int i = 0; i < fields.size(); i++) {
                     var field1 = fields.get(i);

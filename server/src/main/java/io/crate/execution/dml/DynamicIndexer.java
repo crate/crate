@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -30,6 +32,7 @@ import java.util.function.Function;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
@@ -50,22 +53,19 @@ import io.crate.types.IntegerType;
 import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
 import io.crate.types.UndefinedType;
-import org.jetbrains.annotations.Nullable;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
-    private final Function<ColumnIdent, FieldType> getFieldType;
-    private final Function<ColumnIdent, Reference> getRef;
+    private final Function<String, FieldType> getFieldType;
+    private Function<ColumnIdent, Reference> getRef;
     private final int position;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
-                          Function<ColumnIdent, FieldType> getFieldType,
+                          Function<String, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef) {
         this.refIdent = refIdent;
         this.getFieldType = getFieldType;

@@ -133,7 +133,7 @@ public final class CIDROperator {
                 return new MatchNoDocsQuery("column does not exist in this index");
             }
             InetAddresses.InetAddressPrefixLength cidr = InetAddresses.parseCidr(cidrStr);
-            return InetAddressPoint.newPrefixQuery(ref.column().fqn(), cidr.inetAddress(), cidr.prefixLen());
+            return InetAddressPoint.newPrefixQuery(ref.storageIdent(), cidr.inetAddress(), cidr.prefixLen());
         }
     }
 }

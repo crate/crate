@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,6 +86,22 @@ public interface Reference extends Symbol {
     Reference getRelocated(ReferenceIdent referenceIdent);
 
     Reference applyColumnOid(LongSupplier oidSupplier);
+
+    /**
+     * Return the identifier of this column used inside the storage engine
+     */
+    default String storageIdent() {
+        return oid() == COLUMN_OID_UNASSIGNED ? column().fqn() : Long.toString(oid());
+    }
+
+    /**
+     * Return the identifier of this column used inside the storage engine.
+     * Compared to {@link #storageIdent()}, this will return the columns leaf name instead of the FQN
+     * if no OID is assigned.
+     */
+    default String storageIdentLeafName() {
+        return oid() == COLUMN_OID_UNASSIGNED ? column().leafName() : Long.toString(oid());
+    }
 
     /**
      * Creates the {@link IndexMetadata} mapping representation of the Column.

@@ -40,20 +40,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -78,6 +64,7 @@ import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,10 +80,22 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.netty.NettyBootstrap;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -184,8 +183,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
         when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
 
-        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(
-            new SimpleReference(
+        var dynamicLongColRef = new SimpleReference(
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
@@ -197,7 +195,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 1,
                 false,
                 null
-            ));
+        );
+        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(dynamicLongColRef);
+        when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),

@@ -316,7 +316,7 @@ public class LuceneQueryBuilder {
                 if (ref.indexType() == IndexType.NONE) {
                     return new MatchNoDocsQuery("column does not exist in this index");
                 }
-                return new TermQuery(new Term(ref.column().fqn(), new BytesRef("T")));
+                return new TermQuery(new Term(ref.storageIdent(), new BytesRef("T")));
             }
             return super.visitReference(ref, context);
         }

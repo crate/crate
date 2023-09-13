@@ -81,16 +81,23 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         @Override
         public ObjectMapper build(BuilderContext context) {
-            context.path().add(name);
+            var pathName = name;
+            context.path().add(pathName);
 
             Map<String, Mapper> mappers = new HashMap<>();
             for (Mapper.Builder<?> builder : mappersBuilders) {
                 Mapper mapper = builder.build(context);
-                Mapper existing = mappers.get(mapper.simpleName());
+                var name = mapper.simpleName();
+                if (mapper.columnOID() != COLUMN_OID_UNASSIGNED) {
+                    name = Long.toString(mapper.columnOID());
+                }
+
+                Mapper existing = mappers.get(name);
+
                 if (existing != null) {
                     mapper = existing.merge(mapper);
                 }
-                mappers.put(mapper.simpleName(), mapper);
+                mappers.put(name, mapper);
             }
             context.path().remove();
 
@@ -99,7 +106,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 position,
                 columnOID,
                 isDropped,
-                context.path().pathAsText(name),
+                context.path().pathAsText(pathName),
                 dynamic,
                 mappers,
                 context.indexSettings()
@@ -251,14 +258,13 @@ public class ObjectMapper extends Mapper implements Cloneable {
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
                  Settings settings) {
-        super(name);
+        super(name, columnOID);
         assert settings != null;
         if (name.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }
         this.fullPath = fullPath;
         this.position = position;
-        this.columnOID = columnOID;
         this.isDropped = isDropped;
         this.dynamic = dynamic;
         if (mappers == null) {
@@ -309,7 +315,11 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     protected void putMapper(Mapper mapper) {
-        mappers = mappers.copyAndPut(mapper.simpleName(), mapper);
+        var name = mapper.simpleName();
+        if (mapper.columnOID() != COLUMN_OID_UNASSIGNED) {
+            name = Long.toString(mapper.columnOID());
+        }
+        mappers = mappers.copyAndPut(name, mapper);
     }
 
     @Override
@@ -366,9 +376,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
     }
 
-    protected long columnOID() {
-        return columnOID;
-    }
 
     protected int position() {
         return position;

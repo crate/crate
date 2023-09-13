@@ -155,8 +155,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         return result;
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final Reference ref) {
-        final String fqn = ref.column().fqn();
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup,
+                                                                          final Reference ref) {
+        final String fqn = ref.storageIdent();
         final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)

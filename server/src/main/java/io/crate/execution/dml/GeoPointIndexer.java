@@ -50,7 +50,7 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
 
     public GeoPointIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null ? GeoShapeFieldMapper.FIELD_TYPE : fieldType;
     }
 
