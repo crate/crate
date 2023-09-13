@@ -334,7 +334,7 @@ public class LinearizabilityChecker {
         Entry entry = createLinkedEntries(events).next;
         Map<Tuple<EventType, Integer>, Integer> eventToPosition = new HashMap<>();
         for (Event event : events) {
-            eventToPosition.put(Tuple.tuple(event.type, event.id), eventToPosition.size());
+            eventToPosition.put(new Tuple<>(event.type, event.id), eventToPosition.size());
         }
         while (entry != null) {
             if (entry.match != null) {
@@ -349,8 +349,8 @@ public class LinearizabilityChecker {
         String input = String.valueOf(entry.event.value);
         String output = String.valueOf(entry.match.event.value);
         int id = entry.event.id;
-        int beginIndex = eventToPosition.get(Tuple.tuple(EventType.INVOCATION, id));
-        int endIndex = eventToPosition.get(Tuple.tuple(EventType.RESPONSE, id));
+        int beginIndex = eventToPosition.get(new Tuple<>(EventType.INVOCATION, id));
+        int endIndex = eventToPosition.get(new Tuple<>(EventType.RESPONSE, id));
         input = input.substring(0, Math.min(beginIndex + 25, input.length()));
         return Strings.padStart(input, beginIndex + 25, ' ') +
                "   "  + Strings.padStart("", endIndex-beginIndex, 'X') + "   "

@@ -382,7 +382,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                         assignedNode = node;
                     }
                 }
-                Tuple<ModelNode, Decision> nodeResult = Tuple.tuple(node, canAllocate);
+                Tuple<ModelNode, Decision> nodeResult = new Tuple<>(node, canAllocate);
                 if (rebalanceConditionsMet) {
                     betterBalanceNodes.add(nodeResult);
                 } else if (betterWeightThanCurrent) {
@@ -883,7 +883,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                 if (explain) {
                     nodeExplanationMap.put(node.getNodeId(),
                         new NodeAllocationResult(node.getRoutingNode().node(), currentDecision, 0));
-                    nodeWeights.add(Tuple.tuple(node.getNodeId(), currentWeight));
+                    nodeWeights.add(new Tuple<>(node.getNodeId(), currentWeight));
                 }
                 if (currentDecision.type() == Type.YES || currentDecision.type() == Type.THROTTLE) {
                     final boolean updateMinNode;
