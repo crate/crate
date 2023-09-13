@@ -267,7 +267,7 @@ public class JoinHelper {
             return;
         }
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), term, optionalJoin);
-        final Tuple<DiscoveryNode, JoinRequest> dedupKey = Tuple.tuple(destination, joinRequest);
+        final Tuple<DiscoveryNode, JoinRequest> dedupKey = new Tuple<>(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {
             LOGGER.debug("attempting to join {} with {}", destination, joinRequest);
             transportService.sendRequest(destination, JOIN_ACTION_NAME, joinRequest,

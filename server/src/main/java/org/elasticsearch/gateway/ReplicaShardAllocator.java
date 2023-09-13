@@ -262,7 +262,7 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                 if (explain) {
                     madeDecision = decision;
                 } else {
-                    return Tuple.tuple(decision, null);
+                    return new Tuple<>(decision, null);
                 }
             } else if (madeDecision.type() == Decision.Type.NO && decision.type() == Decision.Type.THROTTLE) {
                 madeDecision = decision;
@@ -271,7 +271,7 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                 nodeDecisions.put(node.nodeId(), new NodeAllocationResult(node.node(), null, decision));
             }
         }
-        return Tuple.tuple(madeDecision, nodeDecisions);
+        return new Tuple<>(madeDecision, nodeDecisions);
     }
 
     /**

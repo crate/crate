@@ -409,13 +409,13 @@ public class IndexShardTests extends IndexShardTestCase {
                     }
                     releasable.close();
                     super.onResponse(releasable);
-                    results.setOnce(threadId, Tuple.tuple(Boolean.TRUE, null));
+                    results.setOnce(threadId, new Tuple<>(Boolean.TRUE, null));
                     allOperationsDone.countDown();
                 }
 
                 @Override
                 public void onFailure(final Exception e) {
-                    results.setOnce(threadId, Tuple.tuple(Boolean.FALSE, e));
+                    results.setOnce(threadId, new Tuple<>(Boolean.FALSE, e));
                     allOperationsDone.countDown();
                 }
             };

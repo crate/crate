@@ -446,7 +446,7 @@ public abstract class MetadataStateFormat<T> {
                     .map(Object::toString)
                     .collect(Collectors.joining(", ")) + "], concurrent writes?");
         }
-        return Tuple.tuple(state, generation);
+        return new Tuple<>(state, generation);
     }
 
     /**
