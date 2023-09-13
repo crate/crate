@@ -25,8 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -44,8 +42,8 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.repositories.TypeSettings;
 
 /**
@@ -119,30 +117,12 @@ public interface Repository extends LifecycleComponent {
      */
     CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds);
 
-
     /**
-     * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
-     * and the indices across all snapshots found in the repository.  Throws a {@link RepositoryException}
-     * if there was an error in reading the data.
-     *
-     * @deprecated Use {@link #getRepositoryData()} instead
+     * Returns {@link RepositoryData} to describe the data in the repository, including the snapshots
+     * and the indices across all snapshots found in the repository.
+     * Returns a failed future with a {@link RepositoryException} if there was an error in reading the data.
      */
-    void getRepositoryData(ActionListener<RepositoryData> listener);
-
-    /**
-     * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots
-     * and the indices across all snapshots found in the repository.  Throws a {@link RepositoryException}
-     * if there was an error in reading the data.
-     */
-    default CompletableFuture<RepositoryData> getRepositoryData() {
-        FutureActionListener<RepositoryData, RepositoryData> future = FutureActionListener.newInstance();
-        try {
-            getRepositoryData(future);
-        } catch (Exception e) {
-            future.onFailure(e);
-        }
-        return future;
-    }
+    CompletableFuture<RepositoryData> getRepositoryData();
 
     /**
      * Finalizes snapshotting process

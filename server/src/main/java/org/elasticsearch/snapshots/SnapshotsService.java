@@ -107,6 +107,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -807,16 +808,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final String repoName = entry.repository();
         if (tryEnterRepoLoop(repoName)) {
             if (repositoryData == null) {
-                repositoriesService.repository(repoName).getRepositoryData(new ActionListener<RepositoryData>() {
-                    @Override
-                    public void onResponse(RepositoryData repositoryData) {
-                        finalizeSnapshotEntry(entry, metadata, repositoryData);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        clusterService.submitStateUpdateTask("fail repo tasks for [" + repoName + "]",
-                            new FailPendingRepoTasksTask(repoName, e));
+                repositoriesService.repository(repoName).getRepositoryData().whenComplete((repoData, err) -> {
+                    if (err == null) {
+                        finalizeSnapshotEntry(entry, metadata, repoData);
+                    } else {
+                        clusterService.submitStateUpdateTask(
+                            "fail repo tasks for [" + repoName + "]", new FailPendingRepoTasksTask(repoName, Exceptions.toException(err)));
                     }
                 });
             } else {

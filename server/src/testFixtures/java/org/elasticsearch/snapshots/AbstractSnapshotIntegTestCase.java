@@ -30,7 +30,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,15 +123,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     }
 
     protected RepositoryData getRepositoryData(Repository repository) throws InterruptedException {
-        ThreadPool threadPool = cluster().getInstance(ThreadPool.class, cluster().getMasterName());
-        final FutureActionListener<RepositoryData, RepositoryData> repositoryData = FutureActionListener.newInstance();
-        final CountDownLatch latch = new CountDownLatch(1);
-        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
-            repository.getRepositoryData(repositoryData);
-            latch.countDown();
-        });
-        latch.await();
-        return FutureUtils.get(repositoryData);
+        return FutureUtils.get(repository.getRepositoryData());
     }
 
     public static long getFailureCount(String repository) {
