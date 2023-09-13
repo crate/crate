@@ -26,7 +26,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -43,7 +42,7 @@ final class ReturnValueGen {
 
     ReturnValueGen(TransactionContext txnCtx, NodeContext nodeCtx, DocTableInfo table, Symbol[] returnValues) {
         InputFactory.Context<CollectExpression<Doc, ?>> cntx = new InputFactory(nodeCtx).ctxForRefs(
-            txnCtx, new DocRefResolver(table.partitionedBy(), new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey())));
+            txnCtx, new DocRefResolver(table.partitionedBy()));
         cntx.add(List.of(returnValues));
         this.expressions = cntx.expressions();
         this.inputs = cntx.topLevelInputs();

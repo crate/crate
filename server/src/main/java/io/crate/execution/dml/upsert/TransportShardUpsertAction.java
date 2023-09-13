@@ -637,7 +637,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexResult.getVersion(),
                     indexResult.getSeqNo(),
                     indexResult.getTerm(),
-                    rawSource,
+                    source,
                     rawSource::utf8ToString
                 )
             );

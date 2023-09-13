@@ -177,7 +177,6 @@ public class Get implements LogicalPlan {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 docTableInfo.partitionedBy(),
-                docTableInfo.ident(),
                 toCollect,
                 idsByShardByNode
             ),

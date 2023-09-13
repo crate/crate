@@ -27,15 +27,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,12 +49,10 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
     private final List<Symbol> toCollect;
     private final Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode;
     private DistributionInfo distInfo = DistributionInfo.DEFAULT_BROADCAST;
-    private final RelationName relationName;
 
     public PKLookupPhase(UUID jobId,
                          int phaseId,
                          List<ColumnIdent> partitionedByColumns,
-                         RelationName relationName,
                          List<Symbol> toCollect,
                          Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode) {
         super(jobId, phaseId, "pkLookup", Collections.emptyList());
@@ -67,16 +62,10 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         this.partitionedByColumns = partitionedByColumns;
         this.toCollect = toCollect;
         this.idsByShardByNode = idsByShardByNode;
-        this.relationName = relationName;
     }
 
     public PKLookupPhase(StreamInput in) throws IOException {
         super(in);
-        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
-            this.relationName = new RelationName(in);
-        } else {
-            this.relationName = null;
-        }
         distInfo = new DistributionInfo(in);
         toCollect = Symbols.listFromStream(in);
 
@@ -112,9 +101,6 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
-            relationName.writeTo(out);
-        }
         distInfo.writeTo(out);
         Symbols.toStream(toCollect, out);
 
@@ -184,11 +170,6 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
 
     public List<ColumnIdent> partitionedByColumns() {
         return partitionedByColumns;
-    }
-
-    @Nullable
-    public RelationName relationName() {
-        return relationName;
     }
 }
 

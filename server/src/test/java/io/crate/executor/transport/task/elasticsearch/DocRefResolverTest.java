@@ -24,20 +24,14 @@ package io.crate.executor.transport.task.elasticsearch;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -59,14 +53,14 @@ public class DocRefResolverTest extends ESTestCase {
 
     private static final BytesReference SOURCE = new BytesArray("{\"x\": 1}".getBytes());
     private static final DocRefResolver REF_RESOLVER =
-        new DocRefResolver(Collections.emptyList(), new SourceParser(Set.of(), Function.identity()));
+        new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT = new Doc(2,
                                                   "t1",
                                                   "abc",
                                                   1L,
                                                   1L,
                                                   1L,
-                                                  SOURCE,
+                                                  XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).map(),
                                                   SOURCE::utf8ToString);
 
     @Test
@@ -99,17 +93,14 @@ public class DocRefResolverTest extends ESTestCase {
 
     // https://github.com/crate/crate/issues/13990
     @Test
-    public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() throws IOException {
-        // only useful values here
-        Map<String, Object> source = Map.of("a", 1,
-            "x", List.of(), // empty array
-            "y", Collections.nCopies(3, null), // array of nulls
-            "o", Map.of("oo", Map.of("oox", List.of(), // nested empty array
-                "ooy", Collections.nCopies(3, null))));
-
-        XContentBuilder xContentBuilder = JsonXContent.builder().map(source);
-        BytesReference rawSource = BytesReference.bytes(xContentBuilder);
-        Doc doc = new Doc(0, "t", "1", 1L, 0L, 1L, rawSource,
+    public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
+        Doc doc = new Doc(0, "t", "1", 1L, 0L, 1L,
+                          // only useful values here
+                          Map.of("a", 1,
+                              "x", List.of(), // empty array
+                                 "y", Collections.nCopies(3, null), // array of nulls
+                                 "o", Map.of("oo", Map.of("oox", List.of(), // nested empty array
+                                             "ooy", Collections.nCopies(3, null)))), // nested array of nulls
                           () -> {
                               throw new AssertionError("this should not be used");
                           });

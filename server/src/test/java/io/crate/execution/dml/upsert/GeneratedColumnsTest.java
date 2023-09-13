@@ -28,8 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
@@ -42,6 +42,7 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -58,7 +59,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             new InputFactory(e.nodeCtx),
             CoordinatorTxnCtx.systemTransactionContext(),
             false,
-            new DocRefResolver(Collections.emptyList(), new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey())),
+            new DocRefResolver(Collections.emptyList()),
             Collections.emptyList(),
             table.generatedColumns()
         );
@@ -79,7 +80,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             1,
             1,
             1,
-            bytes,
+            XContentHelper.convertToMap(bytes, false, XContentType.JSON).map(),
             bytes::utf8ToString
         ));
         Map.Entry<? extends Reference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();

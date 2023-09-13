@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
@@ -151,7 +150,7 @@ public final class UpdateToInsert {
                           DocTableInfo table,
                           String[] updateColumns,
                           @Nullable Reference[] insertColumns) {
-        var refResolver = new DocRefResolver(table.partitionedBy(), new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey()));
+        var refResolver = new DocRefResolver(table.partitionedBy());
         this.table = table;
         this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
         this.updateColumns = new ArrayList<>(updateColumns.length);
