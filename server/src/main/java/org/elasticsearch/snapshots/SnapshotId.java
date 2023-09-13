@@ -19,14 +19,14 @@
 
 package org.elasticsearch.snapshots;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * SnapshotId - snapshot name + snapshot UUID
@@ -96,7 +96,7 @@ public final class SnapshotId implements Comparable<SnapshotId>, Writeable, ToXC
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        @SuppressWarnings("unchecked") final SnapshotId that = (SnapshotId) o;
+        final SnapshotId that = (SnapshotId) o;
         return name.equals(that.name) && uuid.equals(that.uuid);
     }
 
