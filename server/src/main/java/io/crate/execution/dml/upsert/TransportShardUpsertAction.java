@@ -82,7 +82,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -143,7 +142,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         var mapperService = indexShard.mapperService();
-        Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
+        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from table, they could be stale (dynamic references already added)
@@ -345,7 +344,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         RelationName relationName = RelationName.fromIndexName(indexName);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.INSERT);
         var mapperService = indexShard.mapperService();
-        Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
+        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from cluster state because ObjectType
@@ -466,10 +465,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         : Versions.MATCH_DELETED;
                 } else {
                     SourceParser sourceParser;
+                    DocTableInfo actualTable = tableInfo;
+                    if (isRetry) {
+                        // Get most-recent table info, could have changed (new columns, dropped columns)
+                        actualTable = schemas.getTableInfo(tableInfo.ident());
+                    }
                     if (item.updateAssignments() != null && item.updateAssignments().length > 0) {
                         // Use the source parser without registering any concrete column to get the complete
                         // source which is required to write a new document with the updated values
-                        sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+                        sourceParser = new SourceParser(actualTable.droppedColumns(), actualTable.lookupNameBySourceKey());
                     } else {
                         // No source is required for simple inserts and duplicate detection
                         sourceParser = null;
@@ -550,6 +554,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
+        var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         AcknowledgedResponse response = null;
         if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
@@ -561,8 +566,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             response = addColumnAction.execute(addColumnRequest).get();
         }
 
-        if (response instanceof AddColumnResponse addColumnResponse) {
-            indexer.updateTargets(addColumnResponse.addedColumns());
+        if (response instanceof AddColumnResponse) {
+            DocTableInfo actualTable = schemas.getTableInfo(relationName, Operation.READ);
+            if (rawIndexer != null) {
+                rawIndexer.updateTargets(actualTable::getReference);
+            } else {
+                indexer.updateTargets(actualTable::getReference);
+            }
         }
 
         ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);

@@ -81,10 +81,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -1731,7 +1733,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)
-    @UseNewCluster
     public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
         execute("create table t (id int primary key, date timestamp with time zone primary key) " +
                 "partitioned by (date) " +
@@ -1746,15 +1747,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table t add name string");
 
         // Verify that ADD COLUMN gets advanced OID.
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\"," +
-            "\"_meta\":{\"primary_keys\":[\"id\",\"date\"]," +
-            "\"partitioned_by\":[[\"date\",\"date\"]]}," +
-            "\"properties\":" +
-            "{\"date\":{\"type\":\"date\",\"index\":false,\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-            "\"name\":{\"type\":\"keyword\",\"position\":3,\"oid\":3}}}}";
-        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
+        Schemas schemas = cluster().getMasterNodeInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(RelationName.fromIndexName("t"));
+        var dateRef = table.getReference(new ColumnIdent("date"));
+        var nameRef = table.getReference(new ColumnIdent("name"));
+        assertThat(nameRef.oid()).isGreaterThan(dateRef.oid());
 
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
@@ -2072,6 +2069,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table t set (number_of_replicas = 0)");
     }
 
+    @UseNewCluster
     @Test
     public void testPartitionedColumnIsNotIn_Raw() throws Exception {
         execute("create table t (p string primary key, v string) " +
@@ -2081,7 +2079,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t (p, v) values ('a', 'Marvin')");
         execute("refresh table t");
         execute("select _raw from t");
-        assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
+        assertThat(((String) response.rows()[0][0]), is("{\"2\":\"Marvin\"}"));
     }
 
     @Test
@@ -2352,6 +2350,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
     }
 
+    @UseNewCluster
     @Test
     public void test_nested_partition_column_is_included_when_selecting_the_object_but_not_in_the_source() {
         execute("create table tbl (pk object as (id text, part text), primary key (pk['id'], pk['part'])) " +
@@ -2362,8 +2361,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select _raw, pk, pk['id'], pk['part'] from tbl order by pk['id'] asc");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
 
         execute("SELECT _raw, pk, pk['id'], pk['part'] FROM tbl " +
@@ -2372,8 +2371,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " ORDER BY pk['id'] ASC");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
     }
 

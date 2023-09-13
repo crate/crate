@@ -104,9 +104,9 @@ public class StringType extends DataType<String> implements Streamer<String> {
         @SuppressWarnings({"rawtypes", "unchecked"})
         public ValueIndexer<Object> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            FieldType fieldType = getFieldType.apply(ref.column());
+            FieldType fieldType = getFieldType.apply(ref.storageIdent());
             if (fieldType == null) {
                 return (ValueIndexer) new StringIndexer(ref, fieldType);
             }

@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,8 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -36,8 +36,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
@@ -86,6 +85,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         protected String buildFullName(BuilderContext context) {
+            if (columnOID != COLUMN_OID_UNASSIGNED) {
+                return Long.toString(columnOID);
+            }
             return context.path().pathAsText(name);
         }
 
@@ -111,9 +113,8 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
                           CopyTo copyTo) {
-        super(simpleName);
+        super(simpleName, columnOID);
         this.position = position;
-        this.columnOID = columnOID;
         this.isDropped = isDropped;
         this.defaultExpression = defaultExpression;
         if (mappedFieldType.name().isEmpty()) {
@@ -127,10 +128,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
 
     public int position() {
         return position;
-    }
-
-    public long columnOID() {
-        return columnOID;
     }
 
     public boolean isDropped() {

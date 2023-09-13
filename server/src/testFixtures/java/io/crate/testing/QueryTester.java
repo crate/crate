@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -84,8 +86,12 @@ public final class QueryTester implements AutoCloseable {
                        Version indexVersion,
                        String createTableStmt,
                        AbstractModule... additionalModules) throws IOException {
+            // Disable OID generation for columns/references in order to be able to compare the query outcome with
+            // expected ones.
+            LongSupplier columnOidSupplier = () -> COLUMN_OID_UNASSIGNED;
             var sqlExecutor = SQLExecutor
                 .builder(clusterService, additionalModules)
+                .setColumnOidSupplier(columnOidSupplier)
                 .addTable(createTableStmt)
                 .build();
             plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
@@ -123,7 +129,7 @@ public final class QueryTester implements AutoCloseable {
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                col -> mapperService.getLuceneFieldType(col.fqn()),
+                mapperService::getLuceneFieldType,
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
                 null
             );

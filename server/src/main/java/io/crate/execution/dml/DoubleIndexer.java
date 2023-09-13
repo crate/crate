@@ -53,7 +53,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     public DoubleIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
     }
 
     @Override

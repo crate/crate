@@ -118,6 +118,7 @@ public final class UpdateToInsert {
     private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
+
     record Values(Doc doc, Object[] excludedValues) {
     }
 
@@ -207,6 +208,7 @@ public final class UpdateToInsert {
             ? 0
             : table.primaryKey().size();
         String[] primaryKeys = new String[pkSize];
+
 
         Iterator<Reference> it = columns.iterator();
         for (int i = 0; it.hasNext(); i++) {

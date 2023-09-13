@@ -139,13 +139,13 @@ public class DocumentMapper implements ToXContentFragment {
         this.fieldMappers = new DocumentFieldMappers(newFieldMappers);
         Map<String, ObjectMapper> builder = new HashMap<>();
         for (ObjectMapper objectMapper : newObjectMappers) {
-            for (var objectProperty : objectMapper.getMappers().keySet()) {
-                if (containsInvalidWhitespaceCharacters(objectProperty)) {
+            for (var mapper : objectMapper.getMappers().values()) {
+                if (containsInvalidWhitespaceCharacters(mapper.simpleName())) {
                     throw new InvalidArgumentException(
                         String.format(
                             Locale.ENGLISH,
                             "Column name '%s' contains illegal whitespace character",
-                            objectProperty
+                            mapper.simpleName()
                         )
                     );
                 }

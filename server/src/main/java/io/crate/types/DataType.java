@@ -248,7 +248,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Nullable
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
-                                                      Function<ColumnIdent, FieldType> getFieldType,
+                                                      Function<String, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {
         StorageSupport<? super T> storageSupport = storageSupportSafe();
         return storageSupport.valueIndexer(table, ref, getFieldType, getRef);

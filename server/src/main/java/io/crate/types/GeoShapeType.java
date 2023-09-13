@@ -52,9 +52,9 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<ColumnIdent, FieldType> getFieldType,
+                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
-            return new GeoShapeIndexer(ref, getFieldType.apply(ref.column()));
+            return new GeoShapeIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

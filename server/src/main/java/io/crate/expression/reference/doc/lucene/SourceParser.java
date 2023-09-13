@@ -193,73 +193,73 @@ public final class SourceParser {
                                                    Function<String, String> lookupNameBySourceKey,
                                                    StringBuilder colPath,
                                                    boolean includeUnknown) throws IOException {
+        var parseAllFields = false;
         if (requiredColumns == null || requiredColumns.isEmpty()) {
-            return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
-        } else {
-            HashMap<String, Object> values = new HashMap<>();
-            XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
-            for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-                String fieldName = lookupNameBySourceKey.apply(parser.currentName());
-                boolean dropped = false;
-                if (droppedColumns.isEmpty() == false) {
-                    String path = fieldName;
-                    if (colPath.isEmpty() == false) {
-                        path = colPath + "." + fieldName;
-                    }
-                    dropped = droppedColumns.contains(path);
+            parseAllFields = true;
+        }
+        HashMap<String, Object> values = new HashMap<>();
+        XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
+        for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
+            String fieldName = lookupNameBySourceKey.apply(parser.currentName());
+            boolean dropped = false;
+            if (droppedColumns.isEmpty() == false) {
+                String path = fieldName;
+                if (colPath.isEmpty() == false) {
+                    path = colPath + "." + fieldName;
                 }
+                dropped = droppedColumns.contains(path);
+            }
 
-                token = parser.nextToken(); // Move to the current field's value
-                var required = requiredColumns.get(fieldName);
-                if ((required == null && !includeUnknown) || dropped) {
-                    parser.skipChildren();
-                } else if (token == START_ARRAY
-                    && required instanceof DataType<?>
-                    && !(required instanceof ArrayType<?>)
-                    && !(required instanceof GeoPointType)
-                    && !(required instanceof GeoShapeType)
-                    && !(required instanceof FloatVectorType)
-                    && !(required instanceof UndefinedType)) {
-                    // due to a bug: https://github.com/crate/crate/issues/13990
-                    parser.skipChildren();
-                    values.put(fieldName, null);
-                } else if (token == VALUE_NULL) {
-                    // If object value is null, we can short-circuit to NULL and continue further with other fields.
-                    // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
-                    // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
-                    values.put(fieldName, null);
-                } else if (required instanceof ObjectType objectType) {
+            token = parser.nextToken(); // Move to the current field's value
+            var required = requiredColumns == null ? null : requiredColumns.get(fieldName);
+            if ((parseAllFields == false && required == null && !includeUnknown) || dropped) {
+                parser.skipChildren();
+            } else if (token == START_ARRAY
+                && required instanceof DataType<?>
+                && !(required instanceof ArrayType<?>)
+                && !(required instanceof GeoPointType)
+                && !(required instanceof GeoShapeType)
+                && !(required instanceof FloatVectorType)
+                && !(required instanceof UndefinedType)) {
+                // due to a bug: https://github.com/crate/crate/issues/13990
+                parser.skipChildren();
+                values.put(fieldName, null);
+            } else if (token == VALUE_NULL) {
+                // If object value is null, we can short-circuit to NULL and continue further with other fields.
+                // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
+                // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
+                values.put(fieldName, null);
+            } else if (required instanceof ObjectType objectType) {
+                var prevLength = appendToColPath(colPath, fieldName);
+                values.put(fieldName, parseObject(
+                    parser,
+                    objectType,
+                    (Map) objectType.innerTypes(),
+                    droppedColumns,
+                    lookupNameBySourceKey,
+                    colPath,
+                    true)
+                );
+                colPath.delete(prevLength, colPath.length());
+            } else if (required instanceof DataType<?> dataType) {
+                if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
                     var prevLength = appendToColPath(colPath, fieldName);
-                    values.put(fieldName, parseObject(
-                        parser,
-                        objectType,
-                        (Map) objectType.innerTypes(),
-                        droppedColumns,
-                        lookupNameBySourceKey,
-                        colPath,
-                        true)
+                    values.put(fieldName, parseValue(parser, arrayType.innerType(),
+                        (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns,
+                        lookupNameBySourceKey, colPath)
                     );
                     colPath.delete(prevLength, colPath.length());
-                } else if (required instanceof DataType<?> dataType) {
-                    if (dataType instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID) {
-                        var prevLength = appendToColPath(colPath, fieldName);
-                        values.put(fieldName, parseValue(parser, arrayType.innerType(),
-                            (Map) ((ObjectType) arrayType.innerType()).innerTypes(), droppedColumns,
-                            lookupNameBySourceKey, colPath)
-                        );
-                        colPath.delete(prevLength, colPath.length());
-                    } else {
-                        values.put(fieldName, parseValue(parser, dataType, null, droppedColumns,
-                            lookupNameBySourceKey, colPath)
-                        );
-                    }
                 } else {
-                    values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns,
-                        lookupNameBySourceKey, colPath));
+                    values.put(fieldName, parseValue(parser, dataType, null, droppedColumns,
+                        lookupNameBySourceKey, colPath)
+                    );
                 }
+            } else {
+                values.put(fieldName, parseValue(parser, null, (Map) required, droppedColumns,
+                    lookupNameBySourceKey, colPath));
             }
-            return values;
         }
+        return values;
     }
 
     private static int appendToColPath(StringBuilder colPath, String fieldName) {

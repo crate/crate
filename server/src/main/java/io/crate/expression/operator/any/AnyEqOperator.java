@@ -61,7 +61,7 @@ public final class AnyEqOperator extends AnyOperator {
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
-        String columnName = probe.column().fqn();
+        String columnName = probe.storageIdent();
         List<?> values = (List<?>) candidates.value();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
         if (fieldType == null) {
@@ -73,7 +73,7 @@ public final class AnyEqOperator extends AnyOperator {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(candidates.column().fqn());
+        MappedFieldType fieldType = context.getFieldTypeOrNull(candidates.storageIdent());
         if (fieldType == null) {
             if (ArrayType.unnest(candidates.valueType()).id() == ObjectType.ID) {
                 // {x=10} = any(objects)
@@ -85,7 +85,7 @@ public final class AnyEqOperator extends AnyOperator {
             // [1, 2] = any(nested_array_ref)
             return arrayLiteralEqAnyArray(any, candidates, probe.value(), context);
         }
-        return EqOperator.fromPrimitive(ArrayType.unnest(candidates.valueType()), candidates.column().fqn(), probe.value());
+        return EqOperator.fromPrimitive(ArrayType.unnest(candidates.valueType()), candidates.storageIdent(), probe.value());
     }
 
     private static Query arrayLiteralEqAnyArray(Function function,
@@ -95,7 +95,7 @@ public final class AnyEqOperator extends AnyOperator {
         ArrayList<Object> terms = new ArrayList<>();
         gatherLeafs((Iterable<?>) candidate, terms::add);
         Query termsQuery = EqOperator.termsQuery(
-            candidates.column().fqn(),
+            candidates.storageIdent(),
             ArrayType.unnest(candidates.valueType()),
             terms
         );

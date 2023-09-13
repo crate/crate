@@ -22,6 +22,8 @@
 
 package io.crate.execution.dml;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,8 +85,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-
 /**
  * <p>
  *  Component to create a {@link ParsedDocument} from a {@link IndexItem}
@@ -127,7 +127,14 @@ public class Indexer {
     private final BytesStreamOutput stream;
     private final boolean writeOids;
 
-    record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
+    /**
+     * Function to resolve a field type based on the columns {@link Reference#storageIdent()}.
+     */
+    private final Function<String, FieldType> getFieldType;
+
+    private final Map<ColumnIdent, Reference> newColumns = new HashMap<>();
+
+    record IndexColumn(Reference reference, FieldType fieldType, List<Input<?>> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
@@ -402,12 +409,15 @@ public class Indexer {
         }
     }
 
+    /**
+     * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
+     */
     @SuppressWarnings("unchecked")
     public Indexer(String indexName,
                    DocTableInfo table,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
-                   Function<ColumnIdent, FieldType> getFieldType,
+                   Function<String, FieldType> getFieldType,
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
@@ -415,6 +425,8 @@ public class Indexer {
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
         this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.getFieldType = getFieldType;
+        Function<ColumnIdent, Reference> getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
@@ -424,7 +436,6 @@ public class Indexer {
             txnCtx,
             referenceResolver
         );
-        Function<ColumnIdent, Reference> getRef = table::getReference;
         this.valueIndexers = new ArrayList<>(targetColumns.size());
         int position = -1;
         for (var ref : targetColumns) {
@@ -537,7 +548,7 @@ public class Indexer {
         this.indexColumns = new ArrayList<>(table.indexColumns().size());
         for (var ref : table.indexColumns()) {
             ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
-            FieldType fieldType = getFieldType.apply(ref.column());
+            FieldType fieldType = getFieldType.apply(ref.storageIdent());
 
             for (var sourceRef : ref.columns()) {
                 Reference reference = table.getReference(sourceRef.column());
@@ -547,7 +558,7 @@ public class Indexer {
                 indexInputs.add(input);
             }
             if (fieldType.indexOptions() != IndexOptions.NONE) {
-                indexColumns.add(new IndexColumn(ref.column(), fieldType, indexInputs));
+                indexColumns.add(new IndexColumn(ref, fieldType, indexInputs));
             }
         }
         if (returnValues == null) {
@@ -575,20 +586,51 @@ public class Indexer {
     }
 
     /**
-     * @param addedColumns has columns collected by {@link #collectSchemaUpdates(IndexItem) and with assigned OID0-s
+     * Trigger resolving of columns and update indexers if needed.
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(IndexItem)
+     * and added to the cluster state
+     *
+     * @param getRef A function that returns a reference for a given column ident based on the current cluster state
      */
-    public void updateTargets(List<Reference> addedColumns) {
-        // Store by ident for fast replacement.
-        Map<ColumnIdent, Reference> addedColumnsByIdent = new HashMap<>();
-        for (Reference ref: addedColumns) {
-            addedColumnsByIdent.put(ref.column(), ref);
+    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        var it = columns.iterator();
+        var idx = 0;
+        while (it.hasNext()) {
+            var oldRef = it.next();
+            if (oldRef.oid() == COLUMN_OID_UNASSIGNED) {
+                // try to resolve the column again, new reference may have been added to or dropped of the table or
+                // the reference may be invalid
+                Reference newRef = getRef.apply(oldRef.column());
+                if (newRef == null) {
+                    // column was dropped or new column is invalid
+                    it.remove();
+                    valueIndexers.remove(idx);
+                    // don't increase idx, since we removed the current element
+                    continue;
+                }
+                if (oldRef.equals(newRef) == false) {
+                    columns.set(idx, newRef);
+                    valueIndexers.set(idx, newRef.valueType().valueIndexer(
+                            newRef.ident().tableIdent(),
+                            newRef,
+                            getFieldType,
+                            getRef
+                    ));
+                }
+            } else {
+                valueIndexers.get(idx).updateTargets(getRef);
+            }
+            idx++;
         }
 
-        for (int i = 0; i < columns.size(); i++) {
-            Reference referenceWithOid = addedColumnsByIdent.get(columns.get(i).column());
-            if (referenceWithOid != null) {
-                columns.set(i, referenceWithOid);
+        for (var entry : synthetics.entrySet()) {
+            ColumnIdent column = entry.getKey();
+            if (!column.isRoot()) {
+                continue;
             }
+            Synthetic synthetic = entry.getValue();
+            ValueIndexer<Object> indexer = synthetic.indexer();
+            indexer.updateTargets(getRef);
         }
     }
 
@@ -708,9 +750,6 @@ public class Indexer {
             Object[] values = item.insertValues();
             for (int i = 0; i < values.length; i++) {
                 Reference reference = columns.get(i);
-                    // It's possible to have target references without OID after doing a mapping update:
-                    // Empty arrays, arrays with only null values and columns added dynamically into IGNORED object doesn't result in schema update.
-                    assert assertExistingOid(reference) : "All target columns must have assigned OID on indexing.";
 
                 Object value = reference.valueType().valueForInsert(values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
@@ -724,7 +763,7 @@ public class Indexer {
                     continue;
                 }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                xContentBuilder.field(reference.column().leafName());
+                xContentBuilder.field(reference.storageIdentLeafName());
                 valueIndexer.indexValue(
                     reference.valueType().sanitizeValue(value),
                     xContentBuilder,
@@ -744,7 +783,7 @@ public class Indexer {
                 if (value == null) {
                     continue;
                 }
-                xContentBuilder.field(column.leafName());
+                xContentBuilder.field(synthetic.ref.storageIdentLeafName());
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 indexer.indexValue(
                     value,
@@ -757,7 +796,7 @@ public class Indexer {
             xContentBuilder.endObject();
 
             for (var indexColumn : indexColumns) {
-                String fqn = indexColumn.name.fqn();
+                String fqn = indexColumn.reference.storageIdent();
                 for (var input : indexColumn.inputs) {
                     Object value = input.value();
                     if (value == null) {
@@ -926,12 +965,5 @@ public class Indexer {
             }
         }
         return result;
-    }
-
-    private boolean assertExistingOid(Reference ref) {
-        if (writeOids && ref instanceof DynamicReference == false) {
-            return ref.oid() != COLUMN_OID_UNASSIGNED;
-        }
-        return true;
     }
 }

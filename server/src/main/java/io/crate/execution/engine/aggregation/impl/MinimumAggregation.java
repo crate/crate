@@ -264,12 +264,12 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
-                    return new LongMin(reference.column().fqn(), arg);
+                    return new LongMin(reference.storageIdent(), arg);
 
                 case FloatType.ID:
-                    return new FloatMin(reference.column().fqn());
+                    return new FloatMin(reference.storageIdent());
                 case DoubleType.ID:
-                    return new DoubleMin(reference.column().fqn());
+                    return new DoubleMin(reference.storageIdent());
 
                 default:
                     return null;

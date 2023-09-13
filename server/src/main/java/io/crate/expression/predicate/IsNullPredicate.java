@@ -116,7 +116,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
-        String field = ref.column().fqn();
+        String field = ref.storageIdent();
         FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || (fieldType != null && !fieldType.omitNorms());

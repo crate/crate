@@ -86,9 +86,9 @@ public class IpType extends DataType<String> implements Streamer<String> {
         @Override
         public ValueIndexer<String> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<ColumnIdent, FieldType> getFieldType,
+                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IpIndexer(ref, getFieldType.apply(ref.column()));
+            return new IpIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

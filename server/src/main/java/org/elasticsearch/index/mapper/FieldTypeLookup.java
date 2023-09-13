@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,7 +44,8 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
     FieldTypeLookup(Collection<FieldMapper> fieldMappers) {
         for (FieldMapper fieldMapper : fieldMappers) {
             MappedFieldType fieldType = fieldMapper.fieldType();
-            fullNameToFieldType.put(fieldType.name(), fieldType);
+            var name = fieldMapper.columnOID == COLUMN_OID_UNASSIGNED ? fieldType.name() : Long.toString(fieldMapper.columnOID);
+            fullNameToFieldType.put(name, fieldType);
         }
     }
 

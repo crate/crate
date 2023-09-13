@@ -61,7 +61,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             );
         }
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType;
     }
 

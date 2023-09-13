@@ -56,7 +56,7 @@ public class FulltextIndexer implements ValueIndexer<String> {
         if (value == null) {
             return;
         }
-        String name = ref.column().fqn();
+        String name = ref.storageIdent();
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(name, value, fieldType);
             addField.accept(field);

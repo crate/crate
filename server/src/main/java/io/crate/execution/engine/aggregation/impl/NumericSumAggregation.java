@@ -186,9 +186,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
         return switch (reference.valueType().id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
-                new SumLong(returnType, reference.column().fqn());
-            case FloatType.ID -> new SumFloat(returnType, reference.column().fqn());
-            case DoubleType.ID -> new SumDouble(returnType, reference.column().fqn());
+                new SumLong(returnType, reference.storageIdent());
+            case FloatType.ID -> new SumFloat(returnType, reference.storageIdent());
+            case DoubleType.ID -> new SumDouble(returnType, reference.storageIdent());
             default -> null;
         };
     }

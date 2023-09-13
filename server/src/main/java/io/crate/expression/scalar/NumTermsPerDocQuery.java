@@ -66,7 +66,7 @@ public class NumTermsPerDocQuery extends Query {
 
     public static NumTermsPerDocQuery forRef(Reference ref, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
-            ref.column().fqn(),
+            ref.storageIdent(),
             leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), ref.column().fqn(), ref.valueType()),
             valueCountIsMatch
         );

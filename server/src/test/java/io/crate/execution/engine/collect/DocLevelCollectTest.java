@@ -65,19 +65,17 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.types.DataTypes;
 
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
@@ -85,20 +83,8 @@ import io.crate.types.DataTypes;
 public class DocLevelCollectTest extends IntegTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
-    private static final SimpleReference TEST_DOC_LEVEL_REFERENCE = new SimpleReference(
-        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
-        RowGranularity.DOC,
-        DataTypes.INTEGER,
-        0,
-        null
-    );
-    private static final SimpleReference UNDERSCORE_ID_REFERENCE = new SimpleReference(
-        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
-        RowGranularity.DOC,
-        DataTypes.STRING,
-        0,
-        null
-    );
+    private Reference testDocLevelReference;
+    private Reference underscoreIdReference;
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
@@ -133,6 +119,10 @@ public class DocLevelCollectTest extends IntegTestCase {
         execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
         execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
         refresh();
+
+        var table = schemas.getTableInfo(RelationName.fromIndexName(TEST_TABLE_NAME));
+        testDocLevelReference = table.getReference(ColumnIdent.fromPath("doc"));
+        underscoreIdReference = table.getReference(ColumnIdent.fromPath("_id"));
     }
 
     @After
@@ -163,7 +153,7 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testCollectDocLevel() throws Throwable {
-        List<Symbol> toCollect = Arrays.asList(TEST_DOC_LEVEL_REFERENCE, UNDERSCORE_ID_REFERENCE);
+        List<Symbol> toCollect = Arrays.asList(testDocLevelReference, underscoreIdReference);
         RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
@@ -174,10 +164,10 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Throwable {
-        List<Symbol> arguments = Arrays.asList(TEST_DOC_LEVEL_REFERENCE, Literal.of(2));
+        List<Symbol> arguments = Arrays.asList(testDocLevelReference, Literal.of(2));
         EqOperator op =
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        List<Symbol> toCollect = Collections.singletonList(TEST_DOC_LEVEL_REFERENCE);
+        List<Symbol> toCollect = Collections.singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(
             new Function(op.signature(), arguments, EqOperator.RETURN_TYPE)
         );

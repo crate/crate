@@ -171,14 +171,14 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
                 if (signature.getName().name().equalsIgnoreCase("min_by")) {
                     return new MinByLong(
-                        searchRef.column().fqn(),
+                        searchRef.storageIdent(),
                         searchType,
                         resultExpression,
                         new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
                     );
                 } else {
                     return new MaxByLong(
-                        searchRef.column().fqn(),
+                        searchRef.storageIdent(),
                         searchType,
                         resultExpression,
                         new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())

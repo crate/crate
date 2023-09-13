@@ -65,7 +65,7 @@ public final class AnyLikeOperator extends AnyOperator {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
-        String fqn = probe.column().fqn();
+        String fqn = probe.storageIdent();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         Iterable<?> values = (Iterable<?>) candidates.value();
@@ -84,6 +84,6 @@ public final class AnyLikeOperator extends AnyOperator {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        return caseSensitivity.likeQuery(candidates.column().fqn(), (String) probe.value(), candidates.indexType() != IndexType.NONE);
+        return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), candidates.indexType() != IndexType.NONE);
     }
 }

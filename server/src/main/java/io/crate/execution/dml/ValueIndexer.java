@@ -24,11 +24,11 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -56,6 +56,15 @@ public interface ValueIndexer<T> {
     default void collectSchemaUpdates(@Nullable T value,
                                       Consumer<? super Reference> onDynamicColumn,
                                       Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {}
+
+    /**
+     * Update value indexer of inner columns.
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Map)
+     * and added to the cluster state
+     *
+     * @param getRef A function that returns a reference for a given column ident based on the current cluster state
+     */
+    default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
 
     void indexValue(
         @Nullable T value,

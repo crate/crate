@@ -110,7 +110,7 @@ public class IndexReference extends SimpleReference {
                 // This code handles outdated shards case.
                 return new IndexReference(position, oid, isDropped, ident, indexType, columns, analyzer);
             }
-            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.column().fqn())).collect(Collectors.toList());
+            List<Reference> sources = references.values().stream().filter(ref -> sourceNames.contains(ref.storageIdent())).collect(Collectors.toList());
             return new IndexReference(position, oid, isDropped, ident, indexType, sources, analyzer);
         }
     }
@@ -245,7 +245,7 @@ public class IndexReference extends SimpleReference {
         mapping.put("type", "text");
 
         if (columns.isEmpty() == false) {
-            mapping.put("sources", columns.stream().map(ref -> ref.column().fqn()).toList());
+            mapping.put("sources", columns.stream().map(Reference::storageIdent).toList());
         }
 
         return mapping;

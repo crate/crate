@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -55,9 +54,7 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.joda.time.Period;
@@ -72,6 +69,10 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
@@ -1477,10 +1478,11 @@ public class TransportSQLActionTest extends IntegTestCase {
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        Map<String, Object> firstRaw = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            (String) response.rows()[0][0]).map();
+
+        Schemas schemas = cluster().getInstance(Schemas.class);
+        DocTableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "locations"));
+        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+        Map<String, Object> firstRaw = sourceParser.parse(new BytesArray((String) response.rows()[0][0]));
 
         assertThat(response.rows()[0][1]).isEqualTo("2");
         assertThat(firstRaw).containsEntry("id", "2");
@@ -1488,10 +1490,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(firstRaw).containsEntry("date", 308534400000L);
         assertThat(firstRaw).containsEntry("kind", "Galaxy");
 
-        Map<String, Object> secondRaw = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY,
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            (String) response.rows()[1][0]).map();
+        Map<String, Object> secondRaw = sourceParser.parse(new BytesArray((String) response.rows()[1][0]));
         assertThat(response.rows()[1][1]).isEqualTo("3");
         assertThat(secondRaw).containsEntry("id", "3");
         assertThat(secondRaw).containsEntry("name", "Galactic Sector QQ7 Active J Gamma");
@@ -1899,14 +1898,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(6L);
         execute("refresh table tbl");
 
-        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
+        execute("SELECT _doc['xs'], xs, xs::bit(3) FROM tbl WHERE xs = B'1001'");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| B'100'"
         );
         // use LIMIT 1 to hit a different execution path that should load `xs` differently
-        execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
+        execute("SELECT _doc['xs'], xs, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| B'100'"
         );
 
         // primary key lookup uses different execution path to decode the value
@@ -2029,14 +2028,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
         execute("refresh table tbl");
 
-        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'two'");
+        execute("SELECT _doc['c'], c, c::char(1) FROM tbl WHERE c = 'two'");
         assertThat(response).hasRows(
-                "two | two | {\"c\":\"two \"}| t"
+                "two | two | t"
         );
         // use LIMIT 1 to hit a different execution path that should load `c` differently
-        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
+        execute("SELECT _doc['c'], c, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
         assertThat(response).hasRows(
-            "four| four| {\"c\":\"four\"}| f"
+            "four| four| f"
         );
 
         var properties = new Properties();
