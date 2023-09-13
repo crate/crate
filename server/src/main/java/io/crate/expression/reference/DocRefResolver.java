@@ -75,10 +75,8 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                 return forFunction(Doc::getRaw);
 
             case DocSysColumns.Names.DOC:
-                return forFunction(doc -> {
-                    sourceParser.registerAll();
-                    return sourceParser.parse(doc.getSource());
-                });
+                return forFunction(doc -> sourceParser.parse(doc.getSource()));
+
             default:
                 final ColumnIdent column = columnIdent.name().equals(DocSysColumns.Names.DOC)
                     ? columnIdent.shiftRight()
