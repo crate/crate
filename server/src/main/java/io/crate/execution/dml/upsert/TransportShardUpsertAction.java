@@ -86,6 +86,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -217,6 +218,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
             try {
+                Function<BytesReference, Map<String, Object>> parseSource = (source) -> {
+                    SourceParser sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+                    return sourceParser.parse(source);
+                };
                 IndexItemResponse indexItemResponse = indexItem(
                     indexer,
                     request,
@@ -224,7 +229,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard,
                     updateToInsert,
                     insertSourceGen,
-                    returnValueGen
+                    returnValueGen,
+                    parseSource
                 );
                 if (indexItemResponse != null) {
                     if (indexItemResponse.translog != null) {
@@ -430,7 +436,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         IndexShard indexShard,
                                         @Nullable UpdateToInsert updateToInsert,
                                         @Nullable InsertSourceGen insertSourceGen,
-                                        @Nullable ReturnValueGen returnValueGen) throws Exception {
+                                        @Nullable ReturnValueGen returnValueGen,
+                                        Function<BytesReference, Map<String, Object>> parseSource) throws Exception {
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
@@ -448,7 +455,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.id(),
                         item.version(),
                         item.seqNo(),
-                        item.primaryTerm());
+                        item.primaryTerm(),
+                        parseSource
+                    );
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
@@ -637,7 +646,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexResult.getVersion(),
                     indexResult.getSeqNo(),
                     indexResult.getTerm(),
-                    source,
+                    source, // No need to rewrite OID-s since legacyInsert() doesn't write OID-s anyways (and will be gone after rebase, we introduced RawIndexer)
                     rawSource::utf8ToString
                 )
             );
@@ -703,9 +712,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
+    private static Doc getDocument(IndexShard indexShard,
+                                   String id,
+                                   long version,
+                                   long seqNo,
+                                   long primaryTerm,
+                                   Function<BytesReference, Map<String, Object>> parseSource) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
-        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);
+        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, parseSource);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

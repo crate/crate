@@ -133,8 +133,7 @@ public final class SourceParser {
         }
     }
 
-    @VisibleForTesting
-    Map<String, Object> parse(BytesReference bytes) {
+    public Map<String, Object> parse(BytesReference bytes) {
         return parse(bytes, false);
     }
 
