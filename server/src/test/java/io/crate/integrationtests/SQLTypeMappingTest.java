@@ -427,10 +427,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "id| smallint",
             "tags| text_array"
         );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":1,"tags":["wow","much","wow"],"new":[]}
-            """
+        assertThat(execute("select _doc from arr")).hasRows(
+            "{id=1, new=[], tags=[wow, much, wow]}"
         );
     }
 
@@ -447,10 +445,8 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "id| smallint",
             "tags| text_array"
         );
-        assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
-            """
-            {"id":2,"tags":["wow","much","wow"],"new":[null]}
-            """
+        assertThat(execute("select _doc from arr")).hasRows(
+            "{id=2, new=[null], tags=[wow, much, wow]}"
         );
     }
 

@@ -115,7 +115,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
             }
             return Queries.not(booleanQuery.build());
         } else if (valueType instanceof ArrayType<?> && ref.hasDocValues()) {
-            return Queries.not(new FieldExistsQuery(ref.column().fqn()));
+            return Queries.not(new FieldExistsQuery(ref.storageIdent()));
         }
         return null;
     }

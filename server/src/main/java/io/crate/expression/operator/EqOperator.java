@@ -58,6 +58,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -129,6 +130,7 @@ public final class EqOperator extends Operator<Object> {
             return null;
         }
         String fqn = ref.column().fqn();
+        String storageIdentifier = ref.storageIdent();
         Object value = literal.value();
         if (value == null) {
             return new MatchNoDocsQuery("`" + fqn + "` = null is always null");
@@ -142,12 +144,12 @@ public final class EqOperator extends Operator<Object> {
             case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
-                ref.column().fqn(),
+                storageIdentifier,
                 ArrayType.unnest(dataType),
                 (Collection<?>) value,
                 context
             );
-            default -> fromPrimitive(dataType, fqn, value);
+            default -> fromPrimitive(dataType, storageIdentifier, value);
         };
     }
 
@@ -281,11 +283,14 @@ public final class EqOperator extends Operator<Object> {
                 continue;
             }
             String fqNestedColumn = fqn + '.' + key;
+            var columnIdent = ColumnIdent.fromPath(fqNestedColumn);
+            var nestedRef = context.getRef(columnIdent);
+            var nestedStorageIdentifier = nestedRef != null ? nestedRef.storageIdent() : columnIdent.fqn();
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
-                innerQuery = termsAndGenericFilter(eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context);
+                innerQuery = termsAndGenericFilter(eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context);
             } else {
-                innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue());
+                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue());
             }
             if (innerQuery == null) {
                 continue;

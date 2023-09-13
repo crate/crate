@@ -57,6 +57,7 @@ import com.carrotsearch.randomizedtesting.LifecycleScope;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -876,6 +877,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         );
     }
 
+    @UseNewCluster
     @Test
     public void test_copy_excludes_partitioned_values_from_source() throws Exception {
         execute("create table tbl (x int, p int) partitioned by (p)");
@@ -895,7 +897,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("refresh table tbl");
             execute("SELECT _raw, * FROM tbl");
             assertThat(response).hasRows(
-                "{\"x\":10}| 10| 1"
+                "{\"1\":10}| 10| 1"
             );
         }
 
@@ -915,7 +917,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("refresh table tbl2");
             execute("SELECT _raw, * FROM tbl2");
             assertThat(response).hasRows(
-                "{\"x\":10,\"o\":{}}| 10| {p=1}"
+                "{\"3\":10,\"4\":{}}| 10| {p=1}"
             );
         }
     }

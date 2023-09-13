@@ -116,7 +116,7 @@ public final class MappingUtil {
         Map<String, Object> indices = new HashMap<>();
         for (Reference column : columns) {
             if (column instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
-                indices.put(column.column().name(), Map.of());
+                indices.put(column.storageIdent(), Map.of());
             }
         }
         if (indices.isEmpty() == false) {

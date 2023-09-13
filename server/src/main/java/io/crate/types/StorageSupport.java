@@ -64,7 +64,7 @@ public abstract class StorageSupport<T> {
     public abstract ValueIndexer<? super T> valueIndexer(
         RelationName table,
         Reference ref,
-        Function<ColumnIdent, FieldType> getFieldType,
+        Function<String, FieldType> getFieldType,
         Function<ColumnIdent, Reference> getRef);
 
 

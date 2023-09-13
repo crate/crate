@@ -21,19 +21,19 @@
 
 package io.crate.execution.dml;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
@@ -51,23 +51,24 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final ObjectType objectType;
     private final HashMap<String, ValueIndexer<Object>> innerIndexers;
     private final ColumnIdent column;
+    private final Map<String, Reference> childColumns;
     private final Function<ColumnIdent, Reference> getRef;
     private final RelationName table;
     private final Reference ref;
-    private final Function<ColumnIdent, FieldType> getFieldType;
-    private final HashMap<String, DataType<?>> innerTypes;
+    private final Function<String, FieldType> getFieldType;
 
+    /**
+     * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
+     */
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
-                         Function<ColumnIdent, FieldType> getFieldType,
+                         Function<String, FieldType> getFieldType,
                          Function<ColumnIdent, Reference> getRef) {
         this.table = table;
         this.ref = ref;
@@ -76,24 +77,24 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.column = ref.column();
         this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         this.innerIndexers = new HashMap<>();
-        this.innerTypes = new LinkedHashMap<>(objectType.innerTypes());
+        this.childColumns = new HashMap<>();
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
             ColumnIdent child = column.getChild(innerName);
             Reference childRef = getRef.apply(child);
             if (childRef == null) {
-                // Race, either column got deleted or stale DocTableInfo?
-                // Treat it as dynamic column if a value for the nested column is found
-                innerTypes.remove(innerName);
-            } else if (childRef.granularity() != RowGranularity.PARTITION) {
+                continue;
+            }
+            childColumns.put(innerName, childRef);
+            if (childRef.granularity() != RowGranularity.PARTITION) {
                 ValueIndexer<?> valueIndexer = value.valueIndexer(
                     table,
                     childRef,
                     getFieldType,
                     getRef
                 );
-                innerIndexers.put(entry.getKey(), (ValueIndexer<Object>) valueIndexer);
+                innerIndexers.put(innerName, (ValueIndexer<Object>) valueIndexer);
             }
         }
     }
@@ -105,9 +106,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
-        for (var entry : innerTypes.entrySet()) {
+        for (var entry : childColumns.entrySet()) {
+            var childRef = entry.getValue();
             String innerName = entry.getKey();
-            DataType<?> type = entry.getValue();
+            DataType<?> type = childRef.valueType();
             ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
@@ -128,7 +130,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                xContentBuilder.field(innerName);
+                xContentBuilder.field(childRef.storageIdentLeafName());
                 valueIndexer.indexValue(
                     type.sanitizeValue(innerValue),
                     xContentBuilder,
@@ -149,9 +151,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     public void collectSchemaUpdates(@Nullable Map<String, Object> value,
                                      Consumer<? super Reference> onDynamicColumn,
                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
-        for (var entry : innerTypes.entrySet()) {
+        for (var entry : childColumns.entrySet()) {
+            var childRef = entry.getValue();
             String innerName = entry.getKey();
-            DataType<?> type = entry.getValue();
+            DataType<?> type = childRef.valueType();
             ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
@@ -177,6 +180,31 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
     }
 
+    @Override
+    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        for (Map.Entry<String, Reference> entry : childColumns.entrySet()) {
+            var innerName = entry.getKey();
+            var oldChildRef = entry.getValue();
+            var newChildRef = getRef.apply(oldChildRef.column());
+            if (oldChildRef.equals(newChildRef) == false) {
+                entry.setValue(newChildRef);
+                if (newChildRef.granularity() != RowGranularity.PARTITION) {
+                    //noinspection unchecked
+                    ValueIndexer<Object> newIndexer = (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(
+                            newChildRef.ident().tableIdent(),
+                            newChildRef,
+                            getFieldType,
+                            getRef
+                    );
+                    innerIndexers.put(innerName, newIndexer);
+                }
+            }
+        }
+        for (var indexer : innerIndexers.values()) {
+            indexer.updateTargets(getRef);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
@@ -185,7 +213,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !innerTypes.containsKey(innerName);
+            boolean isNewColumn = !childColumns.containsKey(innerName);
             if (!isNewColumn) {
                 continue;
             }
@@ -238,7 +266,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 getRef
             );
             innerIndexers.put(innerName, valueIndexer);
-            innerTypes.put(innerName, type);
+            childColumns.put(innerName, newColumn);
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,
@@ -260,7 +288,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !innerTypes.containsKey(innerName);
+            boolean isNewColumn = !childColumns.containsKey(innerName);
             if (!isNewColumn) {
                 continue;
             }

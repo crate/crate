@@ -81,7 +81,7 @@ public class KnnMatch extends Scalar<Boolean, Object> {
             Object target = targetLiteral.value();
             Object k = kLiteral.value();
             if (target instanceof float[] && k instanceof Integer) {
-                return new KnnFloatVectorQuery(ref.column().fqn(), (float[]) target, (int) k);
+                return new KnnFloatVectorQuery(ref.storageIdent(), (float[]) target, (int) k);
             }
             return null;
         }

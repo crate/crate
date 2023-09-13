@@ -202,9 +202,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         var argumentTypes = Symbols.typeView(aggregationReferences);
         return switch (argumentTypes.get(0).id()) {
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
-                new AvgLong(reference.column().fqn());
-            case FloatType.ID -> new AvgFloat(returnType, reference.column().fqn());
-            case DoubleType.ID -> new AvgDouble(returnType, reference.column().fqn());
+                new AvgLong(reference.storageIdent());
+            case FloatType.ID -> new AvgFloat(returnType, reference.storageIdent());
+            case DoubleType.ID -> new AvgDouble(returnType, reference.storageIdent());
             default -> null;
         };
     }

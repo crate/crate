@@ -77,6 +77,11 @@ public final class SourceLookup {
         return fieldsVisitor.source();
     }
 
+    public void source(Map<String, Object> source) {
+        this.source = source;
+        docVisited = true;
+    }
+
     private void ensureSourceParsed() {
         if (source == null) {
             ensureDocVisited();

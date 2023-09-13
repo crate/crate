@@ -546,7 +546,8 @@ public class DocIndexMetadata {
                     }
                 }
                 // is it an index?
-                if (indicesMap.containsKey(newIdent.fqn())) {
+                var indicesKey = oid == COLUMN_OID_UNASSIGNED ? newIdent.fqn() : Long.toString(oid);
+                if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");
                     if (sources != null) {
                         IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);

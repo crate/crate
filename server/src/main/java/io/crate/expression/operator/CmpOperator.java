@@ -78,7 +78,7 @@ public final class CmpOperator extends Operator<Object> {
             // For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match
             return new MatchNoDocsQuery("column does not exist in this index");
         }
-        String field = ref.column().fqn();
+        String field = ref.storageIdent();
         return switch (functionName) {
             case GtOperator.NAME -> eqQuery.rangeQuery(
                     field, value, null, false, false, ref.hasDocValues());

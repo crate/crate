@@ -201,12 +201,12 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
-                return new SumLong(reference.column().fqn());
+                return new SumLong(reference.storageIdent());
 
             case FloatType.ID:
-                return new SumFloat(reference.column().fqn());
+                return new SumFloat(reference.storageIdent());
             case DoubleType.ID:
-                return new SumDouble(reference.column().fqn());
+                return new SumDouble(reference.storageIdent());
 
             default:
                 return null;

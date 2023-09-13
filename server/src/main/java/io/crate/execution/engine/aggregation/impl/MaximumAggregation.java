@@ -230,12 +230,12 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
-                    return new LongMax(reference.column().fqn(), arg);
+                    return new LongMax(reference.storageIdent(), arg);
 
                 case FloatType.ID:
-                    return new FloatMax(reference.column().fqn());
+                    return new FloatMax(reference.storageIdent());
                 case DoubleType.ID:
-                    return new DoubleMax(reference.column().fqn());
+                    return new DoubleMax(reference.storageIdent());
 
                 default:
                     return null;

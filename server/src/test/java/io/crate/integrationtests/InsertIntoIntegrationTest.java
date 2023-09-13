@@ -478,7 +478,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     public void testInsertFromQueryWithSysColumn() throws Exception {
-        execute("create table target (name string, a string, b string, docid int) " +
+        execute("create table target (name string, a string, docid int) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
         execute("create table source (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
@@ -486,14 +486,13 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into source (name) values ('yalla')");
         execute("refresh table source");
 
-        execute("insert into target (name, a, b, docid) (select name, _raw, _id, _docid from source)");
+        execute("insert into target (name, a, docid) (select name, _id, _docid from source)");
         execute("refresh table target");
 
-        execute("select name, a, b, docid from target");
+        execute("select name, a, docid from target");
         assertThat(response.rows()[0][0]).isEqualTo("yalla");
-        assertThat(response.rows()[0][1]).isEqualTo("{\"name\":\"yalla\"}");
-        assertThat(response.rows()[0][2]).isNotNull();
-        assertThat(response.rows()[0][3]).isEqualTo(0);
+        assertThat(response.rows()[0][1]).isNotNull();
+        assertThat(response.rows()[0][2]).isEqualTo(0);
     }
 
     @Test
@@ -1372,8 +1371,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
         assertThat(response.rows()[0][0]).isEqualTo("text");
 
-        execute("select _raw from dyn_ts where id = 0");
-        assertThat((String) response.rows()[0][0]).isEqualTo("{\"id\":0,\"ts\":\"2015-01-01\"}");
+        execute("select _doc from dyn_ts where id = 0");
+        assertThat(printedTable(response.rows())).isEqualTo("{id=0, ts=2015-01-01}\n");
     }
 
     @Test

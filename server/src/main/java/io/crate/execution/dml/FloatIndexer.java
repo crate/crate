@@ -50,7 +50,7 @@ public class FloatIndexer implements ValueIndexer<Float> {
 
     public FloatIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType;
     }
 

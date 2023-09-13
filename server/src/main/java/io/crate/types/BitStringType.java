@@ -88,9 +88,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         @Override
         public ValueIndexer<BitString> valueIndexer(RelationName table,
                                                     Reference ref,
-                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
-            return new BitStringIndexer(ref, getFieldType.apply(ref.column()));
+            return new BitStringIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

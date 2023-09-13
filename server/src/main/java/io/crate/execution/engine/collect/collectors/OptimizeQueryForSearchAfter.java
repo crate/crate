@@ -75,27 +75,27 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     // no filter needed
                     continue;
                 }
-                String columnName = columnIdent.fqn();
+                String storageIdent = ref.storageIdent();
                 Query orderQuery;
                 // nulls already gone, so they should be excluded
                 if (nullsFirst) {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(eqQuery.rangeQuery(columnName, null, value, false, true, ref.hasDocValues()),
+                        booleanQuery.add(eqQuery.rangeQuery(storageIdent, null, value, false, true, ref.hasDocValues()),
                                          BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(eqQuery.rangeQuery(columnName, value, null, true, false, ref.hasDocValues()),
+                        booleanQuery.add(eqQuery.rangeQuery(storageIdent, value, null, true, false, ref.hasDocValues()),
                                          BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
                         orderQuery = eqQuery.rangeQuery(
-                                columnName, value, null, false, false, ref.hasDocValues());
+                                storageIdent, value, null, false, false, ref.hasDocValues());
                     } else {
                         orderQuery = eqQuery.rangeQuery(
-                                columnName, null, value, false, false, ref.hasDocValues());
+                                storageIdent, null, value, false, false, ref.hasDocValues());
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

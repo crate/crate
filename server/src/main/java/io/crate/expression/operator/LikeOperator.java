@@ -84,7 +84,7 @@ public class LikeOperator extends Operator<String> {
         Object value = literal.value();
         assert value instanceof String
             : "LikeOperator is registered for string types. Value must be a string";
-        return caseSensitivity.likeQuery(ref.column().fqn(), (String) value, ref.indexType() != IndexType.NONE);
+        return caseSensitivity.likeQuery(ref.storageIdent(), (String) value, ref.indexType() != IndexType.NONE);
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {

@@ -52,9 +52,9 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
-                                               Function<ColumnIdent, FieldType> getFieldType,
+                                               Function<String, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref, getFieldType.apply(ref.column()));
+            return new LongIndexer(ref, getFieldType.apply(ref.storageIdent()));
         }
     };
 

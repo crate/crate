@@ -50,7 +50,7 @@ public class IntIndexer implements ValueIndexer<Number> {
 
     public IntIndexer(Reference ref, @Nullable FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType == null ? NumberFieldMapper.FIELD_TYPE : fieldType;
     }
 

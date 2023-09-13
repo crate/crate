@@ -96,7 +96,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
-                                                    Function<ColumnIdent, FieldType> getFieldType,
+                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(
                         innerStorage.valueIndexer(table, ref, getFieldType, getRef));
