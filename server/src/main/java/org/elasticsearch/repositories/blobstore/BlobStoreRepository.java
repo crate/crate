@@ -1129,7 +1129,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private BlobContainer shardContainer(IndexId indexId, ShardId shardId) {
-        return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId.getId())));
+        return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId.id())));
     }
 
     public BlobContainer shardContainer(IndexId indexId, int shardId) {

@@ -39,7 +39,7 @@ public class UnavailableShardsException extends RuntimeException implements Tabl
 
     private static String genMessage(ShardId shardId) {
         return String.format(Locale.ENGLISH, "the shard %s of table %s is not available",
-            shardId.getId(), shardId.getIndex());
+            shardId.id(), shardId.getIndex());
     }
 
     @Override

@@ -167,7 +167,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     private void assertRecoveryStateWithoutStage(RecoveryState state, int shardId, RecoverySource recoverySource, boolean primary,
                                                  String sourceNode, String targetNode) {
-        assertThat(state.getShardId().getId()).isEqualTo(shardId);
+        assertThat(state.getShardId().id()).isEqualTo(shardId);
         assertThat(state.getRecoverySource()).isEqualTo(recoverySource);
         assertThat(state.getPrimary()).isEqualTo(primary);
         if (sourceNode == null) {

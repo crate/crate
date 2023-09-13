@@ -808,7 +808,7 @@ public class IndicesService extends AbstractLifecycleComponent
          */
         PendingDelete(ShardId shardId, IndexSettings settings) {
             this.index = shardId.getIndex();
-            this.shardId = shardId.getId();
+            this.shardId = shardId.id();
             this.settings = settings;
             this.deleteIndex = false;
         }

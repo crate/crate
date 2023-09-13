@@ -249,7 +249,7 @@ public class IndexMetadataUpdater extends RoutingChangesObserver.AbstractRouting
             // group staleShards entries by shard id
             for (Map.Entry<ShardId, List<StaleShard>> shardEntry : indexEntry.getValue().stream().collect(
                 Collectors.groupingBy(staleShard -> staleShard.getShardId())).entrySet()) {
-                int shardNumber = shardEntry.getKey().getId();
+                int shardNumber = shardEntry.getKey().id();
                 Set<String> oldInSyncAllocations = oldIndexMetadata.inSyncAllocationIds(shardNumber);
                 Set<String> idsToRemove = shardEntry.getValue().stream().map(e -> e.getAllocationId()).collect(Collectors.toSet());
                 assert idsToRemove.stream().allMatch(id -> oldRoutingTable.getByAllocationId(shardEntry.getKey(), id) == null) :

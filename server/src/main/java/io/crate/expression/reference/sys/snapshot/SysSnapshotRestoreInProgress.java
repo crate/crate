@@ -111,7 +111,7 @@ public class SysSnapshotRestoreInProgress {
                 RestoreInProgress.ShardRestoreStatus status = shardEntry.value;
                 shardsRestoreInfo.add(
                     new ShardRestoreInfo(
-                        shardId.getId(),
+                        shardId.id(),
                         new IndexParts(shardId.getIndexName()),
                         status.state())
                 );

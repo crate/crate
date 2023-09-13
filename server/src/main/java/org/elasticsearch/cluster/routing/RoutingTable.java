@@ -160,7 +160,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         if (indexRoutingTable == null) {
             return null;
         }
-        final IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.getId());
+        final IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
         return shardRoutingTable == null ? null : shardRoutingTable.getByAllocationId(allocationId);
     }
 

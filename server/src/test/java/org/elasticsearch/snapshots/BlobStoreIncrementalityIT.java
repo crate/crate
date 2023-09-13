@@ -387,7 +387,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
                                                             ShardId shardId) throws IOException {
         var indicesPath = repository.basePath().add("indices");
         var shardContainer = repository.blobStore()
-            .blobContainer(indicesPath.add(indexId.getId()).add(Integer.toString(shardId.getId())));
+            .blobContainer(indicesPath.add(indexId.getId()).add(Integer.toString(shardId.id())));
 
         BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), xContentRegistry());
         return IndexShardSnapshotStatus.newDone(snapshot.startTime(), snapshot.time(),
@@ -397,7 +397,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
 
     private static SnapshotShardFailure findShardFailure(List<SnapshotShardFailure> shardFailures, ShardId shardId) {
         for (SnapshotShardFailure shardFailure : shardFailures) {
-            if (shardId.getIndexName().equals(shardFailure.index()) && shardId.getId() == shardFailure.shardId()) {
+            if (shardId.getIndexName().equals(shardFailure.index()) && shardId.id() == shardFailure.shardId()) {
                 return shardFailure;
             }
         }
