@@ -27,10 +27,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.hppc.BitMixer;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
@@ -44,6 +40,9 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.DocValueFormat;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
@@ -184,7 +183,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -197,7 +196,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -216,7 +215,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
@@ -235,7 +234,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case StringType.ID:
             case CharacterType.ID:
                 var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(reference.column().fqn(), dataType, precision) {
+                return new HllAggregator(reference.storageIdent(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
@@ -250,7 +249,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 };
             case IpType.ID:
                 var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(reference.column().fqn(), dataType, ipPrecision) {
+                return new HllAggregator(reference.storageIdent(), dataType, ipPrecision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {

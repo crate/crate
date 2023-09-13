@@ -150,7 +150,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         Double distance = DataTypes.DOUBLE.implicitCast(parentRhs.value());
         String parentName = parent.name();
         Point pointValue = (Point) pointLiteral.value();
-        String fieldName = pointRef.column().fqn();
+        String fieldName = pointRef.storageIdent();
         return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
     }
 

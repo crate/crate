@@ -72,7 +72,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<ColumnIdent, FieldType> getFieldType,
+                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
             return new ObjectIndexer(table, ref, getFieldType, getRef);
         }

@@ -242,7 +242,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.column().fqn());
+            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.storageIdent());
             DataType<?> innerType = ArrayType.unnest(ref.valueType());
             if (fieldType == null) {
                 if (innerType.id() == ObjectType.ID) {
@@ -258,7 +258,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(
-                preFilterQueryBuilder.buildQuery(ref.column().fqn(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
+                preFilterQueryBuilder.buildQuery(ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
                 BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();

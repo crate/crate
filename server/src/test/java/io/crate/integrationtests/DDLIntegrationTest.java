@@ -211,9 +211,10 @@ public class DDLIntegrationTest extends IntegTestCase {
             "\"dynamic\":\"strict\"," +
             "\"_meta\":{}," +
             "\"properties\":{" +
+            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
             "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\",\"oid\":2}," +
-            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\",\"oid\":3}}," +
-            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}}}}";
+            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\",\"oid\":3}}" +
+            "}}}";
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         execute("insert into test(id) values(1)");
         execute("refresh table test");
@@ -331,11 +332,11 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         String expectedMapping = "{\"default\":{" +
             "\"dynamic\":\"strict\",\"" +
-            "_meta\":{\"indices\":{\"title_desc_fulltext\":{}}}," +
+            "_meta\":{\"indices\":{\"3\":{}}}," +
             "\"properties\":{" +
-            "\"description\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
             "\"title\":{\"type\":\"keyword\",\"position\":1,\"oid\":1}," +
-            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"oid\":3,\"analyzer\":\"stop\",\"sources\":[\"title\",\"description\"]}}}}";
+            "\"description\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
+            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"oid\":3,\"analyzer\":\"stop\",\"sources\":[\"1\",\"2\"]}}}}";
         assertEquals(expectedMapping, getIndexMapping("novels"));
 
         String title = "So Long, and Thanks for All the Fish";
@@ -896,8 +897,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -919,9 +920,9 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "\"day\":\"date_trunc('day', ts)\"," +
                                  "\"added\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
-                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
                                  "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

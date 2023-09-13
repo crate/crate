@@ -119,7 +119,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             return new ArrayMapper(
                 name,
                 position,
-                columnOID,
+                innerMapper.columnOID(),
                 isDropped,
                 defaultExpression,
                 innerFieldType,

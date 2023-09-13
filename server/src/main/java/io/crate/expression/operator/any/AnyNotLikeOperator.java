@@ -64,7 +64,7 @@ public final class AnyNotLikeOperator extends AnyOperator {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-        String columnName = probe.column().fqn();
+        String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
@@ -88,7 +88,7 @@ public final class AnyNotLikeOperator extends AnyOperator {
         String notLike = negateWildcard(regexString);
 
         return new RegexpQuery(new Term(
-            candidates.column().fqn(),
+            candidates.storageIdent(),
             notLike),
             RegexpFlag.COMPLEMENT.value()
         );

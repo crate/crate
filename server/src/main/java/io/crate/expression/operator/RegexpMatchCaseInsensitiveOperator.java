@@ -77,7 +77,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     public Query toQuery(Reference ref, Literal<?> literal) {
         String pattern = (String) literal.value();
         return new CrateRegexQuery(
-            new Term(ref.column().fqn(), pattern),
+            new Term(ref.storageIdent(), pattern),
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
         );
     }

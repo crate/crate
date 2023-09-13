@@ -119,6 +119,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                         return replaceArraysWithNull(value, ref.valueType(), e);
                     }
                 });
+
         }
     }
 

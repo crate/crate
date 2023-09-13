@@ -69,6 +69,8 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.annotations.VisibleForTesting;
+
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
@@ -597,7 +599,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     private static class ColumnOidSupplier implements LongSupplier {
         private long columnOID;
 
-        private ColumnOidSupplier(long columnOID) {
+        @VisibleForTesting
+        public ColumnOidSupplier(long columnOID) {
             this.columnOID = columnOID;
         }
 

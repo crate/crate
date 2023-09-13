@@ -164,18 +164,18 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new LongArbitraryDocValueAggregator<>(
-                    arg.column().fqn(),
+                    arg.storageIdent(),
                     dataType
                 );
             case FloatType.ID:
-                return new FloatArbitraryDocValueAggregator(arg.column().fqn());
+                return new FloatArbitraryDocValueAggregator(arg.storageIdent());
             case DoubleType.ID:
-                return new DoubleArbitraryDocValueAggregator(arg.column().fqn());
+                return new DoubleArbitraryDocValueAggregator(arg.storageIdent());
             case IpType.ID:
-                return new ArbitraryIPDocValueAggregator(arg.column().fqn());
+                return new ArbitraryIPDocValueAggregator(arg.storageIdent());
             case StringType.ID:
                 return new ArbitraryBinaryDocValueAggregator<>(
-                    arg.column().fqn(),
+                    arg.storageIdent(),
                     dataType
                 );
             default:

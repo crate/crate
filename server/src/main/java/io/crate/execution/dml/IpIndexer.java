@@ -51,7 +51,7 @@ public class IpIndexer implements ValueIndexer<String> {
 
     public IpIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
+        this.name = ref.storageIdent();
         this.fieldType = fieldType;
     }
 

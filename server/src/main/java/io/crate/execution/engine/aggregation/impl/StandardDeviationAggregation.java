@@ -239,7 +239,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
                         return new StandardDeviation();
@@ -248,7 +248,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
                         return new StandardDeviation();
@@ -260,7 +260,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
-                    reference.column().fqn(),
+                    reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
                         return new StandardDeviation();
