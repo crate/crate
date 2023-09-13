@@ -108,7 +108,12 @@ public class CreateSnapshotPlan implements Plan {
                             String reason = response.getSnapshotInfo().reason()
                                 .replaceAll("Index", "Table")
                                 .replaceAll("Indices", "Tables");
-                            consumer.accept(null, new CreateSnapshotException(createSnapshot.snapshot(), reason));
+                            var createSnapshotException = new CreateSnapshotException(
+                                createSnapshot.repositoryName(),
+                                createSnapshot.snapshotName(),
+                                reason
+                            );
+                            consumer.accept(null, createSnapshotException);
                             return new Row1(-1L);
                         } else {
                             return new Row1(1L);
@@ -164,7 +169,7 @@ public class CreateSnapshotPlan implements Plan {
                     if (ignoreUnavailable && e instanceof ResourceUnknownException) {
                         LOGGER.info(
                             "Ignore unknown relation '{}' for the '{}' snapshot'",
-                            table.getName(), createSnapshot.snapshot());
+                            table.getName(), createSnapshot.snapshotName());
                         continue;
                     } else {
                         throw e;
@@ -198,10 +203,7 @@ public class CreateSnapshotPlan implements Plan {
             }
         }
 
-        return new CreateSnapshotRequest(
-            createSnapshot.snapshot().getRepository(),
-            createSnapshot.snapshot().getSnapshotId().getName()
-        )
+        return new CreateSnapshotRequest(createSnapshot.repositoryName(), createSnapshot.snapshotName())
             .includeGlobalState(createSnapshot.tables().isEmpty())
             .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
             .indices(snapshotIndices.toArray(new String[0]))
