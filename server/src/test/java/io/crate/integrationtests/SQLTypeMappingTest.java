@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -469,6 +470,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
 
     // https://github.com/crate/crate/issues/13990
     @Test
+    @Repeat(iterations = 300)
     public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
         execute("create table t (a int) with (column_policy ='dynamic')");
         execute("insert into t (x) values ([])");
