@@ -63,10 +63,10 @@ public class FileReadingCollectorTest extends ESTestCase {
     private static String line1 = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}";
     private static String line2 = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}";
 
-    private static LineCursor[] expectedResult(File file) {
+    private static LineCursor[] expectedResult(File file) throws Exception {
         return new LineCursor[] {
-            new LineCursor(file.toURI(), 1, line1, null),
-            new LineCursor(file.toURI(), 2, line2, null)
+            new LineCursor(file.toPath().toRealPath().toUri(), 1, line1, null),
+            new LineCursor(file.toPath().toRealPath().toUri(), 2, line2, null)
         };
     }
 
