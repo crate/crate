@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static io.crate.metadata.DocReferences.toSourceLookup;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
 
@@ -41,7 +42,10 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
@@ -65,6 +69,29 @@ import io.crate.types.UndefinedType;
 public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
+
+    public void register(List<Symbol> symbols) {
+        final boolean[] completeSourceRequired = new boolean[1];
+        for (Symbol symbol : symbols) {
+            RefVisitor.visitRefs(symbol, ref -> {
+                if (ref.column().equals(DocSysColumns.DOC)) {
+                    completeSourceRequired[0] = true;
+                }
+            });
+        }
+        if (completeSourceRequired[0] == false) {
+            for (Symbol symbol : symbols) {
+                RefVisitor.visitRefs(
+                        symbol,
+                        ref -> {
+                            if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
+                                register(toSourceLookup(ref).column(), ref.valueType());
+                            }
+                        }
+                );
+            }
+        }
+    }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void register(ColumnIdent docColumn, DataType<?> type) {

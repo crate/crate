@@ -21,8 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import static io.crate.metadata.DocReferences.toSourceLookup;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -46,13 +44,10 @@ import io.crate.expression.InputRow;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupTask extends AbstractTask {
@@ -108,26 +103,7 @@ public final class PKLookupTask extends AbstractTask {
         ctx.add(toCollect);
 
         sourceParser = new SourceParser();
-        final boolean[] completeSourceRequired = new boolean[1];
-        for (Symbol symbol : toCollect) {
-            RefVisitor.visitRefs(symbol, ref -> {
-                if (ref.column().equals(DocSysColumns.DOC)) {
-                    completeSourceRequired[0] = true;
-                }
-            });
-        }
-        if (completeSourceRequired[0] == false) {
-            for (Symbol symbol : toCollect) {
-                RefVisitor.visitRefs(
-                    symbol,
-                    ref -> {
-                        if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
-                            sourceParser.register(toSourceLookup(ref).column(), ref.valueType());
-                        }
-                    }
-                );
-            }
-        }
+        sourceParser.register(toCollect);
 
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
