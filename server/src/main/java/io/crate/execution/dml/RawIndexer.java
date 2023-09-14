@@ -55,6 +55,9 @@ public class RawIndexer {
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
 
+    private Indexer currentRowIndexer;
+    private Object[] currentRowValues;
+
     public RawIndexer(String indexName,
                       DocTableInfo table,
                       TransactionContext txnCtx,
@@ -69,16 +72,21 @@ public class RawIndexer {
         this.returnValues = returnValues;
     }
 
-    public ParsedDocument index(IndexItem item) throws IOException {
+    /**
+     * Looks for new columns in the values of the given IndexItem and returns them.
+     */
+    public List<Reference> collectSchemaUpdates(IndexItem item) {
         String raw = (String) item.insertValues()[0];
+        List<Reference> newColumns = new ArrayList<>();
         Map<String, Object> doc = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, raw, true);
-        Indexer indexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
+        currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
             List<Reference> targetRefs = new ArrayList<>();
             for (String key : keys) {
                 ColumnIdent column = new ColumnIdent(key);
                 Reference reference = table.getReference(column);
                 if (reference == null) {
                     reference = table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
+                    newColumns.add(reference);
                 }
                 targetRefs.add(reference);
             }
@@ -92,26 +100,42 @@ public class RawIndexer {
                 returnValues
             );
         });
-        Object[] insertValues = new Object[doc.size()];
+
+        currentRowValues = new Object[doc.size()];
         Iterator<Object> iterator = doc.values().iterator();
-        List<Reference> columns = indexer.columns();
-        for (int i = 0; i < insertValues.length; i++) {
+        List<Reference> columns = currentRowIndexer.columns();
+        for (int i = 0; i < currentRowValues.length; i++) {
             Reference reference = columns.get(i);
             Object value = iterator.next();
             DataType<?> type = reference.valueType();
             try {
-                insertValues[i] = type.implicitCast(value);
+                currentRowValues[i] = type.implicitCast(value);
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new ConversionException(value, type);
             }
         }
-        ParsedDocument parsedDoc = indexer.index(new IndexItem.StaticItem(
+        return newColumns;
+    }
+
+    /**
+     * Create a {@link ParsedDocument} from {@link IndexItem}
+     *
+     * This must be called after any new columns (found via
+     * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
+     * state.
+     */
+    public ParsedDocument index(IndexItem item) throws IOException {
+        assert currentRowIndexer != null : "Must be used only after collecting schema updates.";
+
+        ParsedDocument parsedDoc = currentRowIndexer.index(new IndexItem.StaticItem(
             item.id(),
             item.pkValues(),
-            insertValues,
+            currentRowValues,
             item.seqNo(),
             item.primaryTerm()
         ));
         return parsedDoc;
     }
+
+
 }

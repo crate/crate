@@ -22,7 +22,6 @@
 package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -383,16 +382,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
 
-            ParsedDocument parsedDoc = null;
-            List<Reference> newColumns = new ArrayList<>();
-
-            if (indexer == null) {
-                // TODO: Add 2-phase indexing support to RawIndexer.
-                parsedDoc = rawIndexer.index(item);
-            } else {
-                newColumns = indexer.collectSchemaUpdates(item);
-            }
             long startTime = System.nanoTime();
+            List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
+
             if (!newColumns.isEmpty()) {
                 // this forces clearing the cache
                 schemas.tableExists(relationName);
@@ -410,10 +402,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
 
-            if (indexer != null) {
-                // TODO: Add 2-phase indexing support to RawIndexer.
-                parsedDoc = indexer.index(item);
-            }
+            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+
             Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -530,14 +520,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        long version) throws Exception {
         final long startTime = System.nanoTime();
 
-        ParsedDocument parsedDoc = null;
-        List<Reference> newColumns = new ArrayList<>();
-
-        if (indexer == null) {
-            // TODO: Add 2-phase indexing support to RawIndexer.
-            parsedDoc = rawIndexer.index(item);
+        List<Reference> newColumns;
+        if (rawIndexer != null) {
+            newColumns = rawIndexer.collectSchemaUpdates(item);
         } else {
             newColumns = indexer.collectSchemaUpdates(item);
+        }
+
+        // Replica must use the same values for undeterministic defaults/generated columns
+        if (indexer.hasUndeterministicSynthetics()) {
+            item.insertValues(indexer.addGeneratedValues(item));
         }
 
         AcknowledgedResponse response = null;
@@ -555,17 +547,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indexer.updateTargets(addColumnResponse.addedColumns());
         }
 
-        if (indexer != null) {
-            // TODO: Add 2-phase indexing support to RawIndexer.
-            parsedDoc = indexer.index(item);
-        }
-
-        // Replica must use the same values for undeterministic defaults/generated columns
-        if (indexer.hasUndeterministicSynthetics()) {
-            item.insertValues(indexer.addGeneratedValues(item));
-        }
-
-
+        ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
