@@ -569,7 +569,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
-        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);
+        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, null);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

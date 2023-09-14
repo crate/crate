@@ -34,8 +34,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -49,6 +47,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -63,6 +62,7 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
@@ -79,7 +79,13 @@ public final class PKLookupOperation {
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
+    public static Doc lookupDoc(IndexShard shard,
+                                String id,
+                                long version,
+                                VersionType versionType,
+                                long seqNo,
+                                long primaryTerm,
+                                @Nullable SourceParser sourceParser) {
         Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
@@ -99,6 +105,12 @@ public final class PKLookupOperation {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+            Map<String, Object> sourceMap;
+            if (sourceParser == null) {
+                sourceMap = XContentHelper.toMap(visitor.source(), XContentType.JSON);
+            } else {
+                sourceMap = sourceParser.parse(visitor.source());
+            }
             return new Doc(
                 docIdAndVersion.docId,
                 shard.shardId().getIndexName(),
@@ -106,7 +118,7 @@ public final class PKLookupOperation {
                 docIdAndVersion.version,
                 docIdAndVersion.seqNo,
                 docIdAndVersion.primaryTerm,
-                XContentHelper.toMap(visitor.source(), XContentType.JSON),
+                sourceMap,
                 () -> visitor.source().utf8ToString()
             );
         }
@@ -120,7 +132,8 @@ public final class PKLookupOperation {
                                      Map<ShardId, List<PKAndVersion>> idsByShard,
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
-                                     Function<Doc, Row> resultToRow) {
+                                     Function<Doc, Row> resultToRow,
+                                     SourceParser sourceParser) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
@@ -145,7 +158,9 @@ public final class PKLookupOperation {
                     pkAndVersion.version(),
                     VersionType.EXTERNAL,
                     pkAndVersion.seqNo(),
-                    pkAndVersion.primaryTerm()))
+                    pkAndVersion.primaryTerm(),
+                    sourceParser
+                ))
                 .filter(Objects::nonNull)
                 .map(resultToRow);
 
