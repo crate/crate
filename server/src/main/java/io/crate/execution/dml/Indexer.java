@@ -835,8 +835,7 @@ public class Indexer {
     }
 
     @SuppressWarnings("unchecked")
-    public Object[] addGeneratedValues(IndexItem item) {
-        Object[] insertValues = item.insertValues();
+    public Object[] addGeneratedValues(Object[] insertValues) {
         int numExtra = (int) undeterministic.stream()
             .filter(x -> x.ref().column().isRoot())
             .count();

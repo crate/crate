@@ -527,11 +527,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             newColumns = indexer.collectSchemaUpdates(item);
         }
 
-        // Replica must use the same values for undeterministic defaults/generated columns
-        if (indexer.hasUndeterministicSynthetics()) {
-            item.insertValues(indexer.addGeneratedValues(item));
-        }
-
         AcknowledgedResponse response = null;
         if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
@@ -548,6 +543,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index(item) : indexer.index(item);
+
+        // Replica must use the same values for undeterministic defaults/generated columns
+        // This check must be done after index() call to let values/indexers size check compare original array sizes.
+        if (rawIndexer == null && indexer.hasUndeterministicSynthetics()) {
+            item.insertValues(indexer.addGeneratedValues(item.insertValues()));
+        }
 
         Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);

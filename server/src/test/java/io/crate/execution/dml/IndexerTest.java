@@ -874,7 +874,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat((Map<String, ?>) source.get("o")).containsKeys("x", "y");
 
         assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
-        Object[] insertValues = indexer.addGeneratedValues(item);
+        Object[] insertValues = indexer.addGeneratedValues(item.insertValues());
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
