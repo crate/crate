@@ -75,9 +75,8 @@ public class RawIndexer {
     /**
      * Looks for new columns in the values of the given IndexItem and returns them.
      */
-    public List<Reference> collectSchemaUpdates(IndexItem item) {
+    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         String raw = (String) item.insertValues()[0];
-        List<Reference> newColumns = new ArrayList<>();
         Map<String, Object> doc = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, raw, true);
         currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
             List<Reference> targetRefs = new ArrayList<>();
@@ -86,7 +85,6 @@ public class RawIndexer {
                 Reference reference = table.getReference(column);
                 if (reference == null) {
                     reference = table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
-                    newColumns.add(reference);
                 }
                 targetRefs.add(reference);
             }
@@ -114,7 +112,14 @@ public class RawIndexer {
                 throw new ConversionException(value, type);
             }
         }
-        return newColumns;
+
+        return currentRowIndexer.collectSchemaUpdates(new IndexItem.StaticItem(
+            item.id(),
+            item.pkValues(),
+            currentRowValues,
+            item.seqNo(),
+            item.primaryTerm()
+        ));
     }
 
     /**
