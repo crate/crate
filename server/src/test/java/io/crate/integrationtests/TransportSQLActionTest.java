@@ -1464,8 +1464,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select _doc, id from locations where id in (2,3) order by id");
         Map<String, Object> _doc1 = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> _doc2 = (Map<String, Object>) response.rows()[1][0];
-        assertEquals(_doc1.get("id"), "2");
-        assertEquals(_doc2.get("id"), "3");
+        // Ensure complete source is returned for _doc by verifying a non-selected column
+        assertEquals(_doc1.get("name"), "Outer Eastern Rim");
+        assertEquals(_doc2.get("name"), "Galactic Sector QQ7 Active J Gamma");
 
         execute("select name, kind from locations where id in (2,3) order by id");
         assertEquals(printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +
