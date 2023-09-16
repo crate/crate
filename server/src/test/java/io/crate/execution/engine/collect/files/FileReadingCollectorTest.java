@@ -28,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +52,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.data.Input;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class FileReadingCollectorTest extends ESTestCase {
@@ -58,15 +59,14 @@ public class FileReadingCollectorTest extends ESTestCase {
     private static File tmpFile;
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
-    private Input<String> sourceUriFailureInput;
 
     private static String line1 = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}";
     private static String line2 = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}";
 
     private static LineCursor[] expectedResult(File file) throws Exception {
         return new LineCursor[] {
-            new LineCursor(file.toPath().toRealPath().toUri(), 1, line1, null),
-            new LineCursor(file.toPath().toRealPath().toUri(), 2, line2, null)
+            new LineCursor(fileToURI(file), 1, line1, null),
+            new LineCursor(fileToURI(file), 2, line2, null)
         };
     }
 
@@ -135,34 +135,34 @@ public class FileReadingCollectorTest extends ESTestCase {
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        List<LineCursor> result = collect(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
+        List<LineCursor> result = collect(fileToURI(tmpFile.getParentFile()) + "file*.json");
         assertThat(result).containsExactly(expectedResult(tmpFile));
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        List<LineCursor> result = collect(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
+        List<LineCursor> result = collect(fileToURI(tmpFile.getParentFile()) + "*");
         assertThat(result).containsExactly(expectedResult(tmpFile));
     }
 
     @Test
     public void test_collect_exact_uri() throws Throwable {
-        List<LineCursor> result = collect(Paths.get(tmpFile.toURI()).toUri().toString());
+        List<LineCursor> result = collect(fileToURI(tmpFile).toString());
         assertThat(result).containsExactly(expectedResult(tmpFile));
     }
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        List<LineCursor> result = collect(Collections.singletonList(Paths.get(tmpFileGz.toURI()).toUri().toString()), "gzip");
+        List<LineCursor> result = collect(Collections.singletonList(fileToURI(tmpFileGz).toString()), "gzip");
         assertThat(result).containsExactly(expectedResult(tmpFileGz));
     }
 
     @Test
     public void testCollectWithEmptyLine() throws Throwable {
-        List<LineCursor> result = collect(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
+        List<LineCursor> result = collect(fileToURI(tmpFileEmptyLine).toString());
         assertThat(result).containsExactly(
-            new LineCursor(tmpFileEmptyLine.toURI(), 1, "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}", null),
-            new LineCursor(tmpFileEmptyLine.toURI(), 3, "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}", null)
+            new LineCursor(fileToURI(tmpFileEmptyLine), 1, "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}", null),
+            new LineCursor(fileToURI(tmpFileEmptyLine), 3, "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}", null)
         );
     }
 
@@ -199,7 +199,7 @@ public class FileReadingCollectorTest extends ESTestCase {
     }
 
     private static FileReadingIterator it(Collection<String> fileUris, String compression) {
-        FileReadingIterator fileReadingIterator = new FileReadingIterator(
+        return new FileReadingIterator(
             fileUris,
             compression,
             Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
@@ -208,7 +208,6 @@ public class FileReadingCollectorTest extends ESTestCase {
             0,
             Settings.EMPTY,
             THREAD_POOL.scheduler());
-        return fileReadingIterator;
     }
 
     private static List<LineCursor> collect(Collection<String> fileUris, String compression) throws Exception {
@@ -216,5 +215,9 @@ public class FileReadingCollectorTest extends ESTestCase {
             .map(LineCursor::copy)
             .toList()
             .get(5, TimeUnit.SECONDS);
+    }
+
+    private static URI fileToURI(File file) throws IOException {
+        return file.toPath().toRealPath().toUri();
     }
 }
