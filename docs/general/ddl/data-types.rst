@@ -236,7 +236,7 @@ are likely to be larger due to additional metadata.
       - A ``GEO_SHAPE`` column can store different kinds of `GeoJSON geometry objects`_.
     * - ``FLOAT_VECTOR(n)``
       - ``n``
-      - Vector Minimum length: 1. Maximum length: 1024.
+      - Vector Minimum length: 1. Maximum length: 2048.
       - A vector of floating point numbers.
 
 
