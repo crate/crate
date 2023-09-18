@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.gateway;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -650,6 +651,25 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             assertThat(indexMetadata.getIndexUUID(), equalTo(indexUUID));
             assertThat(indexMetadata.getVersion(), equalTo(indexMetadataVersion + 1));
             assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings()), equalTo(3));
+        }
+    }
+
+    public void test_persists_updated_column_oid() throws IOException {
+        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
+            final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
+            final long columnOid = 123L;
+
+            try (Writer writer = persistedClusterStateService.createWriter()) {
+                // Need to write full state first before doing incremental writes.
+                writer.writeFullStateAndCommit(1L, ClusterState.EMPTY_STATE);
+
+                ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
+                writer.writeIncrementalStateAndCommit(clusterState.term(), clusterState, ClusterState.builder(clusterState)
+                    .metadata(Metadata.builder(clusterState.metadata()).columnOID(columnOid)).build());
+
+                clusterState = loadPersistedClusterState(persistedClusterStateService);
+                assertThat(clusterState.metadata().columnOID()).isEqualTo(columnOid);
+            }
         }
     }
 

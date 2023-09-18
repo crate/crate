@@ -396,6 +396,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         if (metadata1.clusterUUIDCommitted != metadata2.clusterUUIDCommitted) {
             return false;
         }
+        if (metadata1.columnOID != metadata2.columnOID) {
+            return false;
+        }
+
         // Check if any persistent metadata needs to be saved
         int customCount1 = 0;
         for (ObjectObjectCursor<String, Custom> cursor : metadata1.customs) {
