@@ -21,6 +21,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.index.mapper.FloatVectorFieldMapper.Defaults.withVectorAttributes;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
+import org.apache.lucene.index.VectorSimilarityFunction;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
@@ -46,7 +49,49 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
 
         private Defaults() {}
 
+        public static final int DIMENSION_LIMIT = 2048;
+
         public static final FieldType FIELD_TYPE = new FieldType();
+
+        /**
+         * Dimension in Lucene 9.7 for KnnFloatVectorField is limited to 1024 validated in
+         * {@link FieldType#setVectorAttributes(int, VectorEncoding, VectorSimilarityFunction)}
+         * This is a workaround to allow a limit of 2048 by extending the FieldType internally.
+         */
+        public static FieldType withVectorAttributes(
+            FieldType fieldType,
+            int dimension,
+            VectorEncoding vectorEncoding,
+            VectorSimilarityFunction similarityFunction
+        ) {
+            if (dimension == 0) {
+                throw new IllegalArgumentException("Dimension cannot be 0");
+            }
+            if (dimension > Defaults.DIMENSION_LIMIT) {
+                throw new IllegalArgumentException("Dimension must not exceed " + Defaults.DIMENSION_LIMIT);
+            }
+            if (similarityFunction == null) {
+                throw new IllegalArgumentException("Similarity function must set and not null");
+            }
+            var result = new FieldType(fieldType) {
+                @Override
+                public int vectorDimension() {
+                    return dimension;
+                }
+
+                @Override
+                public VectorEncoding vectorEncoding() {
+                    return vectorEncoding;
+                }
+
+                @Override
+                public VectorSimilarityFunction vectorSimilarityFunction() {
+                    return similarityFunction;
+                }
+            };
+            result.freeze();
+            return result;
+        }
 
         static {
             FIELD_TYPE.setIndexOptions(IndexOptions.NONE);
@@ -77,16 +122,11 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
 
         @Override
         public Mapper build(BuilderContext context) {
-            fieldType.setVectorAttributes(
-                dimensions,
-                VectorEncoding.FLOAT32,
-                FloatVectorType.SIMILARITY_FUNC
-            );
             var mapper = new FloatVectorFieldMapper(
                 name,
                 position,
                 defaultExpression,
-                fieldType,
+                withVectorAttributes(fieldType, dimensions, VectorEncoding.FLOAT32, FloatVectorType.SIMILARITY_FUNC),
                 new VectorFieldType(buildFullName(context), indexed, hasDocValues),
                 copyTo
             );
