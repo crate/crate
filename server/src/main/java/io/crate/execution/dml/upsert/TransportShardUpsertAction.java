@@ -180,17 +180,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             request.returnValues()
         );
         if (indexer.hasUndeterministicSynthetics()) {
+            // This change also applies for RawIndexer if it's used.
+            // RawIndexer adds non-deterministic generated columns in addition to _raw and uses same request.
             request.insertColumns(indexer.insertColumns(insertColumns));
         }
         RawIndexer rawIndexer = null;
-        if (insertColumns.size() == 1 && insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
+        if (insertColumns.get(0).column().equals(DocSysColumns.RAW)) {
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
                 txnCtx,
                 nodeCtx,
                 getFieldType,
-                request.returnValues()
+                request.returnValues(),
+                List.of() // Non deterministic synthetics is not needed on primary
             );
         }
 
@@ -346,7 +349,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         RawIndexer rawIndexer;
         Indexer indexer;
-        if (insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW)) {
+        if (insertColumns[0].column().equals(DocSysColumns.RAW)) {
+            // Even if insertColumns supposed to have a single column _raw,
+            // insertColumns can be expanded to add non-deterministic synthetics.
+            // We must not check that insertColumns.length is 1
+            // in order not to fall back to regular Indexer which cannot handle _raw and persists it as String.
             indexer = null;
             rawIndexer = new RawIndexer(
                 indexName,
@@ -354,7 +361,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 getFieldType,
-                null
+                null,
+                targetColumns.subList(1, targetColumns.size()) // expanded refs (non-deterministic synthetics)
             );
         } else {
             rawIndexer = null;
@@ -525,8 +533,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item) : rawIndexer.index(item);
 
         // Replica must use the same values for undeterministic defaults/generated columns
-        if (indexer.hasUndeterministicSynthetics()) {
+        if (rawIndexer == null && indexer.hasUndeterministicSynthetics()) {
             item.insertValues(indexer.addGeneratedValues(item));
+        } else if (rawIndexer != null && rawIndexer.hasUndeterministicSynthetics()) {
+            item.insertValues(rawIndexer.addGeneratedValues(item));
         }
 
         if (!parsedDoc.newColumns().isEmpty()) {

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -43,6 +44,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataType;
+import org.jetbrains.annotations.NotNull;
 
 public class RawIndexer {
 
@@ -54,25 +56,31 @@ public class RawIndexer {
     private final Symbol[] returnValues;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
+    private final List<Reference> nonDeterministicSynthetics;
+
+    private Indexer currentRowIndexer;
+
 
     public RawIndexer(String indexName,
                       DocTableInfo table,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Function<ColumnIdent, FieldType> getFieldType,
-                      Symbol[] returnValues) {
+                      Symbol[] returnValues,
+                      @NotNull List<Reference> nonDeterministicSynthetics) {
         this.indexName = indexName;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
         this.getFieldType = getFieldType;
         this.returnValues = returnValues;
+        this.nonDeterministicSynthetics = nonDeterministicSynthetics;
     }
 
     public ParsedDocument index(IndexItem item) throws IOException {
         String raw = (String) item.insertValues()[0];
         Map<String, Object> doc = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, raw, true);
-        Indexer indexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
+        currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
             List<Reference> targetRefs = new ArrayList<>();
             for (String key : keys) {
                 ColumnIdent column = new ColumnIdent(key);
@@ -82,6 +90,12 @@ public class RawIndexer {
                 }
                 targetRefs.add(reference);
             }
+
+            // Add all non-deterministic synthetics to reflect possible columns/values expansion on replica.
+            // item.insertValues might be expanded and we need to reflect that in the target refs.
+            // On primary it's an empty list.
+            targetRefs.addAll(nonDeterministicSynthetics);
+
             return new Indexer(
                 indexName,
                 table,
@@ -92,10 +106,14 @@ public class RawIndexer {
                 returnValues
             );
         });
-        Object[] insertValues = new Object[doc.size()];
+
+        int numExtra = item.insertValues().length - 1; // First value is _raw.
+        assert numExtra == nonDeterministicSynthetics.size() : "Insert columns/values expansion must be done in sync";
+
+        Object[] insertValues = new Object[doc.size() + numExtra];
         Iterator<Object> iterator = doc.values().iterator();
-        List<Reference> columns = indexer.columns();
-        for (int i = 0; i < insertValues.length; i++) {
+        List<Reference> columns = currentRowIndexer.columns();
+        for (int i = 0; i < doc.size(); i++) {
             Reference reference = columns.get(i);
             Object value = iterator.next();
             DataType<?> type = reference.valueType();
@@ -105,7 +123,14 @@ public class RawIndexer {
                 throw new ConversionException(value, type);
             }
         }
-        ParsedDocument parsedDoc = indexer.index(new IndexItem.StaticItem(
+
+        // Add synthetics on replica.
+        // On primary numExtra = 0;
+        for (int i = 0; i < numExtra; i++) {
+            insertValues[doc.size() + i] = item.insertValues()[i + 1];
+        }
+
+        ParsedDocument parsedDoc = currentRowIndexer.index(new IndexItem.StaticItem(
             item.id(),
             item.pkValues(),
             insertValues,
@@ -113,5 +138,13 @@ public class RawIndexer {
             item.primaryTerm()
         ));
         return parsedDoc;
+    }
+
+    public boolean hasUndeterministicSynthetics() {
+        return currentRowIndexer.hasUndeterministicSynthetics();
+    }
+
+    public Object[] addGeneratedValues(ShardUpsertRequest.Item item) {
+        return currentRowIndexer.addGeneratedValues(item);
     }
 }
