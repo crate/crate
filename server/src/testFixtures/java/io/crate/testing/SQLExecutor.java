@@ -206,6 +206,7 @@ public class SQLExecutor {
     public final DependencyCarrier dependencyMock;
     private final PlanStats planStats;
     private final TableStats tableStats;
+    private final long currentOID;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
@@ -808,6 +809,15 @@ public class SQLExecutor {
         this.udfService = udfService;
         this.tableStats = tableStats;
         this.planStats = new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats);
+        this.currentOID = clusterService.state().metadata().columnOID();
+    }
+
+    /**
+     * Return current oid, taking to account all addTable/addPartitionedTable calls.
+     * Used as a starting point for "fake oid assignment" to imitate ADD COLUMN in unit tests.
+     */
+    public long currentOID() {
+        return currentOID;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
