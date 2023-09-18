@@ -2073,6 +2073,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testPartitionedColumnIsNotIn_Raw() throws Exception {
         execute("create table t (p string primary key, v string) " +
                 "partitioned by (p) " +
@@ -2081,7 +2082,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t (p, v) values ('a', 'Marvin')");
         execute("refresh table t");
         execute("select _raw from t");
-        assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
+        assertThat(((String) response.rows()[0][0]), is("{\"2\":\"Marvin\"}"));
     }
 
     @Test
@@ -2353,6 +2354,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void test_nested_partition_column_is_included_when_selecting_the_object_but_not_in_the_source() {
         execute("create table tbl (pk object as (id text, part text), primary key (pk['id'], pk['part'])) " +
                 "partitioned by (pk['part'])");
@@ -2362,8 +2364,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select _raw, pk, pk['id'], pk['part'] from tbl order by pk['id'] asc");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
 
         execute("SELECT _raw, pk, pk['id'], pk['part'] FROM tbl " +
@@ -2372,8 +2374,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " ORDER BY pk['id'] ASC");
         assertThat(
             printedTable(response.rows()),
-            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
-               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+            is("{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
     }
 

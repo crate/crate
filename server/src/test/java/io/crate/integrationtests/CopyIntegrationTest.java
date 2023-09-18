@@ -47,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import io.crate.testing.UseNewCluster;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -877,6 +878,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    @UseNewCluster
     public void test_copy_excludes_partitioned_values_from_source() throws Exception {
         execute("create table tbl (x int, p int) partitioned by (p)");
 
@@ -895,7 +897,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("refresh table tbl");
             execute("SELECT _raw, * FROM tbl");
             assertThat(response).hasRows(
-                "{\"x\":10}| 10| 1"
+                "{\"1\":10}| 10| 1"
             );
         }
 
@@ -914,8 +916,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             );
             execute("refresh table tbl2");
             execute("SELECT _raw, * FROM tbl2");
+            // oid 2 is taken by tbl.p but it's not inlcuded to the source since it's PARTITIONED BY column.
             assertThat(response).hasRows(
-                "{\"x\":10,\"o\":{}}| 10| {p=1}"
+                "{\"3\":10,\"4\":{}}| 10| {p=1}"
             );
         }
     }

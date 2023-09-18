@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -77,6 +76,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
@@ -1893,6 +1893,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     @Test
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)
+    @UseNewCluster
     public void test_bit_string_can_be_inserted_and_queried() throws Exception {
         execute("create table tbl (id int primary key, xs bit(4))");
         execute("insert into tbl (id, xs) values (1, B'0000'), (2, B'0001'), (3, B'0011'), (4, B'0111'), (5, B'1111'), (6, B'1001')");
@@ -1901,12 +1902,12 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| {\"1\":6,\"2\":\"CQ==\"}| B'100'"
         );
         // use LIMIT 1 to hit a different execution path that should load `xs` differently
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
         assertThat(response).hasRows(
-            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'"
+            "B'1001'| B'1001'| {\"1\":6,\"2\":\"CQ==\"}| B'100'"
         );
 
         // primary key lookup uses different execution path to decode the value
@@ -2023,6 +2024,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     @Test
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)
+    @UseNewCluster
     public void test_character_can_be_inserted_and_queried() throws Exception {
         execute("create table tbl (c character(4))");
         execute("insert into tbl (c) values ('four'), ('two')");
@@ -2031,12 +2033,12 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'two'");
         assertThat(response).hasRows(
-                "two | two | {\"c\":\"two \"}| t"
+                "two | two | {\"1\":\"two \"}| t"
         );
         // use LIMIT 1 to hit a different execution path that should load `c` differently
         execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
         assertThat(response).hasRows(
-            "four| four| {\"c\":\"four\"}| f"
+            "four| four| {\"1\":\"four\"}| f"
         );
 
         var properties = new Properties();

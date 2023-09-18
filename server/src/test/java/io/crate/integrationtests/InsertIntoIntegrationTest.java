@@ -53,6 +53,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -477,6 +478,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
 
     @Test
+    @UseNewCluster
     public void testInsertFromQueryWithSysColumn() throws Exception {
         execute("create table target (name string, a string, b string, docid int) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
@@ -491,7 +493,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("select name, a, b, docid from target");
         assertThat(response.rows()[0][0]).isEqualTo("yalla");
-        assertThat(response.rows()[0][1]).isEqualTo("{\"name\":\"yalla\"}");
+        // First 4 OID-s are taken by the target table.
+        assertThat(response.rows()[0][1]).isEqualTo("{\"5\":\"yalla\"}");
         assertThat(response.rows()[0][2]).isNotNull();
         assertThat(response.rows()[0][3]).isEqualTo(0);
     }
@@ -1361,6 +1364,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testDynamicTimestampIntegrationTest() throws Exception {
         execute("create table dyn_ts (id integer primary key) with (column_policy = 'dynamic')");
         ensureYellow();
@@ -1373,7 +1377,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo("text");
 
         execute("select _raw from dyn_ts where id = 0");
-        assertThat((String) response.rows()[0][0]).isEqualTo("{\"id\":0,\"ts\":\"2015-01-01\"}");
+        assertThat((String) response.rows()[0][0]).isEqualTo("{\"1\":0,\"2\":\"2015-01-01\"}");
     }
 
     @Test

@@ -25,12 +25,12 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import io.crate.testing.*;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -39,6 +39,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
@@ -415,6 +416,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     } */
 
     @Test
+    @UseNewCluster
     public void test_dynamic_empty_array_does_not_result_in_new_column() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
@@ -429,12 +431,13 @@ public class SQLTypeMappingTest extends IntegTestCase {
         );
         assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
             """
-            {"id":1,"tags":["wow","much","wow"],"new":[]}
+            {"1":1,"2":["wow","much","wow"],"new":[]}
             """
         );
     }
 
     @Test
+    @UseNewCluster
     public void testDynamicNullArray_does_not_result_in_new_column() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
@@ -449,7 +452,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         );
         assertThat((String) execute("select _raw from arr").rows()[0][0]).isEqualToIgnoringWhitespace(
             """
-            {"id":2,"tags":["wow","much","wow"],"new":[null]}
+            {"1":2,"2":["wow","much","wow"],"new":[null]}
             """
         );
     }
