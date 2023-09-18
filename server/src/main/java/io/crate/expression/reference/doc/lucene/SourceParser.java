@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import static io.crate.metadata.DocReferences.toSourceLookup;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.START_ARRAY;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
 
@@ -33,6 +32,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -44,7 +44,10 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.server.xcontent.XContentHelper;
@@ -71,29 +74,19 @@ public final class SourceParser {
     private final Map<String, Object> requiredColumns = new HashMap<>();
 
     public void register(List<Symbol> symbols) {
-        final boolean[] completeSourceRequired = new boolean[1];
-        for (Symbol symbol : symbols) {
-            RefVisitor.visitRefs(symbol, ref -> {
-                if (ref.column().equals(DocSysColumns.DOC)) {
-                    completeSourceRequired[0] = true;
+        if (!Symbols.containsColumn(symbols, DocSysColumns.DOC)) {
+            Consumer<Reference> register = ref -> {
+                if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
+                    register(DocReferences.toSourceLookup(ref).column(), ref.valueType());
                 }
-            });
-        }
-        if (completeSourceRequired[0] == false) {
+            };
             for (Symbol symbol : symbols) {
-                RefVisitor.visitRefs(
-                        symbol,
-                        ref -> {
-                            if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
-                                register(toSourceLookup(ref).column(), ref.valueType());
-                            }
-                        }
-                );
+                RefVisitor.visitRefs(symbol, register);
             }
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
