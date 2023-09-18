@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.allOf;
@@ -57,9 +58,6 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -72,6 +70,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
@@ -107,33 +106,27 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     }
 
     @Test
+    @UseNewCluster
     public void testSelectRaw() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
-        Object raw = response.rows()[0][0];
-        Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
-
-        assertThat(rawMap.get("race"), is("Human"));
-        assertThat(rawMap.get("gender"), is("female"));
-        assertThat(rawMap.get("age"), is(32));
-        assertThat(rawMap.get("name"), is("Trillian"));
+        assertThat((String) response.rows()[0][0])
+            .isEqualTo("""
+                {"1":"Human","2":"female","3":32,"4":276912000000,"5":"Trillian","6":{"7":"Mathematician"}}"""
+            );
     }
 
     @Test
+    @UseNewCluster
     public void testSelectRawWithGrouping() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
 
-        Object raw = response.rows()[0][1];
-        Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
-
-        assertThat(rawMap.get("race"), is("Human"));
-        assertThat(rawMap.get("gender"), is("female"));
-        assertThat(rawMap.get("age"), is(32));
-        assertThat(rawMap.get("name"), is("Trillian"));
+        assertThat((String) response.rows()[0][1])
+            .isEqualTo("""
+                {"1":"Human","2":"female","3":32,"4":276912000000,"5":"Trillian","6":{"7":"Mathematician"}}"""
+            );
     }
 
     @Test
