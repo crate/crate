@@ -45,7 +45,13 @@ public class LoadedRules implements SessionSettingProvider {
         rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES);
         rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
-        return Lists2.map(rules, x -> (Class<? extends Rule<?>>) x.getClass());
+        var result = new ArrayList<Class<? extends Rule<?>>>();
+        for (Rule<?> rule : rules) {
+            if (rule.mandatory() == false) {
+                result.add((Class<? extends Rule<?>>) rule.getClass());
+            }
+        }
+        return result;
     }
 
     @VisibleForTesting

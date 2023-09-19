@@ -74,26 +74,8 @@ public class JoinPlan extends AbstractJoinPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        // Fallback to NestedLoopJoin
-        return new NestedLoopJoin(
-            lhs,
-            rhs,
-            joinType,
-            joinCondition,
-            isFiltered,
-            false
-        ).build(
-            dependencyCarrier,
-            plannerContext,
-            planHints,
-            projectionBuilder,
-            limit,
-            offset,
-            order,
-            pageSizeHint,
-            params,
-            subQueryResults
-        );
+        throw new UnsupportedOperationException(
+            "JoinPlan cannot be build, it needs to be converted to a NestedLoop/HashJoin");
     }
 
     @Override

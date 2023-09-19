@@ -76,9 +76,11 @@ public class Optimizer {
         }
         var result = new ArrayList<Rule<?>>(rules.size());
         for (var rule : rules) {
-            if (excludedRules.contains(rule.getClass()) == false) {
-                result.add(rule);
+            if (rule.mandatory() == false &&
+                excludedRules.contains(rule.getClass())) {
+                continue;
             }
+            result.add(rule);
         }
         return result;
     }

@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Set;
@@ -33,6 +33,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
+import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.user.User;
 
 public class OptimizerTest {
@@ -49,10 +50,26 @@ public class OptimizerTest {
             0
         );
 
-        List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),
-                                                            sessionSettings.excludedOptimizerRules());
-        assertThat(rules.isEmpty(), is(true));
-        rules = Optimizer.removeExcludedRules(List.of(new MoveFilterBeneathJoin()), sessionSettings.excludedOptimizerRules());
-        assertThat(rules.size(), is(1));
+        List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()), sessionSettings.excludedOptimizerRules());
+        assertThat(rules).isEmpty();
+        var moveFilterBeneathJoin = new MoveFilterBeneathJoin();
+        rules = Optimizer.removeExcludedRules(List.of(moveFilterBeneathJoin), sessionSettings.excludedOptimizerRules());
+        assertThat(rules).contains(moveFilterBeneathJoin);
+    }
+
+    @Test
+    public void test_non_removable_rules_are_not_filtered() {
+        var sessionSettings = new CoordinatorSessionSettings(
+            User.of("User"),
+            User.of("User"),
+            SearchPath.pathWithPGCatalogAndDoc(),
+            true,
+            Set.of(RewriteJoinPlan.class), // this rule can not be removed
+            true,
+            0
+        );
+        var rewriteJoinPlan = new RewriteJoinPlan();
+        List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(rewriteJoinPlan), sessionSettings.excludedOptimizerRules());
+        assertThat(rules).contains(rewriteJoinPlan);
     }
 }
