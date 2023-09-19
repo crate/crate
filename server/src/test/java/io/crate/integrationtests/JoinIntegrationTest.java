@@ -1444,13 +1444,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
-                Eval[x, x, x]
-                  └ OrderBy[x ASC]
-                    └ HashJoin[(x = x)]
-                      ├ HashJoin[(x = x)]
-                      │  ├ Collect[doc.j2 | [x] | true]
-                      │  └ Collect[doc.j3 | [x] | true]
-                      └ Collect[doc.j1 | [x] | true]"""
+                OrderBy[x ASC]
+                  └ HashJoin[(x = x)]
+                    ├ HashJoin[(x = x)]
+                    │  ├ Collect[doc.j1 | [x] | true]
+                    │  └ Collect[doc.j2 | [x] | true]
+                    └ Collect[doc.j3 | [x] | true]"""
         );
 
         execute(stmt);
@@ -1560,5 +1559,49 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(response).hasRows("3");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_eliminate_cross_join() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+
+        String stmt = "SELECT * FROM t1, t2, t3 WHERE t1.x = t3.z AND t3.z = t2.y;";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "Eval[x, y, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_eliminate_cross_join_with_filter() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+
+        String stmt = "SELECT * FROM t1, t2, t3 WHERE t1.x = t3.z AND t3.z = t2.y AND t1.x > 1";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "Eval[x, y, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
     }
 }

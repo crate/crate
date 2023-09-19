@@ -27,17 +27,14 @@ import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -45,11 +42,9 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -59,25 +54,12 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 
-public class HashJoin extends JoinPlan {
-
-    private final List<Symbol> outputs;
+public class HashJoin extends AbstractJoinPlan {
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
         super(lhs, rhs, joinCondition, JoinType.INNER);
-        this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
-        Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
-        deps.putAll(leftDeps);
-        deps.putAll(rightDeps);
-        return deps;
     }
 
     @Override
@@ -184,7 +166,7 @@ public class HashJoin extends JoinPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "hash-join",
-            Collections.singletonList(createJoinProjection(outputs, joinOutputs)),
+            Collections.singletonList(createJoinProjection(outputs(), joinOutputs)),
             leftMerge,
             rightMerge,
             leftOutputs.size(),
@@ -203,32 +185,11 @@ public class HashJoin extends JoinPlan {
             NO_LIMIT,
             0,
             NO_LIMIT,
-            outputs.size(),
+            outputs().size(),
             null
         );
     }
 
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
-        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(lhs, rhs);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashJoin(
             sources.get(0),

@@ -51,6 +51,33 @@ public final class Maps {
         return Collections.unmodifiableMap(result);
     }
 
+
+    public static <K, V> Map<K, V> merge(Map<K, V> m1, Map<K, V> m2, BiFunction<V, V, V> mergeValues) {
+        if (m1.isEmpty()) {
+            return m2;
+        }
+        if (m2.isEmpty()) {
+            return m1;
+        }
+        var result = new HashMap<K, V>();
+        for (var m1Entry : m1.entrySet()) {
+            var m1Key = m1Entry.getKey();
+            var m1Values = m1Entry.getValue();
+            var m2Values = m2.get(m1Key);
+            if (m1Values != null && m2Values != null) {
+                result.put(m1Key, mergeValues.apply(m1Values, m2Values));
+            } else if (m1Values != null) {
+                result.put(m1Key, m1Values);
+            } else if (m2Values != null) {
+                result.put(m1Key, m2Values);
+            }
+        }
+        for (var key : Sets.difference(m2.keySet(), result.keySet())) {
+            result.put(key, m2.get(key));
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> T get(Map<String, ?> map, String key) {
         return (T) map.get(key);

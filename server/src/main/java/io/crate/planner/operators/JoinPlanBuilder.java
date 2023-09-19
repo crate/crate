@@ -22,7 +22,6 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -42,8 +41,6 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -72,26 +69,8 @@ public class JoinPlanBuilder {
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
-        boolean optimizeOrder = true;
-        for (var joinPair : allJoinPairs) {
-            if (hasAdditionalDependencies(joinPair)) {
-                optimizeOrder = false;
-                break;
-            }
-        }
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = buildRelationsToJoinPairsMap(allJoinPairs);
-        Iterator<RelationName> it;
-        if (optimizeOrder) {
-            Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-                Lists2.map(from, AnalyzedRelation::relationName),
-                joinPairsByRelations.keySet(),
-                queryParts.keySet()
-            );
-            it = orderedRelationNames.iterator();
-        } else {
-            it = Lists2.map(from, AnalyzedRelation::relationName).iterator();
-        }
-
+        Iterator<RelationName> it = Lists2.mapLazy(from, AnalyzedRelation::relationName).iterator();
         final RelationName lhsName = it.next();
         final RelationName rhsName = it.next();
         Set<RelationName> joinNames = new LinkedHashSet<>();
@@ -121,13 +100,13 @@ public class JoinPlanBuilder {
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
-        LogicalPlan joinPlan = new NestedLoopJoin(
+        LogicalPlan joinPlan = new JoinPlan(
             plan.apply(lhs),
             plan.apply(rhs),
             joinType,
             validJoinConditions,
-            isFiltered,
-            false);
+            isFiltered
+        );
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
         while (it.hasNext()) {
@@ -154,33 +133,6 @@ public class JoinPlanBuilder {
         return joinPlan;
     }
 
-    private static boolean hasAdditionalDependencies(JoinPair joinPair) {
-        Symbol condition = joinPair.condition();
-        if (condition == null) {
-            return false;
-        }
-        boolean[] hasAdditionalDependencies = {false};
-
-        // Un-aliased tables
-        RefVisitor.visitRefs(condition, ref -> {
-            RelationName relationName = ref.ident().tableIdent();
-            if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
-                hasAdditionalDependencies[0] = true;
-            }
-        });
-
-        // Aliased tables
-        if (hasAdditionalDependencies[0] == false) {
-            FieldsVisitor.visitFields(condition, scopedSymbol -> {
-                RelationName relationName = scopedSymbol.relation();
-                if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
-                    hasAdditionalDependencies[0] = true;
-                }
-            });
-        }
-
-        return hasAdditionalDependencies[0];
-    }
 
     private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
         // A matching joinPair for two relations is retrieved using pairByQualifiedNames.remove(setOf(a, b))
@@ -237,13 +189,13 @@ public class JoinPlanBuilder {
                 .filter(Objects::nonNull).iterator()
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
-        var joinPlan = new NestedLoopJoin(
+        var joinPlan = new JoinPlan(
             source,
             nextPlan,
             type,
             AndOperator.join(conditions, null),
-            isFiltered,
-            false);
+            isFiltered
+        );
         return Filter.create(joinPlan, query);
     }
 
