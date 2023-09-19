@@ -30,6 +30,8 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.junit.Test;
 
@@ -395,6 +397,48 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                     .hasType(DataTypes.INTEGER)
                     .hasOid(5L)
             );
+        }
+    }
+
+    @Test
+    public void test_table_version_less_than_5_5_oid_is_not_assigned() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table tbl (x int)",
+                Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+            )
+            .build();
+
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        try (IndexEnv indexEnv = new IndexEnv(
+            THREAD_POOL,
+            tbl,
+            clusterService.state(),
+            Version.V_5_4_0,
+            createTempDir()
+        )) {
+            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+
+            SimpleReference colToAdd = new SimpleReference(
+                new ReferenceIdent(tbl.ident(), "y"),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                2,
+                null
+            );
+
+            List<Reference> columns = List.of(colToAdd);
+            var request = new AddColumnRequest(
+                tbl.ident(),
+                columns,
+                Map.of(),
+                new IntArrayList()
+            );
+            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+
+            Reference addedColumn = newTable.getReference(colToAdd.column());
+            assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
         }
     }
 }
