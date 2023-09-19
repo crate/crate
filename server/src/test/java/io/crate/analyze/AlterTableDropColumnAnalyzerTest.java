@@ -28,6 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -276,5 +279,20 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP o['oo']['ooa'], DROP o['oo']['oob'], DROP o['oo']['ooa']"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Column \"o['oo']['ooa']\" specified more than once");
+    }
+
+    @Test
+    public void test_drop_column_from_old_table_is_not_allowed() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable(
+                // Need second column to not fall into earlier check "Dropping all columns of a table is not allowed".
+                "create table t (a int, b int)",
+                Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+            )
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN a"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Dropping columns of a table created before version 5.5 is not supported");
     }
 }
