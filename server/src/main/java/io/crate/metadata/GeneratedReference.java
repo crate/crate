@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -282,6 +284,18 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+        if (ref.oid() != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new GeneratedReference(
+                ref.applyColumnOid(oidSupplier),
+                formattedGeneratedExpression,
+                generatedExpression
+        );
+    }
+
+    @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE
             + ref.ramBytesUsed()
@@ -291,7 +305,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
-        return ref.toMapping(position, columnOidSupplier);
+    public Map<String, Object> toMapping(int position) {
+        return ref.toMapping(position);
     }
 }

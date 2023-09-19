@@ -64,6 +64,8 @@ import io.crate.Constants;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.Reference;
 
 /**
  * Service responsible for submitting index templates updates
@@ -239,15 +241,18 @@ public class MetadataIndexTemplateService {
             templateBuilder.settings(templateSettingsBuilder.build());
             if (createTableRequest != null) {
                 // New code path where we create mapping at the last stage and assign OID in the same cluster state update with template creation.
+                List<Reference> references = DocReferences.applyOid(
+                        createTableRequest.references(),
+                        metadataBuilder.columnOidSupplier()
+                );
                 var mapping = MappingUtil.createMapping(
                     MappingUtil.AllocPosition.forNewTable(),
-                    createTableRequest.references(),
+                    references,
                     createTableRequest.pKeyIndices(),
                     createTableRequest.checkConstraints(),
                     createTableRequest.partitionedBy(),
                     createTableRequest.tableColumnPolicy(),
-                    createTableRequest.routingColumn(),
-                    metadataBuilder.columnOidSupplier()
+                    createTableRequest.routingColumn()
                 );
                 mapping = Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping); // We used PutIndexTemplateRequest.mapping which wraps mapping with default type
                 try {

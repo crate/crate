@@ -21,7 +21,14 @@
 
 package io.crate.metadata;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
+
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -100,5 +107,28 @@ public final class DocReferences {
             return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
         }
         return ref;
+    }
+
+    public static List<Reference> applyOid(Collection<Reference> sourceReferences,
+                                           Metadata.ColumnOidSupplier columnOidSupplier) {
+        List<Reference> references = new ArrayList<>(sourceReferences.size());
+        Map<ColumnIdent, Reference> referencesMap = new HashMap<>(sourceReferences.size());
+        for (var ref : sourceReferences) {
+            var newRef = ref.applyColumnOid(columnOidSupplier);
+            references.add(newRef);
+            referencesMap.put(newRef.column(), newRef);
+        }
+
+        for (var i = 0; i < references.size(); i++) {
+            var ref = references.get(i);
+            if (ref instanceof IndexReference indexReference) {
+                List<Reference> newSources = new ArrayList<>(indexReference.columns().size());
+                for (var sourceRef : indexReference.columns()) {
+                    newSources.add(referencesMap.get(sourceRef.column()));
+                }
+                references.set(i, indexReference.updateColumns(newSources));
+            }
+        }
+        return references;
     }
 }

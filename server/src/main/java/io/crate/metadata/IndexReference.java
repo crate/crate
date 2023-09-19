@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static java.util.Objects.requireNonNull;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -236,8 +237,8 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
-        Map<String, Object> mapping = super.toMapping(position, columnOidSupplier);
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         if (analyzer != null) {
             mapping.put("analyzer", analyzer);
         }
@@ -248,5 +249,45 @@ public class IndexReference extends SimpleReference {
         }
 
         return mapping;
+    }
+
+    @Override
+    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new IndexReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oidSupplier.nextOid(),
+                isDropped,
+                defaultExpression,
+                columns,
+                analyzer
+        );
+    }
+
+    public IndexReference updateColumns(List<Reference> newColumns) {
+        return new IndexReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oid,
+                isDropped,
+                defaultExpression,
+                newColumns,
+                analyzer
+        );
     }
 }
