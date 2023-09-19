@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,8 +47,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public class SimpleReference implements Reference {
 
@@ -161,6 +161,26 @@ public class SimpleReference implements Reference {
     }
 
     @Override
+    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new SimpleReference(
+                ident,
+                granularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                hasDocValues,
+                position,
+                oidSupplier.nextOid(),
+                isDropped,
+                defaultExpression
+        );
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
     }
@@ -255,14 +275,12 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+    public Map<String, Object> toMapping(int position) {
         DataType<?> innerType = ArrayType.unnest(type);
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
-        if (oid == COLUMN_OID_UNASSIGNED && columnOidSupplier != null) {
-            mapping.put("oid", columnOidSupplier.nextOid());
-        } else if (oid != COLUMN_OID_UNASSIGNED) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
             mapping.put("oid", oid);
         }
         if (isDropped) {
