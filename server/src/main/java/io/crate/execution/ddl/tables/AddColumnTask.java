@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.carrotsearch.hppc.IntArrayList;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -89,6 +90,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             .toList();
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+
         Map<String, Object> mapping = createMapping(
             AllocPosition.forTable(currentTable),
             normalizedColumns,
@@ -97,7 +99,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             List.of(),
             null,
             null,
-            metadataBuilder.columnOidSupplier()
+            currentTable.versionCreated().onOrAfter(Version.V_5_5_0) ? metadataBuilder.columnOidSupplier() : null
         );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
