@@ -93,9 +93,11 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
@@ -337,15 +339,19 @@ public class MetadataCreateIndexService {
                     if (createTableRequest == null) {
                         mapping = new HashMap<>(); // resize doesn't change mapping, will be merged below as is.
                     } else {
+                        List<Reference> references = DocReferences.applyOid(
+                                createTableRequest.references(),
+                                metadataBuilder.columnOidSupplier()
+                        );
+
                         mapping = MappingUtil.createMapping(
                             MappingUtil.AllocPosition.forNewTable(),
-                            createTableRequest.references(),
+                            references,
                             createTableRequest.pKeyIndices(),
                             createTableRequest.checkConstraints(),
                             createTableRequest.partitionedBy(),
                             createTableRequest.tableColumnPolicy(),
-                            createTableRequest.routingColumn(),
-                            metadataBuilder.columnOidSupplier()
+                            createTableRequest.routingColumn()
                         );
                     }
                 } else {
