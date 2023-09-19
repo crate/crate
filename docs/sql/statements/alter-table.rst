@@ -200,6 +200,10 @@ It's possible to drop multiple columns at once.
 
    It's not allowed to drop all columns of a table.
 
+.. NOTE::
+
+   Dropping columns of a table created before version 5.5 is not supported.
+
 .. _sql-alter-table-open-close:
 
 ``OPEN/CLOSE``
