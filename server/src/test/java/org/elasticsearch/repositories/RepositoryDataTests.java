@@ -19,16 +19,10 @@
 
 package org.elasticsearch.repositories;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,19 +49,22 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 /**
  * Tests for the {@link RepositoryData} class.
  */
 public class RepositoryDataTests extends ESTestCase {
 
+    @Test
     public void testEqualsAndHashCode() {
         RepositoryData repositoryData1 = generateRandomRepoData();
         RepositoryData repositoryData2 = repositoryData1.copy();
-        assertEquals(repositoryData1, repositoryData2);
-        assertEquals(repositoryData1.hashCode(), repositoryData2.hashCode());
+        assertThat(repositoryData1).isEqualTo(repositoryData2);
+        assertThat(repositoryData1.hashCode()).isEqualTo(repositoryData2.hashCode());
     }
 
+    @Test
     public void testIndicesToUpdateAfterRemovingSnapshot() {
         final RepositoryData repositoryData = generateRandomRepoData();
         final List<IndexId> indicesBefore = new ArrayList<>(repositoryData.getIndices().values());
@@ -77,9 +74,10 @@ public class RepositoryDataTests extends ESTestCase {
             return snapshotIds.contains(randomSnapshot) && snapshotIds.size() > 1;
         }).toArray(IndexId[]::new);
         assertThat(repositoryData.indicesToUpdateAfterRemovingSnapshot(
-            Collections.singleton(randomSnapshot)), containsInAnyOrder(indicesToUpdate));
+            Collections.singleton(randomSnapshot))).containsExactlyInAnyOrder(indicesToUpdate);
     }
 
+    @Test
     public void testXContent() throws IOException {
         RepositoryData repositoryData = generateRandomRepoData();
         XContentBuilder builder = JsonXContent.builder();
@@ -87,11 +85,12 @@ public class RepositoryDataTests extends ESTestCase {
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             long gen = (long) randomIntBetween(0, 500);
             RepositoryData fromXContent = RepositoryData.snapshotsFromXContent(parser, gen, randomBoolean());
-            assertEquals(repositoryData, fromXContent);
-            assertEquals(gen, fromXContent.getGenId());
+            assertThat(repositoryData).isEqualTo(fromXContent);
+            assertThat(gen).isEqualTo(fromXContent.getGenId());
         }
     }
 
+    @Test
     public void testAddSnapshots() {
         RepositoryData repositoryData = generateRandomRepoData();
         // test that adding the same snapshot id to the repository data throws an exception
@@ -123,17 +122,18 @@ public class RepositoryDataTests extends ESTestCase {
             randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion()),
             shardGenerations, indexLookup, indexLookup.values().stream().collect(Collectors.toMap(Function.identity(), ignored -> UUIDs.randomBase64UUID(random()))));
         // verify that the new repository data has the new snapshot and its indices
-        assertTrue(newRepoData.getSnapshotIds().contains(newSnapshot));
+        assertThat(newRepoData.getSnapshotIds()).contains(newSnapshot);
         for (IndexId indexId : indices) {
             List<SnapshotId> snapshotIds = newRepoData.getSnapshots(indexId);
-            assertTrue(snapshotIds.contains(newSnapshot));
+            assertThat(snapshotIds).contains(newSnapshot);
             if (newIndices.contains(indexId)) {
-                assertEquals(snapshotIds.size(), 1); // if it was a new index, only the new snapshot should be in its set
+                assertThat(snapshotIds).hasSize(1); // if it was a new index, only the new snapshot should be in its set
             }
         }
-        assertEquals(repositoryData.getGenId(), newRepoData.getGenId());
+        assertThat(repositoryData.getGenId()).isEqualTo(newRepoData.getGenId());
     }
 
+    @Test
     public void testInitIndices() {
         final int numSnapshots = randomIntBetween(1, 30);
         final Map<String, SnapshotId> snapshotIds = new HashMap<>(numSnapshots);
@@ -155,45 +155,49 @@ public class RepositoryDataTests extends ESTestCase {
         Collections.sort(expected);
         List<SnapshotId> actual = new ArrayList<>(newRepoData.getSnapshotIds());
         Collections.sort(actual);
-        assertEquals(expected, actual);
+        assertThat(expected).isEqualTo(actual);
         for (IndexId indexId : indices.keySet()) {
-            assertEquals(indices.get(indexId), newRepoData.getSnapshots(indexId));
+            assertThat(indices.get(indexId)).isEqualTo(newRepoData.getSnapshots(indexId));
         }
     }
 
+    @Test
     public void testRemoveSnapshot() {
         RepositoryData repositoryData = generateRandomRepoData();
         List<SnapshotId> snapshotIds = new ArrayList<>(repositoryData.getSnapshotIds());
-        assertThat(snapshotIds.size(), greaterThan(0));
+        assertThat(snapshotIds).isNotEmpty();
         SnapshotId removedSnapshotId = snapshotIds.remove(randomIntBetween(0, snapshotIds.size() - 1));
         RepositoryData newRepositoryData =
             repositoryData.removeSnapshots(Collections.singleton(removedSnapshotId), ShardGenerations.EMPTY);
         // make sure the repository data's indices no longer contain the removed snapshot
         for (final IndexId indexId : newRepositoryData.getIndices().values()) {
-            assertFalse(newRepositoryData.getSnapshots(indexId).contains(removedSnapshotId));
+            assertThat(newRepositoryData.getSnapshots(indexId)).doesNotContain(removedSnapshotId);
         }
     }
 
+    @Test
     public void testResolveIndexId() {
         RepositoryData repositoryData = generateRandomRepoData();
         Map<String, IndexId> indices = repositoryData.getIndices();
         Set<String> indexNames = indices.keySet();
-        assertThat(indexNames.size(), greaterThan(0));
+        assertThat(indexNames).isNotEmpty();
         String indexName = indexNames.iterator().next();
         IndexId indexId = indices.get(indexName);
-        assertEquals(indexId, repositoryData.resolveIndexId(indexName));
+        assertThat(indexId).isEqualTo(repositoryData.resolveIndexId(indexName));
     }
 
+    @Test
     public void testGetSnapshotState() {
         final SnapshotId snapshotId = new SnapshotId(randomAlphaOfLength(8), UUIDs.randomBase64UUID());
         final SnapshotState state = randomFrom(SnapshotState.values());
         final RepositoryData repositoryData =
             RepositoryData.EMPTY.addSnapshot(snapshotId, state, randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion()),
                 ShardGenerations.EMPTY, Collections.emptyMap(), Collections.emptyMap());
-        assertEquals(state, repositoryData.getSnapshotState(snapshotId));
-        assertNull(repositoryData.getSnapshotState(new SnapshotId(randomAlphaOfLength(8), UUIDs.randomBase64UUID())));
+        assertThat(state).isEqualTo(repositoryData.getSnapshotState(snapshotId));
+        assertThat(repositoryData.getSnapshotState(new SnapshotId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()))).isNull();
     }
 
+    @Test
     public void testIndexThatReferencesAnUnknownSnapshot() throws IOException {
         final XContent xContent = randomFrom(XContentType.values()).xContent();
         final RepositoryData repositoryData = generateRandomRepoData();
@@ -204,7 +208,7 @@ public class RepositoryDataTests extends ESTestCase {
         try (XContentParser xParser = createParser(builder)) {
             parsedRepositoryData = RepositoryData.snapshotsFromXContent(xParser, repositoryData.getGenId(), randomBoolean());
         }
-        assertEquals(repositoryData, parsedRepositoryData);
+        assertThat(repositoryData).isEqualTo(parsedRepositoryData);
 
         Map<String, SnapshotId> snapshotIds = new HashMap<>();
         Map<String, SnapshotState> snapshotStates = new HashMap<>();
@@ -231,7 +235,7 @@ public class RepositoryDataTests extends ESTestCase {
                 shardGenBuilder.put(indexId, i, UUIDs.randomBase64UUID(random()));
             }
         }
-        assertNotNull(corruptedIndexId);
+        assertThat(corruptedIndexId).isNotNull();
 
         RepositoryData corruptedRepositoryData = new RepositoryData(parsedRepositoryData.getGenId(), snapshotIds, snapshotStates,
             snapshotVersions, indexSnapshots, shardGenBuilder.build(), IndexMetaDataGenerations.EMPTY);
@@ -240,13 +244,16 @@ public class RepositoryDataTests extends ESTestCase {
         corruptedRepositoryData.snapshotsToXContent(corruptedBuilder, Version.CURRENT);
 
         try (XContentParser xParser = createParser(corruptedBuilder)) {
-            ElasticsearchParseException e = expectThrows(ElasticsearchParseException.class, () ->
-                RepositoryData.snapshotsFromXContent(xParser, corruptedRepositoryData.getGenId(), randomBoolean()));
-            assertThat(e.getMessage(), equalTo("Detected a corrupted repository, index " + corruptedIndexId + " references an unknown " +
-                                               "snapshot uuid [_does_not_exist]"));
+            assertThatThrownBy(() -> RepositoryData.snapshotsFromXContent(xParser, corruptedRepositoryData.getGenId(), randomBoolean()))
+                .isExactlyInstanceOf(ElasticsearchParseException.class)
+                .hasMessage(
+                    "Detected a corrupted repository, index "
+                    + corruptedIndexId
+                    + " references an unknown snapshot uuid [_does_not_exist]");
         }
     }
 
+    @Test
     public void testIndexThatReferenceANullSnapshot() throws IOException {
         final XContentBuilder builder = XContentBuilder.builder(randomFrom(XContentType.JSON).xContent());
         builder.startObject();
@@ -277,14 +284,15 @@ public class RepositoryDataTests extends ESTestCase {
         builder.endObject();
 
         try (XContentParser xParser = createParser(builder)) {
-            ElasticsearchParseException e = expectThrows(ElasticsearchParseException.class, () ->
-                RepositoryData.snapshotsFromXContent(xParser, randomNonNegativeLong(), randomBoolean()));
-            assertThat(e.getMessage(), equalTo("Detected a corrupted repository, " +
-                                               "index [docs/_id] references an unknown snapshot uuid [null]"));
+            assertThatThrownBy(() -> RepositoryData.snapshotsFromXContent(xParser, randomNonNegativeLong(), randomBoolean()))
+                .isExactlyInstanceOf(ElasticsearchParseException.class)
+                .hasMessage(
+                    "Detected a corrupted repository, index [docs/_id] references an unknown snapshot uuid [null]");
         }
     }
 
     // Test removing snapshot from random data where no two snapshots share any index metadata blobs
+    @Test
     public void testIndexMetaDataToRemoveAfterRemovingSnapshotNoSharing() {
         final RepositoryData repositoryData = generateRandomRepoData();
         final SnapshotId snapshotId = randomFrom(repositoryData.getSnapshotIds());
@@ -294,10 +302,11 @@ public class RepositoryDataTests extends ESTestCase {
             .filter(e -> indicesToUpdate.contains(e.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey,
                                       e -> Collections.singleton(indexMetaDataGenerations.getIndexMetaBlobId(e.getValue()))));
-        assertEquals(repositoryData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(snapshotId)), identifiersToRemove);
+        assertThat(repositoryData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(snapshotId))).isEqualTo(identifiersToRemove);
     }
 
     // Test removing snapshot from random data that has some or all index metadata shared
+    @Test
     public void testIndexMetaDataToRemoveAfterRemovingSnapshotWithSharing() {
         final RepositoryData repositoryData = generateRandomRepoData();
         final ShardGenerations.Builder builder = ShardGenerations.builder();
@@ -332,7 +341,7 @@ public class RepositoryDataTests extends ESTestCase {
         assertEquals(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(newSnapshot)),
                      newIndices.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
                                                                              e -> Collections.singleton(newIdentifiers.get(e.getValue())))));
-        assertEquals(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(otherSnapshotId)), removeFromOther);
+        assertThat(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(otherSnapshotId))).isEqualTo(removeFromOther);
     }
 
     public static RepositoryData generateRandomRepoData() {
