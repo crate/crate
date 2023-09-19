@@ -653,11 +653,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
             """);
         assertThat(logicalPlan).hasOperators(
-            "HashJoin[((z = x) AND (z = y))]",
-            "  ├ NestedLoopJoin[CROSS]",
-            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
-            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
-            "  └ Collect[doc.t3 | [c, z] | true]"
+            "Eval[a, x, i, b, y, i, c, z]",
+            "  └ HashJoin[(z = y)]",
+            "    ├ HashJoin[(z = x)]",
+            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  └ Collect[doc.t3 | [c, z] | true]",
+            "    └ Collect[doc.t2 | [b, y, i] | true]"
         );
     }
 

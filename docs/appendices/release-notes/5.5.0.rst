@@ -115,6 +115,27 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added an optimizer rule for cross-join elimination which will reorder
+  the joined relations of a query to eliminate cross-joins e.g.::
+
+    SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t3.z = t1.x AND t3.z = t2.y
+
+  This query can be reordered to t1, t3, t2 to eliminate the cross-join between
+  t1 and t2. This will result in the following logical plan::
+
+    Eval[x, y, z]
+      └ Join[INNER | (z = y)]
+        ├ Join[INNER | (x = z)]
+        │  ├ Collect[doc.t1 | [x] | true]
+        │  └ Collect[doc.t3 | [z] | true]
+        └ Collect[doc.t2 | [y] | true]
+
+   This optimizer rule can be disabled with the session settings::
+
+    SET optimizer_eliminate_cross_join = false
+
+  Note that this setting is experimental, and may change in the future.
+
 - Added support for renaming views via ``ALTER TABLE <view> RENAME TO <newName>``.
 
 - Changed permissions on ``sys.jobs`` and ``sys.jobs_log`` to allow users with
