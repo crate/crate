@@ -42,6 +42,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.Expression;
+import org.elasticsearch.Version;
 
 public class AlterTableDropColumnAnalyzer {
 
@@ -96,6 +97,11 @@ public class AlterTableDropColumnAnalyzer {
 
     /** Validate restrictions based on properties that cannot change */
     private static void validateStatic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
+        if (tableInfo.versionCreated().before(Version.V_5_5_0)) {
+            throw new UnsupportedOperationException(
+                "Dropping columns of a table created before version 5.5 is not supported"
+            );
+        }
         Set<ColumnIdent> uniqueSet = new HashSet<>(dropColumns.size());
         for (int i = 0 ; i < dropColumns.size(); i++) {
             var refToDrop = dropColumns.get(i).ref();
