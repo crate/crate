@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.carrotsearch.hppc.IntArrayList;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -46,12 +45,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -59,8 +62,6 @@ import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-
-import org.jetbrains.annotations.Nullable;
 
 public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRequest> {
 
@@ -83,14 +84,18 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         if (normalizedColumns == null) {
             return currentState;
         }
-
-        List<ColumnIdent> newColumnIdents = request.references().stream()
+        final List<ColumnIdent> newColumnIdents = request.references().stream()
             .filter(ref -> currentTable.getReference(ref.column()) == null)
             .map(Reference::column)
             .toList();
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-
+        if (currentTable.versionCreated().onOrAfter(Version.V_5_5_0)) {
+            normalizedColumns = DocReferences.applyOid(
+                    normalizedColumns,
+                    metadataBuilder.columnOidSupplier()
+            );
+        }
         Map<String, Object> mapping = createMapping(
             AllocPosition.forTable(currentTable),
             normalizedColumns,
@@ -98,8 +103,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             request.checkConstraints(),
             List.of(),
             null,
-            null,
-            currentTable.versionCreated().onOrAfter(Version.V_5_5_0) ? metadataBuilder.columnOidSupplier() : null
+            null
         );
 
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());

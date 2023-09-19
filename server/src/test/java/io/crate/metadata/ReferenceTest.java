@@ -145,7 +145,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
             .containsEntry("position", 1)
@@ -165,7 +165,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("oid", 1L)
@@ -185,7 +185,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
                 .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("oid", 1L)
@@ -205,7 +205,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("xs"));
-        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
             .containsEntry("oid", 1L)

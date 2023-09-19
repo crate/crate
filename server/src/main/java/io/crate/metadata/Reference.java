@@ -83,6 +83,8 @@ public interface Reference extends Symbol {
 
     Reference getRelocated(ReferenceIdent referenceIdent);
 
+    Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier);
+
     /**
      * Creates the {@link IndexMetadata} mapping representation of the Column.
      * <p>
@@ -91,7 +93,7 @@ public interface Reference extends Symbol {
      *
      * @param position position to use in the mapping
      */
-    Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier);
+    Map<String, Object> toMapping(int position);
 
     static void toStream(StreamOutput out, Reference ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());

@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -181,8 +183,30 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Map<String, Object> toMapping(int position, @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
-        Map<String, Object> mapping = super.toMapping(position, columnOidSupplier);
+    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+        if (oid != COLUMN_OID_UNASSIGNED) {
+            return this;
+        }
+        return new GeoReference(
+                ident,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                position,
+                oidSupplier.nextOid(),
+                isDropped,
+                defaultExpression,
+                geoTree,
+                precision,
+                treeLevels,
+                distanceErrorPct
+        );
+    }
+
+    @Override
+    public Map<String, Object> toMapping(int position) {
+        Map<String, Object> mapping = super.toMapping(position);
         Maps.putNonNull(mapping, "tree", geoTree);
         Maps.putNonNull(mapping, "precision", precision);
         Maps.putNonNull(mapping, "tree_levels", treeLevels);
