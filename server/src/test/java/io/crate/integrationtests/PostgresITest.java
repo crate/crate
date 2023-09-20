@@ -1185,24 +1185,9 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
-    public void test_foo2() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            conn.createStatement().execute("create table tbl (xs float_vector(2))");
-            PreparedStatement stmt = conn.prepareStatement("insert into tbl (xs) values (?)");
-            stmt.setObject(1, new float[] { 1.2f, 1.3f });
-            stmt.executeUpdate();
-
-            conn.createStatement().execute("refresh table tbl");
-            var resultSet = conn.createStatement().executeQuery("select * from tbl");
-            assertThat(resultSet.next()).isTrue();
-            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 1.2f, 1.3f });
-        }
-    }
-
-    @Test
     public void test_float_vector_jdbc() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            conn.createStatement().execute("create table tbl (id int, xs float[])");
+            conn.createStatement().execute("create table tbl (id int, xs float_vector(2))");
             PreparedStatement stmt = conn.prepareStatement("insert into tbl (id, xs) values (?, ?)");
             stmt.setObject(1, 1);
             stmt.setObject(2, new float[] { 1.2f, 1.3f });

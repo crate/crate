@@ -73,7 +73,7 @@ public class PGFloatVectorType extends PGType<float[]> {
         final int lenIndex = buffer.writerIndex();
         buffer.writeInt(0);
         buffer.writeInt(1); // one dimension
-        buffer.writeInt(1); // flags bit 0: 0=no-nulls, 1=has-nulls
+        buffer.writeInt(0); // flags bit 0: 0=no-nulls, 1=has-nulls
         buffer.writeInt(typElem());
 
         buffer.writeInt(arrayLength); // upper bound
