@@ -149,7 +149,7 @@ public final class UpdateToInsert {
                           TransactionContext txnCtx,
                           DocTableInfo table,
                           String[] updateColumns,
-                          @Nullable Reference[] insertColumns) {
+                          @Nullable List<Reference> insertColumns) {
         var refResolver = new DocRefResolver(table.partitionedBy());
         this.table = table;
         this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
@@ -157,9 +157,7 @@ public final class UpdateToInsert {
         this.columns = new ArrayList<>();
         boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
         if (insertColumns != null) {
-            for (Reference insertColumn : insertColumns) {
-                this.columns.add(insertColumn);
-            }
+            this.columns.addAll(insertColumns);
         }
         for (var ref : table.columns()) {
             // The Indexer later on injects the generated column values
