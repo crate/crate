@@ -23,10 +23,10 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -264,7 +264,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         assertThat(updateToInsert.columns())
             .as("Start References of columns() must match insertColumns")
@@ -309,7 +309,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
         Doc doc = doc(table.concreteIndices()[0], source);
@@ -353,7 +353,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of(
             "x", 1,
@@ -394,7 +394,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
             updateColumns,
-            insertColumns
+            Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of(
             "x", 1,

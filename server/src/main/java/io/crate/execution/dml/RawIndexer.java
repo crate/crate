@@ -30,12 +30,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.ConversionException;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -44,7 +45,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataType;
-import org.jetbrains.annotations.NotNull;
 
 public class RawIndexer {
 
