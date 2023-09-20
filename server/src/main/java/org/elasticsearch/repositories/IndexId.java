@@ -19,6 +19,9 @@
 
 package org.elasticsearch.repositories;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -26,9 +29,6 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * Represents a single snapshotted index in the repository.
@@ -89,7 +89,7 @@ public final class IndexId implements Writeable, ToXContentObject {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        @SuppressWarnings("unchecked") IndexId that = (IndexId) o;
+        IndexId that = (IndexId) o;
         return Objects.equals(name, that.name) && Objects.equals(id, that.id);
     }
 
