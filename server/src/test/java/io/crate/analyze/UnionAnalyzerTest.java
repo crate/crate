@@ -197,9 +197,29 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
-        ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.STRING).build();
+        ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.INTEGER).build();
         Asserts.assertThat(union.outputs())
-            .as("Output type is object(col::text) because text has higher precedence than int")
+            .as("Output type is object(col::int) because int has higher precedence than text")
+            .satisfiesExactly(isField("obj", expectedType));
+    }
+
+    @Test
+    public void test_union_merging_sub_columns_for_object_types() throws Exception {
+        SQLExecutor.builder(clusterService)
+            .addTable(
+                "create table v1 (obj object as (col1 int, col2 text))"
+            )
+            .addTable(
+                "create table v2 (obj object as (col1 text, col2 int))"
+            ).build();
+
+        UnionSelect union = analyze("select obj from v1 union all select obj from v2");
+        ObjectType expectedType = ObjectType.builder()
+            .setInnerType("col1", DataTypes.INTEGER)
+            .setInnerType("col2", DataTypes.INTEGER)
+            .build();
+        Asserts.assertThat(union.outputs())
+            .as("Output type is object(col1::int, col2::int) because int has higher precedence than text")
             .satisfiesExactly(isField("obj", expectedType));
     }
 

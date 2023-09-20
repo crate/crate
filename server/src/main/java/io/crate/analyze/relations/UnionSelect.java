@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.types.DataTypes.merge;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +38,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.types.DataType;
 
 public class UnionSelect implements AnalyzedRelation {
 
@@ -47,21 +48,27 @@ public class UnionSelect implements AnalyzedRelation {
     private final boolean isDistinct;
 
     public UnionSelect(AnalyzedRelation left, AnalyzedRelation right, boolean isDistinct) {
-        assert left.outputs().size() == right.outputs().size()
-            : "Both the left side and the right side of UNION must have the same number of outputs";
+        if (left.outputs().size() != right.outputs().size()) {
+            throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
+        }
         this.left = left;
         this.right = right;
         this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
         // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
-        List<Symbol> fieldsFromLeft = left.outputs();
-        ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());
-        for (int i = 0; i < fieldsFromLeft.size(); i++) {
-            Symbol field = fieldsFromLeft.get(i);
-            Symbol rightField = right.outputs().get(i);
-            DataType<?> type = field.valueType().precedes(rightField.valueType())
-                ? field.valueType()
-                : rightField.valueType();
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
+        var leftOutputs = left.outputs();
+        var rightOutputs = right.outputs();
+        ArrayList<ScopedSymbol> outputs = new ArrayList<>(leftOutputs.size());
+        for (int i = 0; i < leftOutputs.size(); i++) {
+            var l = leftOutputs.get(i);
+            var r = rightOutputs.get(i);
+            try {
+                outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(l), merge(l.valueType(), r.valueType())));
+            } catch (IllegalArgumentException e) {
+                throw new UnsupportedOperationException(
+                    "Output columns at position " + (i + 1) +
+                    " must be compatible for all parts of a UNION. " +
+                    "Got `" + l.valueType().getName() + "` and `" + r.valueType().getName() + "`");
+            }
         }
         this.outputs = List.copyOf(outputs);
         this.isDistinct = isDistinct;
@@ -95,6 +102,7 @@ public class UnionSelect implements AnalyzedRelation {
         return name;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @NotNull
     @Override
     public List<Symbol> outputs() {

@@ -87,6 +87,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return this;
         }
 
+        public Builder mergeInnerType(String key, DataType<?> innerType, BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
+            innerTypesBuilder.merge(key, innerType, remappingFunction);
+            return this;
+        }
+
         public ObjectType build() {
             return new ObjectType(Collections.unmodifiableMap(innerTypesBuilder));
         }
@@ -258,6 +263,17 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             }
         }
         return true;
+    }
+
+    public static ObjectType merge(ObjectType left, ObjectType right) {
+        ObjectType.Builder mergedObjectBuilder = ObjectType.builder();
+        for (var e : left.innerTypes().entrySet()) {
+            mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());
+        }
+        for (var e : right.innerTypes().entrySet()) {
+            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), DataTypes::merge);
+        }
+        return mergedObjectBuilder.build();
     }
 
     @Override
