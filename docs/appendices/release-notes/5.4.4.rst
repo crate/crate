@@ -53,6 +53,11 @@ Fixes
 
   returning the value for ``o['a']`` instead of a ``null``.
 
+- Fixed an issue that caused the output object column of ``UNION`` on object
+  columns to contain only the sub-columns of the object column from the right
+  hand side. With this fix, the output object column will contain the
+  merged sub-columns of the respective objects of both relations.
+
 - Fixed a regression introduced with CrateDB 5.3.1 which caused a
   ``NullPointerException`` when creating a repository on S3 with authentication
   provided by IAM role attached to the EC2 instance running the CrateDB node.

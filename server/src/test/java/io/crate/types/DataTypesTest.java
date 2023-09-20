@@ -242,4 +242,111 @@ public class DataTypesTest extends ESTestCase {
     public void test_can_guess_float_vectors() throws Exception {
         assertThat(DataTypes.guessType(new float[] { 3.14f })).isEqualTo(FloatVectorType.INSTANCE_ONE);
     }
+
+    @Test
+    public void test_merge_method_with_primitive_types() {
+        assertThat(DataTypes.merge(DataTypes.INTEGER, DataTypes.STRING)).isEqualTo(DataTypes.INTEGER);
+        assertThatThrownBy(() -> DataTypes.merge(DataTypes.IP, DataTypes.DATE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'date' is not convertible to 'ip'");
+    }
+
+    @Test
+    public void test_merge_method_with_primitive_type_and_container_type() {
+        assertThatThrownBy(() -> DataTypes.merge(DataTypes.INTEGER_ARRAY, DataTypes.INTEGER))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'integer' is not convertible to 'integer_array'");
+        assertThatThrownBy(() -> DataTypes.merge(DataTypes.UNTYPED_OBJECT, DataTypes.INTEGER))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'integer' is not convertible to 'object'");
+    }
+
+    @Test
+    public void test_merge_method_with_object_types() {
+        assertThat(
+            DataTypes.merge(
+                ObjectType.builder()
+                    .setInnerType("x", DataTypes.INTEGER)
+                    .setInnerType("y", DataTypes.STRING)
+                    .setInnerType("z", DataTypes.CHARACTER)
+                    .build(),
+                ObjectType.builder()
+                    .setInnerType("w", DataTypes.SHORT)
+                    .setInnerType("x", DataTypes.STRING)
+                    .setInnerType("y", DataTypes.INTEGER)
+                    .build()))
+            .isEqualTo(
+                ObjectType.builder()
+                    .setInnerType("w", DataTypes.SHORT)
+                    .setInnerType("x", DataTypes.INTEGER)
+                    .setInnerType("y", DataTypes.INTEGER)
+                    .setInnerType("z", DataTypes.CHARACTER)
+                    .build()
+            );
+
+        assertThatThrownBy(
+            () -> DataTypes.merge(
+                ObjectType.builder().setInnerType("a", DataTypes.INTEGER_ARRAY).build(),
+                ObjectType.builder().setInnerType("a", DataTypes.DATE).build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'date' is not convertible to 'integer_array'");
+    }
+
+    @Test
+    public void test_merge_method_with_nulls() {
+        assertThat(DataTypes.merge(DataTypes.UNDEFINED, DataTypes.UNDEFINED)).isEqualTo(DataTypes.UNDEFINED);
+        assertThat(DataTypes.merge(DataTypes.UNDEFINED, DataTypes.INTEGER)).isEqualTo(DataTypes.INTEGER);
+        assertThat(DataTypes.merge(DataTypes.INTEGER, DataTypes.UNDEFINED)).isEqualTo(DataTypes.INTEGER);
+        assertThat(DataTypes.merge(DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)).isEqualTo(DataTypes.UNTYPED_OBJECT);
+    }
+
+    @Test
+    public void test_merge_method_with_nested_object_arrays() {
+        assertThat(
+            DataTypes.merge(
+                // left type
+                ObjectType.builder()
+                    .setInnerType("a", DataTypes.INTEGER_ARRAY)
+                    .setInnerType("b", DataTypes.STRING_ARRAY)
+                    .setInnerType("c",
+                                  new ArrayType<>(
+                                      ObjectType.builder()
+                                          .setInnerType("h", DataTypes.INTEGER)
+                                          .setInnerType("j",
+                                                        ObjectType.builder()
+                                                            .setInnerType("k", DataTypes.STRING).build())
+                                          .build())
+                    ).build(),
+                // right type
+                ObjectType.builder()
+                    .setInnerType("a", DataTypes.STRING_ARRAY)
+                    .setInnerType("b", DataTypes.INTEGER_ARRAY)
+                    .setInnerType("c",
+                                  new ArrayType<>(
+                                      ObjectType.builder()
+                                          .setInnerType("h", DataTypes.STRING)
+                                          .setInnerType("j",
+                                                        ObjectType.builder()
+                                                            .setInnerType("k", DataTypes.INTEGER)
+                                                            .setInnerType("l", DataTypes.INTEGER).build())
+                                          .build())
+                    ).build()
+                )
+        ).isEqualTo(
+            // merged type
+            ObjectType.builder()
+                .setInnerType("a", DataTypes.INTEGER_ARRAY)
+                .setInnerType("b", DataTypes.INTEGER_ARRAY)
+                .setInnerType("c",
+                              new ArrayType<>(
+                                  ObjectType.builder()
+                                      .setInnerType("h", DataTypes.INTEGER)
+                                      .setInnerType("j",
+                                                    ObjectType.builder()
+                                                        .setInnerType("k", DataTypes.INTEGER)
+                                                        .setInnerType("l", DataTypes.INTEGER).build())
+                                      .build())
+                ).build()
+        );
+    }
 }
