@@ -59,4 +59,10 @@ public class SourceLookupTest {
         Object o = SourceLookup.extractValue(m, singletonList("x"), 0);
         assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
+
+    @Test
+    public void test_extractValue_from_object_with_unknown_subscript_returns_null() {
+        Map<String, Map<String, Integer>> m = singletonMap("x", singletonMap("a", 1)); // such that x['a'] = 1
+        assertThat(SourceLookup.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
+    }
 }
