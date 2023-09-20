@@ -84,7 +84,7 @@ public class JoinPlanBuilder {
             joinType = JoinType.CROSS;
             joinCondition = null;
         } else {
-            joinType = maybeInvertPair(rhsName, joinLhsRhs);
+            joinType = joinLhsRhs.joinType();
             joinCondition = joinLhsRhs.condition();
         }
 
@@ -133,18 +133,6 @@ public class JoinPlanBuilder {
         return joinPlan;
     }
 
-
-    private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
-        // A matching joinPair for two relations is retrieved using pairByQualifiedNames.remove(setOf(a, b))
-        // This returns a pair for both cases: (a ⋈ b) and (b ⋈ a) -> invert joinType to execute correct join
-        // Note that this can only happen if a re-ordering optimization happened, otherwise the joinPair would always
-        // be in the correct format.
-        if (pair.right().equals(rhsName)) {
-            return pair.joinType();
-        }
-        return pair.joinType().invert();
-    }
-
     private static LogicalPlan joinWithNext(Function<AnalyzedRelation, LogicalPlan> plan,
                                             LogicalPlan source,
                                             AnalyzedRelation nextRel,
@@ -160,7 +148,7 @@ public class JoinPlanBuilder {
         if (joinPair == null) {
             type = JoinType.CROSS;
         } else {
-            type = maybeInvertPair(nextName, joinPair);
+            type = joinPair.joinType();
             if (joinPair.condition() != null) {
                 conditions.add(joinPair.condition());
             }
