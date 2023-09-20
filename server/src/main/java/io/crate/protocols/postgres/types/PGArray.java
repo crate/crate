@@ -143,7 +143,7 @@ public class PGArray extends PGType<List<Object>> {
 
         do {
             dimensions++;
-            List arr = (List) array;
+            List<?> arr = (List<?>) array;
             if (arr.isEmpty()) {
                 break;
             }
@@ -176,6 +176,7 @@ public class PGArray extends PGType<List<Object>> {
         return values;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     byte[] encodeAsUTF8Text(@NotNull List<Object> array) {
         boolean isJson = JsonType.OID == innerType.oid();
@@ -183,8 +184,8 @@ public class PGArray extends PGType<List<Object>> {
         encodedValues.add((byte) '{');
         for (int i = 0; i < array.size(); i++) {
             Object o = array.get(i);
-            if (o instanceof List) { // Nested Array -> recursive call
-                byte[] bytes = encodeAsUTF8Text((List) o);
+            if (o instanceof List list) { // Nested Array -> recursive call
+                byte[] bytes = encodeAsUTF8Text(list);
                 encodedValues.add(bytes);
                 if (i == 0) {
                     encodedValues.add((byte) ',');
@@ -220,6 +221,7 @@ public class PGArray extends PGType<List<Object>> {
         return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.elementsCount);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     List<Object> decodeUTF8Text(byte[] bytes) {
         /*
@@ -240,6 +242,7 @@ public class PGArray extends PGType<List<Object>> {
         return (List<Object>) PgArrayParser.parse(bytes, innerType::decodeUTF8Text);
     }
 
+    @SuppressWarnings("unchecked")
     private int buildDimensions(List<Object> values, List<Integer> dimensionsList, int maxDimensions, int currentDimension) {
         if (values == null) {
             return 1;
@@ -265,6 +268,7 @@ public class PGArray extends PGType<List<Object>> {
         return values.size();
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private int writeArrayAsBinary(ByteBuf buffer, List<Object> array, List<Integer> dimensionsList, int currentDimension) {
         int bytesWritten = 0;
 
