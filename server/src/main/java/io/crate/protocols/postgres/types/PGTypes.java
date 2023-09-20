@@ -94,7 +94,6 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
-        .put(FloatVectorType.INSTANCE_ONE, PGArray.FLOAT4_ARRAY)
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
@@ -184,6 +183,9 @@ public class PGTypes {
 
             case BitStringType.ID:
                 return new BitType(((BitStringType) type).length());
+
+            case FloatVectorType.ID:
+                return PGFloatVectorType.INSTANCE;
 
             default: {
                 PGType<?> pgType = CRATE_TO_PG_TYPES.get(type);
