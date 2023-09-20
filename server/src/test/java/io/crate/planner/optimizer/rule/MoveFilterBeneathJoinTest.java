@@ -31,11 +31,12 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -75,12 +76,12 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_push_filter_beyond_join() {
         var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
-        var join1 = new HashJoin(t1, t2, joinCondition1);
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
         var filter = new Filter(join1, sqlExpressions.asSymbol("doc.t1.a > 1"));
 
         assertThat(filter).hasOperators(
             "Filter[(a > 1)]",
-            "  └ HashJoin[(a = b)]",
+            "  └ Join[INNER | (a = b)]",
             "    ├ Collect[doc.t1 | [a] | true]",
             "    └ Collect[doc.t2 | [b] | true]"
         );
@@ -100,7 +101,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 Function.identity());
 
         assertThat(result).hasOperators(
-            "HashJoin[(a = b)]",
+            "Join[INNER | (a = b)]",
             "  ├ Filter[(a > 1)]",
             "  │  └ Collect[doc.t1 | [a] | true]",
             "  └ Collect[doc.t2 | [b] | true]"
@@ -110,15 +111,15 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_push_filter_relating_to_nested_right_relation_beyond_join() {
         var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
-        var join1 = new HashJoin(t1, t2, joinCondition1);
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
         var joinCondition2 = sqlExpressions.asSymbol("doc.t2.b = doc.t3.c");
-        var join2 = new HashJoin(join1, t3, joinCondition2);
+        var join2 = new JoinPlan(join1, t3, JoinType.INNER, joinCondition2);
         var filter = new Filter(join2, sqlExpressions.asSymbol("doc.t1.a > 1"));
 
         assertThat(filter).hasOperators(
             "Filter[(a > 1)]",
-            "  └ HashJoin[(b = c)]",
-            "    ├ HashJoin[(a = b)]",
+            "  └ Join[INNER | (b = c)]",
+            "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
             "    └ Collect[doc.t3 | [c] | true]"
@@ -139,9 +140,9 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 Function.identity());
 
         assertThat(result).hasOperators(
-            "HashJoin[(b = c)]",
+            "Join[INNER | (b = c)]",
             "  ├ Filter[(a > 1)]",
-            "  │  └ HashJoin[(a = b)]",
+            "  │  └ Join[INNER | (a = b)]",
             "  │    ├ Collect[doc.t1 | [a] | true]",
             "  │    └ Collect[doc.t2 | [b] | true]",
             "  └ Collect[doc.t3 | [c] | true]"
@@ -151,16 +152,16 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_push_filter_relating_to_nested_left_relation_beyond_join() {
         var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
-        var join1 = new HashJoin(t1, t2, joinCondition1);
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
         var joinCondition2 = sqlExpressions.asSymbol("doc.t2.b = doc.t3.c");
-        var join2 = new HashJoin(t3, join1, joinCondition2);
+        var join2 = new JoinPlan(t3, join1, JoinType.INNER, joinCondition2);
         var filter = new Filter(join2, sqlExpressions.asSymbol("doc.t1.a > 1"));
 
         assertThat(filter).hasOperators(
             "Filter[(a > 1)]",
-            "  └ HashJoin[(b = c)]",
+            "  └ Join[INNER | (b = c)]",
             "    ├ Collect[doc.t3 | [c] | true]",
-            "    └ HashJoin[(a = b)]",
+            "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",
             "      └ Collect[doc.t2 | [b] | true]"
         );
@@ -180,10 +181,10 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
                                 Function.identity());
 
         assertThat(result).hasOperators(
-            "HashJoin[(b = c)]",
+            "Join[INNER | (b = c)]",
             "  ├ Collect[doc.t3 | [c] | true]",
             "  └ Filter[(a > 1)]",
-            "    └ HashJoin[(a = b)]",
+            "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",
             "      └ Collect[doc.t2 | [b] | true]"
         );
@@ -191,23 +192,23 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
     public void test_do_not_push_filter_when_both_sides_match() {
         var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
-        var join1 = new HashJoin(t1, t2, joinCondition1);
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
 
         var joinCondition2 = sqlExpressions.asSymbol("doc.t1.a = doc.t3.c");
-        var join2 = new HashJoin(t1, t3, joinCondition2);
+        var join2 = new JoinPlan(t1, t3, JoinType.INNER, joinCondition2);
 
         var joinCondition3 = sqlExpressions.asSymbol("doc.t2.b = doc.t1.a");
-        var join3 = new HashJoin(join1, join2, joinCondition3);
+        var join3 = new JoinPlan(join1, join2, JoinType.INNER, joinCondition3);
 
         var filter = new Filter(join3, sqlExpressions.asSymbol("doc.t1.a > 1"));
 
         assertThat(filter).hasOperators(
             "Filter[(a > 1)]",
-            "  └ HashJoin[(b = a)]",
-            "    ├ HashJoin[(a = b)]",
+            "  └ Join[INNER | (b = a)]",
+            "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
-            "    └ HashJoin[(a = c)]",
+            "    └ Join[INNER | (a = c)]",
             "      ├ Collect[doc.t1 | [a] | true]",
             "      └ Collect[doc.t3 | [c] | true]"
         );
@@ -230,23 +231,23 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
     public void test_push_and_split_filter_to_both_sides() {
         var joinCondition1 = sqlExpressions.asSymbol("doc.t1.a = doc.t2.b");
-        var join1 = new HashJoin(t1, t2, joinCondition1);
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
 
         var joinCondition2 = sqlExpressions.asSymbol("doc.t1.a = doc.t3.c");
-        var join2 = new HashJoin(t1, t3, joinCondition2);
+        var join2 = new JoinPlan(t1, t3, JoinType.INNER, joinCondition2);
 
         var joinCondition3 = sqlExpressions.asSymbol("doc.t2.b = doc.t1.a");
-        var join3 = new HashJoin(join1, join2, joinCondition3);
+        var join3 = new JoinPlan(join1, join2, JoinType.INNER, joinCondition3);
 
         var filter = new Filter(join3, sqlExpressions.asSymbol("doc.t1.a > 1 AND doc.t2.b < 10 AND doc.t3.c = 1"));
 
         assertThat(filter).hasOperators(
             "Filter[(((a > 1) AND (b < 10)) AND (c = 1))]",
-            "  └ HashJoin[(b = a)]",
-            "    ├ HashJoin[(a = b)]",
+            "  └ Join[INNER | (b = a)]",
+            "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
-            "    └ HashJoin[(a = c)]",
+            "    └ Join[INNER | (a = c)]",
             "      ├ Collect[doc.t1 | [a] | true]",
             "      └ Collect[doc.t3 | [c] | true]"
         );
@@ -266,13 +267,13 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(result).hasOperators(
             "Filter[(a > 1)]",
-            "  └ HashJoin[(b = a)]",
+            "  └ Join[INNER | (b = a)]",
             "    ├ Filter[(b < 10)]",
-            "    │  └ HashJoin[(a = b)]",
+            "    │  └ Join[INNER | (a = b)]",
             "    │    ├ Collect[doc.t1 | [a] | true]",
             "    │    └ Collect[doc.t2 | [b] | true]",
             "    └ Filter[(c = 1)]",
-            "      └ HashJoin[(a = c)]",
+            "      └ Join[INNER | (a = c)]",
             "        ├ Collect[doc.t1 | [a] | true]",
             "        └ Collect[doc.t3 | [c] | true]"
         );

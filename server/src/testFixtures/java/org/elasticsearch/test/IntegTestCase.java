@@ -208,6 +208,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.Identifiers;
@@ -275,7 +276,7 @@ import io.crate.user.UserLookup;
 @UseJdbc
 @UseHashJoins
 @UseRandomizedSchema
-@UseRandomizedOptimizerRules(alwaysKeep = {RemoveRedundantFetchOrEval.class, MergeFilterAndCollect.class})
+@UseRandomizedOptimizerRules(alwaysKeep = {RewriteJoinPlan.class, RemoveRedundantFetchOrEval.class, MergeFilterAndCollect.class})
 public abstract class IntegTestCase extends ESTestCase {
 
     private static final Logger LOGGER = LogManager.getLogger(IntegTestCase.class);
