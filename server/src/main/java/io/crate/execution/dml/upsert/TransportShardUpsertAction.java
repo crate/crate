@@ -22,6 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -144,6 +145,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         var mapperService = indexShard.mapperService();
         Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
+
+        // Refresh insertColumns References from table, they could be stale (dynamic references already added)
+        List<Reference> insertColumns = new ArrayList<>();
+        if (request.insertColumns() != null) {
+            for (var ref : request.insertColumns()) {
+                Reference updatedRef = tableInfo.getReference(ref.column());
+                insertColumns.add(updatedRef == null ? ref : updatedRef);
+            }
+        }
+
         UpdateToInsert updateToInsert = request.updateColumns() == null || request.updateColumns().length == 0
             ? null
             : new UpdateToInsert(
@@ -151,9 +162,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 tableInfo,
                 request.updateColumns(),
-                request.insertColumns()
+                insertColumns
             );
-        List<Reference> insertColumns;
         if (updateToInsert != null) {
             insertColumns = updateToInsert.columns();
 
@@ -169,8 +179,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             //  Would need to have [x, y, ...]
             assert request.insertColumns() == null || insertColumns.subList(0, request.insertColumns().length).equals(Arrays.asList(request.insertColumns()))
                 : "updateToInsert.columns() must be a superset of insertColumns where the start is an exact overlap. It may only add new columns at the end";
-        } else {
-            insertColumns = Arrays.asList(request.insertColumns());
         }
         Indexer indexer = new Indexer(
             indexName,
