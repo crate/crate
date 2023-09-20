@@ -68,8 +68,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
             .with(source(),
                   typeOf(NestedLoopJoin.class)
                       .capturedAs(nlCapture)
-                      .with(nl -> !nl.joinType().isOuter() &&
-                                  nl.isRewriteNestedLoopJoinToHashJoinDone() == true)
+                      .with(nl -> !nl.joinType().isOuter())
             );
     }
 
