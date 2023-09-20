@@ -42,25 +42,32 @@ import io.crate.sql.tree.JoinType;
 public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
+    private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false);
+        this(lhs, rhs, joinType, joinCondition, false, false);
     }
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
-                    boolean isFiltered) {
+                    boolean isFiltered,
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
         super(lhs, rhs, joinCondition, joinType);
         this.isFiltered = isFiltered;
+        this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
     }
 
     public boolean isFiltered() {
         return isFiltered;
+    }
+
+    public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
+        return rewriteFilterOnOuterJoinToInnerJoinDone;
     }
 
     @Override
@@ -105,7 +112,8 @@ public class JoinPlan extends AbstractJoinPlan {
             newRhs,
             joinType,
             joinCondition,
-            isFiltered
+            isFiltered,
+            rewriteFilterOnOuterJoinToInnerJoinDone
         );
     }
 
@@ -131,7 +139,8 @@ public class JoinPlan extends AbstractJoinPlan {
             sources.get(1),
             joinType,
             joinCondition,
-            isFiltered
+            isFiltered,
+            rewriteFilterOnOuterJoinToInnerJoinDone
         );
     }
 }

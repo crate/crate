@@ -76,7 +76,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false, false);
+        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false);
         var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
         Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
 

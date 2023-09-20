@@ -256,7 +256,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, false, false);
+            lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, false);
 
         var memo = new Memo(nestedLoopJoin);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -267,13 +267,13 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         var joinCondition = e.asSymbol("x = y");
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.INNER, joinCondition, false, false, false, false, false);
+            lhs, rhs, JoinType.INNER, joinCondition, false, false, false, false);
         result = planStats.get(nestedLoopJoin);
         assertThat(result.numDocs()).isEqualTo(1L);
         assertThat(result.sizeInBytes()).isEqualTo(32L);
 
         nestedLoopJoin = new NestedLoopJoin(
-            lhs, rhs, JoinType.CROSS, x, false, false, false, false, false);
+            lhs, rhs, JoinType.CROSS, x, false, false, false, false);
 
         memo = new Memo(nestedLoopJoin);
         planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
