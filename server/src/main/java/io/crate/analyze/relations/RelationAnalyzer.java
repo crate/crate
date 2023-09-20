@@ -227,41 +227,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         AnalyzedRelation left = node.getLeft().accept(this, context);
         AnalyzedRelation right = node.getRight().accept(this, context);
 
-        ensureUnionOutputsHaveTheSameSize(left, right);
-        ensureUnionOutputsHaveCompatibleTypes(left, right);
-
         return new UnionSelect(left, right, node.isDistinct());
-    }
-
-    private static void ensureUnionOutputsHaveTheSameSize(AnalyzedRelation left, AnalyzedRelation right) {
-        if (left.outputs().size() != right.outputs().size()) {
-            throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
-        }
-    }
-
-    private static void ensureUnionOutputsHaveCompatibleTypes(AnalyzedRelation left, AnalyzedRelation right) {
-        List<Symbol> leftOutputs = left.outputs();
-        List<Symbol> rightOutputs = right.outputs();
-        for (int i = 0; i < leftOutputs.size(); i++) {
-            Symbol leftOutput = leftOutputs.get(i);
-            Symbol rightOutput = rightOutputs.get(i);
-
-            DataType<?> leftType = leftOutput.valueType();
-            DataType<?> rightType = rightOutput.valueType();
-
-            boolean isConvertable = rightType.precedes(leftType)
-                ? leftType.isConvertableTo(rightType, false)
-                : rightType.isConvertableTo(leftType, false);
-            if (!isConvertable) {
-                if (Symbol.hasLiteralValue(leftOutput, null) || Symbol.hasLiteralValue(rightOutput, null)) {
-                    continue;
-                }
-                throw new UnsupportedOperationException(
-                    "Output columns at position " + (i + 1) +
-                    " must be compatible for all parts of a UNION. " +
-                    "Got `" + leftType.getName() + "` and `" + rightType.getName() + "`");
-            }
-        }
     }
 
     @Override

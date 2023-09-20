@@ -603,6 +603,28 @@ public final class DataTypes {
         return true;
     }
 
+    public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
+        DataType<?> type;
+        if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
+            type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
+        } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
+            type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
+        } else {
+            if (leftType.precedes(rightType)) {
+                if (rightType.isConvertableTo(leftType, false)) {
+                    return leftType;
+                }
+                throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
+            } else {
+                if (leftType.isConvertableTo(rightType, false)) {
+                    return rightType;
+                }
+                throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
+            }
+        }
+        return type;
+    }
+
     public static DataType<?> fromId(Integer id) {
         return TYPES_BY_NAME_OR_ALIAS.values().stream()
             .filter(x -> x.id() == id)
