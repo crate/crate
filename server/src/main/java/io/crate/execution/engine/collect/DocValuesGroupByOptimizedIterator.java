@@ -208,7 +208,7 @@ final class DocValuesGroupByOptimizedIterator {
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                new CollectorContext(collectorContext.readerId())
+                collectorContext
             );
         }
 
@@ -247,7 +247,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 },
                 query,
-                new CollectorContext(collectorContext.readerId())
+                collectorContext
             );
         }
 
