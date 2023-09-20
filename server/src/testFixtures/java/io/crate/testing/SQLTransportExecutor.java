@@ -590,7 +590,7 @@ public class SQLTransportExecutor {
             });
             return FutureUtils.get(future, timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
+            LOGGER.error("Timeout on SQL statement: " + stmt, e);
             throw e;
         }
     }
