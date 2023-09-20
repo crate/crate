@@ -395,8 +395,8 @@ public class SQLTransportExecutor {
         if (arg instanceof Map) {
             return DataTypes.STRING.implicitCast(arg);
         }
-        if (arg.getClass().isArray()) {
-            arg = Arrays.asList((Object[]) arg);
+        if (arg instanceof Object[] values) {
+            arg = Arrays.asList(values);
         }
         if (arg instanceof Collection<?> values) {
             if (values.isEmpty()) {

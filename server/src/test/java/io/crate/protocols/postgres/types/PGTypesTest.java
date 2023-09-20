@@ -47,6 +47,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
+import io.crate.types.FloatVectorType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
@@ -191,6 +192,18 @@ public class PGTypesTest extends ESTestCase {
     @Test
     public void test_text_oidvector_streaming_roundtrip() throws Exception {
         var entry = new Entry<>(DataTypes.OIDVECTOR, List.of(1, 2, 3, 4));
+        assertThat(writeAndReadAsText(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
+    }
+
+    @Test
+    public void test_binary_float_vector_streaming_roundtrip() {
+        var entry = new Entry<>(new FloatVectorType(4), new float[]{1.1f, 2.2f, 3.3f, 4.4f});
+        assertThat(writeAndReadBinary(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
+    }
+
+    @Test
+    public void test_text_float_vector_streaming_roundtrip() {
+        var entry = new Entry<>(new FloatVectorType(4), new float[]{1.1f, 2.2f, 3.3f, 4.4f});
         assertThat(writeAndReadAsText(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
     }
 
