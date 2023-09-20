@@ -178,6 +178,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 rightNode,
                 JoinType.INNER,
                 AndOperator.join(criteria, null),
+                false,
                 false
             );
         }
