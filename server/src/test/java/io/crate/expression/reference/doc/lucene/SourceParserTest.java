@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
@@ -298,8 +299,8 @@ public class SourceParserTest extends ESTestCase {
     public void test_dropped_leaf_sub_column() {
         SourceParser sourceParser = new SourceParser(
             Set.of(
-                new ColumnIdent("o", List.of("oo", "b")),
-                new ColumnIdent("o", List.of("oo", "s"))
+                createReference(new ColumnIdent("o", List.of("oo", "b")), DataTypes.INTEGER),
+                createReference(new ColumnIdent("o", List.of("oo", "s")), DataTypes.INTEGER)
             ),
             Function.identity()
         );
@@ -335,7 +336,10 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_drop_sub_column_with_children() {
-        SourceParser sourceParser = new SourceParser(Set.of(new ColumnIdent("o", List.of("oo"))), Function.identity());
+        SourceParser sourceParser = new SourceParser(
+                Set.of(createReference(new ColumnIdent("o", List.of("oo")), DataTypes.INTEGER)),
+                Function.identity()
+        );
         var ooType = new ObjectType.Builder()
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
@@ -362,8 +366,9 @@ public class SourceParserTest extends ESTestCase {
     public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
         SourceParser sourceParser = new SourceParser(
             Set.of(
-                new ColumnIdent("o", List.of("oo", "b")),
-                new ColumnIdent("o", List.of("oo", "t"))),
+                createReference(new ColumnIdent("o", List.of("oo", "b")), DataTypes.INTEGER),
+                createReference(new ColumnIdent("o", List.of("oo", "t")), DataTypes.INTEGER)
+            ),
             Function.identity()
         );
         var ooType = new ObjectType.Builder()
