@@ -111,7 +111,7 @@ public class DocIndexMetadata {
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ArrayList<GeneratedReference> generatedColumnReferencesBuilder = new ArrayList<>();
 
-    private final Set<ColumnIdent> droppedColumns = new HashSet<>();
+    private final Set<Reference> droppedColumns = new HashSet<>();
 
     private final NodeContext nodeCtx;
     private final RelationName ident;
@@ -243,6 +243,10 @@ public class DocIndexMetadata {
         } else {
             ref = new GeneratedReference(simpleRef, generatedExpression, null);
         }
+        if (isDropped) {
+            droppedColumns.add(ref);
+            return;
+        }
         if (column.isRoot()) {
             columns.add(ref);
         } else {
@@ -279,6 +283,11 @@ public class DocIndexMetadata {
             treeLevels,
             distanceErrorPct
         );
+        if (isDropped) {
+            droppedColumns.add(info);
+            return;
+        }
+
 
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression != null) {
@@ -457,10 +466,6 @@ public class DocIndexMetadata {
             final DataType<?> columnDataType = getColumnDataType(columnProperties);
             String columnName = columnEntry.getKey();
             ColumnIdent newIdent = columnIdent(parent, columnName);
-            if (isDropped) {
-                droppedColumns.add(newIdent);
-                continue; // skip column
-            }
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
@@ -643,7 +648,9 @@ public class DocIndexMetadata {
     private Map<ColumnIdent, IndexReference> createIndexDefinitions() {
         MapBuilder<ColumnIdent, IndexReference> builder = MapBuilder.newMapBuilder();
         for (Map.Entry<ColumnIdent, IndexReference.Builder> entry : indicesBuilder.entrySet()) {
-            builder.put(entry.getKey(), entry.getValue().build(references));
+            var indexRef = entry.getValue().build(references);
+            assert indexRef.isDropped() == false : "A named index is not expected to be dropped";
+            builder.put(entry.getKey(), indexRef);
         }
         indices = builder.immutableMap();
         return indices;
@@ -745,7 +752,7 @@ public class DocIndexMetadata {
         return columns;
     }
 
-    public Set<ColumnIdent> droppedColumns() {
+    public Set<Reference> droppedColumns() {
         return droppedColumns;
     }
 

@@ -78,9 +78,9 @@ public final class SourceParser {
     private final Set<String> droppedColumns;
     private final Function<String, String> lookupNameBySourceKey;
 
-    public SourceParser(Set<ColumnIdent> droppedColumns, Function<String, String> lookupNameBySourceKey) {
+    public SourceParser(Set<Reference> droppedColumns, Function<String, String> lookupNameBySourceKey) {
         // Use a Set of string fqn instead of ColumnIdent to avoid creating ColumnIdent objects to call `contains`
-        this.droppedColumns = droppedColumns.stream().map(ColumnIdent::fqn).collect(Collectors.toUnmodifiableSet());
+        this.droppedColumns = droppedColumns.stream().map(r -> r.column().fqn()).collect(Collectors.toUnmodifiableSet());
         this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
