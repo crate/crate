@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.lucene.Lucene;
-import io.crate.common.collections.Iterables;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardRestoreFailedException;
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot;
@@ -43,6 +42,8 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.snapshots.SnapshotId;
+
+import io.crate.common.collections.Iterables;
 
 /**
  * This context will execute a file restore of the lucene files. It is primarily designed to be used to
@@ -209,7 +210,6 @@ public abstract class FileRestoreContext {
     protected abstract void restoreFiles(List<BlobStoreIndexShardSnapshot.FileInfo> filesToRecover, Store store,
                                          ActionListener<Void> listener);
 
-    @SuppressWarnings("unchecked")
     private static Iterable<StoreFileMetadata> concat(Store.RecoveryDiff diff) {
         return Iterables.concat(diff.different, diff.missing);
     }

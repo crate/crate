@@ -47,6 +47,13 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
     }
 
     @Override
+    public boolean mandatory() {
+        // this rule is currently mandatory to convert JoinPlan to NestedLoop/HashJoin
+        // and apply further optimizations
+        return true;
+    }
+
+    @Override
     public LogicalPlan apply(JoinPlan join,
                              Captures captures,
                              PlanStats planStats,

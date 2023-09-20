@@ -19,12 +19,12 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 /**
  * Get snapshot request
@@ -42,9 +42,6 @@ public class GetSnapshotsRequest extends MasterNodeRequest<GetSnapshotsRequest> 
     private boolean ignoreUnavailable;
 
     private boolean verbose = DEFAULT_VERBOSE_MODE;
-
-    public GetSnapshotsRequest() {
-    }
 
     /**
      * Constructs a new get snapshots request with given repository name and list of snapshots

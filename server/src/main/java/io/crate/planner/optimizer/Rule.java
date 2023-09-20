@@ -58,6 +58,15 @@ public interface Rule<T> {
         return Version.V_4_0_0;
     }
 
+    /**
+     * If a rule is mandatory, the rule will always be included in the optimizer rule set and will
+     * not be exposed as session setting to be configurable by the user.
+     * This is useful for rules which are mandatory for building a valid query execution plan.
+     */
+    default boolean mandatory() {
+        return false;
+    }
+
     default String sessionSettingName() {
         return sessionSettingName(getClass());
     }
