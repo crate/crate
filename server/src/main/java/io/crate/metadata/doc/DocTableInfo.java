@@ -21,6 +21,8 @@
 
 package io.crate.metadata.doc;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -117,7 +120,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final Collection<Reference> columns;
-    private final Set<ColumnIdent> droppedColumns;
+    private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
     private final List<Reference> defaultExpressionColumns;
@@ -152,7 +155,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo(RelationName ident,
                         Collection<Reference> columns,
-                        Set<ColumnIdent> droppedColumns,
+                        Set<Reference> droppedColumns,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
@@ -185,9 +188,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.indexColumns = indexColumns;
         this.references = references;
         leafNamesByOid = new HashMap<>();
-        for (Reference reference: references.values()) {
-            leafNamesByOid.put(Long.toString(reference.oid()), reference.column().leafName());
-        }
+        Stream.concat(Stream.concat(references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
+            .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
+            .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
         this.analyzers = analyzers;
         this.ident = ident;
         this.primaryKeys = primaryKeys;
@@ -228,7 +231,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columns;
     }
 
-    public Set<ColumnIdent> droppedColumns() {
+    public Set<Reference> droppedColumns() {
         return droppedColumns;
     }
 
