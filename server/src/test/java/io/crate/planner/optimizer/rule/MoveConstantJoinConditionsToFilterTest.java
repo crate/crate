@@ -21,14 +21,12 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,8 +37,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
-import io.crate.planner.operators.NestedLoopJoin;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -50,7 +47,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyClusterServiceUnitTest {
+public class MoveConstantJoinConditionsToFilterTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
     private Map<RelationName, AnalyzedRelation> sources;
@@ -64,7 +61,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
     }
 
     @Test
-    public void test_optimize_nestedloopjoin_to_hashjoin_when_constant_can_be_pused_down() {
+    public void test_extract_constant_join_conditions_into_a_filter() {
         var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
         var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
 
@@ -76,24 +73,24 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, false, false, false, false);
-        var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
-        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
+        var join = new JoinPlan(c1, c2, JoinType.INNER, joinCondition, false);
+        var rule = new MoveConstantJoinConditionsToFilter();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
 
-        assertThat(match.isPresent(), Matchers.is(true));
-        assertThat(match.value(), Matchers.is(nl));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(join);
 
-        HashJoin result = (HashJoin) rule.apply(match.value(),
+        Filter result = (Filter) rule.apply(match.value(),
                                                 match.captures(),
                                                 planStats,
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
                                                 Function.identity());
 
-        assertThat(result.joinCondition(), is(nonConstantPart));
-        assertThat(result.lhs(), is(c1));
-        Filter filter = (Filter) result.rhs();
-        assertThat(filter.source(), is(c2));
-        assertThat(filter.query(), is(constantPart));
+        assertThat(result.query()).isEqualTo(constantPart);
+        JoinPlan joinWithoutConstantConditions = (JoinPlan) result.source();
+        assertThat(joinWithoutConstantConditions.joinCondition()).isEqualTo(nonConstantPart);
+        assertThat(joinWithoutConstantConditions.lhs()).isEqualTo(c1);
+        assertThat(joinWithoutConstantConditions.lhs()).isEqualTo(c1);
     }
 }

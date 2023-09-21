@@ -22,88 +22,68 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.sql.tree.JoinType;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
+public class MoveConstantJoinConditionsToFilter implements Rule<JoinPlan> {
 
-    private final Pattern<NestedLoopJoin> pattern;
+    private final Pattern<JoinPlan> pattern;
 
-    public MoveConstantJoinConditionsBeneathNestedLoop() {
-        this.pattern = typeOf(NestedLoopJoin.class)
-            .with(nl -> nl.joinType() == JoinType.INNER &&
-                        !nl.isJoinConditionOptimised() &&
-                        nl.joinCondition() != null);
+    public MoveConstantJoinConditionsToFilter() {
+        this.pattern = typeOf(JoinPlan.class).with(j -> j.joinType() == JoinType.INNER);
     }
 
     @Override
-    public Pattern<NestedLoopJoin> pattern() {
+    public Pattern<JoinPlan> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nl,
+    public LogicalPlan apply(JoinPlan joinPlan,
                              Captures captures,
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        var conditions = nl.joinCondition();
+        var conditions = joinPlan.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
-        var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
+        var constantConditions = new HashSet<Symbol>(allConditions.size());
         var nonConstantConditions = new HashSet<Symbol>(allConditions.size());
         for (var condition : allConditions.entrySet()) {
             if (numberOfRelationsUsed(condition.getValue()) <= 1) {
-                constantConditions.put(condition.getKey(), condition.getValue());
+                constantConditions.add(condition.getValue());
             } else {
                 nonConstantConditions.add(condition.getValue());
             }
         }
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
-            // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
-            return new NestedLoopJoin(
-                nl.lhs(),
-                nl.rhs(),
-                nl.joinType(),
-                nl.joinCondition(),
-                nl.isFiltered(),
-                nl.orderByWasPushedDown(),
-                nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                true, // Mark joinConditionOptimised = true
-                nl.isRewriteNestedLoopJoinToHashJoinDone()
-            );
+            return null;
         } else {
-            // Push constant join condition down to source
-            var lhs = resolvePlan.apply(nl.lhs());
-            var rhs = resolvePlan.apply(nl.rhs());
-            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
-            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
-            return new HashJoin(
-                newLhs,
-                newRhs,
-                AndOperator.join(nonConstantConditions)
+            return new Filter(
+                new JoinPlan(
+                    joinPlan.lhs(),
+                    joinPlan.rhs(),
+                    joinPlan.joinType(),
+                    AndOperator.join(nonConstantConditions),
+                    joinPlan.isFiltered()
+                ),
+                AndOperator.join(constantConditions)
             );
         }
     }
