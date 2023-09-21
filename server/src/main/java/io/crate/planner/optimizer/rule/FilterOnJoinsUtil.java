@@ -27,8 +27,8 @@ import io.crate.common.collections.Sets;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +47,7 @@ final class FilterOnJoinsUtil {
         return splitQuery == null ? source : new Filter(source, splitQuery);
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, JoinPlan join) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, AbstractJoinPlan join) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
                 getNewSource(query, join.lhs()),
