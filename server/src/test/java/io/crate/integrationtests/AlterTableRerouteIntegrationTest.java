@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -50,11 +49,11 @@ public class AlterTableRerouteIntegrationTest extends IntegTestCase {
         String toNode = (String) response.rows()[0][0];
 
         execute("ALTER TABLE my_table REROUTE MOVE SHARD ? FROM ? TO ?", new Object[]{shardId, fromNode, toNode});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         ensureGreen();
         execute("select * from sys.shards where id = ? and node['id'] = ? and table_name = ?", new Object[]{shardId, toNode, tableName});
-        assertBusy(() -> assertThat(response.rowCount(), is(1L)));
+        assertThat(response).hasRowCount(1);
         execute("select * from sys.shards where id = ? and node['id'] = ? and table_name = ?", new Object[]{shardId, fromNode, tableName});
-        assertBusy(() -> assertThat(response.rowCount(), is(0L)));
+        assertThat(response).hasRowCount(0);
     }
 }
