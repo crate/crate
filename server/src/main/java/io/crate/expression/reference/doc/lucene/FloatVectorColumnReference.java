@@ -43,7 +43,7 @@ public class FloatVectorColumnReference extends LuceneCollectorExpression<float[
     @Override
     public float[] value() {
         try {
-            if (docValues.advanceExact(doc)) {
+            if (docValues != null && docValues.advanceExact(doc)) {
                 BytesRef bytesRef = docValues.binaryValue();
                 float[] values = new float[bytesRef.length / Float.BYTES];
                 ByteBuffer buffer = ByteBuffer.wrap(bytesRef.bytes, bytesRef.offset, bytesRef.length);

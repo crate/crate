@@ -1195,6 +1195,9 @@ public class PostgresITest extends IntegTestCase {
             stmt.setObject(1, 2);
             stmt.setObject(2, new float[] { 2.2f, 2.3f });
             stmt.executeUpdate();
+            stmt.setObject(1, 3);
+            stmt.setObject(2, null);
+            stmt.executeUpdate();
 
             conn.createStatement().execute("refresh table tbl");
             var resultSet = conn.createStatement().executeQuery("select xs from tbl order by id");
@@ -1202,6 +1205,8 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 1.2f, 1.3f });
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 2.2f, 2.3f });
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getArray(1)).isNull();
         }
     }
 
