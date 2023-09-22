@@ -169,7 +169,7 @@ expression <sql-literal-value>`.
   Data type of the column which should be added.
 
 :column_name:
-  Name of the column which should be added. 
+  Name of the column which should be added.
   This can be a sub-column on an existing `OBJECT`.
 
 It's possible to add multiple columns at once.
@@ -189,12 +189,15 @@ It's possible to drop multiple columns at once.
 
 .. NOTE::
 
-    It's not allowed to drop a column which is part of a
-    :ref:`PRIMARY KEY <primary_key_constraint>`, used in
-    :ref:`CLUSTERED BY column <gloss-clustered-by-column>`,
-    used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>`,
-    used in an :ref:`named index<named-index-column>` or is
-    referenced in a :ref:`generated column <ddl-generated-columns-expressions>`.
+    It's not allowed to drop a column:
+
+    - which is part of a :ref:`PRIMARY KEY <primary_key_constraint>`
+    - used in :ref:`CLUSTERED BY column <gloss-clustered-by-column>`
+    - used in :ref:`PARTITIONED BY <gloss-partitioned-by-column>`
+    - is a :ref:`named index<named-index-column>` column
+    - used in an :ref:`named index<named-index-column>`
+    - is referenced in a
+      :ref:`generated column <ddl-generated-columns-expressions>`
 
 .. NOTE::
 
