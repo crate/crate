@@ -27,12 +27,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
+
 import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -42,7 +45,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.Version;
 
 public class AlterTableDropColumnAnalyzer {
 
@@ -111,6 +113,10 @@ public class AlterTableDropColumnAnalyzer {
                 throw new IllegalArgumentException("Column \"" + colToDrop.sqlFqn() + "\" specified more than once");
             }
             uniqueSet.add(colToDrop);
+
+            if (refToDrop.symbolType() == SymbolType.INDEX_REFERENCE) {
+                throw new UnsupportedOperationException("Dropping INDEX column '" + colToDrop.fqn() + "' is not supported");
+            }
 
             for (var indexRef : tableInfo.indexColumns()) {
                 if (indexRef.columns().contains(refToDrop)) {
