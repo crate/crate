@@ -29,9 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
@@ -252,7 +252,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }
@@ -265,7 +265,7 @@ public class IndexReference extends SimpleReference {
                 nullable,
                 hasDocValues,
                 position,
-                oidSupplier.nextOid(),
+                oidSupplier.getAsLong(),
                 isDropped,
                 defaultExpression,
                 columns,

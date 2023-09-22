@@ -27,9 +27,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -83,7 +83,7 @@ public interface Reference extends Symbol {
 
     Reference getRelocated(ReferenceIdent referenceIdent);
 
-    Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier);
+    Reference applyColumnOid(LongSupplier oidSupplier);
 
     /**
      * Creates the {@link IndexMetadata} mapping representation of the Column.

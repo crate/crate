@@ -45,11 +45,11 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -421,11 +421,10 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
-        // TODO: Assign oid in analyzer tests.
         return toMapping(null, boundCreateTable);
     }
 
-    public static Map<String, Object> toMapping(Metadata.ColumnOidSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
+    public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);

@@ -26,9 +26,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
-
-import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -110,7 +109,7 @@ public final class DocReferences {
     }
 
     public static List<Reference> applyOid(Collection<Reference> sourceReferences,
-                                           Metadata.ColumnOidSupplier columnOidSupplier) {
+                                           LongSupplier columnOidSupplier) {
         List<Reference> references = new ArrayList<>(sourceReferences.size());
         Map<ColumnIdent, Reference> referencesMap = new HashMap<>(sourceReferences.size());
         for (var ref : sourceReferences) {
