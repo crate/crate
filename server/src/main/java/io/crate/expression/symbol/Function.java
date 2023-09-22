@@ -113,7 +113,7 @@ public class Function implements Symbol, Cloneable {
         this(signature, arguments, returnType, null);
     }
 
-    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, Symbol filter) {
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter) {
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
@@ -430,7 +430,7 @@ public class Function implements Symbol, Cloneable {
 
     private void printSubscriptFunction(StringBuilder builder, Style style) {
         Symbol base = arguments.get(0);
-        if (base instanceof Reference ref && base.valueType() instanceof ArrayType && ref.column().path().size() > 0) {
+        if (base instanceof Reference ref && base.valueType() instanceof ArrayType && !ref.column().path().isEmpty()) {
             builder.append(ref.column().getRoot().quotedOutputName());
             builder.append("[");
             builder.append(arguments.get(1).toString(style));

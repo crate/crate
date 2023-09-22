@@ -61,7 +61,7 @@ public class LiteralValueFormatter {
             builder.append(value.toString());
             builder.append("::bigint");
         } else {
-            builder.append(value.toString());
+            builder.append(value);
         }
     }
 

@@ -161,7 +161,7 @@ public class SymbolVisitors {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = field.column().getRoot();
                 for (T t : haystack) {
-                    if (t instanceof ScopedSymbol && ((ScopedSymbol) t).column().equals(root)) {
+                    if (t instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(root)) {
                         consumer.accept(t);
                     }
                 }
