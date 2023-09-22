@@ -82,6 +82,17 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void test_drop_named_index_column_is_not_supported() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (a text, INDEX ft USING fulltext(a))")
+            .build();
+
+        assertThatThrownBy(() -> e.analyze("ALTER TABLE t DROP COLUMN ft"))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Dropping INDEX column 'ft' is not supported");
+    }
+
+    @Test
     public void test_drop_sub_column() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t (a int, o object AS (oo object AS(ooa int, oob long)))")
