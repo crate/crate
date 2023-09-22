@@ -21,9 +21,13 @@
 
 package io.crate.expression.symbol;
 
-public class AliasResolver extends FunctionCopyVisitor<Void> {
+public final class AliasResolver extends FunctionCopyVisitor<Void> {
 
-    public static AliasResolver INSTANCE = new AliasResolver();
+    public static final AliasResolver INSTANCE = new AliasResolver();
+
+    private AliasResolver() {
+        super();
+    }
 
     @Override
     public Symbol visitAlias(AliasSymbol aliasSymbol, Void context) {
