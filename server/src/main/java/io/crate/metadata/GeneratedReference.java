@@ -28,10 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -284,7 +284,7 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
         if (ref.oid() != COLUMN_OID_UNASSIGNED) {
             return this;
         }

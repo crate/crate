@@ -26,12 +26,12 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -183,7 +183,7 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }
@@ -194,7 +194,7 @@ public class GeoReference extends SimpleReference {
                 indexType,
                 nullable,
                 position,
-                oidSupplier.nextOid(),
+                oidSupplier.getAsLong(),
                 isDropped,
                 defaultExpression,
                 geoTree,

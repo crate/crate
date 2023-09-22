@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
@@ -72,10 +71,11 @@ public class DocReferencesTest {
 
     @Test
     public void test_apply_oid_to_references() {
-        var oidSupplier = new Metadata.ColumnOidSupplier(0);
+        long[] oid = new long[1];
+
         var references = DocReferences.applyOid(
                 List.of(stringRef("name"), stringRef("foo")),
-                oidSupplier
+                () -> ++oid[0]
         );
         assertThat(references.get(0).oid()).isEqualTo(1);
         assertThat(references.get(1).oid()).isEqualTo(2);
@@ -89,10 +89,10 @@ public class DocReferencesTest {
         var indexReference = new IndexReference.Builder(new ReferenceIdent(RELATION_ID, new ColumnIdent("ft")))
                 .sources(List.of("name", "first_name"))
                 .build(referenceMap);
-        var oidSupplier = new Metadata.ColumnOidSupplier(0);
+        long[] oid = new long[1];
         references = DocReferences.applyOid(
                 Lists2.concat(references, indexReference),
-                oidSupplier
+                () -> ++oid[0]
         );
         indexReference = (IndexReference) references.get(2);
         for (var ref : indexReference.columns()) {
