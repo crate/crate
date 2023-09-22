@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -90,8 +89,6 @@ public final class MappingUtil {
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
      *
-     * @param columnOidSupplier is used to get next OID.
-     * Must be NULL if used in BWC code which doesn't expect OID in the mapping.
      */
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
                                                     List<Reference> columns,
@@ -99,11 +96,10 @@ public final class MappingUtil {
                                                     Map<String, String> checkConstraints,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
-                                                    @Nullable String routingColumn,
-                                                    @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+                                                    @Nullable String routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree, columnOidSupplier);
+        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
@@ -152,7 +148,7 @@ public final class MappingUtil {
         }
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
         Map<String, Map<String, Object>> propertiesMap =
-            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree, null);
+            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree);
 
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("_meta", Map.of());
@@ -182,24 +178,22 @@ public final class MappingUtil {
     @Nullable
     private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
                                                                         @Nullable ColumnIdent currentNode,
-                                                                        HashMap<ColumnIdent, List<Reference>> tree,
-                                                                        @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+                                                                        HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree, columnOidSupplier));
+            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree));
         }
         return allColumnsMap;
     }
 
     private static Map<String, Object> addColumnProperties(AllocPosition position,
                                                            Reference reference,
-                                                           HashMap<ColumnIdent, List<Reference>> tree,
-                                                           @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
-        Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()), columnOidSupplier);
+                                                           HashMap<ColumnIdent, List<Reference>> tree) {
+        Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()));
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
         while (valueType instanceof ArrayType<?> arrayType) {
@@ -210,7 +204,7 @@ public final class MappingUtil {
             properties = arrayMapping;
         }
         if (valueType.id() == ObjectType.ID) {
-            objectMapping(position, leafProperties, reference, tree, columnOidSupplier);
+            objectMapping(position, leafProperties, reference, tree);
         }
         return properties;
     }
@@ -218,10 +212,9 @@ public final class MappingUtil {
     private static void objectMapping(AllocPosition position,
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
-                                      HashMap<ColumnIdent, List<Reference>> tree,
-                                      @Nullable Metadata.ColumnOidSupplier columnOidSupplier) {
+                                      HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree, columnOidSupplier);
+        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

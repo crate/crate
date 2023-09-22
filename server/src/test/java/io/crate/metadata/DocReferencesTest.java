@@ -21,10 +21,16 @@
 
 package io.crate.metadata;
 
-import static org.junit.Assert.assertEquals;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists2;
 import io.crate.types.DataTypes;
 
 public class DocReferencesTest {
@@ -41,26 +47,56 @@ public class DocReferencesTest {
         // users._doc['name'] -> users.name
         Reference reference = stringRef("_doc.name");
         Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertEquals(stringRef("name").ident(), newRef.ident());
+        assertThat(stringRef("name").ident()).isEqualTo(newRef.ident());
 
         // users._doc -> users._doc
         reference = stringRef("_doc");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertEquals(stringRef("_doc").ident(), newRef.ident());
+        assertThat(stringRef("_doc").ident()).isEqualTo(newRef.ident());
     }
 
     @Test
     public void testDontConvertOtherReferences() throws Exception {
         Reference reference = stringRef("_raw");
         Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertEquals(reference.ident(), newRef.ident());
+        assertThat(reference.ident()).isEqualTo(newRef.ident());
 
         reference = stringRef("_id");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertEquals(reference.ident(), newRef.ident());
+        assertThat(reference.ident()).isEqualTo(newRef.ident());
 
         reference = stringRef("address.zip_code");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertEquals(reference.ident(), newRef.ident());
+        assertThat(reference.ident()).isEqualTo(newRef.ident());
+    }
+
+    @Test
+    public void test_apply_oid_to_references() {
+        var oidSupplier = new Metadata.ColumnOidSupplier(0);
+        var references = DocReferences.applyOid(
+                List.of(stringRef("name"), stringRef("foo")),
+                oidSupplier
+        );
+        assertThat(references.get(0).oid()).isEqualTo(1);
+        assertThat(references.get(1).oid()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_index_source_references_has_oids() {
+        var references = List.of(stringRef("name"), stringRef("first_name"));
+        var referenceMap = references.stream()
+                .collect(Collectors.toMap(Reference::column, reference -> reference));
+        var indexReference = new IndexReference.Builder(new ReferenceIdent(RELATION_ID, new ColumnIdent("ft")))
+                .sources(List.of("name", "first_name"))
+                .build(referenceMap);
+        var oidSupplier = new Metadata.ColumnOidSupplier(0);
+        references = DocReferences.applyOid(
+                Lists2.concat(references, indexReference),
+                oidSupplier
+        );
+        indexReference = (IndexReference) references.get(2);
+        for (var ref : indexReference.columns()) {
+            assertThat(ref.oid()).isGreaterThan(0);
+        }
     }
 }

@@ -73,7 +73,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
 
-        Map<String, Object> mapping = reference.toMapping(reference.position(), null);
+        Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("sources", List.of("title", "description"))
             .containsEntry("oid", 3L)

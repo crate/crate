@@ -76,6 +76,7 @@ import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -430,15 +431,24 @@ public class TestingHelpers {
         var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
         var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
 
+        List<Reference> references;
+        if (columnOidSupplier != null) {
+            references = DocReferences.applyOid(
+                    boundCreateTable.columns().values(),
+                    columnOidSupplier
+            );
+        } else {
+            references = new ArrayList<>(boundCreateTable.columns().values());
+        }
+
         return createMapping(
             MappingUtil.AllocPosition.forNewTable(),
-            new ArrayList<>(boundCreateTable.columns().values()),
+            references,
             pKeysIndices,
             boundCreateTable.getCheckConstraints(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn(),
-            columnOidSupplier
+            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
         );
 
     }
