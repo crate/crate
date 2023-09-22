@@ -155,7 +155,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         // BigInteger overhead 20 bytes
         // BigDecimal overhead 16 bytes
         // size of unscaled value
-        return 36 + value.unscaledValue().bitLength() / 8 + 1;
+        return 36 + value.unscaledValue().bitLength() / 8L + 1;
     }
 
     public static long sizeDiff(@NotNull BigDecimal first, @NotNull BigDecimal second) {

@@ -259,7 +259,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             }
         } else if (value instanceof Point point && DataTypes.isNumericPrimitive(innerType)) {
             // As per docs: [<lon_value>, <lat_value>]
-            return (List<T>) List.of(
+            return List.of(
                 innerType.sanitizeValue(point.getLon()),
                 innerType.sanitizeValue(point.getLat()));
         } else {
@@ -418,7 +418,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
         if (innerType instanceof FixedWidthType fixedWidthType) {
-            return fixedWidthType.fixedSize() * values.size();
+            return fixedWidthType.fixedSize() * (long) values.size();
         }
         long bytes = RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         for (var value : values) {

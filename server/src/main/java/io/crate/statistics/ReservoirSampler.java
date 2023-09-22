@@ -153,7 +153,8 @@ public final class ReservoirSampler {
         return bytesSinceLastPause;
     }
 
-    public Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
+    @SuppressWarnings("rawtypes")
+    Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
         TableInfo table;
         try {
             table = schemas.getTableInfo(relationName);
@@ -192,6 +193,7 @@ public final class ReservoirSampler {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private Samples getSamples(List<Reference> columns,
                                int maxSamples,
                                DocTableInfo docTable,

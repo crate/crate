@@ -50,7 +50,7 @@ public final class UserActions {
                                                 NodeContext nodeCtx) throws GeneralSecurityException, IllegalArgumentException {
         try (SecureString pw = getUserPasswordProperty(userStmtProperties, parameters, txnCtx, nodeCtx)) {
             if (pw != null) {
-                if (pw.length() == 0) {
+                if (pw.isEmpty()) {
                     throw new IllegalArgumentException("Password must not be empty");
                 }
                 return SecureHash.of(pw);
@@ -74,9 +74,9 @@ public final class UserActions {
         );
         Map<String, Object> properties = userStmtProperties.map(eval).properties();
         final String PASSWORD_PROPERTY = "password";
-        for (String key : properties.keySet()) {
-            if (PASSWORD_PROPERTY.equals(key)) {
-                String value = DataTypes.STRING.sanitizeValue(properties.get(key));
+        for (var entry : properties.entrySet()) {
+            if (PASSWORD_PROPERTY.equals(entry.getKey())) {
+                String value = DataTypes.STRING.sanitizeValue(entry.getValue());
                 if (value != null) {
                     return new SecureString(value.toCharArray());
                 }
@@ -84,7 +84,7 @@ public final class UserActions {
                 return null;
             } else {
                 throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "\"%s\" is not a valid user property", key));
+                    String.format(Locale.ENGLISH, "\"%s\" is not a valid user property", entry.getKey()));
             }
         }
         return null;

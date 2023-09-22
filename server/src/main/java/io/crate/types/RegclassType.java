@@ -44,6 +44,8 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
     public static final RegclassType INSTANCE = new RegclassType();
     public static final int ID = 23;
 
+    private RegclassType() {}
+
     @Override
     public int compare(Regclass o1, Regclass o2) {
         return o1.compareTo(o2);
@@ -101,8 +103,8 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
         if (value == null) {
             return null;
         }
-        if (value instanceof Regclass) {
-            return (Regclass) value;
+        if (value instanceof Regclass regclass) {
+            return regclass;
         }
         if (value instanceof Integer num) {
             return new Regclass(num.intValue(), value.toString());

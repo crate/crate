@@ -36,7 +36,7 @@ public class PrivilegeIdent implements Writeable {
     @Nullable
     private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
 
-    public PrivilegeIdent(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+    public PrivilegeIdent(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
         this.type = type;
         this.clazz = clazz;
         this.ident = ident;
