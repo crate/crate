@@ -48,6 +48,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -473,7 +474,7 @@ public class SQLExecutor {
 
             // addPartitionedTable can be called multiple times, create supplier based on existing state.
             Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            Metadata.ColumnOidSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+            LongSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
             Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
 
             XContentBuilder mappingBuilder = JsonXContent.builder().map(mapping);
@@ -540,7 +541,7 @@ public class SQLExecutor {
 
             // addTable can be called multiple times, create supplier based on existing state.
             Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            Metadata.ColumnOidSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
+            LongSupplier columnOidSupplier = mdBuilder.columnOidSupplier();
 
             RelationName relationName = boundCreateTable.tableName();
             IndexMetadata indexMetadata = getIndexMetadata(

@@ -27,10 +27,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.TypeParsers;
@@ -161,7 +161,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference applyColumnOid(Metadata.ColumnOidSupplier oidSupplier) {
+    public Reference applyColumnOid(LongSupplier oidSupplier) {
         if (oid != COLUMN_OID_UNASSIGNED) {
             return this;
         }
@@ -174,7 +174,7 @@ public class SimpleReference implements Reference {
                 nullable,
                 hasDocValues,
                 position,
-                oidSupplier.nextOid(),
+                oidSupplier.getAsLong(),
                 isDropped,
                 defaultExpression
         );

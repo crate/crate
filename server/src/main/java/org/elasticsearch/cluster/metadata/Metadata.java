@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,8 +67,6 @@ import org.elasticsearch.rest.RestStatus;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.common.annotations.VisibleForTesting;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
@@ -592,15 +591,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return new Builder(metadata);
     }
 
-    public static class ColumnOidSupplier {
+    private static class ColumnOidSupplier implements LongSupplier {
         private long columnOID;
 
-        @VisibleForTesting
-        public ColumnOidSupplier(long columnOID) {
+        private ColumnOidSupplier(long columnOID) {
             this.columnOID = columnOID;
         }
 
-        public long nextOid() {
+        @Override
+        public long getAsLong() {
             columnOID++;
             return columnOID;
         }
