@@ -48,7 +48,7 @@ public class UDCService extends AbstractLifecycleComponent {
         "udc.enabled", true, Property.NodeScope, Property.Exposed);
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
-    public static final Setting<String> UDC_URL_SETTING = new Setting<String>(
+    public static final Setting<String> UDC_URL_SETTING = new Setting<>(
         "udc.url", "https://udc.crate.io/",
         Function.identity(), DataTypes.STRING, Property.NodeScope, Property.Exposed);
 

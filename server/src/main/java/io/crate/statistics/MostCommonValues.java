@@ -38,13 +38,13 @@ public final class MostCommonValues {
     private final Object[] values;
     private final double[] frequencies;
 
-    public static <T> MostCommonValues fromCandidates(double nullFraction,
-                                                      int numTracked,
-                                                      int distinctValues,
-                                                      double approxDistinct,
-                                                      List<T> samples,
-                                                      long numTotalRows,
-                                                      MVCCandidate[] candidates) {
+    static <T> MostCommonValues fromCandidates(double nullFraction,
+                                               int numTracked,
+                                               int distinctValues,
+                                               double approxDistinct,
+                                               List<T> samples,
+                                               long numTotalRows,
+                                               MVCCandidate[] candidates) {
 
         /* From PostgreSQL:
          *
@@ -153,7 +153,9 @@ public final class MostCommonValues {
              * may be worth considering more advanced techniques for estimating
              * the confidence interval of the hypergeometric distribution.
              */
+            //noinspection UnnecessaryLocalVariable
             double N = numTotalRows;
+            //noinspection UnnecessaryLocalVariable
             double n = numSampleRows;
             double K = N * mcvCounts[numMcv - 1] / n;
             double variance = n * K * (N - K) * (N - n) / (N * N * (N - 1));
@@ -183,6 +185,7 @@ public final class MostCommonValues {
         this.frequencies = frequencies;
     }
 
+    @SuppressWarnings("rawtypes")
     public MostCommonValues(Streamer valueStreamer, StreamInput in) throws IOException {
         int numValues = in.readVInt();
         values = new Object[numValues];
@@ -194,6 +197,7 @@ public final class MostCommonValues {
 
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void writeTo(Streamer valueStreamer, StreamOutput out) throws IOException {
         out.writeVInt(values.length);
         for (int i = 0; i < values.length; i++) {

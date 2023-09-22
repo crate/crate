@@ -70,7 +70,7 @@ public class UserLookupService implements UserLookup, ClusterStateListener {
 
     static Set<User> getUsers(@Nullable UsersMetadata metadata,
                               @Nullable UsersPrivilegesMetadata privilegesMetadata) {
-        HashSet<User> users = new HashSet<User>();
+        HashSet<User> users = new HashSet<>();
         users.add(User.CRATE_USER);
         if (metadata != null) {
             for (Map.Entry<String, SecureHash> user: metadata.users().entrySet()) {

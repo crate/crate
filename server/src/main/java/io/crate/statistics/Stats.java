@@ -72,7 +72,7 @@ public class Stats implements Writeable {
         int numColumnStats = in.readVInt();
         this.statsByColumn = new HashMap<>();
         for (int i = 0; i < numColumnStats; i++) {
-            statsByColumn.put(new ColumnIdent(in), new ColumnStats(in));
+            statsByColumn.put(new ColumnIdent(in), new ColumnStats<>(in));
         }
     }
 
@@ -149,8 +149,8 @@ public class Stats implements Writeable {
                 columnStats = statsByColumn.get(scopedSymbol.column());
             }
             if (columnStats == null) {
-                if (symbol.valueType() instanceof FixedWidthType) {
-                    sum += ((FixedWidthType) symbol.valueType()).fixedSize();
+                if (symbol.valueType() instanceof FixedWidthType fixedWidthType) {
+                    sum += fixedWidthType.fixedSize();
                 } else {
                     sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
                 }
