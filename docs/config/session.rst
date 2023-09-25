@@ -164,6 +164,14 @@ releases.
      The session setting has no effect in CrateDB and exists for compatibility
      with ``PostgreSQL``.
 
+.. _conf-session-max_identifier_length:
+
+**max_identifier_length**
+  | *Default:* ``255``
+  | *Modifiable:* ``no``
+
+  Shows the maximum length of identifiers in bytes.
+
 .. _conf-session-server_version_num:
 
 **server_version_num**
