@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
@@ -46,7 +44,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -177,16 +174,14 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                         searchRef.column().fqn(),
                         searchType,
                         resultExpression,
-                        table.droppedColumns(),
-                        table.lookupNameBySourceKey()
+                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
                     );
                 } else {
                     return new MaxByLong(
                         searchRef.column().fqn(),
                         searchType,
                         resultExpression,
-                        table.droppedColumns(),
-                        table.lookupNameBySourceKey()
+                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
                     );
                 }
             default:
@@ -282,9 +277,8 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         public MinByLong(String columnName,
                          DataType<?> searchType,
                          LuceneCollectorExpression<?> resultExpression,
-                         Set<ColumnIdent> droppedColumns,
-                         Function<String, String> lookupNameBySourceKey) {
-            super(Long.MAX_VALUE, columnName, searchType, resultExpression, droppedColumns, lookupNameBySourceKey);
+                         CollectorContext collectorContext) {
+            super(Long.MAX_VALUE, columnName, searchType, resultExpression, collectorContext);
         }
 
         @Override
@@ -298,9 +292,8 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         public MaxByLong(String columnName,
                          DataType<?> searchType,
                          LuceneCollectorExpression<?> resultExpression,
-                         Set<ColumnIdent> droppedColumns,
-                         Function<String, String> lookupNameBySourceKey) {
-            super(Long.MIN_VALUE, columnName, searchType, resultExpression, droppedColumns, lookupNameBySourceKey);
+                         CollectorContext collectorContext) {
+            super(Long.MIN_VALUE, columnName, searchType, resultExpression,collectorContext);
         }
 
         @Override
@@ -323,13 +316,12 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                   String columnName,
                   DataType<?> searchType,
                   LuceneCollectorExpression<?> resultExpression,
-                  Set<ColumnIdent> droppedColumns,
-                  Function<String, String> lookupNameBySourceKey) {
+                  CollectorContext collectorContext) {
             this.sentinelValue = sentinelValue;
             this.columnName = columnName;
             this.searchType = searchType;
             this.resultExpression = resultExpression;
-            resultExpression.startCollect(new CollectorContext(droppedColumns, lookupNameBySourceKey));
+            resultExpression.startCollect(collectorContext);
         }
 
         @Override
