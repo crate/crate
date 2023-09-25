@@ -46,12 +46,15 @@ import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+
 @Singleton
 public class SessionSettingRegistry {
 
     private static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
+    static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
     static final String SERVER_VERSION_NUM = "server_version_num";
     static final String SERVER_VERSION = "server_version";
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
@@ -158,6 +161,18 @@ public class SessionSettingRegistry {
                      s -> String.valueOf(32),
                      () -> String.valueOf(32),
                      "Shows the maximum number of index keys.",
+                     DataTypes.INTEGER))
+            .put(MAX_IDENTIFIER_LENGTH,
+                 new SessionSetting<>(
+                     MAX_IDENTIFIER_LENGTH,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + MAX_IDENTIFIER_LENGTH + "\" cannot be changed.");
+                     },
+                     s -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     () -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     "Shows the maximum length of identifiers in bytes.",
                      DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,
                  new SessionSetting<>(
