@@ -69,10 +69,6 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
-    public R visitAbstractJoinPlan(AbstractJoinPlan logicalPlan, C context) {
-        return visitPlan(logicalPlan, context);
-    }
-
     public R visitJoinPlan(JoinPlan logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }

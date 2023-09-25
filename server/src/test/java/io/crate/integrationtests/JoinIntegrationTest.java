@@ -1604,4 +1604,41 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    └ Collect[doc.t2 | [y] | true]"
         );
     }
+
+
+    @UseJdbc(1)
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_build_graph_fron_double_aliased_relation() {
+        var stmt = """
+             SELECT   NULL       AS table_cat,
+                     n.nspname  AS table_schem,
+                     ct.relname AS table_name,
+                     a.attname  AS column_name,
+                     (i.keys).n as key_seq
+            FROM     pg_catalog.pg_class ct
+            JOIN     pg_catalog.pg_attribute a
+            ON       (
+                              ct.oid = a.attrelid)
+            JOIN     pg_catalog.pg_namespace n
+            ON       (
+                              ct.relnamespace = n.oid)
+            JOIN
+                     (
+                            SELECT i.indexrelid,
+                                   i.indrelid,
+                                   i.indisprimary,
+                                   information_schema._pg_expandarray(i.indkey) AS keys
+                            FROM   pg_catalog.pg_index i) i
+            ON       (
+                              a.attnum = (i.keys).x
+                     AND      a.attrelid = i.indrelid)
+                     LIMIT 1;
+              """;
+
+        execute(stmt);
+        assertThat(response).hasRows("NULL| information_schema| columns| table_catalog| 1");
+    }
 }
