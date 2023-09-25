@@ -36,11 +36,13 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.joinorder.JoinGraph;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -373,6 +375,23 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
                                 Function.identity());
 
         assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_build_graph_fron_ouble_aliased_relation() {
+        var x =  """
+                SELECt * FROM
+                    (SELECT i.indexrelid,
+                           i.indrelid,
+                           i.indisprimary,
+                           information_schema._pg_expandarray(i.indkey) AS keys
+                    FROM   pg_catalog.pg_index i) i
+                    JOIN   pg_catalog.pg_attribute a ON a.attnum = (i.keys).x
+                """;
+
+        LogicalPlan logicalPlan = e.logicalPlan(x);
+        var graph = JoinGraph.create(logicalPlan, Function.identity());
+        assertThat(graph).isNotNull();
     }
 
 }

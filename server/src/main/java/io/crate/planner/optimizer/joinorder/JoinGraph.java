@@ -41,8 +41,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.Rename;
@@ -169,7 +169,7 @@ public record JoinGraph(
 
         @Override
         public JoinGraph visitRename(Rename rename, Context context) {
-            context.fieldResolvers.put(rename.name(), rename);
+            context.fieldResolvers.putIfAbsent(rename.name(), rename);
             return rename.source().accept(this, context);
         }
 
@@ -185,8 +185,7 @@ public record JoinGraph(
         }
 
         @Override
-        public JoinGraph visitJoinPlan(JoinPlan joinPlan, Context context) {
-
+        public JoinGraph visitAbstractJoinPlan(AbstractJoinPlan joinPlan, Context context) {
             var left = joinPlan.lhs().accept(this, context);
             var right = joinPlan.rhs().accept(this, context);
 

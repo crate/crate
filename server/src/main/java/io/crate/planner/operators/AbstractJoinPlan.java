@@ -78,6 +78,10 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         }
     }
 
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitAbstractJoinPlan(this, context);
+    }
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {

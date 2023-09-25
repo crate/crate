@@ -42,11 +42,9 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Insert;
-import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.TableFunction;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.iterative.GroupReference;
@@ -138,16 +136,7 @@ public class PlanStats {
         }
 
         @Override
-        public Stats visitJoinPlan(JoinPlan join, Void context) {
-            return visitAbstractJoinPlan(join, context);
-        }
-
-        @Override
-        public Stats visitNestedLoopJoin(NestedLoopJoin join, Void context) {
-            return visitAbstractJoinPlan(join, context);
-        }
-
-        private Stats visitAbstractJoinPlan(AbstractJoinPlan join, Void context) {
+        public Stats visitAbstractJoinPlan(AbstractJoinPlan join, Void context) {
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
             Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(),
