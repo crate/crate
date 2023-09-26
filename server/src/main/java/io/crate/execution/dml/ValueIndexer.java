@@ -66,6 +66,26 @@ public interface ValueIndexer<T> {
      */
     default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
 
+    /**
+     * @param storageIdentLeafName is a key in the source.
+     * If it's NULL, writing key must be skipped.
+     * For example, for array of primitives,
+     * we need to write key only once and inner primitive indexer should be writing only values.
+     */
+    default void indexValue(
+        @Nullable T value,
+        @Nullable String storageIdentLeafName,
+        XContentBuilder xcontentBuilder,
+        Consumer<? super IndexableField> addField,
+        Map<ColumnIdent, Indexer.Synthetic> synthetics,
+        Map<ColumnIdent, ColumnConstraint> toValidate
+    ) throws IOException {
+        if (storageIdentLeafName != null) {
+            xcontentBuilder.field(storageIdentLeafName);
+        }
+        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
+    }
+
     void indexValue(
         @Nullable T value,
         XContentBuilder xcontentBuilder,

@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -130,9 +131,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                xContentBuilder.field(childRef.storageIdentLeafName());
                 valueIndexer.indexValue(
                     type.sanitizeValue(innerValue),
+                    childRef.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
                     synthetics,
@@ -235,7 +236,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, null)) {
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, null, null)) {
                     continue;
                 }
                 throw new IllegalArgumentException(
@@ -292,6 +293,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (!isNewColumn) {
                 continue;
             }
+            innerName = UNKNOWN_COLUMN_PREFIX + innerName;
             if (innerValue == null) {
                 xContentBuilder.nullField(innerName);
                 continue;
@@ -304,8 +306,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                xContentBuilder.field(innerName);
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, xContentBuilder)) {
+                if (DynamicIndexer.handleEmptyArray(type, innerValue, innerName, xContentBuilder)) {
                     continue;
                 }
                 throw new IllegalArgumentException(
