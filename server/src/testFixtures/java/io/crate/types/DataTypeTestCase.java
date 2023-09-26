@@ -107,10 +107,10 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             IndexWriter writer = indexEnv.writer();
             try (XContentBuilder xContentBuilder = XContentFactory.json(new BytesStreamOutput())) {
                 List<IndexableField> fields = new ArrayList<>();
-                xContentBuilder.startObject()
-                    .field(reference.storageIdent());
+                xContentBuilder.startObject();
                 valueIndexer.indexValue(
                     value,
+                    reference.storageIdent(),
                     xContentBuilder,
                     fields::add,
                     Map.of(),

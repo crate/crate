@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -82,7 +83,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             type = guessType(value);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (handleEmptyArray(type, value, null)) {
+                if (handleEmptyArray(type, value, null, null)) {
                     type = null; // guess type again with next value
                     return;
                 }
@@ -124,6 +125,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @Override
     @SuppressWarnings("unchecked")
     public void indexValue(Object value,
+                           String storageIdentLeafName,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Map<ColumnIdent, Synthetic> synthetics,
@@ -135,14 +137,28 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
-            if (handleEmptyArray(type, value, xcontentBuilder)) {
+            if (handleEmptyArray(type, value, UNKNOWN_COLUMN_PREFIX + storageIdentLeafName, xcontentBuilder)) {
                 type = null; // guess type again with next value
                 return;
             }
             throw new IllegalArgumentException(
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
-                "Storage is not supported for this type");
+                    "Storage is not supported for this type");
         }
+        if (storageIdentLeafName != null) {
+            xcontentBuilder.field(storageIdentLeafName);
+        }
+        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void indexValue(Object value,
+                           XContentBuilder xcontentBuilder,
+                           Consumer<? super IndexableField> addField,
+                           Map<ColumnIdent, Synthetic> synthetics,
+                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+        StorageSupport<?> storageSupport = type.storageSupport();
         boolean nullable = true;
         Symbol defaultExpression = null;
         Reference newColumn = new SimpleReference(
@@ -181,11 +197,13 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
 
     static boolean handleEmptyArray(DataType<?> type,
                                     Object value,
+                                    @Nullable String name,
                                     @Nullable XContentBuilder builder) throws IOException {
         if (type instanceof ArrayType<?> && ArrayType.unnest(type) instanceof UndefinedType) {
             Collection<?> values = (Collection<?>) value;
             if (values.isEmpty() || values.stream().allMatch(x -> x == null)) {
                 if (builder != null) {
+                    builder.field(name);
                     builder.startArray();
                     for (int i = 0; i < values.size(); i++) {
                         builder.nullValue();

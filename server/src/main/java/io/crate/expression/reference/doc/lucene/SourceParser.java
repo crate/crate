@@ -74,6 +74,7 @@ import io.crate.types.UndefinedType;
 
 public final class SourceParser {
 
+    public static final String UNKNOWN_COLUMN_PREFIX = "_u_";
     private final Map<String, Object> requiredColumns = new HashMap<>();
     private final Set<String> droppedColumns;
     private final Function<String, String> lookupNameBySourceKey;
