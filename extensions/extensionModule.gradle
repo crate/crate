@@ -53,12 +53,6 @@ task writePropertiesFile(dependsOn: [':server:getVersion']) {
             from "src/main/resources/"
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
-            expand(
-                version: project.version,
-                crateVersion: project(':server').getVersion.shortVersion,
-                jmvCompatibility: project.targetCompatibility,
-                name: project.name
-            )
         }
     }
 }

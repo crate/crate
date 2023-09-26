@@ -53,7 +53,6 @@ import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -102,8 +101,13 @@ public class PluginsService {
         // first we load plugins that are on the classpath. this is for tests and transport clients
         for (Class<? extends Plugin> pluginClass : classpathPlugins) {
             Plugin plugin = loadPlugin(pluginClass, settings, configPath);
-            PluginInfo pluginInfo = new PluginInfo(pluginClass.getName(), "classpath plugin", "NA", Version.CURRENT, "1.8",
-                                                   pluginClass.getName(), Collections.emptyList(), false);
+            PluginInfo pluginInfo = new PluginInfo(
+                pluginClass.getName(),
+                "classpath plugin",
+                pluginClass.getName(),
+                Collections.emptyList(),
+                false
+            );
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("plugin loaded from classpath [{}]", pluginInfo);
             }
@@ -292,17 +296,6 @@ public class PluginsService {
         return plugins;
     }
 
-    /**
-     * Verify the given plugin is compatible with the current Elasticsearch installation.
-     */
-    static void verifyCompatibility(PluginInfo info) {
-        if (info.getElasticsearchVersion().equals(Version.CURRENT) == false) {
-            throw new IllegalArgumentException("Plugin [" + info.getName() + "] was built for Elasticsearch version "
-                + info.getElasticsearchVersion() + " but version " + Version.CURRENT + " is running");
-        }
-        JarHell.checkJavaVersion(info.getName(), info.getJavaVersion());
-    }
-
     static void checkForFailedPluginRemovals(final Path pluginsDirectory) throws IOException {
         /*
          * Check for the existence of a marker file that indicates any plugins are in a garbage state from a failed attempt to remove the
@@ -482,8 +475,6 @@ public class PluginsService {
 
     private Plugin loadBundle(Bundle bundle, Map<String, Plugin> loaded) {
         String name = bundle.plugin.getName();
-
-        verifyCompatibility(bundle.plugin);
 
         // collect loaders of extended plugins
         List<ClassLoader> extendedLoaders = new ArrayList<>();
