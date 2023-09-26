@@ -2031,6 +2031,16 @@ to days and hours::
     +-----------------+
     SELECT 1 row in set (... sec)
 
+You can multiply an interval by an integer::
+
+    cr> SELECT 2 * INTERVAL '2 years 1 month 10 days' AS result;
+    +---------------------------------+
+    | result                          |
+    +---------------------------------+
+    | 4 years 2 mons 20 days 00:00:00 |
+    +---------------------------------+
+    SELECT 1 row in set (... sec)
+
 .. TIP::
 
     You can use intervals in combination with :ref:`CURRENT_TIMESTAMP

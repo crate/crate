@@ -49,6 +49,61 @@ public class IntervalFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_multiply_by_integer() {
+        assertEvaluate("2 * interval '2 years 1 month 10 days'",
+                       Period.years(4).withMonths(2).withDays(20).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("0 * interval '10 second'",
+                       Period.seconds(0).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("-10 * interval '1 day'",
+                       Period.days(-10).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("2147483647 * interval '1 year'",
+                       Period.years(2147483647).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("-2147483648 * interval '1 year'",
+                       Period.years(-2147483648).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '2 years 1 month 10 days' * 2",
+                       Period.years(4).withMonths(2).withDays(20).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '10 second' * 0",
+                       Period.seconds(0).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 day' * -10",
+                       Period.days(-10).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 year' * 2147483647",
+                       Period.years(2147483647).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 year' * -2147483648",
+                       Period.years(-2147483648).withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    public void test_normalize_multiplication_result() {
+        assertEvaluate("900 * interval '1 second'",
+                       Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 second' * 900",
+                       Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_implicit_cast_to_integer_while_multiplying_by_double() {
+        assertEvaluate("interval '1 hour' * 3.5",
+                       Period.hours(3).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("3.5 * interval '1 hour'",
+                       Period.hours(3).withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_multiplication_overflow() {
+        assertThatThrownBy(() -> assertEvaluate("interval '2 second' * 2147483647", null))
+                .isExactlyInstanceOf(ArithmeticException.class)
+                .hasMessage("Multiplication overflows an int: 2 * 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("interval '2 second' * -2147483648", null))
+                .isExactlyInstanceOf(ArithmeticException.class)
+                .hasMessage("Multiplication overflows an int: 2 * -2147483648");
+        assertThatThrownBy(() -> assertEvaluate("2147483647 * interval '2 second'", null))
+                .isExactlyInstanceOf(ArithmeticException.class)
+                .hasMessage("Multiplication overflows an int: 2 * 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("-2147483648 * interval '2 second'", null))
+                .isExactlyInstanceOf(ArithmeticException.class)
+                .hasMessage("Multiplication overflows an int: 2 * -2147483648");
+    }
+
+    @Test
     public void test_out_of_range_value() {
         assertThatThrownBy(() -> assertEvaluate("interval '9223372036854775807'", null))
             .isExactlyInstanceOf(ArithmeticException.class)
@@ -61,14 +116,16 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertEvaluateNull("null - interval '1 second'");
         assertEvaluateNull("interval '1 second' + null");
         assertEvaluateNull("interval '1 second' - null");
+        assertEvaluateNull("null * interval '1 second'");
+        assertEvaluateNull("interval '1 second' * null");
     }
 
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
         assertThatThrownBy(
-            () -> assertEvaluate("null * interval '1 second'", null))
+            () -> assertEvaluate("null / interval '1 second'", null))
                 .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (NULL * cast('1 second' AS interval)), " +
+            .hasMessageStartingWith("Unknown function: (NULL / cast('1 second' AS interval)), " +
                                     "no overload found for matching argument types: (undefined, interval).");
     }
 
