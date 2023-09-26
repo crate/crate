@@ -24,9 +24,11 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -103,6 +105,12 @@ class InsertAnalyzer {
     }
 
     public AnalyzedInsertStatement analyze(Insert<Expression> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+        Set<String> uniqueColumns = new HashSet<>();
+        for (String columnName: insert.columns()) {
+            if (uniqueColumns.add(columnName) == false) {
+                throw new IllegalArgumentException("column \"" + columnName + "\" specified more than once");
+            }
+        }
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,

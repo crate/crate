@@ -502,4 +502,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                   isInputColumn(0)),
                        isLiteral(2)));
     }
+
+    @Test
+    public void test_duplicate_column_throws_an_error() {
+        assertThatThrownBy(() -> e.analyze("insert into users (id, id) values (1, 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("column \"id\" specified more than once");
+    }
 }
