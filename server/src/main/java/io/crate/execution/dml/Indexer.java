@@ -763,9 +763,9 @@ public class Indexer {
                     continue;
                 }
                 ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                xContentBuilder.field(reference.storageIdentLeafName());
                 valueIndexer.indexValue(
                     reference.valueType().sanitizeValue(value),
+                    reference.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
                     synthetics,
@@ -783,10 +783,10 @@ public class Indexer {
                 if (value == null) {
                     continue;
                 }
-                xContentBuilder.field(synthetic.ref.storageIdentLeafName());
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 indexer.indexValue(
                     value,
+                    synthetic.ref.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
                     synthetics,

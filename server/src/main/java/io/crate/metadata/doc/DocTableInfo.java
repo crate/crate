@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.Collection;
@@ -510,13 +511,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      * <ul>
      *  <li>OBJECT (IGNORED) sub-columns</li>
      *  <li>Empty arrays, or arrays with only null values</li>
+     *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
      * </ul>
      */
     public Function<String, String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
-                String leafName = leafNamesByOid.get(oidOrName);
-                return leafName != null ? leafName : oidOrName;
+                if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
+                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                    return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
+                }
+                String name = leafNamesByOid.get(oidOrName);
+                if (name == null) {
+                    return oidOrName;
+                }
+                return name;
             };
         } else {
             return Function.identity();

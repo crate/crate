@@ -27,13 +27,13 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.testing.UseNewCluster;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -401,5 +401,26 @@ public class ObjectColumnTest extends IntegTestCase {
             execute("select T.o['unknown'] from (select * from test) T", session);
             assertThat(response).hasRows("NULL");
         }
+    }
+
+    @Test
+    @UseNewCluster
+    public void test_add_sub_column_with_numeric_name_into_ignored_object() {
+        execute("create table t (o object(ignored) as (a int))");
+
+        // Dynamically adding column with name "2" which will be indexed "as is" and could clash with "o.a" column's oid.
+        // Ensure that numeric name of the new ignored sub-column is prefixed
+        // and doesn't clash with assigned OID of the known column in the source.
+        execute("insert into t (o) values(?)", new Object[]{Map.of("a", 1, "2", 2)});
+        refresh();
+        execute("SELECT _raw FROM t");
+        assertThat(response).hasRows(
+            "{\"1\":{\"2\":1,\"_u_2\":2}}"
+        );
+
+        execute("SELECT * FROM t");
+        assertThat(response).hasRows(
+            "{2=2, a=1}"
+        );
     }
 }
