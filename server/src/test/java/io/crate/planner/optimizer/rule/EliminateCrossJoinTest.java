@@ -33,14 +33,20 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.joinorder.JoinGraph;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -51,14 +57,18 @@ import io.crate.testing.SQLExecutor;
 public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private Symbol x;
-    private Symbol y;
-    private Symbol z;
-    private Symbol w;
+    private Reference x;
+    private Reference y;
+    private Reference z;
+    private Reference w;
     private Collect a;
     private Collect b;
     private Collect c;
     private Collect d;
+    private DocTableInfo aDoc;
+    private DocTableInfo bDoc;
+    private DocTableInfo cDoc;
+    private DocTableInfo dDoc;
 
     @Before
     public void prepare() throws Exception {
@@ -69,15 +79,15 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table d (w int)")
             .build();
 
-        DocTableInfo aDoc = e.resolveTableInfo("a");
-        DocTableInfo bDoc = e.resolveTableInfo("b");
-        DocTableInfo cDoc = e.resolveTableInfo("c");
-        DocTableInfo dDoc = e.resolveTableInfo("d");
+        aDoc = e.resolveTableInfo("a");
+        bDoc = e.resolveTableInfo("b");
+        cDoc = e.resolveTableInfo("c");
+        dDoc = e.resolveTableInfo("d");
 
-        x = e.asSymbol("x");
-        y = e.asSymbol("y");
-        z = e.asSymbol("z");
-        w = e.asSymbol("w");
+        x = (Reference) e.asSymbol("x");
+        y = (Reference) e.asSymbol("y");
+        z = (Reference) e.asSymbol("z");
+        w = (Reference) e.asSymbol("w");
 
         a = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
         b = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
@@ -375,4 +385,50 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).isNull();
     }
 
+    public void test_resolve_multiple_aliases_with_same_name_in_logical_join_plan() throws Exception {
+
+        var relation_a = new DocTableRelation(aDoc);
+        var relation_b = new DocTableRelation(bDoc);
+        var relation_c = new DocTableRelation(cDoc);
+        var relation_d = new DocTableRelation(dDoc);
+
+        var aliased_a = new AliasedAnalyzedRelation(relation_a, new RelationName(null, "alias"));
+        var collect_a = new Collect(relation_a, List.of(x), WhereClause.MATCH_ALL);
+
+        var collect_b = new Collect(relation_b, List.of(y), WhereClause.MATCH_ALL);
+
+        var aliased_c = new AliasedAnalyzedRelation(relation_c, new RelationName(null, "alias"));
+        var collect_c = new Collect(relation_c, List.of(z), WhereClause.MATCH_ALL);
+
+        var collect_d = new Collect(relation_d, List.of(w), WhereClause.MATCH_ALL);
+
+        Symbol scoped_x = aliased_a.getField(x.column(), Operation.READ, true);
+        assertThat(scoped_x).isNotNull();
+
+        Symbol scoped_z = aliased_c.getField(z.column(), Operation.READ, true);
+        assertThat(scoped_z).isNotNull();
+
+        var rename_a = new Rename(List.of(scoped_x), aliased_a.relationName(), aliased_a, collect_a);
+        var rename_c = new Rename(List.of(scoped_z), aliased_c.relationName(), aliased_c, collect_c);
+
+        var firstJoin = new JoinPlan(rename_a, collect_b, JoinType.INNER, EqOperator.of(scoped_x, y));
+        var secondJoin = new JoinPlan(firstJoin, rename_c, JoinType.INNER, EqOperator.of(scoped_z, y));
+        var thirdJoin = new JoinPlan(secondJoin, collect_d, JoinType.INNER, EqOperator.of(scoped_x, w));
+
+        assertThat(thirdJoin).hasOperators(
+            "Join[INNER | (x = w)]",
+            "  ├ Join[INNER | (z = y)]",
+            "  │  ├ Join[INNER | (x = y)]",
+            "  │  │  ├ Rename[x] AS alias",
+            "  │  │  │  └ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Rename[z] AS alias",
+            "  │    └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.d | [w] | true]"
+        );
+
+        var graph = JoinGraph.create(thirdJoin, Function.identity());
+        assertThat(graph.size()).isEqualTo(4);
+        assertThat(graph.edges()).hasSize(4);
+    }
 }
