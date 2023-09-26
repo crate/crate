@@ -437,7 +437,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
-        execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
+        execute("insert into arr (id, tags, new, \"2\") values (2, ['wow', 'much', 'wow'], [null], [])");
         refresh();
         waitNoPendingTasksOnAll();
         execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
@@ -446,7 +446,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "tags| text_array"
         );
         assertThat(execute("select _doc from arr")).hasRows(
-            "{id=2, new=[null], tags=[wow, much, wow]}"
+            "{2=[], id=2, new=[null], tags=[wow, much, wow]}"
         );
     }
 
