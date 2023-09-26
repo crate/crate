@@ -495,4 +495,10 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                   isInputColumn(0)),
                        isLiteral(2)));
     }
+
+    @Test
+    public void test_duplicate_column_throws_an_error() {
+        expectedException.expect(IllegalArgumentException.class);
+        e.analyze("insert into users (id, id) values (1, 1)");
+    }
 }
