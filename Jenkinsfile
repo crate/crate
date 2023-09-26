@@ -16,8 +16,7 @@ pipeline {
         stage('sphinx') {
           agent { label 'small' }
           steps {
-            sh 'cd ./blackbox/ && ./bootstrap.sh'
-            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
+            sh './blackbox/bin/sphinx'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
@@ -59,7 +58,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'python3 ./blackbox/kill_4200.py'
-            sh './gradlew --no-daemon itest'
+            sh './blackbox/bin/test-docs'
           }
         }
         stage('blackbox tests') {
@@ -67,7 +66,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
+            sh './blackbox/bin/test test_decommission test_dns_discovery test_jmx test_s3 test_ssl'
           }
         }
       }

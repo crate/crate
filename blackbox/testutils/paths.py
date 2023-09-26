@@ -20,6 +20,9 @@
 # software solely pursuant to the terms of the relevant commercial agreement.
 
 from os.path import dirname, join
+from pathlib import Path
+from cr8.run_crate import get_crate
+from subprocess import run
 
 here = dirname(__file__)  # blackbox/testutils
 project_root = dirname(dirname(here))
@@ -33,5 +36,13 @@ def docs_path(*parts):
     return join(project_root, 'docs', *parts)
 
 
-def crate_path(*parts):
-    return join(project_root, 'blackbox', 'tmp', 'crate', *parts)
+def crate_path():
+    root = Path(project_root)
+    app_build = root / "app" / "build" / "distributions"
+    tarball = next(app_build.glob("crate-*.tar.gz"), None)
+    if not tarball:
+        gradlew = root / "gradlew"
+        run([str(gradlew), "--no-daemon", "distTar"], cwd=root)
+        tarball = next(app_build.glob("crate-*.tar.gz"), None)
+    uri = tarball.as_uri()
+    return get_crate(uri)
