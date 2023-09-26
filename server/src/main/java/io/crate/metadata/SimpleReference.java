@@ -119,7 +119,7 @@ public class SimpleReference implements Reference {
         this.indexType = indexType;
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
-        this.defaultExpression = defaultExpression;
+        this.defaultExpression = defaultExpression != null ? defaultExpression.cast(type) : null;
     }
 
     /**

@@ -61,6 +61,9 @@ import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.Style;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
@@ -397,6 +400,12 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                         .field("position", 6)
                         .field("default_expr", "current_timestamp(3)")
                     .endObject()
+
+                    .startObject("integerWithCast")
+                        .field("type", "integer")
+                        .field("position", 7)
+                        .field("default_expr", "2::long * 5::long")
+                    .endObject()
                 .endObject()
             .endObject();
         // @formatter:on
@@ -404,8 +413,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata metadata = getIndexMetadata("test1", builder);
         DocIndexMetadata md = newMeta(metadata, "test1");
 
-        assertThat(md.columns()).hasSize(6);
-        assertThat(md.references()).hasSize(16);
+        assertThat(md.columns()).hasSize(7);
+        assertThat(md.references()).hasSize(17);
 
         Reference birthday = md.references().get(new ColumnIdent("birthday"));
         assertThat(birthday.valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
@@ -433,10 +442,16 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzed.indexType()).isEqualTo(IndexType.FULLTEXT);
         Asserts.assertThat(stringAnalyzed.defaultExpression()).isLiteral("default");
 
+        Reference integerWithCast = md.references().get(new ColumnIdent("integerWithCast"));
+        assertThat(integerWithCast.indexType()).isEqualTo(IndexType.PLAIN);
+        assertThat(integerWithCast.defaultExpression().valueType()).isEqualTo(DataTypes.INTEGER);
+        assertThat(integerWithCast.defaultExpression().symbolType()).isEqualTo(SymbolType.FUNCTION);
+        assertThat(((Function) integerWithCast.defaultExpression()).name()).isEqualTo(ImplicitCastFunction.NAME);
+
         assertThat(Lists2.map(md.references().values(), r -> r.column().fqn())).containsExactlyInAnyOrder(
             "_raw", "_doc", "_seq_no", "_version", "_id", "_uid",
             "_score", "_fetchid", "_primary_term", "_docid",
-            "birthday", "integerIndexed", "integerNotIndexed",
+            "birthday", "integerIndexed", "integerNotIndexed", "integerWithCast",
             "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed");
     }
 
