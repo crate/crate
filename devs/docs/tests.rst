@@ -6,13 +6,13 @@ Run tests in a single module using multiple forks::
 
     $ ./gradlew --parallel -PtestForks=2 :sql:test
 
-Run the all of `doctests`_::
+Run all `doctests`_::
 
-    $ ./gradlew itest
+    $ ./blackbox/bin/test-docs
 
-For running itest on Windows, `WSL needs to be installed`_. If the downloaded
-Linux distro comes without Java, you can install it by running the following
-commands::
+For running the documentation tests on Windows, `WSL needs to be installed`_. If
+the downloaded Linux distro comes without Java, you can install it by running
+the following commands::
 
     $ sudo add-apt-repository ppa:openjdk-r/ppa
     $ sudo apt-get update
@@ -33,11 +33,11 @@ page and run::
 After all configuration is done, launch WSL from the project directory
 (by running ``wsl``) and run::
 
-    $ ./gradlew itest
+    $ ./blackbox/bin/test-docs
 
 Run the doctests for a specific file (e.g., ``filename.rst``):
 
-    $ ITEST_FILE_NAME_FILTER=filename.rst ./gradlew itest
+    $ ITEST_FILE_NAME_FILTER=filename.rst ./blackbox/bin/test-docs
 
 You can also ``export`` ``ITEST_FILE_NAME_FILTER`` to your shell environment
 (e.g., export ITEST_FILE_NAME_FILTER=filename.rst``) if you want to set the

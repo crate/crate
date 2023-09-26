@@ -26,11 +26,15 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 DOCS_DIR=$DIR/../docs
 PATH=$DIR/.venv/bin:$PATH
 
+if ! command -v sphinx-build || [ ! -d "$DIR/.venv" ]; then
+  "$DIR/bootstrap.sh"
+fi
+
 if [ "$1" == "dev" ]; then
-    exec sphinx-autobuild -n -W $DOCS_DIR $DOCS_DIR/_out/html
+    exec sphinx-autobuild -n -W "$DOCS_DIR" "$DOCS_DIR/_out/html"
 elif [ "$1" == "linkcheck" ]; then
-    sphinx-build -n -W --keep-going -c $DOCS_DIR -b linkcheck -E $DOCS_DIR $DOCS_DIR/_out/html
+    sphinx-build -n -W --keep-going -c "$DOCS_DIR" -b linkcheck -E "$DOCS_DIR $DOCS_DIR/_out/html"
 else
     printf "\033[1;44mBuilding server docs ...\033[0m\n"
-    sphinx-build -n -W -b html $DOCS_DIR $DOCS_DIR/_out/html
+    sphinx-build -n -W -b html "$DOCS_DIR" "$DOCS_DIR/_out/html"
 fi
