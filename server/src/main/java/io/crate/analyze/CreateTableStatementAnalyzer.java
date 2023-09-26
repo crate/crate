@@ -24,6 +24,7 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -80,8 +81,9 @@ public final class CreateTableStatementAnalyzer {
                 continue;
             }
             TableElement<Symbol> analyzedTe = null;
+            ColumnDefinition<Expression> def = null;
             if (te instanceof ColumnDefinition) {
-                ColumnDefinition<Expression> def = (ColumnDefinition<Expression>) te;
+                def = (ColumnDefinition<Expression>) te;
                 List<ColumnConstraint<Symbol>> analyzedColumnConstraints = new ArrayList<>();
                 for (int j = 0; j < def.constraints().size(); j++) {
                     ColumnConstraint<Expression> cc = def.constraints().get(j);
@@ -107,7 +109,11 @@ public final class CreateTableStatementAnalyzer {
                     false,
                     def.isGenerated());
             }
-            analyzed.put(analyzedTe == null ? te.map(exprMapper) : analyzedTe, te);
+            TableElement<Expression> prev = analyzed.put(analyzedTe == null ? te.map(exprMapper) : analyzedTe, te);
+            if (prev != null && def != null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "column \"%s\" specified more than once", def.ident()));
+            }
         }
         CreateTable<Symbol> analyzedCreateTable = new CreateTable<>(
             createTable.name().map(exprMapper),
