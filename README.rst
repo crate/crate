@@ -1,6 +1,6 @@
 .. image:: docs/_static/crate-logo.svg
     :alt: CrateDB
-    :target: https://crate.io/
+    :target: https://cratedb.com
 
 ----
 
@@ -8,14 +8,14 @@
     :target: https://github.com/crate/crate/actions?query=workflow%3A%22CrateDB+SQL%22
 
 .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
-    :target: https://crate.io/docs/en/latest/
+    :target: https://cratedb.com/docs/crate/reference/en/latest/
 
 .. image:: https://img.shields.io/badge/container-docker-green.svg
     :target: https://hub.docker.com/_/crate/
 
 |
 
-`Help us improve CrateDB by taking our User Survey! <https://crate.io/user-survey/>`_
+`Help us improve CrateDB by taking our User Survey! <https://cratedb.com/user-survey>`_
 
 About
 =====
@@ -44,11 +44,11 @@ Features
 - Dynamic table schemas and queryable objects provide
   document-oriented features in addition to the relational features of SQL.
 
-- Support for time-series data, realtime full-text search, geospatial data
+- Support for time-series data, real-time full-text search, geospatial data
   types and search capabilities.
 
-- Horizontally scalable, highly available and fault tolerant clusters that run
-  very well in virtualized and containerised environments.
+- Horizontally scalable, highly available and fault-tolerant clusters that run
+  very well in virtualized and containerized environments.
 
 - Extremely fast distributed query execution.
 
@@ -118,41 +118,41 @@ Looking for more help?
   as a Service* (DBaaS). The `CrateDB Cloud Tutorials`_ will get you started.
 
 
-.. _Admin UI: https://crate.io/docs/crate/admin-ui/
-.. _AWS: https://crate.io/docs/crate/howtos/en/latest/deployment/cloud/aws/index.html
-.. _Azure: https://crate.io/docs/crate/howtos/en/latest/deployment/cloud/azure.html
-.. _beginner tutorials: https://crate.io/docs/crate/tutorials/
-.. _benefits: https://crate.io/cratedb-comparison/
-.. _clients and tools: https://crate.io/docs/crate/clients-tools/en/latest/
-.. _containerization: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/docker.html
+.. _Admin UI: https://cratedb.com/docs/crate/admin-ui/
+.. _AWS: https://cratedb.com/docs/crate/tutorials/en/latest/cloud/aws/index.html
+.. _Azure: https://cratedb.com/docs/crate/tutorials/en/latest/cloud/azure/index.html
+.. _beginner tutorials: https://cratedb.com/docs/crate/tutorials/
+.. _benefits: https://cratedb.com/product#compare
+.. _clients and tools: https://cratedb.com/docs/crate/clients-tools/
+.. _containerization: https://cratedb.com/docs/crate/tutorials/en/latest/containers/docker.html
 .. _contribution docs: CONTRIBUTING.rst
-.. _Crate.io: https://crate.io/
-.. _CrateDB clients and tools: https://crate.io/docs/crate/clients-tools/
-.. _CrateDB Cloud Tutorials: https://crate.io/docs/cloud/
-.. _CrateDB Cloud: https://crate.io/products/cratedb-cloud/
-.. _CrateDB on Docker how-to guide: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/docker.html
-.. _CrateDB on Kubernetes how-to guide: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/kubernetes.html
-.. _CrateDB shell: https://crate.io/docs/crate/crash/
+.. _Crate.io: https://cratedb.com/company/team
+.. _CrateDB clients and tools: https://cratedb.com/docs/crate/clients-tools/
+.. _CrateDB Cloud Tutorials: https://cratedb.com/docs/cloud/
+.. _CrateDB Cloud: https://cratedb.com/product/pricing
+.. _CrateDB on Docker how-to guide: https://cratedb.com/docs/crate/tutorials/en/latest/containers/docker.html
+.. _CrateDB on Kubernetes how-to guide: https://cratedb.com/docs/crate/tutorials/en/latest/containers/kubernetes/index.html
+.. _CrateDB shell: https://cratedb.com/docs/crate/crash/
 .. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
 .. _document-oriented: https://en.wikipedia.org/wiki/Document-oriented_database
-.. _Dynamic table schemas: https://crate.io/docs/crate/reference/en/master/general/ddl/column-policy.html#column-policy
-.. _fulltext search: https://crate.io/docs/crate/reference/en/latest/general/dql/fulltext.html
-.. _geospatial features: https://crate.io/docs/crate/reference/en/master/general/dql/geo.html
-.. _how-to guides: https://crate.io/docs/crate/howtos/
-.. _HTTP API: https://crate.io/docs/crate/reference/en/latest/interfaces/http.html
-.. _installation documentation: https://crate.io/docs/crate/tutorials/en/latest/install.html
-.. _introductory docs: https://crate.io/docs/crate/tutorials/
-.. _Kubernetes: https://crate.io/docs/crate/howtos/en/latest/deployment/containers/kubernetes.html
-.. _multi-region hybrid clouds and the edge: https://crate.io/products/cratedb-edge/
+.. _Dynamic table schemas: https://cratedb.com/docs/crate/reference/en/master/general/ddl/column-policy.html
+.. _fulltext search: https://cratedb.com/docs/crate/reference/en/latest/general/dql/fulltext.html
+.. _geospatial features: https://cratedb.com/docs/crate/reference/en/master/general/dql/geo.html
+.. _how-to guides: https://cratedb.com/docs/crate/howtos/
+.. _HTTP API: https://cratedb.com/docs/crate/reference/en/latest/interfaces/http.html
+.. _installation documentation: https://cratedb.com/docs/crate/tutorials/en/latest/basic/index.html
+.. _introductory docs: https://cratedb.com/docs/crate/tutorials/
+.. _Kubernetes: https://cratedb.com/docs/crate/tutorials/en/latest/containers/kubernetes/index.html
+.. _multi-region hybrid clouds and the edge: https://cratedb.com/docs/cloud/en/latest/tutorials/edge/index.html
 .. _no shared state: https://en.wikipedia.org/wiki/Shared-nothing_architecture
-.. _PostgreSQL wire protocol: https://crate.io/docs/crate/reference/en/latest/interfaces/postgres.html
-.. _queryable objects: https://crate.io/docs/crate/reference/en/master/general/dql/selects.html#container-data-types
-.. _reference manual: https://crate.io/docs/crate/reference/
+.. _PostgreSQL wire protocol: https://cratedb.com/docs/crate/reference/en/latest/interfaces/postgres.html
+.. _queryable objects: https://cratedb.com/docs/crate/reference/en/master/general/dql/selects.html#container-data-types
+.. _reference manual: https://cratedb.com/docs/crate/reference/
 .. _relational: https://en.wikipedia.org/wiki/Relational_model
 .. _scaled horizontally: https://stackoverflow.com/questions/11707879/difference-between-scaling-horizontally-and-vertically-for-databases
-.. _sql console: https://crate.io/docs/crate/admin-ui/en/latest/console.html#sql-console
-.. _standard SQL: https://crate.io/docs/crate/reference/en/latest/sql/index.html
-.. _support channels: https://crate.io/support/
-.. _time-series data: https://crate.io/docs/crate/tutorials/en/latest/normalize-intervals.html
-.. _user-defined functions: https://crate.io/docs/crate/reference/en/latest/general/user-defined-functions.html
+.. _sql console: https://cratedb.com/docs/crate/admin-ui/en/latest/console.html#sql-console
+.. _standard SQL: https://cratedb.com/docs/crate/reference/en/latest/sql/index.html
+.. _support channels: https://cratedb.com/support
+.. _time-series data: https://cratedb.com/docs/crate/howtos/en/latest/getting-started/normalize-intervals.html
+.. _user-defined functions: https://cratedb.com/docs/crate/reference/en/latest/general/user-defined-functions.html
