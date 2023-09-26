@@ -63,3 +63,6 @@ Fixes
 
 - Fixed an issue which led to skipping duplicate column check, in
   ``CREATE TABLE`` statements, if duplicate columns have the same type.
+
+- Fixed an issue with missing validation on ``INSERT`` statement, allowing to
+  specify duplicate target columns.
