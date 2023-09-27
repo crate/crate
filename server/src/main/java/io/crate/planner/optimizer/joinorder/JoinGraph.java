@@ -40,8 +40,8 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.ForwardingLogicalPlan;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
@@ -147,7 +147,7 @@ public record JoinGraph(
 
         private static class Context {
             final Map<Symbol, LogicalPlan> referencesToRelations = new HashMap<>();
-            final Map<RelationName, FieldResolver> fieldResolvers = new HashMap<>();
+            final Map<Symbol, FieldResolver> fieldResolvers = new HashMap<>();
         }
 
         private final Function<LogicalPlan, LogicalPlan> resolvePlan;
@@ -158,9 +158,15 @@ public record JoinGraph(
 
         @Override
         public JoinGraph visitPlan(LogicalPlan logicalPlan, Context context) {
+
+            if (logicalPlan instanceof ForwardingLogicalPlan f) {
+                return f.source().accept(this, context);
+            }
+
             for (Symbol output : logicalPlan.outputs()) {
                 context.referencesToRelations.put(output, logicalPlan);
             }
+
             for (LogicalPlan source : logicalPlan.sources()) {
                 source.accept(this, context);
             }
@@ -169,7 +175,9 @@ public record JoinGraph(
 
         @Override
         public JoinGraph visitRename(Rename rename, Context context) {
-            context.fieldResolvers.put(rename.name(), rename);
+            for (Symbol output : rename.outputs()) {
+                context.fieldResolvers.put(output, rename);
+            }
             return rename.source().accept(this, context);
         }
 
@@ -223,7 +231,7 @@ public record JoinGraph(
 
             @Override
             public Void visitField(ScopedSymbol s, Context context) {
-                var fieldResolver = context.fieldResolvers.get(s.relation());
+                var fieldResolver = context.fieldResolvers.get(s);
                 var resolved = fieldResolver.resolveField(s);
                 sources.add(context.referencesToRelations.get(resolved));
                 return null;

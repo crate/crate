@@ -21,15 +21,10 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
 import org.junit.Test;
-
-import io.crate.testing.TestingHelpers;
 
 public class AnyIntegrationTest extends IntegTestCase {
 
@@ -50,29 +45,24 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select i, s from t where i = ANY([1,2,4]) order by i");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response).hasRows("1| foo", "2| bar");
 
         execute("select i, sa from t where 'ba%' not like ANY(sa) order by i");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response).hasRows("1| [abc, def, ghi]", "2| [rst, uvw, aaa]");
 
         execute("update t set s='updated' where i > ANY([?, ?, ?])", new Object[]{2, 4, 5});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         execute("refresh table t");
 
         execute("select s from t order by i");
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), Matchers.<Object>arrayContaining("foo", "bar", "updated"));
+        assertThat(response).hasRows("foo", "bar", "updated");
 
         execute("delete from t where 'a%' like ANY (sa)");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
         execute("refresh table t");
 
         execute("select * from t");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3| [7, 8, 9]| updated| [bar, baz]\n"));
+        assertThat(response).hasRows("3| [7, 8, 9]| updated| [bar, baz]");
     }
 
     @Test
@@ -85,24 +75,24 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where 'bar' = ANY(sa)");
-        assertThat(response.rowCount(), Is.is(2L));
+        assertThat(response).hasRowCount(2);
 
         execute("select b from t where b = ANY([1, 2, 4]) order by b");
-        assertThat(response.rowCount(), Is.is(2L));
-        assertThat((Byte) response.rows()[0][0], Is.is((byte) 1));
-        assertThat((Byte) response.rows()[1][0], Is.is((byte) 2));
+        assertThat(response).hasRowCount(2);
+        assertThat(response.rows()[0][0]).isEqualTo((byte) 1);
+        assertThat(response.rows()[1][0]).isEqualTo((byte) 2);
 
         execute("select * from t where b != ANY([1, 2, 4]) order by b");
-        assertThat(response.rowCount(), Is.is(3L)); // all rows does not contain at least one of the array elements
+        assertThat(response).hasRowCount(3); // all rows does not contain at least one of the array elements
 
         execute("select b from t where b <= ANY([-1, 0, 1])");
-        assertThat(response.rowCount(), Is.is(1L));
-        assertThat((Byte) response.rows()[0][0], Is.is((byte) 1));
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo((byte) 1);
 
         execute("select b from t where s like ANY(['%ar', 'go%']) order by b DESC");
-        assertThat(response.rowCount(), Is.is(2L));
-        assertThat((Byte) response.rows()[0][0], Is.is((byte) 2));
-        assertThat((Byte) response.rows()[1][0], Is.is((byte) 1));
+        assertThat(response).hasRowCount(2);
+        assertThat(response.rows()[0][0]).isEqualTo((byte) 2);
+        assertThat(response.rows()[1][0]).isEqualTo((byte) 1);
     }
 
     @Test
@@ -112,10 +102,10 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("insert into t (s) values ('foo'), (null)");
         execute("refresh table t");
         execute("select * from t where s = ANY (['foo', 'bar', null])");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
 
         execute("select * from t where s = ANY ([null])");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -126,6 +116,7 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values ([1, 2, 3, 4])");
         execute("refresh table t");
         execute("select * from t where 4 < ANY (x) ");
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -137,11 +128,9 @@ public class AnyIntegrationTest extends IntegTestCase {
                 "(3, ['three', 'four'])," +
                 "(4, [])");
         refresh();
-        execute("select b from t where not 'two' = ANY(labels) order by b");
 
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is(3));
-        assertThat(response.rows()[1][0], is(4));
+        execute("select b from t where not 'two' = ANY(labels) order by b");
+        assertThat(response).hasRows("3", "4");
     }
 
     @Test
@@ -155,8 +144,8 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select ts from t where ts = ANY (['2017-12-31', '2016-12-31']) order by ts");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is(1483142400000L));
-        assertThat(response.rows()[1][0], is(1514678400000L));
+        assertThat(response).hasRowCount(2);
+        assertThat(response.rows()[0][0]).isEqualTo(1483142400000L);
+        assertThat(response.rows()[1][0]).isEqualTo(1514678400000L);
     }
 }

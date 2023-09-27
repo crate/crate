@@ -30,6 +30,7 @@ public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? s
     private static final RefVisitor VISITOR = new RefVisitor();
 
     private RefVisitor() {
+        super();
     }
 
     public static void visitRefs(Symbol tree, Consumer<? super Reference> consumer) {

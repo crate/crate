@@ -876,7 +876,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableSameColumn() {
+        // Same name, different type.
         assertThatThrownBy(() -> analyze("create table my_table (title string, title integer)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("column \"title\" specified more than once");
+
+        // Same name, same type.
+        assertThatThrownBy(() -> analyze("create table my_table (title string, title string)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("column \"title\" specified more than once");
     }

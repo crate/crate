@@ -46,6 +46,10 @@ See the :ref:`version_5.4.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to file not found errors when trying to restore a
+  snapshot that was taken after a table had been swapped. A new snapshot
+  must be taken to apply the fix and solve the issue.
+
 - Fixed an issue that caused nested accesses to ``ignored`` objects with
   unknown object keys from returning non ``nulls``. For example::
 
@@ -61,3 +65,12 @@ Fixes
 - Fixed a regression introduced with CrateDB 5.3.1 which caused a
   ``NullPointerException`` when creating a repository on S3 with authentication
   provided by IAM role attached to the EC2 instance running the CrateDB node.
+
+- Fixed an issue which led to skipping duplicate column check, in
+  ``CREATE TABLE`` statements, if duplicate columns have the same type.
+
+- Fixed an issue with missing validation on ``INSERT`` statement, allowing to
+  specify duplicate target columns.
+
+- Fixed an issue that caused ``UPDATE`` statements, invoked immediately after a
+  ``DELETE`` statement, which empties a table, to show an error.

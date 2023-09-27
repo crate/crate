@@ -101,9 +101,9 @@ public final class Assignments {
                 tableInfo,
                 s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext())
             );
-            if (source instanceof Input) {
+            if (source instanceof Input<?> input) {
                 ConstraintsValidator.validate(
-                    ((Input) source).value(), targetColumns[i], tableInfo.notNullColumns());
+                    input.value(), targetColumns[i], tableInfo.notNullColumns());
             }
             boundSources[i] = source;
         }

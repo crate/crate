@@ -53,16 +53,17 @@ public class SourceIndexWriterProjectionSerializationTest {
     public void testSerializationFailFast() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
         String partitionIdent = "pIdent";
@@ -110,16 +111,17 @@ public class SourceIndexWriterProjectionSerializationTest {
     public void testSerializationValidationFlag() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
+        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             referenceIdent,
             RowGranularity.DOC,
-            new ArrayType<>(DataTypes.UNTYPED_OBJECT),
+            dataType,
             ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
             0,
-            Literal.of(Map.of("f", 10)
+            Literal.of(dataType, List.of(Map.of("f", 10))
             )
         );
         String partitionIdent = "pIdent";

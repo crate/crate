@@ -395,11 +395,10 @@ public class SQLTransportExecutor {
         if (arg instanceof Map) {
             return DataTypes.STRING.implicitCast(arg);
         }
-        if (arg.getClass().isArray()) {
-            arg = Arrays.asList((Object[]) arg);
+        if (arg instanceof Object[] values) {
+            arg = Arrays.asList(values);
         }
-        if (arg instanceof Collection) {
-            Collection<?> values = (Collection<?>) arg;
+        if (arg instanceof Collection<?> values) {
             if (values.isEmpty()) {
                 return null; // Can't insert empty list without knowing the type
             }
@@ -431,7 +430,7 @@ public class SQLTransportExecutor {
             ResultSet resultSet = preparedStatement.getResultSet();
             List<Object[]> rows = new ArrayList<>();
             List<String> columnNames = new ArrayList<>(metadata.getColumnCount());
-            DataType[] dataTypes = new DataType[metadata.getColumnCount()];
+            DataType<?>[] dataTypes = new DataType[metadata.getColumnCount()];
             for (int i = 0; i < metadata.getColumnCount(); i++) {
                 columnNames.add(metadata.getColumnName(i + 1));
             }
@@ -591,7 +590,7 @@ public class SQLTransportExecutor {
             });
             return FutureUtils.get(future, timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
+            LOGGER.error("Timeout on SQL statement: " + stmt, e);
             throw e;
         }
     }
@@ -639,7 +638,7 @@ public class SQLTransportExecutor {
     }
 
 
-    private static final DataType[] EMPTY_TYPES = new DataType[0];
+    private static final DataType<?>[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
     private static final Object[][] EMPTY_ROWS = new Object[0][];
 
@@ -682,7 +681,7 @@ public class SQLTransportExecutor {
 
         private SQLResponse createSqlResponse() {
             String[] outputNames = new String[outputFields.size()];
-            DataType[] outputTypes = new DataType[outputFields.size()];
+            DataType<?>[] outputTypes = new DataType[outputFields.size()];
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
                 Symbol field = outputFields.get(i);

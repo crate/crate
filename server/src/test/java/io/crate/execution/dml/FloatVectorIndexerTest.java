@@ -49,5 +49,21 @@ public class FloatVectorIndexerTest {
         assertThat(floatVectorIndexer.fieldType).isNotNull();
         assertThat(floatVectorIndexer.fieldType.vectorDimension()).isEqualTo(4);
     }
-}
 
+    @Test
+    public void test_indexer_with_2048_dimensions() throws Exception {
+        FloatVectorType type = new FloatVectorType(2048);
+        RelationName tableName = new RelationName("doc", "tbl");
+        Reference ref = new SimpleReference(
+            new ReferenceIdent(tableName, "x"),
+            RowGranularity.DOC,
+            type,
+            1,
+            null
+        );
+        FloatVectorIndexer floatVectorIndexer = new FloatVectorIndexer(ref, null);
+        assertThat(floatVectorIndexer.fieldType).isNotNull();
+        assertThat(floatVectorIndexer.fieldType.vectorDimension()).isEqualTo(2048);
+    }
+
+}

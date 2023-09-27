@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -108,6 +106,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         ensureGreen();
     }
 
+    @SuppressWarnings("unchecked")
     @After
     public void assertNoActiveTransfersRemaining() throws Exception {
         Iterable<BlobTransferTarget> transferTargets = cluster().getInstances(BlobTransferTarget.class);
@@ -115,10 +114,9 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         activeTransfersField.setAccessible(true);
         assertBusy(() -> {
             for (BlobTransferTarget transferTarget : transferTargets) {
-                Map<UUID, BlobTransferStatus> activeTransfers = null;
                 try {
-                    activeTransfers = (Map<UUID, BlobTransferStatus>) activeTransfersField.get(transferTarget);
-                    assertThat(activeTransfers.keySet(), empty());
+                    var activeTransfers = (Map<UUID, BlobTransferStatus>) activeTransfersField.get(transferTarget);
+                    assertThat(activeTransfers.keySet()).isEmpty();
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
@@ -145,7 +143,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     protected CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
         CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.containsHeader("Connection"), is(false));
+        assertThat(resp.containsHeader("Connection")).isFalse();
         return resp;
     }
 
@@ -161,29 +159,26 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
             final String uri = uris[indexerId];
             final Header[] header = headers[indexerId];
             final String expected = expectedContent[indexerId];
-            Thread thread = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        CloseableHttpResponse res = get(uri, header);
-                        Integer statusCode = res.getStatusLine().getStatusCode();
-                        String resultContent = EntityUtils.toString(res.getEntity());
-                        if (!resultContent.equals(expected)) {
-                            logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d%n",
-                                indexerId, resultContent.length(), expected.length()));
-                        }
-                        results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
-                                                expected.equals(resultContent)));
-                    } catch (Exception e) {
-                        logger.warn("**** failed indexing thread {}", e, indexerId);
-                    } finally {
-                        latch.countDown();
+            Thread thread = new Thread(() -> {
+                try {
+                    CloseableHttpResponse res = get(uri, header);
+                    int statusCode = res.getStatusLine().getStatusCode();
+                    String resultContent = EntityUtils.toString(res.getEntity());
+                    if (!resultContent.equals(expected)) {
+                        logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d%n",
+                            indexerId, resultContent.length(), expected.length()));
                     }
+                    results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
+                                            expected.equals(resultContent)));
+                } catch (Exception e) {
+                    logger.warn("**** failed indexing thread: " + indexerId, e);
+                } finally {
+                    latch.countDown();
                 }
-            };
+            });
             thread.start();
         }
-        assertThat(latch.await(30L, TimeUnit.SECONDS), is(true));
+        assertThat(latch.await(30L, TimeUnit.SECONDS)).isTrue();
         return results.values().stream().allMatch(input -> input);
     }
 

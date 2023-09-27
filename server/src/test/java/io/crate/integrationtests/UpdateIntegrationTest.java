@@ -1111,4 +1111,25 @@ public class UpdateIntegrationTest extends IntegTestCase {
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column a['c'] unknown");
     }
+
+    @Test
+    public void test_update_on_table_with_big_refresh_interval_emptied_by_delete_return_0_rows() {
+        execute("create table test (a int) with (refresh_interval = 10000)");
+        execute("insert into test (a) values (1)");
+        assertThat(response).hasRowCount(1);
+        refresh();
+
+        execute("delete from test");
+        assertThat(response).hasRowCount(1);
+
+        // No refresh() here, collect doesn't now that table is already empty,
+        // which leads to ShardUpsertRequest to be issued.
+        // We ensure that no exception is thrown and UPDATE behaves similar to DELETE, returns 0 rows.
+        execute("update test set a = 2");
+        assertThat(response).hasRowCount(0L);
+
+        // Another similar scenario of update, which could hit multiple rows.
+        execute("update test set a = 2 where a = 1");
+        assertThat(response).hasRowCount(0L);
+    }
 }

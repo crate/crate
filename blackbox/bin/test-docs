@@ -20,5 +20,8 @@
 # software solely pursuant to the terms of the relevant commercial agreement.
 
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-$DIR/../.venv/bin/python -X faulthandler -m unittest -v --failfast test_docs
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+if [ ! -d "$DIR/.venv" ]; then
+  "$DIR/bootstrap.sh"
+fi
+(cd "$DIR" || exit; "$DIR/.venv/bin/python" -X faulthandler -m unittest -v --failfast test_docs)

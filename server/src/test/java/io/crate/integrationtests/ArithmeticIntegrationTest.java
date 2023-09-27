@@ -22,19 +22,12 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
@@ -56,7 +49,8 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
     }
 
     public void testMathFunction(String function) {
-        assertNull(execute("select " + function + " from sys.cluster").rows()[0][0]);
+        execute("select " + function + " from sys.cluster");
+        assertThat(response.rows()[0][0]).isNull();
     }
 
     @Test
@@ -67,36 +61,36 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where round(d) < 2");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from t where ceil(d) < 3");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select floor(d) from t where floor(d) = 2");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response).hasRowCount(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
 
         execute("insert into t (d, i) values (?, ?)", new Object[]{-0.2, 10});
         execute("refresh table t");
 
         execute("select abs(d) from t where abs(d) = 0.2");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Double) response.rows()[0][0], is(0.2));
+        assertThat(response).hasRowCount(1L);
+        assertThat((Double) response.rows()[0][0]).isEqualTo(0.2);
 
         execute("select ln(i) from t where ln(i) = 2.302585092994046");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Double) response.rows()[0][0], is(2.302585092994046));
+        assertThat(response).hasRowCount(1L);
+        assertThat((Double) response.rows()[0][0]).isEqualTo(2.302585092994046);
 
         execute("select log(i, 100) from t where log(i, 100) = 0.5");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Double) response.rows()[0][0], is(0.5));
+        assertThat(response).hasRowCount(1L);
+        assertThat((Double) response.rows()[0][0]).isEqualTo(0.5);
 
         execute("select round(d), count(*) from t where abs(d) > 1 group by 1 order by 1");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Long) response.rows()[0][0], is(1L));
-        assertThat((Long) response.rows()[0][1], is(1L));
-        assertThat((Long) response.rows()[1][0], is(2L));
-        assertThat((Long) response.rows()[1][1], is(2L));
+        assertThat(response).hasRowCount(2L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(1L);
+        assertThat((Long) response.rows()[1][0]).isEqualTo(2L);
+        assertThat((Long) response.rows()[1][1]).isEqualTo(2L);
     }
 
     @Test
@@ -110,43 +104,42 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t order by round(d) * 2 + 3");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is(1.3d));
+        assertThat(response).hasRowCount(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
 
         execute("select name from t order by substr(name, 1, 1) nulls first");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], nullValue());
-        assertThat(response.rows()[1][0], is("Arthur"));
+        assertThat(response).hasRowCount(3L);
+        assertThat(response.rows()[0][0]).isNull();
+        assertThat(response.rows()[1][0]).isEqualTo("Arthur");
 
         execute("select name from t order by substr(name, 1, 1) nulls last");
-        assertThat(printedTable(response.rows()), is(
-            "Arthur\n" +
-            "Marvin\n" +
-            "NULL\n"
-        ));
+        assertThat(response).hasRows(
+            "Arthur",
+            "Marvin",
+            "NULL");
 
         execute("select * from t order by ceil(d), d");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is(1.3d));
+        assertThat(response).hasRowCount(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
 
         execute("select * from t order by floor(d), d");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is(1.3d));
+        assertThat(response).hasRowCount(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
 
         execute("insert into t (d, i) values (?, ?), (?, ?)", new Object[]{-0.2, 10, 0.1, 5});
         execute("refresh table t");
 
         execute("select * from t order by abs(d)");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(response.rows()[0][0], is(0.1));
+        assertThat(response).hasRowCount(5L);
+        assertThat(response.rows()[0][0]).isEqualTo(0.1);
 
         execute("select i from t order by ln(i)");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(response.rows()[0][0], is(5));
+        assertThat(response).hasRowCount(5L);
+        assertThat(response.rows()[0][0]).isEqualTo(5);
 
         execute("select i from t order by log(i, 100)");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(response.rows()[0][0], is(5));
+        assertThat(response).hasRowCount(5L);
+        assertThat(response.rows()[0][0]).isEqualTo(5);
     }
 
     @Test
@@ -160,9 +153,9 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select i from t where round(d)::integer = i order by i");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response).hasRowCount(2L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(2);
     }
 
     @Test
@@ -177,13 +170,13 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select x, base, round(log(x, base)) from t where round(log(x, base)) = 2 order by x");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Long) response.rows()[0][0], is(9L));
-        assertThat((Long) response.rows()[0][1], is(3L));
-        assertThat((Long) response.rows()[0][2], is(2L));
-        assertThat((Long) response.rows()[1][0], is(144L));
-        assertThat((Long) response.rows()[1][1], is(12L));
-        assertThat((Long) response.rows()[1][2], is(2L));
+        assertThat(response).hasRowCount(2L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(9L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(3L);
+        assertThat((Long) response.rows()[0][2]).isEqualTo(2L);
+        assertThat((Long) response.rows()[1][0]).isEqualTo(144L);
+        assertThat((Long) response.rows()[1][1]).isEqualTo(12L);
+        assertThat((Long) response.rows()[1][2]).isEqualTo(2L);
     }
 
     @Test
@@ -194,13 +187,13 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
         refresh();
         execute("select l, log(d,l) from t order by l, log(d,l) desc");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(printedTable(response.rows()), is(
-            "2| 6.6293566200796095\n" +
-            "2| 6.499845887083206\n" +
-            "4| 3.3146783100398047\n" +
-            "4| 3.249922943541603\n" +
-            "31234594433| 0.19015764044502392\n"));
+        assertThat(response).hasRowCount(5L);
+        assertThat(response).hasRows(
+            "2| 6.6293566200796095",
+            "2| 6.499845887083206",
+            "4| 3.3146783100398047",
+            "4| 3.249922943541603",
+            "31234594433| 0.19015764044502392");
     }
 
     @Test
@@ -214,13 +207,13 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         });
         refresh();
         execute("select regexp_replace(s, 'foo', 'crate') from regex_noindex order by i");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((String) response.rows()[0][0], is("crate"));
-        assertThat((String) response.rows()[1][0], is("bar"));
-        assertThat((String) response.rows()[2][0], is("cratebar"));
+        assertThat(response).hasRowCount(3L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("crate");
+        assertThat((String) response.rows()[1][0]).isEqualTo("bar");
+        assertThat((String) response.rows()[2][0]).isEqualTo("cratebar");
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
-        assertThat((List<Object>) response.rows()[0][0], Matchers.contains("bar"));
+        assertThat(response).hasRows("[bar]");
     }
 
     @Test
@@ -236,30 +229,24 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select regexp_replace(s, 'is', 'was') from regex_fulltext order by i");
-        assertThat(response.rowCount(), is(4L));
-        assertThat(response.rows()[0][0], is("foo was first"));
-        assertThat(response.rows()[1][0], is("bar was second"));
-        assertThat(response.rows()[2][0], is("foobar was great"));
-        assertThat(response.rows()[3][0], is("crate was greater"));
+        assertThat(response).hasRowCount(4L);
+        assertThat(response.rows()[0][0]).isEqualTo("foo was first");
+        assertThat(response.rows()[1][0]).isEqualTo("bar was second");
+        assertThat(response.rows()[2][0]).isEqualTo("foobar was great");
+        assertThat(response.rows()[3][0]).isEqualTo("crate was greater");
 
         execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
-        List<Object> match1 = (List<Object>) response.rows()[0][0];
-        assertThat(match1, Matchers.contains("foo", "first"));
-
-        List<Object> match2 = (List<Object>) response.rows()[1][0];
-        assertThat(match2, Matchers.contains("bar", "second"));
-
-        List<Object> match3 = (List<Object>) response.rows()[2][0];
-        assertThat(match3, Matchers.contains("foobar", "great"));
-
-        List<Object> match4 = (List<Object>) response.rows()[3][0];
-        assertThat(match4, Matchers.contains("crate", "greater"));
+        assertThat(response).hasRows(
+            "[foo, first]",
+            "[bar, second]",
+            "[foobar, great]",
+            "[crate, greater]");
     }
 
     @Test
     public void testSelectRandomTwoTimes() throws Exception {
         execute("select random(), random() from sys.cluster limit 1");
-        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
+        assertThat(response.rows()[0][0]).isNotEqualTo(response.rows()[0][1]);
 
         execute("create table t (name string) ");
         ensureYellow();
@@ -267,7 +254,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select random(), random() from t");
-        assertThat(response.rows()[0][0], is(not(response.rows()[0][1])));
+        assertThat(response.rows()[0][0]).isNotEqualTo(response.rows()[0][1]);
     }
 
     @Test
@@ -278,23 +265,23 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select i from t where i%2 = 0 order by i");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3L);
 
-        assertThat(printedTable(response.rows()), is("2\n10\n193384\n"));
+        assertThat(response).hasRows(
+            "2",
+            "10",
+            "193384");
 
         execute("select l from t where i * -1 > 0");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()), is("4\n"));
+        assertThat(response).hasRows("4");
 
         execute("select l from t where cast(i * 2  as long) = l");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
 
         execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(printedTable(response.rows()), is(
-            "2| 5\n" +
-            "1| 31234594454\n"));
+        assertThat(response).hasRows(
+            "2| 5",
+            "1| 31234594454");
     }
 
     @Test
@@ -305,13 +292,12 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select i, i%3 from t order by i%3, l");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(printedTable(response.rows()), is(
-            "-1| -1\n" +
-            "1| 1\n" +
-            "10| 1\n" +
-            "193384| 1\n" +
-            "2| 2\n"));
+        assertThat(response).hasRows(
+            "-1| -1",
+            "1| 1",
+            "10| 1",
+            "193384| 1",
+            "2| 2");
     }
 
     @Test
@@ -402,7 +388,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         });
         execute("refresh table t");
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
-        assertThat(response.rows()[0][0], is(nullValue()));
+        assertThat(response.rows()[0][0]).isNull();
     }
 
     @Test
@@ -410,15 +396,18 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("create table t1 (i int, bi bigint, d double, f float)");
         execute("insert into t1 (i, bi, d, f) values (1, 1, 1, 1)");
         refresh();
-        execute("select " +
-                "    i / 3.0," +
-                "    bi / 3.0::float," +
-                "    d * 5::int," +
-                "    f * 5," +
-                "    1::int / 3.0," +
-                "    1 / 3.0 " +
-                "from t1");
-        assertThat(printedTable(response.rows()), is(
-            "0.3333333333333333| 0.33333334| 5.0| 5.0| 0.3333333333333333| 0.3333333333333333\n"));
+        execute(
+            """
+            select
+                i / 3.0,
+                bi / 3.0::float,
+                d * 5::int,
+                f * 5,
+                1::int / 3.0,
+                1 / 3.0
+            from t1
+            """);
+        assertThat(response).hasRows(
+            "0.3333333333333333| 0.33333334| 5.0| 5.0| 0.3333333333333333| 0.3333333333333333");
     }
 }

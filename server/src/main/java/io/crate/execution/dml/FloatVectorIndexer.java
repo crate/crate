@@ -35,6 +35,7 @@ import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -52,8 +53,8 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
 
     public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
         if (fieldType == null) {
-            fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
-            fieldType.setVectorAttributes(
+            fieldType = FloatVectorFieldMapper.Defaults.withVectorAttributes(
+                FloatVectorFieldMapper.Defaults.FIELD_TYPE,
                 ref.valueType().characterMaximumLength(),
                 VectorEncoding.FLOAT32,
                 FloatVectorType.SIMILARITY_FUNC
@@ -97,7 +98,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                                     FieldType fieldType,
                                     boolean indexed,
                                     boolean hasDocValues,
-                                    float @Nullable [] values,
+                                    float @NotNull [] values,
                                     Consumer<? super IndexableField> addField) {
         if (indexed) {
             addField.accept(new KnnFloatVectorField(fqn, values, fieldType));
