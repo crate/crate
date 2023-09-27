@@ -227,4 +227,11 @@ public class ConditionalFunctionTest extends ScalarTestCase {
         assertEvaluate("case when a <= 5 then 0 else 1 / (a - 10) end", 0, Literal.of(4), Literal.of(10));
     }
 
+    @Test
+    public void test_null_in_return_values() throws Exception {
+        assertEvaluateNull("CASE a WHEN 1 THEN 'foo' WHEN 2 THEN null WHEN 3 THEN 'bar' ELSE null END",
+                       Literal.of(4),
+                       Literal.of(4),
+                       Literal.of(4));
+    }
 }
