@@ -112,7 +112,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (value == null || value.containsKey(innerName) == false) {
                 Synthetic synthetic = synthetics.get(innerColumn);
                 if (synthetic != null) {
-                    innerValue = synthetic.input().value();
+                    innerValue = synthetic.value();
                 }
             } else {
                 innerValue = value.get(innerName);
