@@ -61,5 +61,8 @@ Fixes
   ``NullPointerException`` when creating a repository on S3 with authentication
   provided by IAM role attached to the EC2 instance running the CrateDB node.
 
+- Fixed an issue which led to skipping duplicate column check, in
+  ``CREATE TABLE`` statements, if duplicate columns have the same type.
+
 - Fixed an issue with missing validation on ``INSERT`` statement, allowing to
   specify duplicate target columns.
