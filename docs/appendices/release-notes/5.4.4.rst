@@ -66,3 +66,6 @@ Fixes
 
 - Fixed an issue with missing validation on ``INSERT`` statement, allowing to
   specify duplicate target columns.
+
+- Fixed an issue that caused ``UPDATE`` statements, invoked immediately after a
+  ``DELETE`` statement, which empties a table, to show an error.
