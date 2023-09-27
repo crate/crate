@@ -66,6 +66,14 @@ public class SessionSettingRegistryTest extends ESTestCase {
     }
 
     @Test
+    public void test_max_identifier_length_session_setting_cannot_be_changed() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_IDENTIFIER_LENGTH);
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("255"), EVAL))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("\"max_identifier_length\" cannot be changed.");
+    }
+
+    @Test
     public void test_server_version_num_session_setting_cannot_be_changed() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.SERVER_VERSION_NUM);
         assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("100000"), EVAL))

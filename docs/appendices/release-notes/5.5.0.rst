@@ -87,6 +87,8 @@ SQL Standard and PostgreSQL Compatibility
 - Allowed statements that set
   :ref:`standard_conforming_strings session setting<conf-session-standard_conforming_strings>`
   to the default value (``on``).
+ 
+- Added a new read-only session setting ``max_identifier_length``.
 
 Data Types
 ----------
