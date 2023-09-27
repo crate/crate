@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -1186,5 +1185,36 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "   )\n" +
                 ")"
             );
+    }
+
+    @Test
+    public void test_generated_non_deterministic_value_is_consistent_on_primary_and_replica() throws Exception {
+        execute("""
+            create table tbl (x int, created generated always as round((random() + 1) * 100))
+            clustered into 1 shards
+            with (number_of_replicas = 1)
+            """
+        );
+        Path path = tmpFileWithLines(Arrays.asList(
+            "{\"x\": 1}"
+        ));
+        execute("copy tbl from ? with (shared=true)", new Object[] { path.toUri().toString() + "*.json"});
+
+        execute("refresh table tbl");
+        execute("select x, created from tbl");
+
+        // (int) response.rows()[0][0] used to be null because replica
+        // used regular Indexer instead of RawIndexer
+        // with values ["{\"x\": 1}"][some_long_timestamp], ie tried to write String value into int column.
+
+        int x = (int) response.rows()[0][0];
+        long created = (long) response.rows()[0][1];
+
+        // some iterations to ensure it hits both primary and replica
+        for (int i = 0; i < 30; i++) {
+            execute("select x, created from tbl").rows();
+            assertThat(response.rows()[0][0]).isEqualTo(x);
+            assertThat(response.rows()[0][1]).isEqualTo(created);
+        }
     }
 }

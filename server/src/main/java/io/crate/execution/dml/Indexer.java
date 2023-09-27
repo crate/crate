@@ -240,9 +240,53 @@ public class Indexer {
     }
 
     /**
-     * For DEFAULT expressions or GENERATED columns
+     * For DEFAULT expressions or GENERATED columns.
+     *
+     * <p>Computed values are stored and re-used per-row for:</p>
+     * <ul>
+     *  <li>Sending values of non-deterministic functions to replica</li>
+     *  <li>Computing RETURNING expression, referring to GENERATED or DEFAULT columns.</li>
+     * </ul>
+     *
+     * Cached value must be cleared per-row.
      **/
-    record Synthetic(Reference ref, Input<?> input, ValueIndexer<Object> indexer) {
+    public class Synthetic implements Input<Object> {
+
+        private final Reference ref;
+        private final Input<?> input;
+        private final ValueIndexer<Object> indexer;
+        private boolean computed;
+        private Object computedValue;
+
+        public Synthetic(Reference ref,
+                         Input<?> input,
+                         ValueIndexer<Object> indexer) {
+            this.ref = ref;
+            this.input = input;
+            this.indexer = indexer;
+        }
+
+        public Reference ref() {
+            return ref;
+        }
+
+        public ValueIndexer<Object> indexer() {
+            return indexer;
+        }
+
+        @Override
+        public Object value() {
+            if (!computed) {
+                computedValue = input.value();
+                computed = true;
+            }
+            return computedValue;
+        }
+
+        public void reset() {
+            this.computed = false;
+            this.computedValue = null;
+        }
     }
 
     interface ColumnConstraint {
@@ -492,9 +536,22 @@ public class Indexer {
         if (returnValues == null) {
             this.returnValueInputs = null;
         } else {
+            Context<Input<?>> ctxForReturnValues = inputFactory.ctxForRefs(
+                txnCtx,
+                ref -> {
+                    // Using Synthethic if available, it caches results to ensure non-deterministic functions yield the same result
+                    // across indexing and return values
+                    Synthetic synthetic = synthetics.get(ref.column());
+                    if (synthetic == null) {
+                        return ctxForRefs.add(ref);
+                    } else {
+                        return synthetic;
+                    }
+                }
+            );
             this.returnValueInputs = new ArrayList<>(returnValues.length);
             for (Symbol returnValue : returnValues) {
-                this.returnValueInputs.add(ctxForRefs.add(returnValue));
+                this.returnValueInputs.add(ctxForReturnValues.add(returnValue));
             }
         }
         this.expressions = ctxForRefs.expressions();
@@ -559,6 +616,9 @@ public class Indexer {
             expression.setNextRow(item);
         }
         stream.reset();
+        for (Synthetic synthetic: synthetics.values()) {
+            synthetic.reset();
+        }
         try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
             xContentBuilder.startObject();
             Object[] values = item.insertValues();
@@ -592,12 +652,13 @@ public class Indexer {
                     continue;
                 }
                 Synthetic synthetic = entry.getValue();
-                ValueIndexer<Object> indexer = synthetic.indexer();
-                Object value = synthetic.input().value();
+
+                Object value = synthetic.value();
                 if (value == null) {
                     continue;
                 }
                 xContentBuilder.field(column.leafName());
+                ValueIndexer<Object> indexer = synthetic.indexer();
                 indexer.indexValue(
                     value,
                     xContentBuilder,
@@ -758,14 +819,14 @@ public class Indexer {
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
             if (column.isTopLevel()) {
-                result[insertValues.length + i] = synthetic.input.value();
+                result[insertValues.length + i] = synthetic.value();
                 i++;
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
                 assert valueIdx > -1 : "synthetic column must exist in columns";
 
                 ColumnIdent child = column.shiftRight();
-                Object value = synthetic.input.value();
+                Object value = synthetic.value();
                 Object object = insertValues[valueIdx];
                 Maps.mergeInto(
                     (Map<String, Object>) object,
