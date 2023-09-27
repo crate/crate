@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.conditional;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -64,10 +66,10 @@ public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: nullif(1, 2, 3)," +
-                                        " no overload found for matching argument types: (integer, integer, integer).");
-        assertEvaluateNull("nullif(1, 2, 3)");
+        assertThatThrownBy(() -> assertEvaluateNull("nullif(1, 2, 3)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: nullif(1, 2, 3)," +
+                                    " no overload found for matching argument types: (integer, integer, integer).");
     }
 
     @Test
@@ -105,19 +107,20 @@ public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCaseIncompatibleTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Data types of all result expressions of a CASE statement must be equal, " +
-                                        "found: [text, integer]");
-        assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
-            "hello foo",
-            Literal.of("foo"), Literal.of("foo"));
+        assertThatThrownBy(() ->
+            assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
+                "hello foo",
+                Literal.of("foo"), Literal.of("foo")))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Data types of all result expressions of a CASE statement must be equal, " +
+                        "found: [text, integer]");
     }
 
     @Test
     public void testCaseConditionNotBooleanThrowsIllegalArgumentException() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
-        assertEvaluate("case when 'foo' then x else 1 end", "");
+        assertThatThrownBy(() -> assertEvaluate("case when 'foo' then x else 1 end", ""))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
     }
 
     @Test
