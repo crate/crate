@@ -51,7 +51,7 @@ Fixes
   must be taken to apply the fix and solve the issue.
 
 - Fixed an issue that caused nested accesses to ``ignored`` objects with
-  unknown object keys from returning non ``nulls``. For example::
+  unknown object keys from returning non ``nulls``. e.g.::
 
     SELECT o['a']['unknown'] FROM t;
 
@@ -77,3 +77,16 @@ Fixes
 
 - Fixed an issue that caused ``UPDATE`` statements, invoked immediately after a
   ``DELETE`` statement, which empties a table, to show an error.
+
+- Fixed an issue that caused ``CASE`` expressions to throw
+  ``UnsupportedFeatureException`` when ``null`` values are returned for one or
+  more conditions. e.g.::
+
+    SELECT CASE col1
+             WHEN 'value1' THEN 1
+	         WHEN 'value2' THEN NULL
+	         WHEN 'value3' THEN 3
+	         ELSE NULL
+	       END
+    FROM (select 'value1' as col1) a;
+

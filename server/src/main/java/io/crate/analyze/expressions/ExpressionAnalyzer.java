@@ -1265,7 +1265,9 @@ public class ExpressionAnalyzer {
         var resultTypes = new HashSet<>(results.size() / 2);
         for (int i = 3; i < results.size(); i = i + 2) {
             var type = results.get(i).valueType();
-            resultTypes.add(type);
+            if (type.id() != DataTypes.UNDEFINED.id()) {
+                resultTypes.add(type);
+            }
         }
         if (resultTypes.size() > 1) {
             var errorMessage = new ArrayList<DataType<?>>(results.size() / 2);
