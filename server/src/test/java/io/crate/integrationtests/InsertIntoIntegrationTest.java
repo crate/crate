@@ -1918,4 +1918,33 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
         }
     }
+
+    @Test
+    public void test_returning_non_deterministic_synthetics_match_actually_persisted_value() {
+        execute("""
+            create table tbl (
+                a int,
+                b text default random()::TEXT,
+                o object as (
+                    c int as round((random() + 1) * 100)
+                )
+            )
+            """
+        );
+        for (int i = 0; i < 2; i++) {
+            // Two iterations to ensure that:
+            // 1. Cached synthetics values are updated between index() calls
+            // 2. Replica gets same values for functions
+            //    which are non-deterministic even in the same transaction context: random(),gen+random_text_uuid()
+            execute("insert into tbl(a, o) values (?, {}) returning b, o['c']", new Object[]{i});
+            String returningTopLevel = (String) response.rows()[0][0];
+            Integer returningSubColumn = (Integer) response.rows()[0][1];
+            refresh();
+            execute("select b, o['c'] from tbl where a = ?", new Object[]{i});
+            String persistedTopLevel = (String) response.rows()[0][0];
+            Integer persistedSubColumn = (Integer) response.rows()[0][1];
+            assertThat(persistedTopLevel).isEqualTo(returningTopLevel);
+            assertThat(persistedSubColumn).isEqualTo(returningSubColumn);
+        }
+    }
 }
