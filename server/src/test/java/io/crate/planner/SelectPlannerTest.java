@@ -648,7 +648,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join innerJoin = (Join) outerJoin.right();
 
         assertThat(innerJoin.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
-        assertThat(innerJoin.joinPhase().projections()).hasSize(2);
+        assertThat(innerJoin.joinPhase().projections()).hasSize(1);
         assertThat(innerJoin.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
 
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
