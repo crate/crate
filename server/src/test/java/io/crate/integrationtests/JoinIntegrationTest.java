@@ -1444,12 +1444,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false)" + stmt);
         assertThat(response.rows()[0][0]).isEqualTo(
             """
-                OrderBy[x ASC]
-                  └ HashJoin[(x = x)]
-                    ├ HashJoin[(x = x)]
-                    │  ├ Collect[doc.j1 | [x] | true]
-                    │  └ Collect[doc.j2 | [x] | true]
-                    └ Collect[doc.j3 | [x] | true]"""
+                Eval[x, x, x]
+                  └ OrderBy[x ASC]
+                    └ HashJoin[(x = x)]
+                      ├ HashJoin[(x = x)]
+                      │  ├ Collect[doc.j2 | [x] | true]
+                      │  └ Collect[doc.j3 | [x] | true]
+                      └ Collect[doc.j1 | [x] | true]"""
         );
 
         execute(stmt);
