@@ -34,8 +34,8 @@ public class XContentMapValues {
     }
 
     public static int nodeIntegerValue(Object node) {
-        if (node instanceof Number) {
-            return Numbers.toIntExact((Number) node);
+        if (node instanceof Number number) {
+            return Numbers.toIntExact(number);
         }
         return Integer.parseInt(node.toString());
     }

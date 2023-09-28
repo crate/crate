@@ -307,7 +307,7 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;
@@ -315,8 +315,8 @@ public final class DataTypes {
             return UNTYPED_OBJECT;
         } else if (value instanceof List list) {
             return valueFromList(list);
-        } else if (value instanceof Object[]) {
-            return valueFromList(Arrays.asList((Object[]) value));
+        } else if (value instanceof Object[] objectArray) {
+            return valueFromList(Arrays.asList(objectArray));
         } else if (value instanceof float[] values) {
             return new FloatVectorType(values.length);
         }

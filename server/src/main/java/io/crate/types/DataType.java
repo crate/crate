@@ -204,9 +204,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof DataType)) return false;
+        if (!(o instanceof DataType<?> that)) return false;
 
-        DataType<?> that = (DataType<?>) o;
         return (id() == that.id());
     }
 

@@ -52,7 +52,7 @@ public class PrivilegesMetadataUpgrader implements CustomMetadataUpgrader {
             return customMetadata;
         }
         List<String> users = usersMetadata.userNames();
-        if (users.size() == 0) {
+        if (users.isEmpty()) {
             return customMetadata;
         }
         UsersPrivilegesMetadata privilegesMetadata =

@@ -82,7 +82,7 @@ public final class FetchSampleRequest extends TransportRequest {
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }

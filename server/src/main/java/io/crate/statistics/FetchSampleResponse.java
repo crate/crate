@@ -35,7 +35,7 @@ public final class FetchSampleResponse extends TransportResponse {
 
     private final Samples samples;
 
-    public FetchSampleResponse(Samples samples) {
+    FetchSampleResponse(Samples samples) {
         this.samples = samples;
     }
 
@@ -44,7 +44,7 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = new Samples(streamers, in);
     }
 
-    public Samples samples() {
+    Samples samples() {
         return samples;
     }
 

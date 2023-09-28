@@ -120,7 +120,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public Point sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof List values) {
+        } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),
