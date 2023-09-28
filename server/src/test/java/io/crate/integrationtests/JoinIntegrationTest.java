@@ -1571,7 +1571,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table t2 (y int)");
         execute("create table t3 (z int)");
 
-        String stmt = "SELECT * FROM t1, t2, t3 WHERE t1.x = t3.z AND t3.z = t2.y;";
+        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y;";
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
@@ -1593,7 +1593,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table t2 (y int)");
         execute("create table t3 (z int)");
 
-        String stmt = "SELECT * FROM t1, t2, t3 WHERE t1.x = t3.z AND t3.z = t2.y AND t1.x > 1";
+        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1";
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
