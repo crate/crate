@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 
-import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
@@ -41,11 +40,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.ForwardingLogicalPlan;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
-import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.sql.tree.JoinType;
 
@@ -86,7 +83,6 @@ import io.crate.sql.tree.JoinType;
  * </pre>
  */
 public record JoinGraph(
-    LogicalPlan root,
     List<LogicalPlan> nodes,
     Map<LogicalPlan, Set<Edge>> edges,
     List<Symbol> filters,
@@ -94,7 +90,7 @@ public record JoinGraph(
 
     public record Edge(LogicalPlan to, Symbol left, Symbol right) {}
 
-    JoinGraph joinWith(LogicalPlan root, JoinGraph other) {
+    JoinGraph joinWith(JoinGraph other) {
         for (var node : other.nodes) {
             assert !edges.containsKey(node) : "LogicalPlan" + node + " can't be in both graphs";
         }
@@ -105,7 +101,6 @@ public record JoinGraph(
         var hasCrossJoin = this.hasCrossJoin || other.hasCrossJoin();
 
         return new JoinGraph(
-            root,
             newNodes,
             newEdges,
             newFilters,
@@ -115,16 +110,16 @@ public record JoinGraph(
 
     JoinGraph withEdges(Map<LogicalPlan, Set<Edge>> edges) {
         var newEdges = Maps.merge(this.edges, edges, Sets::union);
-        return new JoinGraph(this.root, this.nodes, newEdges, this.filters, this.hasCrossJoin);
+        return new JoinGraph(this.nodes, newEdges, this.filters, this.hasCrossJoin);
     }
 
     JoinGraph withFilters(List<Symbol> filters) {
         var newFilters = Lists2.concat(this.filters, filters);
-        return new JoinGraph(this.root, this.nodes, edges, newFilters, this.hasCrossJoin);
+        return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
     }
 
     JoinGraph withCrossJoin(boolean hasCrossJoin) {
-        return new JoinGraph(this.root, this.nodes, edges, filters, hasCrossJoin);
+        return new JoinGraph(this.nodes, edges, filters, hasCrossJoin);
     }
 
     public int size() {
@@ -140,15 +135,10 @@ public record JoinGraph(
     }
 
     public static JoinGraph create(LogicalPlan plan, Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        return plan.accept(new GraphBuilder(resolvePlan), new GraphBuilder.Context());
+        return plan.accept(new GraphBuilder(resolvePlan), new HashMap<>());
     }
 
-    private static class GraphBuilder extends LogicalPlanVisitor<GraphBuilder.Context, JoinGraph> {
-
-        private static class Context {
-            final Map<Symbol, LogicalPlan> referencesToRelations = new HashMap<>();
-            final Map<Symbol, FieldResolver> fieldResolvers = new HashMap<>();
-        }
+    private static class GraphBuilder extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
 
         private final Function<LogicalPlan, LogicalPlan> resolvePlan;
 
@@ -157,53 +147,36 @@ public record JoinGraph(
         }
 
         @Override
-        public JoinGraph visitPlan(LogicalPlan logicalPlan, Context context) {
-
-            if (logicalPlan instanceof ForwardingLogicalPlan f) {
-                return f.source().accept(this, context);
-            }
-
+        public JoinGraph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
             for (Symbol output : logicalPlan.outputs()) {
-                context.referencesToRelations.put(output, logicalPlan);
+                context.put(output, logicalPlan);
             }
-
-            for (LogicalPlan source : logicalPlan.sources()) {
-                source.accept(this, context);
-            }
-            return new JoinGraph(logicalPlan, List.of(logicalPlan), Map.of(), List.of(), false);
+            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), false);
         }
 
         @Override
-        public JoinGraph visitRename(Rename rename, Context context) {
-            for (Symbol output : rename.outputs()) {
-                context.fieldResolvers.put(output, rename);
-            }
-            return rename.source().accept(this, context);
-        }
-
-        @Override
-        public JoinGraph visitGroupReference(GroupReference groupReference, Context context) {
+        public JoinGraph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
             return resolvePlan.apply(groupReference).accept(this, context);
         }
 
         @Override
-        public JoinGraph visitFilter(Filter filter, Context context) {
+        public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
             var source = filter.source().accept(this, context);
             return source.withFilters(List.of(filter.query()));
         }
 
         @Override
-        public JoinGraph visitJoinPlan(JoinPlan joinPlan, Context context) {
+        public JoinGraph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
 
             var left = joinPlan.lhs().accept(this, context);
             var right = joinPlan.rhs().accept(this, context);
 
             if (joinPlan.joinType() == JoinType.CROSS) {
-                return left.joinWith(joinPlan, right).withCrossJoin(true);
+                return left.joinWith(right).withCrossJoin(true);
             }
 
             if (joinPlan.joinType() != JoinType.INNER) {
-                return left.joinWith(joinPlan, right);
+                return left.joinWith(right);
             }
 
             var joinCondition = joinPlan.joinCondition();
@@ -221,30 +194,28 @@ public record JoinGraph(
                     }
                 }
             }
-            return left.joinWith(joinPlan, right).withEdges(edgeCollector.edges);
+            return left.joinWith(right).withEdges(edgeCollector.edges);
         }
 
-        private static class EdgeCollector extends SymbolVisitor<Context, Void> {
+        private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {
 
             private final Map<LogicalPlan, Set<Edge>> edges = new HashMap<>();
             private final List<LogicalPlan> sources = new ArrayList<>();
 
             @Override
-            public Void visitField(ScopedSymbol s, Context context) {
-                var fieldResolver = context.fieldResolvers.get(s);
-                var resolved = fieldResolver.resolveField(s);
-                sources.add(context.referencesToRelations.get(resolved));
+            public Void visitField(ScopedSymbol s, Map<Symbol, LogicalPlan> context) {
+                sources.add(context.get(s));
                 return null;
             }
 
             @Override
-            public Void visitReference(Reference ref, Context context) {
-                sources.add(context.referencesToRelations.get(ref));
+            public Void visitReference(Reference ref, Map<Symbol, LogicalPlan> context) {
+                sources.add(context.get(ref));
                 return null;
             }
 
             @Override
-            public Void visitFunction(io.crate.expression.symbol.Function f, Context context) {
+            public Void visitFunction(io.crate.expression.symbol.Function f, Map<Symbol, LogicalPlan> context) {
                 var sizeSource = sources.size();
                 f.arguments().forEach(x -> x.accept(this, context));
                 if (f.name().equals(EqOperator.NAME)) {
