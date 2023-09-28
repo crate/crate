@@ -112,7 +112,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testOverridingColumnPolicyToStrictDuringObjectType() throws IOException {
+    public void test_objects_column_policies_are_preserved() throws IOException {
         String createTableStmt =
             "create table tbl (" +
             "   col_strict_object object(STRICT)," +
@@ -129,11 +129,11 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             c -> assertThat(c).isColumnDefinition(
                     "col_dynamic_object",
                     isObjectColumnType(DataTypes.UNTYPED_OBJECT.getName(),
-                                       isEqualTo(ColumnPolicy.STRICT))),
+                                       isEqualTo(ColumnPolicy.DYNAMIC))),
             c -> assertThat(c).isColumnDefinition(
                     "col_ignored_object",
                     isObjectColumnType(DataTypes.UNTYPED_OBJECT.getName(),
-                                       isEqualTo(ColumnPolicy.STRICT)))
+                                       isEqualTo(ColumnPolicy.IGNORED)))
         );
     }
 
@@ -159,7 +159,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 "col_default_object",
                 isObjectColumnType(
                     DataTypes.UNTYPED_OBJECT.getName(),
-                    isEqualTo(ColumnPolicy.STRICT),
+                    isEqualTo(ColumnPolicy.DYNAMIC),
                     x -> assertThat(x).satisfiesExactlyInAnyOrder(
                         c -> assertThat(c).isColumnDefinition(
                             "col_nested_integer",
@@ -168,7 +168,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                             "col_nested_object",
                             isObjectColumnType(
                                 DataTypes.UNTYPED_OBJECT.getName(),
-                                isEqualTo(ColumnPolicy.STRICT),
+                                isEqualTo(ColumnPolicy.DYNAMIC),
                                 a -> assertThat(a).satisfiesExactly(
                                     b -> assertThat(b).isColumnDefinition(
                                         "col_nested_timestamp_with_time_zone",
@@ -194,7 +194,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 "col_default_object",
                 isObjectColumnType(
                     DataTypes.UNTYPED_OBJECT.getName(),
-                    isEqualTo(ColumnPolicy.STRICT),
+                    isEqualTo(ColumnPolicy.DYNAMIC),
                     x -> assertThat(x).satisfiesExactlyInAnyOrder(
                         isColumnDefinition(
                             "col_nested_integer",
@@ -203,7 +203,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                             "col_nested_object",
                             isObjectColumnType(
                                 DataTypes.UNTYPED_OBJECT.getName(),
-                                isEqualTo(ColumnPolicy.STRICT),
+                                isEqualTo(ColumnPolicy.DYNAMIC),
                                 a -> assertThat(a).satisfiesExactly(
                                     isColumnDefinition(
                                         "col_nested_timestamp_with_time_zone",
@@ -244,7 +244,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col_default_object['col_nested_object']",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isEqualTo(ColumnPolicy.STRICT),
+                        isEqualTo(ColumnPolicy.DYNAMIC),
                         a -> assertThat(a).satisfiesExactly(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
@@ -302,7 +302,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                                    isCollectionColumnType(ArrayType.NAME.toUpperCase(),
                                                           isObjectColumnType(
                                                               DataTypes.UNTYPED_OBJECT.getName(),
-                                                              isEqualTo(ColumnPolicy.STRICT)))),
+                                                              isEqualTo(ColumnPolicy.IGNORED)))),
             c -> assertThat(c).isColumnDefinition("array_geo_point",
                                    isCollectionColumnType(ArrayType.NAME.toUpperCase(),
                                                           isColumnType(DataTypes.GEO_POINT.getName())))
@@ -343,7 +343,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 "col3",
                 isObjectColumnType(
                     DataTypes.UNTYPED_OBJECT.getName(),
-                    isEqualTo(ColumnPolicy.STRICT),
+                    isEqualTo(ColumnPolicy.DYNAMIC),
                     a -> assertThat(a).satisfiesExactly(
                         isColumnDefinition(
                             "col_nested_timestamp_with_time_zone",
@@ -389,7 +389,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col3",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isEqualTo(ColumnPolicy.STRICT),
+                        isEqualTo(ColumnPolicy.DYNAMIC),
                         a -> assertThat(a).satisfiesExactly(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
@@ -434,7 +434,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col_default_object['col_nested_object']",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isEqualTo(ColumnPolicy.STRICT),
+                        isEqualTo(ColumnPolicy.DYNAMIC),
                         a -> assertThat(a).satisfiesExactly(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
