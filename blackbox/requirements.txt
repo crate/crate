@@ -1,7 +1,7 @@
 # don't pin crate version numbers so the latest will always be pulled when you
 # set up your environment from scratch
 
-crash<0.25.0
+crash==0.30.0
 crate
 crate-docs-theme
 tqdm==4.24.0
