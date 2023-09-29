@@ -2210,10 +2210,10 @@ Example::
     ... ) VALUES (
     ...     'Alice in Wonderland',
     ...     {
-    ...         "age" = '10',
+    ...         "age" = '10'
     ...     }
     ... );
-    SQLParseException[line 8:5: no viable alternative at input 'VALUES (\n    'Alice in Wonderland',\n    {\n        "age" = '10',\n    }']
+    StrictDynamicMappingException[mapping set to strict, dynamic introduction of [age] within [protagonist] is not allowed]
 
 The insert above failed because the ``protagonist`` column defines a ``name``
 column and does not define an ``age`` column.
