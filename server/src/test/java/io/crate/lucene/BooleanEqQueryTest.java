@@ -30,7 +30,7 @@ import org.junit.Test;
 
 public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
     @Override
-    protected String createStmt() {
+    public String createStmt() {
         // `columnstore = false` is not supported
         return """
                 create table m (

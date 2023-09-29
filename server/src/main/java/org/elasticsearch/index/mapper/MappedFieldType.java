@@ -31,15 +31,17 @@ public abstract class MappedFieldType {
     private final String name;
     private final boolean docValues;
     private final boolean isIndexed;
+    private final boolean isNameFieldIndexed;
     private NamedAnalyzer indexAnalyzer;
     private NamedAnalyzer searchAnalyzer;
     private NamedAnalyzer searchQuoteAnalyzer;
     protected boolean hasPositions;
 
-    public MappedFieldType(String name, boolean isIndexed, boolean hasDocValues) {
+    public MappedFieldType(String name, boolean isIndexed, boolean hasDocValues, boolean isFieldNameIndexed) {
         this.name = Objects.requireNonNull(name);
         this.isIndexed = isIndexed;
         this.docValues = hasDocValues;
+        this.isNameFieldIndexed = isFieldNameIndexed;
     }
 
     /** Returns the name of this type, as would be specified in mapping properties */
@@ -55,6 +57,10 @@ public abstract class MappedFieldType {
 
     public boolean hasDocValues() {
         return docValues;
+    }
+
+    public boolean isNameFieldIndexed() {
+        return isNameFieldIndexed;
     }
 
     public NamedAnalyzer indexAnalyzer() {

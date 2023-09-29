@@ -34,6 +34,7 @@ import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
@@ -49,6 +50,7 @@ public class NumberFieldMapper extends FieldMapper {
     public static final FieldType FIELD_TYPE = new FieldType();
 
     static {
+        FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_NUMERIC);
         FIELD_TYPE.setStored(false);
         FIELD_TYPE.freeze();
     }
@@ -378,7 +380,7 @@ public class NumberFieldMapper extends FieldMapper {
         private final NumberType type;
 
         public NumberFieldType(String name, NumberType type, boolean isSearchable, boolean hasDocValues) {
-            super(name, isSearchable, hasDocValues);
+            super(name, isSearchable, hasDocValues, !hasDocValues);
             this.type = Objects.requireNonNull(type);
         }
 

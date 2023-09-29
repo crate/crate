@@ -58,7 +58,7 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
     static class VectorFieldType extends MappedFieldType {
 
         public VectorFieldType(String name, boolean isIndexed, boolean hasDocValues) {
-            super(name, isIndexed, hasDocValues);
+            super(name, isIndexed, hasDocValues, false);
         }
 
         @Override

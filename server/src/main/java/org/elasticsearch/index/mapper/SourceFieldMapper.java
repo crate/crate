@@ -85,7 +85,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         public static final SourceFieldType INSTANCE = new SourceFieldType();
 
         private SourceFieldType() {
-            super(NAME, false, false);
+            super(NAME, false, false, false);
         }
 
         @Override

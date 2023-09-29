@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -113,13 +114,17 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         return null;
     }
 
-
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
         String field = ref.column().fqn();
         FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
         DataType<?> valueType = ref.valueType();
-        boolean canUseFieldsExist = ref.hasDocValues() || (fieldType != null && !fieldType.omitNorms());
+        boolean canUseFieldsExist =
+            fieldType != null && (
+                // The following condition is obtained from FieldExistsQuery.rewrite()
+                (fieldType.indexOptions() != IndexOptions.NONE && fieldType.omitNorms() == false) || // indexes norms
+                (fieldType.vectorDimension() != 0) || // indexes vectors
+                (fieldType.docValuesType() != DocValuesType.NONE)); // indexes doc-values
         if (valueType instanceof ArrayType<?>) {
             if (countEmptyArrays) {
                 if (canUseFieldsExist) {
@@ -169,7 +174,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }
-            if (fieldType == null || fieldType.indexOptions() == IndexOptions.NONE && !fieldType.stored()) {
+            if (context.getFieldTypeOrNull(field) == null || !context.getFieldTypeOrNull(field).isNameFieldIndexed()) {
                 return null;
             } else {
                 return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));

@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
@@ -70,6 +71,7 @@ public class BitStringFieldMapper extends FieldMapper {
         static {
             FIELD_TYPE.setOmitNorms(true);
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_SET);
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.setStored(false);
             FIELD_TYPE.freeze();
@@ -79,7 +81,7 @@ public class BitStringFieldMapper extends FieldMapper {
     static class BitStringFieldType extends MappedFieldType {
 
         BitStringFieldType(String name, boolean isSearchable, boolean hasDocValues) {
-            super(name, isSearchable, hasDocValues);
+            super(name, isSearchable, hasDocValues, !hasDocValues);
         }
 
         @Override

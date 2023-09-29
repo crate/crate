@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.DocValuesType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.server.xcontent.XContentMapValues;
@@ -56,6 +57,7 @@ public final class KeywordFieldMapper extends FieldMapper {
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.setOmitNorms(true);
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_SET);
             FIELD_TYPE.freeze();
         }
 
@@ -156,7 +158,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                                 boolean isSearchable,
                                 boolean hasDocValues,
                                 boolean hasNorms) {
-            super(name, isSearchable, hasDocValues);
+            super(name, isSearchable, hasDocValues, isSearchable && !hasDocValues);
             this.hasNorms = hasNorms;
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
             setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);

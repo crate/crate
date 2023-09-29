@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.DocValuesType;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.Field;
@@ -42,6 +43,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 public class BooleanFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "boolean";
+    private final FieldType fieldTypeWithoutDocValues;
 
     public static final class Defaults {
 
@@ -52,6 +54,7 @@ public class BooleanFieldMapper extends FieldMapper {
         static {
             FIELD_TYPE.setOmitNorms(true);
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_NUMERIC);
             FIELD_TYPE.setTokenized(false);
             FIELD_TYPE.freeze();
         }
@@ -71,6 +74,9 @@ public class BooleanFieldMapper extends FieldMapper {
 
         @Override
         public BooleanFieldMapper build(BuilderContext context) {
+            if (!indexed && hasDocValues) {
+                fieldType.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+            }
             var mapper = new BooleanFieldMapper(
                 name,
                 position,
@@ -97,7 +103,7 @@ public class BooleanFieldMapper extends FieldMapper {
     public static final class BooleanFieldType extends MappedFieldType {
 
         public BooleanFieldType(String name, boolean isSearchable, boolean hasDocValues) {
-            super(name, isSearchable, hasDocValues);
+            super(name, isSearchable, hasDocValues, !hasDocValues);
         }
 
         public BooleanFieldType(String name) {
@@ -117,6 +123,9 @@ public class BooleanFieldMapper extends FieldMapper {
                                  MappedFieldType defaultFieldType,
                                  CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, defaultFieldType, copyTo);
+        this.fieldTypeWithoutDocValues = new FieldType(fieldType);
+        this.fieldTypeWithoutDocValues.setDocValuesType(DocValuesType.NONE);
+        this.fieldTypeWithoutDocValues.freeze();
     }
 
     @Override
@@ -142,7 +151,7 @@ public class BooleanFieldMapper extends FieldMapper {
             return;
         }
         if (fieldType().isSearchable() || fieldType.stored()) {
-            onField.accept(new Field(fieldType().name(), value ? "T" : "F", fieldType));
+            onField.accept(new Field(fieldType().name(), value ? "T" : "F", fieldTypeWithoutDocValues));
         }
         if (fieldType().hasDocValues()) {
             onField.accept(new SortedNumericDocValuesField(fieldType().name(), value ? 1 : 0));

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.DocValuesType;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.Document;
@@ -50,6 +51,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     public static final FieldType FIELD_TYPE = new FieldType();
 
     static {
+        FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_NUMERIC);
         FIELD_TYPE.setStored(false);
         FIELD_TYPE.setTokenized(false);
         FIELD_TYPE.setDimensions(2, Integer.BYTES);
@@ -117,7 +119,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     public static class GeoPointFieldType extends MappedFieldType {
 
         public GeoPointFieldType(String name, boolean indexed, boolean hasDocValues) {
-            super(name, indexed, hasDocValues);
+            super(name, indexed, hasDocValues, !hasDocValues);
         }
 
         @Override
@@ -144,7 +146,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         }
         if (fieldType().hasDocValues()) {
             doc.add(new LatLonDocValuesField(fieldType().name(), point.lat(), point.lon()));
-        } else if (fieldType.stored() || fieldType().isSearchable()) {
+        } else if (fieldType.stored() || fieldType().isSearchable()) { // TODO: is this bug?
             createFieldNamesField(context, doc::add);
         }
     }

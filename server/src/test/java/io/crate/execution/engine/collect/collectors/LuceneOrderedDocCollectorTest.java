@@ -374,7 +374,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static void addDoc(IndexWriter w, String name, FieldType fieldType, String value) throws IOException {
         Document doc = new Document();
-        Field field = new Field(name, value, fieldType);
+        Field field = new Field(name, new BytesRef(value), fieldType);
         doc.add(field);
         w.addDocument(doc);
     }

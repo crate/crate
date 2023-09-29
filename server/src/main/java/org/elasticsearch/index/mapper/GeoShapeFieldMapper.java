@@ -205,7 +205,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
         private Orientation orientation = Defaults.ORIENTATION;
 
         public GeoShapeFieldType(String name, boolean indexed, boolean hasDocValues) {
-            super(name, indexed, hasDocValues);
+            super(name, indexed, hasDocValues, true);
         }
 
         public GeoShapeFieldType(String name,

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.DocValuesType;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.Document;
@@ -68,6 +69,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
 
         public T docValues(boolean docValues) {
+            if (docValues == false) {
+                fieldType.setDocValuesType(DocValuesType.NONE);
+            }
             this.hasDocValues = docValues;
             return builder;
         }

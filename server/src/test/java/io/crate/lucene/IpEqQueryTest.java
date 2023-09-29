@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class IpEqQueryTest extends LuceneQueryBuilderTest {
     @Override
-    protected String createStmt() {
+    public String createStmt() {
         // `columnstore = false` is not supported
         return """
                 create table m (

@@ -30,6 +30,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
@@ -49,6 +50,7 @@ public class IpFieldMapper extends FieldMapper {
         public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_SET);
             FIELD_TYPE.setDimensions(1, Integer.BYTES);
             FIELD_TYPE.freeze();
         }
@@ -91,7 +93,7 @@ public class IpFieldMapper extends FieldMapper {
     public static final class IpFieldType extends MappedFieldType {
 
         public IpFieldType(String name, boolean indexed, boolean hasDocValues) {
-            super(name, indexed, hasDocValues);
+            super(name, indexed, hasDocValues, !hasDocValues);
         }
 
         public IpFieldType(String name) {
@@ -141,7 +143,7 @@ public class IpFieldMapper extends FieldMapper {
         }
         if (fieldType().hasDocValues()) {
             onField.accept(new SortedSetDocValuesField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
-        } else if (fieldType.stored() || fieldType().isSearchable()) {
+        } else if (fieldType.stored() || fieldType().isSearchable()) { // bug?
             createFieldNamesField(context, onField);
         }
         if (fieldType.stored()) {

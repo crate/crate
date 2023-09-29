@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.DocValuesType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.time.IsoLocale;
@@ -63,6 +64,7 @@ public class DateFieldMapper extends FieldMapper {
             FIELD_TYPE.setStoreTermVectors(false);
             FIELD_TYPE.setOmitNorms(false);
             FIELD_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+            FIELD_TYPE.setDocValuesType(DocValuesType.SORTED_NUMERIC);
         }
     }
 
@@ -137,7 +139,7 @@ public class DateFieldMapper extends FieldMapper {
         private final FormatDateTimeFormatter dateTimeFormatter;
 
         DateFieldType(String name, boolean isSearchable, boolean hasDocValues, FormatDateTimeFormatter formatter) {
-            super(name, isSearchable, hasDocValues);
+            super(name, isSearchable, hasDocValues, false);
             this.dateTimeFormatter = formatter;
         }
 

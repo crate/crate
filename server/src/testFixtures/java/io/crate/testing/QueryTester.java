@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -217,6 +219,10 @@ public final class QueryTester implements AutoCloseable {
 
     public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
         Query query = toQuery(expression, params);
+        return runQuery(resultColumn, query);
+    }
+
+    public List<Object> runQuery(String resultColumn, Query query) throws ExecutionException, InterruptedException, TimeoutException {
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
         return BatchIterators.collect(
             batchIterator,

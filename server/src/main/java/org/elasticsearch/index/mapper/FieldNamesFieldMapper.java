@@ -101,7 +101,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         private boolean enabled = Defaults.ENABLED;
 
         public FieldNamesFieldType() {
-            super(Defaults.NAME, true, false);
+            super(Defaults.NAME, true, false, false);
         }
 
         @Override

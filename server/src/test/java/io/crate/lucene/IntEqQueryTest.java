@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class IntEqQueryTest extends LuceneQueryBuilderTest {
     @Override
-    protected String createStmt() {
+    public String createStmt() {
         return """
                 create table m (
                 a1 int,

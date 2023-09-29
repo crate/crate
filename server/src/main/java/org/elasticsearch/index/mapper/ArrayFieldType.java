@@ -28,7 +28,10 @@ class ArrayFieldType extends MappedFieldType {
     private final MappedFieldType innerFieldType;
 
     ArrayFieldType(MappedFieldType innerFieldType) {
-        super(innerFieldType.name(), innerFieldType.isSearchable(), innerFieldType.hasDocValues());
+        super(innerFieldType.name(),
+              innerFieldType.isSearchable(),
+              innerFieldType.hasDocValues(),
+              innerFieldType.isNameFieldIndexed());
         this.innerFieldType = innerFieldType;
     }
 

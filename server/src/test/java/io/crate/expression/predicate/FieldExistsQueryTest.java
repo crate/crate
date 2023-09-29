@@ -29,10 +29,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.TableElementsAnalyzer;
+import io.crate.lucene.BitStringEqQueryTest;
+import io.crate.lucene.BooleanEqQueryTest;
+import io.crate.lucene.DoubleEqQueryTest;
+import io.crate.lucene.FloatEqQueryTest;
+import io.crate.lucene.IntEqQueryTest;
+import io.crate.lucene.IpEqQueryTest;
+import io.crate.lucene.LongEqQueryTest;
+import io.crate.lucene.StringEqQueryTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -216,6 +225,264 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
             results = queryTester.runQuery("xs", "xs is not null");
             assertThat(results).containsExactly(shapes);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_integers_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new IntEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", 1, null);
+        builder.indexValues("a2", 1, null);
+        builder.indexValues("a3", 1, null);
+        builder.indexValues("a4", 1, null);
+        // inserted 8 rows where 1 row with a1 = 1 and 7 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(7);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(7);
+
+            query = queryTester.toQuery("a3 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a3)");
+            assertThat(queryTester.runQuery("a3", query)).hasSize(7);
+
+            query = queryTester.toQuery("a4 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a4)");
+            assertThat(queryTester.runQuery("a4", query)).hasSize(7);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_longs_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new LongEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", 1L, null);
+        builder.indexValues("a2", 1L, null);
+        builder.indexValues("a3", 1L, null);
+        builder.indexValues("a4", 1L, null);
+        // inserted 8 rows where 1 row with a1 = 1L and 7 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(7);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(7);
+
+            query = queryTester.toQuery("a3 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a3)");
+            assertThat(queryTester.runQuery("a3", query)).hasSize(7);
+
+            query = queryTester.toQuery("a4 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a4)");
+            assertThat(queryTester.runQuery("a4", query)).hasSize(7);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_bit_strings_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new BitStringEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", BitStringEqQueryTest.BIT_STRING, null);
+        builder.indexValues("a2", BitStringEqQueryTest.BIT_STRING, null);
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(3);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(3);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_booleans_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new BooleanEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", true, null);
+        builder.indexValues("a2", false, null);
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(3);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(3);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_doubles_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new DoubleEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", 1.1, null);
+        builder.indexValues("a2", 1.1, null);
+        builder.indexValues("a3", 1.1, null);
+        builder.indexValues("a4", 1.1, null);
+        // inserted 8 rows where 1 row with a1 = 1.1f and 7 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(7);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(7);
+
+            query = queryTester.toQuery("a3 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a3)");
+            assertThat(queryTester.runQuery("a3", query)).hasSize(7);
+
+            query = queryTester.toQuery("a4 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a4)");
+            assertThat(queryTester.runQuery("a4", query)).hasSize(7);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_floats_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new FloatEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", 1.1f, null);
+        builder.indexValues("a2", 1.1f, null);
+        builder.indexValues("a3", 1.1f, null);
+        builder.indexValues("a4", 1.1f, null);
+        // inserted 8 rows where 1 row with a1 = 1.1f and 7 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(7);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(7);
+
+            query = queryTester.toQuery("a3 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a3)");
+            assertThat(queryTester.runQuery("a3", query)).hasSize(7);
+
+            query = queryTester.toQuery("a4 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a4)");
+            assertThat(queryTester.runQuery("a4", query)).hasSize(7);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_IPs_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new IpEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", "1.1.1.1", null);
+        builder.indexValues("a2", "1.1.1.1", null);
+        // inserted 4 rows where 1 row with a1 = '1.1.1.1' and 3 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(3);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(3);
+        }
+    }
+
+    @Test
+    public void test_is_null_on_strings_with_varying_indexing_and_doc_values() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            createTempDir(),
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            new StringEqQueryTest().createStmt()
+        );
+        builder.indexValues("a1", "abc", null);
+        builder.indexValues("a2", "abc", null);
+        builder.indexValues("a3", "abc", null);
+        builder.indexValues("a4", "abc", null);
+        builder.indexValues("a5", "abc", null);
+        builder.indexValues("a6", "abc", null);
+        // inserted 12 rows where 1 row with a1 = 'abc' and 11 rows with a1 = null
+
+        try (var queryTester = builder.build()) {
+            Query query;
+            query = queryTester.toQuery("a1 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a1]");
+            assertThat(queryTester.runQuery("a1", query)).hasSize(11);
+
+            query = queryTester.toQuery("a2 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a2]");
+            assertThat(queryTester.runQuery("a2", query)).hasSize(11);
+
+            query = queryTester.toQuery("a3 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -ConstantScore(_field_names:a3)");
+            assertThat(queryTester.runQuery("a3", query)).hasSize(11);
+
+            query = queryTester.toQuery("a4 is null");
+            assertThat(query.toString()).isEqualTo("(a4 IS NULL)");
+            assertThat(queryTester.runQuery("a4", query)).hasSize(11);
+
+            query = queryTester.toQuery("a5 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a5]");
+            assertThat(queryTester.runQuery("a5", query)).hasSize(11);
+
+            query = queryTester.toQuery("a6 is null");
+            assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=a6]");
+            assertThat(queryTester.runQuery("a6", query)).hasSize(11);
         }
     }
 }

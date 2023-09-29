@@ -30,7 +30,7 @@ import org.junit.Test;
 
 public class FloatEqQueryTest extends LuceneQueryBuilderTest {
     @Override
-    protected String createStmt() {
+    public String createStmt() {
         return """
                 create table m (
                 a1 float,
