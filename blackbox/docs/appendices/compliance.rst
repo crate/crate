@@ -18,7 +18,7 @@ what CrateDB supports, what they are and how to use them.
    :header: ID,Package,#,Description,Supported,Verified,Comments
    :widths: 80,140,15,250,130
    :delim: U+0009
-   :file: ../../sql/src/main/resources/sql_features.tsv
+   :file: ../../../sql/src/main/resources/sql_features.tsv
    :exclude: {4: '(?i)N\w*'}
    :included_cols: 0,1,2,3,6
 
