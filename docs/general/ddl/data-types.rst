@@ -3405,7 +3405,7 @@ However, you cannot use it with any :ref:`scalar functions
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
 .. _GeoJSON: https://geojson.org/
-.. _IEEE 754: https://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
+.. _IEEE 754: https://en.wikipedia.org/wiki/IEEE_754
 .. _IP address: https://en.wikipedia.org/wiki/IP_address
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
