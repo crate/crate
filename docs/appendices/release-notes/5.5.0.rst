@@ -147,3 +147,6 @@ Administration and Operations
   the ``AL`` privileges to see entries from other users.
 
 - Added a new :ref:`memory.operation_limit` cluster and session setting.
+
+- Added support for endpoint and secondary endpoint to
+  `ref:CREATE REPOSITORY for Azure storage<sql-create-repo-azure>`.

@@ -418,12 +418,36 @@ Parameters
 **key**
   | *Type:*    ``text``
 
-  The Azure Storage account secret key.
+  The Azure Storage account endpoint.
 
   .. NOTE::
 
       CrateDB masks this parameter. You cannot query the parameter value from
       the :ref:`sys.repositories <sys-repositories>` table.
+
+.. _sql-create-repo-azure-endpoint:
+
+**endpoint**
+  | *Type:*    ``text``
+
+  The Azure Storage account endpoint suffix.
+
+  .. NOTE::
+
+      ``endpoint`` cannot be used in combination with
+      `sql-create-repo-azure-endpoint_suffix`_.
+
+.. _sql-create-repo-azure-secondary_endpoint:
+
+**secondary_endpoint**
+  | *Type:*    ``text``
+
+  The Azure Storage account secondary endpoint.
+
+  .. NOTE::
+
+      ``secondary_endpoint`` cannot be used if
+      `sql-create-repo-azure-endpoint`_ is not specified.
 
 .. _sql-create-repo-azure-endpoint_suffix:
 
@@ -435,8 +459,8 @@ Parameters
 
   .. TIP::
 
-      You can use an `endpoint suffix`_ to force the use of a specific `Azure
-      service region`_.
+      You can use an `endpoint suffix`_ to force the use of a specific
+      `Azure service region`_.
 
 .. _sql-create-repo-azure-container:
 
@@ -493,7 +517,8 @@ Parameters
 
 **location_mode**
   | *Type:*    ``text``
-  | *Values:*  ``primary_only``, ``secondary_only``
+  | *Values:*  ``primary_only``, ``secondary_only``, ``primary_then_secondary``,
+               ``secondary_then_primary``
   | *Default:* ``primary_only``
 
   The location mode for storing blob data.

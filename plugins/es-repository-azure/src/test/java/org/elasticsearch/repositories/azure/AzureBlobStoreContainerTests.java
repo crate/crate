@@ -26,6 +26,8 @@ import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.ESBlobStoreContainerTestCase;
 
+import com.microsoft.azure.storage.LocationMode;
+
 import io.crate.common.unit.TimeValue;
 
 public class AzureBlobStoreContainerTests extends ESBlobStoreContainerTestCase {
@@ -43,6 +45,21 @@ public class AzureBlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         String account = randomAlphaOfLength(randomIntBetween(1, 10)).toLowerCase(Locale.ROOT);
         String key = randomAlphaOfLength(randomIntBetween(10, 20)).toLowerCase(Locale.ROOT);
         String endpointSuffix = randomAlphaOfLength(randomIntBetween(1, 10)).toLowerCase(Locale.ROOT);
-        return new AzureStorageSettings(account, key, endpointSuffix, TimeValue.timeValueMinutes(-1), 3, null, null);
+        String endpoint = "https://storage1.privatelink.blob.core.windows.net";
+        String secondaryEndpoint = "https://storage2.privatelink.blob.core.windows.net";
+        return new AzureStorageSettings(
+            account,
+            key,
+            endpoint,
+            secondaryEndpoint,
+            endpointSuffix,
+            TimeValue.timeValueMinutes(-1),
+            3,
+            null,
+            randomFrom(
+                LocationMode.PRIMARY_ONLY,
+                LocationMode.SECONDARY_ONLY,
+                LocationMode.PRIMARY_THEN_SECONDARY,
+                LocationMode.SECONDARY_THEN_PRIMARY));
     }
 }
