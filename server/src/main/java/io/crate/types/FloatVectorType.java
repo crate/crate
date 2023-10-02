@@ -53,6 +53,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     public static final String NAME = "float_vector";
     public static final FloatVectorType INSTANCE_ONE = new FloatVectorType(1);
     public static final VectorSimilarityFunction SIMILARITY_FUNC = VectorSimilarityFunction.EUCLIDEAN;
+    public static final int MAX_DIMENSIONS = 2048;
 
     private static final EqQuery<float[]> EQ_QUERY = new EqQuery<>() {
 

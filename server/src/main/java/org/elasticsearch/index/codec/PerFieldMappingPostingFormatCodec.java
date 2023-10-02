@@ -19,16 +19,24 @@
 
 package org.elasticsearch.index.codec;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
+import org.apache.lucene.codecs.KnnVectorsFormat;
+import org.apache.lucene.codecs.KnnVectorsReader;
+import org.apache.lucene.codecs.KnnVectorsWriter;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.codecs.lucene95.Lucene95Codec;
+import org.apache.lucene.index.SegmentReadState;
+import org.apache.lucene.index.SegmentWriteState;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
 import io.crate.lucene.codec.CustomLucene90DocValuesFormat;
+import io.crate.types.FloatVectorType;
 
 
 /**
@@ -68,4 +76,25 @@ public class PerFieldMappingPostingFormatCodec extends Lucene95Codec {
         return new CustomLucene90DocValuesFormat(CustomLucene90DocValuesFormat.Mode.BEST_SPEED);
     }
 
+    @Override
+    public KnnVectorsFormat getKnnVectorsFormatForField(String field) {
+        var format = super.getKnnVectorsFormatForField(field);
+        return new KnnVectorsFormat(format.getName()) {
+
+            @Override
+            public KnnVectorsWriter fieldsWriter(SegmentWriteState state) throws IOException {
+                return format.fieldsWriter(state);
+            }
+
+            @Override
+            public KnnVectorsReader fieldsReader(SegmentReadState state) throws IOException {
+                return format.fieldsReader(state);
+            }
+
+            @Override
+            public int getMaxDimensions(String fieldName) {
+                return FloatVectorType.MAX_DIMENSIONS;
+            }
+        };
+    }
 }
