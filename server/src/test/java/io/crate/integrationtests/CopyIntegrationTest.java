@@ -1137,7 +1137,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void test_generated_non_deterministic_value_is_consistent_on_primary_and_replica() throws Exception {
         execute("""
-            create table tbl (x int, created generated always as now())
+            create table tbl (x int, created generated always as round((random() + 1) * 100))
             clustered into 1 shards
             with (number_of_replicas = 1)
             """
