@@ -42,9 +42,9 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
-import io.crate.sql.parser.antlr.v4.SqlBaseParser;
-import io.crate.sql.parser.antlr.v4.SqlBaseParserBaseListener;
+import io.crate.sql.parser.antlr.SqlBaseLexer;
+import io.crate.sql.parser.antlr.SqlBaseParser;
+import io.crate.sql.parser.antlr.SqlBaseParserBaseListener;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.Node;

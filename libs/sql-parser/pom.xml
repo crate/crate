@@ -21,12 +21,7 @@
         <version>4.13.1</version>
         <configuration>
           <sourceDirectory>${basedir}/src/main/antlr</sourceDirectory>
-          <outputDirectory>${basedir}/src/main/java/io/crate/sql/parser/antlr/v4</outputDirectory>
           <visitor>true</visitor>
-          <arguments>
-            <argument>-package</argument>
-            <argument>io.crate.sql.parser.antlr.v4</argument>
-          </arguments>
         </configuration>
         <executions>
           <execution>
