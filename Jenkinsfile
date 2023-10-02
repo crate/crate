@@ -28,7 +28,14 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './mvnw test -Dtests.crate.slow=true -Dcheckstyle.skip jacoco:report'
+            sh './mvnw -T 1C compile'
+            sh '''
+              x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw -T 1C test \
+                -DforkCount=8 \
+                -Dtests.crate.slow=true \
+                -Dcheckstyle.skip \
+                jacoco:report
+            '''.stripIndent()
 
             // Upload coverage report to Codecov.
             // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
