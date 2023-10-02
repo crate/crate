@@ -27,12 +27,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import io.crate.protocols.postgres.antlr.v4.PgArrayBaseVisitor;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser.ItemContext;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser.NullContext;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser.QuotedStringContext;
-import io.crate.protocols.postgres.antlr.v4.PgArrayParser.UnquotedStringContext;
+import io.crate.protocols.postgres.antlr.PgArrayBaseVisitor;
+import io.crate.protocols.postgres.antlr.PgArrayParser;
+import io.crate.protocols.postgres.antlr.PgArrayParser.ItemContext;
+import io.crate.protocols.postgres.antlr.PgArrayParser.NullContext;
+import io.crate.protocols.postgres.antlr.PgArrayParser.QuotedStringContext;
+import io.crate.protocols.postgres.antlr.PgArrayParser.UnquotedStringContext;
 
 class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
 

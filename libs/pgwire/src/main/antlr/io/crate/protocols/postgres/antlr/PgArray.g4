@@ -21,6 +21,7 @@
 
 grammar PgArray;
 
+
 /**
 The grammar is used to parse PG array text
 representations. E.g.:

@@ -36,7 +36,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
-import io.crate.protocols.postgres.antlr.v4.PgArrayLexer;
+import io.crate.protocols.postgres.antlr.PgArrayLexer;
 
 public class PgArrayParser {
 
@@ -68,7 +68,7 @@ public class PgArrayParser {
         try {
             var lexer = new PgArrayLexer(input);
             var tokenStream = new CommonTokenStream(lexer);
-            var parser = new io.crate.protocols.postgres.antlr.v4.PgArrayParser(tokenStream);
+            var parser = new io.crate.protocols.postgres.antlr.PgArrayParser(tokenStream);
 
             lexer.removeErrorListeners();
             lexer.addErrorListener(ERROR_LISTENER);
