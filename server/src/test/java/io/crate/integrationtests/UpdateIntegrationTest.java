@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
 
@@ -779,12 +778,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into computed (ts) values (1)");
         refresh();
 
-        Asserts.assertSQLError(() -> execute(
-                        "update computed set gen_col=1745"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4000)
-                .hasMessageContaining(
-                        "Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
+        execute("update computed set gen_col=1745");
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
@@ -1110,5 +1105,38 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThatThrownBy(() -> execute("update t2 set a[1] = {c=1}"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column a['c'] unknown");
+    }
+
+    @Test
+    public void test_update_on_table_with_big_refresh_interval_emptied_by_delete_return_0_rows() {
+        execute("create table test (a int) with (refresh_interval = 10000)");
+        execute("insert into test (a) values (1)");
+        assertThat(response).hasRowCount(1);
+        refresh();
+
+        execute("delete from test");
+        assertThat(response).hasRowCount(1);
+
+        // No refresh() here, collect doesn't now that table is already empty,
+        // which leads to ShardUpsertRequest to be issued.
+        // We ensure that no exception is thrown and UPDATE behaves similar to DELETE, returns 0 rows.
+        execute("update test set a = 2");
+        assertThat(response).hasRowCount(0L);
+
+        // Another similar scenario of update, which could hit multiple rows.
+        execute("update test set a = 2 where a = 1");
+        assertThat(response).hasRowCount(0L);
+    }
+
+    @Test
+    public void test_update_continues_on_error() {
+        execute("create table test (a int CHECK (a < 100))");
+
+        execute("insert into test (a) values (1), (2), (3)");
+        assertThat(response).hasRowCount(3);
+        refresh();
+
+        execute("update test set a = a + 98");
+        assertThat(response).hasRowCount(1);
     }
 }

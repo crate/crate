@@ -92,7 +92,7 @@ public class PingTask extends TimerTask {
     @Nullable
     String getHardwareAddress() {
         String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
-        return macAddress.equals("") ? null : macAddress;
+        return macAddress.isEmpty() ? null : macAddress;
     }
 
     private URL buildPingUrl() throws URISyntaxException, IOException {

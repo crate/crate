@@ -162,7 +162,7 @@ public class TypeSignature implements Writeable, Accountable {
      */
     public DataType<?> createType() {
         if (baseTypeName.equalsIgnoreCase(ArrayType.NAME)) {
-            if (parameters.size() == 0) {
+            if (parameters.isEmpty()) {
                 return new ArrayType<>(UndefinedType.INSTANCE);
             }
             DataType<?> innerType = parameters.get(0).createType();
@@ -172,13 +172,12 @@ public class TypeSignature implements Writeable, Accountable {
             // Only build typed objects if we receive parameter key-value pairs which may not exist on generic
             // object signatures with type information only, no key strings
             if (parameters.size() > 1) {
-                for (int i = 0; i < parameters.size() - 1; ) {
+                for (int i = 0; i < parameters.size() - 1; i += 2) {
                     var valTypeSignature = parameters.get(i + 1);
                     if (valTypeSignature instanceof ParameterTypeSignature p) {
                         var innerTypeName = p.unescapedParameterName();
                         builder.setInnerType(innerTypeName, valTypeSignature.createType());
                     }
-                    i += 2;
                 }
             }
             return builder.build();

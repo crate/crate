@@ -32,9 +32,11 @@ import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -46,7 +48,9 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
+import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.joinorder.JoinGraph;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -315,11 +319,11 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
         var join = new JoinPlan(firstJoin, c, JoinType.LEFT, joinCondition);
 
-        assertThat(join).isEqualTo(
-            "Join[LEFT | ((z = x) AND (z = y))]\n" +
-            "  ├ Join[CROSS]\n" +
-            "  │  ├ Collect[doc.a | [x] | true]\n" +
-            "  │  └ Collect[doc.b | [y] | true]\n" +
+        assertThat(join).hasOperators(
+            "Join[LEFT | ((z = x) AND (z = y))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
             "  └ Collect[doc.c | [z] | true]"
         );
 
@@ -361,11 +365,11 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var firstJoin = new JoinPlan(a, b, JoinType.LEFT, e.asSymbol("a.x = b.y"));
         var secondJoin = new JoinPlan(firstJoin, c, JoinType.INNER, e.asSymbol("a.x = b.y"));
 
-        assertThat(secondJoin).isEqualTo(
-            "Join[INNER | (x = y)]\n" +
-            "  ├ Join[LEFT | (x = y)]\n" +
-            "  │  ├ Collect[doc.a | [x] | true]\n" +
-            "  │  └ Collect[doc.b | [y] | true]\n" +
+        assertThat(secondJoin).hasOperators(
+            "Join[INNER | (x = y)]",
+            "  ├ Join[LEFT | (x = y)]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
             "  └ Collect[doc.c | [z] | true]"
         );
 
@@ -430,5 +434,71 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var graph = JoinGraph.create(thirdJoin, Function.identity());
         assertThat(graph.size()).isEqualTo(4);
         assertThat(graph.edges()).hasSize(4);
+        assertThat(graph.nodes().get(0)).isEqualTo(rename_a);
+        assertThat(graph.nodes().get(1)).isEqualTo(b);
+        assertThat(graph.nodes().get(2)).isEqualTo(rename_c);
+        assertThat(graph.nodes().get(3)).isEqualTo(d);
+    }
+
+    @Test
+    public void test_graph_with_order() throws Exception {
+        var order = new Order(a, new OrderBy(List.of(x)));
+        Symbol firstJoinCondition = e.asSymbol("a.x = b.y");
+        var firstJoin = new JoinPlan(order, b, JoinType.INNER, firstJoinCondition);
+        Symbol secondJoinCondition = e.asSymbol("b.y = c.z");
+        var join = new JoinPlan(firstJoin, c, JoinType.INNER, secondJoinCondition);
+
+        assertThat(join).hasOperators(
+            "Join[INNER | (y = z)]",
+            "  ├ Join[INNER | (x = y)]",
+            "  │  ├ OrderBy[x ASC]",
+            "  │  │  └ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ Collect[doc.c | [z] | true]"
+        );
+
+        JoinGraph joinGraph = JoinGraph.create(join, Function.identity());
+        assertThat(joinGraph.nodes()).containsExactly(order, b, c);
+
+        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(c, b, order));
+        assertThat(reordered).hasOperators(
+            "Join[INNER | (x = y)]",
+            "  ├ Join[INNER | (y = z)]",
+            "  │  ├ Collect[doc.c | [z] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ OrderBy[x ASC]",
+            "    └ Collect[doc.a | [x] | true]"
+        );
+    }
+
+    @Test
+    public void test_graph_with_union() throws Exception {
+        Union union = new Union(a, b, Lists2.concat(a.outputs(), b.outputs()));
+        var firstJoin = new JoinPlan(union, c, JoinType.INNER, e.asSymbol("b.y = c.z"));
+        var secondJoin = new JoinPlan(firstJoin, d, JoinType.INNER, e.asSymbol("a.x = d.w"));
+
+        assertThat(secondJoin).hasOperators(
+            "Join[INNER | (x = w)]",
+            "  ├ Join[INNER | (y = z)]",
+            "  │  ├ Union[x, y]",
+            "  │  │  ├ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.d | [w] | true]"
+        );
+
+        JoinGraph joinGraph = JoinGraph.create(secondJoin, Function.identity());
+        assertThat(joinGraph.nodes()).containsExactly(union, c, d);
+
+        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(union, d, c));
+        assertThat(reordered).hasOperators(
+            "Join[INNER | (y = z)]",
+            "  ├ Join[INNER | (x = w)]",
+            "  │  ├ Union[x, y]",
+            "  │  │  ├ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Collect[doc.d | [w] | true]",
+            "  └ Collect[doc.c | [z] | true]"
+        );
     }
 }

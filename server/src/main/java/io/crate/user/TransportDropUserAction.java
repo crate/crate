@@ -83,11 +83,10 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         // Ensure user doesn't own subscriptions.
         logicalReplicationService
                 .subscriptions()
-                .entrySet()
-                .forEach(entry -> {
-                    if (entry.getValue().owner().equals(request.userName())) {
+                .forEach((key, value) -> {
+                    if (value.owner().equals(request.userName())) {
                         throw new IllegalStateException(
-                            String.format(Locale.ENGLISH, errorMsg, request.userName(), "Subscription", entry.getKey())
+                                String.format(Locale.ENGLISH, errorMsg, request.userName(), "Subscription", key)
                         );
                     }
                 });
@@ -95,11 +94,10 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         // Ensure user doesn't own publications.
         logicalReplicationService
                 .publications()
-                .entrySet()
-                .forEach(entry -> {
-                    if (entry.getValue().owner().equals(request.userName())) {
+                .forEach((key, value) -> {
+                    if (value.owner().equals(request.userName())) {
                         throw new IllegalStateException(
-                            String.format(Locale.ENGLISH, errorMsg, request.userName(), "Publication", entry.getKey())
+                                String.format(Locale.ENGLISH, errorMsg, request.userName(), "Publication", key)
                         );
                     }
                 });

@@ -130,12 +130,12 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     public Boolean implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Boolean) {
-            return (Boolean) value;
-        } else if (value instanceof String) {
-            return booleanFromString((String) value);
-        } else if (value instanceof Number) {
-            return booleanFromNumber((Number) value);
+        } else if (value instanceof Boolean b) {
+            return b;
+        } else if (value instanceof String str) {
+            return booleanFromString(str);
+        } else if (value instanceof Number number) {
+            return booleanFromNumber(number);
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -145,8 +145,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     public Boolean sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof Boolean) {
-            return (Boolean) value;
+        } else if (value instanceof Boolean b) {
+            return b;
         } else {
             return booleanFromNumber((Number) value);
         }

@@ -51,6 +51,9 @@ Breaking Changes
 - Validation for ``COPY FROM`` is now enforced. The ``validation`` parameter is
   deprecated and using it results in a deprecation message in the logs.
 
+- `UPDATE`` statements will continue on row failures instead of always showing 
+  an error. The affected rows are displayed by the resulting row count.
+
 Deprecations
 ============
 

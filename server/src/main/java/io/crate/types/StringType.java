@@ -232,12 +232,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
                     getName().toUpperCase(Locale.ENGLISH)
                 )
             );
-        } else if (value instanceof TimeValue) {
-            return ((TimeValue) value).getStringRep();
-        } else if (value instanceof Regproc) {
-            return ((Regproc) value).name();
-        } else if (value instanceof Regclass) {
-            return ((Regclass) value).name();
+        } else if (value instanceof TimeValue timeValue) {
+            return timeValue.getStringRep();
+        } else if (value instanceof Regproc regproc) {
+            return regproc.name();
+        } else if (value instanceof Regclass regclass) {
+            return regclass.name();
         } else if (value instanceof BitString bitString) {
             return bitString.asPrefixedBitString();
         } else {
@@ -285,8 +285,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public String sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof BytesRef) {
-            return ((BytesRef) value).utf8ToString();
+        } else if (value instanceof BytesRef bytesRef) {
+            return bytesRef.utf8ToString();
         } else {
             return (String) value;
         }

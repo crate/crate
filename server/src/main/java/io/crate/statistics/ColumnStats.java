@@ -118,7 +118,7 @@ public final class ColumnStats<T> implements Writeable {
             return false;
         }
 
-        ColumnStats that = (ColumnStats) o;
+        ColumnStats<?> that = (ColumnStats<?>) o;
 
         if (Double.compare(that.nullFraction, nullFraction) != 0) {
             return false;
@@ -178,7 +178,7 @@ public final class ColumnStats<T> implements Writeable {
         if (notNullCount == 0 && nullCount > 0) {
             // Only null values found, assume all values are null
             double nullFraction = 1.0;
-            int averageWidth = type instanceof FixedWidthType ? ((FixedWidthType) type).fixedSize() : 0;
+            int averageWidth = type instanceof FixedWidthType fixedWidthType ? fixedWidthType.fixedSize() : 0;
             long approxDistinct = 1;
             return new ColumnStats<>(nullFraction, averageWidth, approxDistinct, type, MostCommonValues.EMPTY, List.of());
         }
@@ -314,7 +314,7 @@ public final class ColumnStats<T> implements Writeable {
          */
         int f1 = distinctSamples - numValuesWithDuplicates;
         int d = f1 + numValuesWithDuplicates;
-        @SuppressWarnings("UnnecessaryLocalVariable")
+        //noinspection UnnecessaryLocalVariable
         double n = samplesWithoutNulls;
         double N = totalRows * (1.0 - nullFraction);
         double approxDistinct;

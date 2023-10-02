@@ -66,10 +66,10 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
                     value + " is outside of `int` range and cannot be cast to the regproc type");
             }
             return Regproc.of(num.intValue(), value.toString());
-        } else if (value instanceof String) {
-            return Regproc.of((String) value);
-        } else if (value instanceof Regproc) {
-            return (Regproc) value;
+        } else if (value instanceof String str) {
+            return Regproc.of(str);
+        } else if (value instanceof Regproc regproc) {
+            return regproc;
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }

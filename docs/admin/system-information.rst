@@ -885,7 +885,7 @@ replicas and rebalance shards as necessary. This is throttled, and it can be
 controlled with :ref:`routing allocation settings <conf_routing>`, but
 depending on the context, you may prefer to delay recovery if the nodes are 
 only down for a short period of time, so it is advisable to review the
-documentation around :ref:`the settings involved <metadata-gateway>` and 
+documentation around :ref:`the settings involved <metadata_gateway>` and
 configure them carefully.
 
 Recovery after time
