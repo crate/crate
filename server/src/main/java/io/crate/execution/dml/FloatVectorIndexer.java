@@ -53,8 +53,8 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
 
     public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
         if (fieldType == null) {
-            fieldType = FloatVectorFieldMapper.Defaults.withVectorAttributes(
-                FloatVectorFieldMapper.Defaults.FIELD_TYPE,
+            fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
+            fieldType.setVectorAttributes(
                 ref.valueType().characterMaximumLength(),
                 VectorEncoding.FLOAT32,
                 FloatVectorType.SIMILARITY_FUNC
