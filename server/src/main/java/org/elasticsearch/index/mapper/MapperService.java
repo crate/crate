@@ -379,6 +379,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return mapper;
     }
 
+    public Mapper getFieldMapper(String field) {
+        return documentMapper().mappers().getMapper(field);
+    }
+
     /**
      * Returns the {@link MappedFieldType} for the give fullName.
      *

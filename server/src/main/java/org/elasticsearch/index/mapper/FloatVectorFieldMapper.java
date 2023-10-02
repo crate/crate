@@ -77,6 +77,11 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
 
         @Override
         public Mapper build(BuilderContext context) {
+            if (dimensions > FloatVectorType.MAX_DIMENSIONS) {
+                throw new IllegalArgumentException("vector numDimensions must be less than + " +
+                                                   FloatVectorType.MAX_DIMENSIONS + " got " +
+                                                   dimensions);
+            }
             fieldType.setVectorAttributes(
                 dimensions,
                 VectorEncoding.FLOAT32,

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.apache.lucene.index.IndexableFieldType;
 import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.document.Document;
@@ -136,6 +137,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     @Override
     public String typeName() {
         return mappedFieldType.typeName();
+    }
+
+    public IndexableFieldType indexableFieldType() {
+        return fieldType;
     }
 
     public MappedFieldType fieldType() {

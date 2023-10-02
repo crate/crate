@@ -32,11 +32,11 @@ import org.apache.lucene.codecs.lucene95.Lucene95Codec;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
 import io.crate.lucene.codec.CustomLucene90DocValuesFormat;
-import io.crate.types.FloatVectorType;
 
 
 /**
@@ -78,6 +78,8 @@ public class PerFieldMappingPostingFormatCodec extends Lucene95Codec {
 
     @Override
     public KnnVectorsFormat getKnnVectorsFormatForField(String field) {
+        var fieldMapper = (FieldMapper) mapperService.getFieldMapper(field);
+        var vectorDimension = fieldMapper.indexableFieldType().vectorDimension();
         var format = super.getKnnVectorsFormatForField(field);
         return new KnnVectorsFormat(format.getName()) {
 
@@ -93,7 +95,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene95Codec {
 
             @Override
             public int getMaxDimensions(String fieldName) {
-                return FloatVectorType.MAX_DIMENSIONS;
+                return vectorDimension;
             }
         };
     }
