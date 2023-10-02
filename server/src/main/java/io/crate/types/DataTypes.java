@@ -307,7 +307,7 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;
@@ -315,8 +315,8 @@ public final class DataTypes {
             return UNTYPED_OBJECT;
         } else if (value instanceof List list) {
             return valueFromList(list);
-        } else if (value instanceof Object[]) {
-            return valueFromList(Arrays.asList((Object[]) value));
+        } else if (value instanceof Object[] objectArray) {
+            return valueFromList(Arrays.asList(objectArray));
         } else if (value instanceof float[] values) {
             return new FloatVectorType(values.length);
         }
@@ -608,6 +608,28 @@ public final class DataTypes {
             }
         }
         return true;
+    }
+
+    public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
+        DataType<?> type;
+        if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
+            type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
+        } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
+            type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
+        } else {
+            if (leftType.precedes(rightType)) {
+                if (rightType.isConvertableTo(leftType, false)) {
+                    return leftType;
+                }
+                throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
+            } else {
+                if (leftType.isConvertableTo(rightType, false)) {
+                    return rightType;
+                }
+                throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
+            }
+        }
+        return type;
     }
 
     public static DataType<?> fromId(Integer id) {

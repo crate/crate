@@ -42,10 +42,10 @@ public abstract class StorageSupport<T> {
     @Nullable
     private final EqQuery<T> eqQuery;
 
-    public StorageSupport(boolean docValuesDefault,
-                          boolean supportsDocValuesOff,
-                          boolean hasFieldNamesIndex,
-                          EqQuery<T> eqQuery) {
+    StorageSupport(boolean docValuesDefault,
+                   boolean supportsDocValuesOff,
+                   boolean hasFieldNamesIndex,
+                   @Nullable EqQuery<T> eqQuery) {
         this.docValuesDefault = docValuesDefault;
         this.supportsDocValuesOff = supportsDocValuesOff;
         this.hasFieldNamesIndex = hasFieldNamesIndex;

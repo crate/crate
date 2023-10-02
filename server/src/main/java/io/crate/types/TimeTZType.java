@@ -90,16 +90,16 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     public TimeTZ implicitCast(Object value) {
         if (value == null) {
             return null;
-        } else if (value instanceof TimeTZ) {
-            return (TimeTZ) value;
-        } else if (value instanceof String) {
+        } else if (value instanceof TimeTZ timetz) {
+            return timetz;
+        } else if (value instanceof String timetzStr) {
             try {
-                return TimeTZParser.parse((String) value);
+                return TimeTZParser.parse(timetzStr);
             } catch (IllegalArgumentException e0) {
                 try {
                     return timeTZOf(
                         TimeTZType.class.getSimpleName(),
-                        Long.valueOf((String) value));
+                        Long.parseLong(timetzStr));
                 } catch (NumberFormatException e1) {
                     throw exceptionForInvalidLiteral(value);
                 }

@@ -105,7 +105,7 @@ public final class TimeTZParser {
             int micros = access(dt, NANO_OF_SECOND) / 1000;
             long microsFromMidnight = checkRange(
                 format,
-                (((hh * 60 + mm) * 60) + ss) * 1000_000L + micros,
+                (((hh * 60L + mm) * 60) + ss) * 1000_000L + micros,
                 MAX_MICROS);
             int zoneSecondsFromUTC = 0;
             ZoneOffset zoneOffset = dt.query(TemporalQueries.offset());

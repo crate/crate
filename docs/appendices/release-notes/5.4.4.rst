@@ -51,11 +51,19 @@ Fixes
   must be taken to apply the fix and solve the issue.
 
 - Fixed an issue that caused nested accesses to ``ignored`` objects with
-  unknown object keys from returning non ``nulls``. For example::
+  unknown object keys from returning non ``nulls``. e.g.::
 
     SELECT o['a']['unknown'] FROM t;
 
   returning the value for ``o['a']`` instead of a ``null``.
+
+- Fixed an issue that caused the output object column of ``UNION`` on object
+  columns to contain only the sub-columns of the object column from the right
+  hand side. With this fix, the output object column will contain the
+  merged sub-columns of the respective objects of both relations.
+
+- Fixed an issue that caused ``IS NULL`` predicate to be ineffective on
+  sub-columns of ``ignored`` object types.
 
 - Fixed a regression introduced with CrateDB 5.3.1 which caused a
   ``NullPointerException`` when creating a repository on S3 with authentication
@@ -69,3 +77,19 @@ Fixes
 
 - Fixed an issue that caused ``UPDATE`` statements, invoked immediately after a
   ``DELETE`` statement, which empties a table, to show an error.
+
+- Fixed an issue that caused ``CASE`` expressions to throw
+  ``UnsupportedFeatureException`` when ``null`` values are returned for one or
+  more conditions. e.g.::
+
+    SELECT CASE col1
+      WHEN 'value1' THEN 1
+      WHEN 'value2' THEN NULL
+      WHEN 'value3' THEN 3
+      ELSE NULL
+    END
+    FROM (SELECT 'value1' AS col1) a;
+
+- Fixed an issue that caused :ref:`column policy <type-object-column-policy>`
+  of object types created by ``CREATE TABLE AS`` to be overridden to
+  ``strict``.
