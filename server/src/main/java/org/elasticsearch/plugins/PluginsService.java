@@ -105,8 +105,7 @@ public class PluginsService {
                 pluginClass.getName(),
                 "classpath plugin",
                 pluginClass.getName(),
-                Collections.emptyList(),
-                false
+                Collections.emptyList()
             );
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("plugin loaded from classpath [{}]", pluginInfo);
