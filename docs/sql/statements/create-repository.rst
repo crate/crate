@@ -418,7 +418,7 @@ Parameters
 **key**
   | *Type:*    ``text``
 
-  The Azure Storage account endpoint.
+  The Azure Storage account secret key.
 
   .. NOTE::
 
@@ -430,7 +430,12 @@ Parameters
 **endpoint**
   | *Type:*    ``text``
 
-  The Azure Storage account endpoint suffix.
+  The Azure Storage account endpoint.
+
+  .. TIP::
+
+      You can use an `sql-create-repo-azure-endpoint`_ to address Azure Storage
+      instances served on private endpoints.
 
   .. NOTE::
 
