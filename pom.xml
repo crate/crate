@@ -220,6 +220,8 @@
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
     <versions.azure_keyvault>1.2.4</versions.azure_keyvault>
+
+    <versions.jmh>1.37</versions.jmh>
   </properties>
 
   <modules>
@@ -244,5 +246,6 @@
     <module>extensions/jmx-monitoring</module>
     <module>jlink-jdk</module>
     <module>app</module>
+    <module>benchmarks</module>
   </modules>
 </project>
