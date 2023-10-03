@@ -26,20 +26,17 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
  * An in-memory representation of the plugin descriptor.
  */
-public class PluginInfo implements ToXContentObject {
+public class PluginInfo {
 
     public static final String ES_PLUGIN_PROPERTIES = "plugin-descriptor.properties";
 
@@ -47,30 +44,23 @@ public class PluginInfo implements ToXContentObject {
     private final String description;
     private final String classname;
     private final List<String> extendedPlugins;
-    private final boolean hasNativeController;
 
     /**
      * Construct plugin info.
      *
      * @param name                  the name of the plugin
      * @param description           a description of the plugin
-     * @param version               an opaque version identifier for the plugin
-     * @param elasticsearchVersion  the version of Elasticsearch the plugin was built for
-     * @param javaVersion           the version of Java the plugin was built with
      * @param classname             the entry point to the plugin
      * @param extendedPlugins       other plugins this plugin extends through SPI
-     * @param hasNativeController   whether or not the plugin has a native controller
      */
     public PluginInfo(String name,
                       String description,
                       String classname,
-                      List<String> extendedPlugins,
-                      boolean hasNativeController) {
+                      List<String> extendedPlugins) {
         this.name = name;
         this.description = description;
         this.classname = classname;
         this.extendedPlugins = Collections.unmodifiableList(extendedPlugins);
-        this.hasNativeController = hasNativeController;
     }
 
     /**
@@ -116,30 +106,6 @@ public class PluginInfo implements ToXContentObject {
             extendedPlugins = Arrays.asList(Strings.delimitedListToStringArray(extendedString, ","));
         }
 
-        final String hasNativeControllerValue = propsMap.remove("has.native.controller");
-        final boolean hasNativeController;
-        if (hasNativeControllerValue == null) {
-            hasNativeController = false;
-        } else {
-            switch (hasNativeControllerValue) {
-                case "true":
-                    hasNativeController = true;
-                    break;
-                case "false":
-                    hasNativeController = false;
-                    break;
-                default:
-                    final String message = String.format(
-                            Locale.ROOT,
-                            "property [%s] must be [%s], [%s], or unspecified but was [%s]",
-                            "has_native_controller",
-                            "true",
-                            "false",
-                            hasNativeControllerValue);
-                    throw new IllegalArgumentException(message);
-            }
-        }
-
         if (propsMap.isEmpty() == false) {
             throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + propsMap.keySet());
         }
@@ -148,8 +114,7 @@ public class PluginInfo implements ToXContentObject {
             name,
             description,
             classname,
-            extendedPlugins,
-            hasNativeController
+            extendedPlugins
         );
     }
 
@@ -189,31 +154,6 @@ public class PluginInfo implements ToXContentObject {
         return extendedPlugins;
     }
 
-
-    /**
-     * Whether or not the plugin has a native controller.
-     *
-     * @return {@code true} if the plugin has a native controller
-     */
-    public boolean hasNativeController() {
-        return hasNativeController;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        {
-            builder.field("name", name);
-            builder.field("description", description);
-            builder.field("classname", classname);
-            builder.field("extended_plugins", extendedPlugins);
-            builder.field("has_native_controller", hasNativeController);
-        }
-        builder.endObject();
-
-        return builder;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -239,7 +179,6 @@ public class PluginInfo implements ToXContentObject {
             .append(prefix).append("- Plugin information:\n")
             .append(prefix).append("Name: ").append(name).append("\n")
             .append(prefix).append("Description: ").append(description).append("\n")
-            .append(prefix).append("Native Controller: ").append(hasNativeController).append("\n")
             .append(prefix).append("Extended Plugins: ").append(extendedPlugins).append("\n")
             .append(prefix).append(" * Classname: ").append(classname);
         return information.toString();
