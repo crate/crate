@@ -29,10 +29,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseNewCluster;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
+
+import java.util.Locale;
 
 public class AlterTableIntegrationTest extends IntegTestCase {
 
@@ -175,6 +179,13 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column o['oo'] unknown");
+
+        // Ensure that we cannot select implicitly dropped column.
+        // SELECT * is not enough to verify "cascade deletion" as it takes different code path.
+        Asserts.assertSQLError(() -> execute("select o['oo']['a'] from t"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
+            .hasMessageContaining("Column o['oo']['a'] unknown");
     }
 
     @Test
@@ -193,5 +204,69 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column a unknown");
+    }
+
+    @Test
+    @UseNewCluster
+    public void test_alter_table_drop_column_can_add_again() {
+        execute("create table t(a integer, b integer, o object AS(a int, oo object AS(a int)))");
+        execute("insert into t(a, b, o) values(1, 11, '{\"a\":111, \"oo\":{\"a\":1111}}')");
+        execute("refresh table t");
+        execute_statements_that_drop_and_add_column_with_the_same_name_again(false);
+    }
+
+    @Test
+    @UseNewCluster
+    public void test_alter_partitioned_table_drop_column_can_add_again() {
+        // Method execute_statements_that_drop_and_add_column_with_the_same_name_again has some INSERT statements.
+        // Using generated partitioned column in order not to adjust them.
+        execute("create table t(a integer, b integer, o object AS(a int, oo object AS(a int)), p integer as b + 1) PARTITIONED BY (p)");
+        execute("insert into t(a, b, o) values(1, 11, '{\"a\":111, \"oo\":{\"a\":1111}}')");
+        execute("refresh table t");
+        execute_statements_that_drop_and_add_column_with_the_same_name_again(true);
+    }
+
+
+    private void execute_statements_that_drop_and_add_column_with_the_same_name_again(boolean partitioned) {
+        // Re-add top-level column with same name and different type.
+        execute("alter table t drop column a");
+        execute("alter table t add column a text");
+
+        execute("insert into t(a, b, o) values('some-text', 222, '{\"a\":222, \"oo\":{\"a\":2222}}')");
+        execute("refresh table t");
+        execute("select _raw from t order by b");
+        long newColumnOid = partitioned ? 8 : 7;
+        // Old 'a' with OID 1 is gone in the second entry (we don't write NULL values to the source)
+        // Instead, we have new 'a' with new oid having text value "some-text".
+        String rawRows = """
+            {"1": 1, "2": 11, "3": {"5": {"6": 1111}, "4": 111}}
+            {"%d": "some-text", "2": 222," 3": {"5": {"6": 2222}, "4": 222}}
+            """;
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(
+            String.format(Locale.ENGLISH, rawRows, newColumnOid)
+        );
+
+        // Ensure that re-added column is the last in 'SELECT *' output since it has the highest ordinal.
+        // This is aligned with PG 14 behavior.
+        execute("select * from t order by b");
+        String[] columns = partitioned ? new String[]{"b", "o", "p", "a"} : new String[]{"b", "o", "a"};
+        assertThat(response).hasColumns(columns);
+
+        // Drop sub-column which in turn, has children column.
+        // Re-add columns with the same names but leaf having different type.
+        execute("alter table t drop column o['oo']");
+        execute("alter table t add column o['oo'] object AS(a text)");
+
+        execute("insert into t(a, b, o) values('another-text', 333, '{\"a\":333, \"oo\":{\"a\":\"hello\"}}')");
+        execute("refresh table t");
+        execute("select _raw from t where b = 333");
+        // Root column 'o' and it's unaffected child o['a'] retained their OID-s (3 and 4).
+        // Dropped children column got updated OID-s.
+        rawRows = """
+           {"%d": "another-text", "2": 333," 3": {"%d": {"%d": "hello"}, "4": 333}}
+            """;
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(
+            String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 1, newColumnOid + 2)
+        );
     }
 }
