@@ -91,6 +91,7 @@
             <failOnUnsupportedJava>false</failOnUnsupportedJava>
             <bundledSignatures>
               <bundledSignature>jdk-unsafe</bundledSignature>
+              <bundledSignature>jdk-deprecated</bundledSignature>
             </bundledSignatures>
             <signaturesFiles>
               <signaturesFile>
