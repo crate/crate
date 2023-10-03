@@ -92,6 +92,8 @@
             <bundledSignatures>
               <bundledSignature>jdk-unsafe</bundledSignature>
               <bundledSignature>jdk-deprecated</bundledSignature>
+              <bundledSignature>jdk-non-portable</bundledSignature>
+              <bundledSignature>jdk-reflection</bundledSignature>
             </bundledSignatures>
             <signaturesFiles>
               <signaturesFile>
