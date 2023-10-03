@@ -6,7 +6,7 @@ queue_rules:
       - check-success~=^Test CrateDB SQL on ubuntu
       - check-success=docs/readthedocs.org:crate
       - check-success~=^checkstyle
-      - check-success~=^forbiddenApisMain
+      - check-success~=^forbiddenApis
       - check-success~=^Vale
 
 
@@ -19,7 +19,7 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success=docs/readthedocs.org:crate
       - status-success~=^checkstyle
-      - status-success~=^forbiddenApisMain
+      - status-success~=^forbiddenApis
       - status-success~=^Vale
     actions:
       queue:
