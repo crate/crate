@@ -32,14 +32,15 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 
 public class Lists2Test {
 
     private Comparator<Integer> integerComparator;
 
-    @Before
+    @BeforeEach
     public void setupComparator() {
         integerComparator = Comparator.comparingInt(x -> x);
     }
