@@ -19,6 +19,11 @@
 
 package org.elasticsearch.common.blobstore.url;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+
+import org.apache.http.client.utils.URIBuilder;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -26,9 +31,6 @@ import org.elasticsearch.common.blobstore.BlobStoreException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * Read-only URL-based blob store
@@ -84,7 +86,7 @@ public class URLBlobStore implements BlobStore {
     public BlobContainer blobContainer(BlobPath path) {
         try {
             return new URLBlobContainer(this, path, buildPath(path));
-        } catch (MalformedURLException ex) {
+        } catch (MalformedURLException | URISyntaxException ex) {
             throw new BlobStoreException("malformed URL " + path, ex);
         }
     }
@@ -100,17 +102,14 @@ public class URLBlobStore implements BlobStore {
      * @param path relative path
      * @return Base URL + path
      */
-    private URL buildPath(BlobPath path) throws MalformedURLException {
+    private URL buildPath(BlobPath path) throws URISyntaxException, MalformedURLException {
         String[] paths = path.toArray();
         if (paths.length == 0) {
             return path();
         }
-        URL blobPath = new URL(this.path, paths[0] + "/");
-        if (paths.length > 1) {
-            for (int i = 1; i < paths.length; i++) {
-                blobPath = new URL(blobPath, paths[i] + "/");
-            }
-        }
-        return blobPath;
+        return new URIBuilder(this.path.toURI())
+            .setPathSegments(paths)
+            .build()
+            .toURL();
     }
 }
