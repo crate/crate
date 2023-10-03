@@ -23,15 +23,18 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import static io.crate.execution.ddl.tables.MappingUtil.createMappingForDroppedCols;
+import static io.crate.execution.ddl.tables.MappingUtil.createMappingToRemove;
+import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -84,9 +87,25 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
                                         return dc.ref();
                                     });
 
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        Map<String, Object> mapping = createMappingForDroppedCols(currentTable, refsToDrop);
+        // Prepare columns tree, it will be used twice:
+        // 1. For creating mapping for dropped columns.
+        // 2. For creating "path-only, no properties" mapping to remove.
+        List<Reference> references = new ArrayList<>(refsToDrop);
+        for (var colToDrop : refsToDrop) {
+            ColumnIdent parent = colToDrop.column();
+            while ((parent = parent.getParent()) != null) {
+                if (!Symbols.containsColumn(refsToDrop, parent)
+                    && !Symbols.containsColumn(references, parent)) {
+                    references.add(currentTable.getReference(parent));
+                }
+            }
+        }
+        HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
 
+        Map<String, Object> mapping = createMappingForDroppedCols(currentTable, tree);
+        Map<String, Object> mappingToRemove = createMappingToRemove(tree, null);
+
+        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
         if (indexTemplateMetadata != null) {
@@ -94,7 +113,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
                 indexTemplateMetadata,
                 mapping,
-                Collections.emptyMap(),
+                mappingToRemove,
                 Settings.EMPTY,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
             );
@@ -105,7 +124,8 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
             currentState,
             metadataBuilder,
             request.relationName().indexNameOrAlias(),
-            (Map<String, Map<String, Object>>) mapping.get("properties")
+            (Map<String, Map<String, Object>>) mapping.get("properties"),
+            mappingToRemove
         );
         // ensure the table can still be parsed into a DocTableInfo to avoid breaking the table.
         docTableInfoFactory.create(request.relationName(), currentState);
@@ -137,7 +157,8 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
     private ClusterState updateMapping(ClusterState currentState,
                                        Metadata.Builder metadataBuilder,
                                        String indexName,
-                                       Map<String, Map<String, Object>> propertiesMap) throws IOException {
+                                       Map<String, Map<String, Object>> propertiesMap,
+                                       Map<String, Object> mappingToRemove) throws IOException {
         Index[] concreteIndices = resolveIndices(currentState, indexName);
 
         for (Index index : concreteIndices) {
@@ -145,6 +166,7 @@ public final class DropColumnTask extends DDLClusterStateTaskExecutor<DropColumn
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
             mergeDeltaIntoExistingMapping(indexMapping, propertiesMap);
+            indexMapping = DDLClusterStateHelpers.removeFromMapping(indexMapping, mappingToRemove);
 
             MapperService mapperService = createMapperService.apply(indexMetadata);
 
