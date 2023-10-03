@@ -29,7 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class MapsTest {
 
