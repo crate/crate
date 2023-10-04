@@ -19,8 +19,6 @@
 
 package org.elasticsearch.repositories.azure;
 
-import static com.microsoft.azure.storage.StorageException.translateClientException;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

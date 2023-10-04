@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -45,6 +43,7 @@ import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.jetbrains.annotations.Nullable;
 
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -70,6 +69,7 @@ public class AzureStorageService {
     private static final Logger LOGGER = LogManager.getLogger(AzureStorageService.class);
 
     public static final ByteSizeValue MIN_CHUNK_SIZE = new ByteSizeValue(1, ByteSizeUnit.BYTES);
+
     /**
      * {@link com.microsoft.azure.storage.blob.BlobConstants#MAX_SINGLE_UPLOAD_BLOB_SIZE_IN_BYTES}
      */
@@ -110,6 +110,9 @@ public class AzureStorageService {
             }
             client.getDefaultRequestOptions().setTimeoutIntervalInMs((int) timeout);
         }
+
+        client.getDefaultRequestOptions().setLocationMode(azureStorageSettings.getLocationMode());
+
         // We define a default exponential retry policy
         client.getDefaultRequestOptions()
                 .setRetryPolicyFactory(new RetryExponentialRetry(RetryPolicy.DEFAULT_CLIENT_BACKOFF, azureStorageSettings.getMaxRetries()));

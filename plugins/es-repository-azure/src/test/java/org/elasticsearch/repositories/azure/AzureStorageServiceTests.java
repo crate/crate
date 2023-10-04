@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import com.microsoft.azure.storage.RetryExponentialRetry;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
@@ -45,6 +46,26 @@ public class AzureStorageServiceTests extends ESTestCase {
         return new AzureStorageService(AzureStorageSettings.getClientSettings(settings));
     }
 
+    @Test
+    public void test_cannot_set_endpoint_and_endpoint_suffix() {
+        final Settings settings = Settings.builder().put(buildClientCredSettings())
+            .put("endpoint", "my_endpoint")
+            .put("endpoint_suffix", "my_endpoint_suffix").build();
+        assertThatThrownBy(() -> storageServiceWithSettings(settings))
+            .isExactlyInstanceOf(SettingsException.class)
+            .hasMessage("Cannot specify both endpoint and endpoint_suffix parameters");
+    }
+
+    @Test
+    public void test_cannot_set_secondary_endpoint_without_endpoint() {
+        final Settings settings = Settings.builder().put(buildClientCredSettings())
+            .put("secondary_endpoint", "my_secondary_endpoint").build();
+        assertThatThrownBy(() -> storageServiceWithSettings(settings))
+            .isExactlyInstanceOf(SettingsException.class)
+            .hasMessage("Cannot specify secondary_endpoint without specifying endpoint");
+    }
+
+    @Test
     public void testCreateClientWithEndpointSuffix() {
         final Settings settings = Settings.builder().put(buildClientCredSettings())
             .put("endpoint_suffix", "my_endpoint_suffix").build();
@@ -53,6 +74,31 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(client.getEndpoint()).hasToString("https://myaccount1.blob.my_endpoint_suffix");
     }
 
+    @Test
+    public void testCreateClientWithEndpoint() {
+        final Settings settings = Settings.builder().put(buildClientCredSettings())
+            .put("endpoint", "https://storage1.privatelink.blob.core.windows.net").build();
+        final AzureStorageService azureStorageService = storageServiceWithSettings(settings);
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
+        assertThat(client.getEndpoint()).hasToString("https://storage1.privatelink.blob.core.windows.net");
+    }
+
+    @Test
+    public void testCreateClientWithSecondaryEndpoint() {
+        final Settings settings = Settings.builder().put(buildClientCredSettings())
+            .put("location_mode", "SECONDARY_ONLY")
+            .put("endpoint", "https://storage1.privatelink.blob.core.windows.net")
+            .put("secondary_endpoint", "https://storage2.privatelink.blob.core.windows.net").build();
+        final AzureStorageService azureStorageService = storageServiceWithSettings(settings);
+        final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
+        assertThat(client.getEndpoint()).hasToString("https://storage1.privatelink.blob.core.windows.net");
+        assertThat(client.getStorageUri().getPrimaryUri())
+            .hasToString("https://storage1.privatelink.blob.core.windows.net");
+        assertThat(client.getStorageUri().getSecondaryUri())
+            .hasToString("https://storage2.privatelink.blob.core.windows.net");
+    }
+
+    @Test
     public void testGetSelectedClientDefaultTimeout() {
         final Settings timeoutSettings = Settings.builder()
             .put(buildClientCredSettings())
@@ -62,12 +108,14 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
+    @Test
     public void testGetSelectedClientNoTimeout() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
         final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
+    @Test
     public void testGetSelectedClientBackoffPolicy() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
         final CloudBlobClient client = azureStorageService.client().cloudBlobClient();
@@ -75,6 +123,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }
 
+    @Test
     public void testGetSelectedClientBackoffPolicyNbRetries() {
         final Settings timeoutSettings = Settings.builder()
             .put(buildClientCredSettings())
@@ -87,6 +136,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }
 
+    @Test
     public void testNoProxy() {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -95,6 +145,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(mock.storageSettings.getProxy()).isNull();
     }
 
+    @Test
     public void testProxyHttp() throws UnknownHostException {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -110,6 +161,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(defaultProxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
+    @Test
     public void testMultipleProxies() throws UnknownHostException {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -124,6 +176,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(proxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
+    @Test
     public void testProxySocks() throws UnknownHostException {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -138,6 +191,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         assertThat(proxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
+    @Test
     public void testProxyNoHost() {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -150,6 +204,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
+    @Test
     public void testProxyNoPort() {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -163,6 +218,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
+    @Test
     public void testProxyNoType() {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -176,6 +232,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .hasMessage("Azure Proxy port or host have been set but proxy type is not defined.");
     }
 
+    @Test
     public void testProxyWrongHost() {
         final Settings settings = Settings.builder()
             .put(buildClientCredSettings())
@@ -190,6 +247,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .hasMessage("Azure proxy host is unknown.");
     }
 
+    @Test
     public void testBlobNameFromUri() throws URISyntaxException {
         String name = blobNameFromUri(new URI("https://myservice.azure.net/container/path/to/myfile"));
         assertThat(name).isEqualTo("path/to/myfile");
