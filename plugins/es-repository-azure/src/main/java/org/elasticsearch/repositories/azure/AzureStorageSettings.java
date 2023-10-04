@@ -39,6 +39,8 @@ public final class AzureStorageSettings {
 
     private final String account;
     private final String key;
+    private final String endpoint;
+    private final String secondaryEndpoint;
     private final String endpointSuffix;
     private final TimeValue timeout;
     private final int maxRetries;
@@ -48,6 +50,8 @@ public final class AzureStorageSettings {
     @VisibleForTesting
     AzureStorageSettings(String account,
                          String key,
+                         String endpoint,
+                         String secondaryEndpoint,
                          String endpointSuffix,
                          TimeValue timeout,
                          int maxRetries,
@@ -55,6 +59,8 @@ public final class AzureStorageSettings {
                          LocationMode locationMode) {
         this.account = account;
         this.key = key;
+        this.endpoint = endpoint;
+        this.secondaryEndpoint = secondaryEndpoint;
         this.endpointSuffix = endpointSuffix;
         this.timeout = timeout;
         this.maxRetries = maxRetries;
@@ -64,14 +70,31 @@ public final class AzureStorageSettings {
 
     private AzureStorageSettings(String account,
                                  String key,
+                                 LocationMode locationMode,
+                                 String endpoint,
+                                 String secondaryEndpoint,
                                  String endpointSuffix,
                                  TimeValue timeout,
                                  int maxRetries,
                                  Proxy.Type proxyType,
                                  String proxyHost,
                                  Integer proxyPort) {
+
+        final boolean hasEndpointSuffix = Strings.hasText(endpointSuffix);
+        final boolean hasEndpoint = Strings.hasText(endpoint);
+        final boolean hasSecondaryEndpoint = Strings.hasText(secondaryEndpoint);
+
+        if (hasEndpoint && hasEndpointSuffix) {
+            throw new SettingsException("Cannot specify both endpoint and endpoint_suffix parameters");
+        }
+        if (hasSecondaryEndpoint && hasEndpoint == false) {
+            throw new SettingsException("Cannot specify secondary_endpoint without specifying endpoint");
+        }
+
         this.account = account;
         this.key = key;
+        this.endpoint = endpoint;
+        this.secondaryEndpoint = secondaryEndpoint;
         this.endpointSuffix = endpointSuffix;
         this.timeout = timeout;
         this.maxRetries = maxRetries;
@@ -93,7 +116,7 @@ public final class AzureStorageSettings {
                 throw new SettingsException("Azure proxy host is unknown.", e);
             }
         }
-        this.locationMode = LocationMode.PRIMARY_ONLY;
+        this.locationMode = locationMode;
     }
 
     public TimeValue getTimeout() {
@@ -119,8 +142,15 @@ public final class AzureStorageSettings {
                 .append(account)
                 .append(";AccountKey=")
                 .append(key);
+
         if (Strings.hasText(endpointSuffix)) {
             connectionStringBuilder.append(";EndpointSuffix=").append(endpointSuffix);
+        }
+        if (Strings.hasText(endpoint)) {
+            connectionStringBuilder.append(";BlobEndpoint=").append(endpoint);
+        }
+        if (Strings.hasText(secondaryEndpoint)) {
+            connectionStringBuilder.append(";BlobSecondaryEndpoint=").append(secondaryEndpoint);
         }
         return connectionStringBuilder.toString();
     }
@@ -131,6 +161,9 @@ public final class AzureStorageSettings {
             return new AzureStorageSettings(
                 account.toString(),
                 key.toString(),
+                getConfigValue(settings, AzureRepository.Repository.LOCATION_MODE_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.ENDPOINT_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.SECONDARY_ENDPOINT_SETTING),
                 getConfigValue(settings, AzureRepository.Repository.ENDPOINT_SUFFIX_SETTING),
                 getConfigValue(settings, AzureRepository.Repository.TIMEOUT_SETTING),
                 getConfigValue(settings, AzureRepository.Repository.MAX_RETRIES_SETTING),
@@ -148,6 +181,8 @@ public final class AzureStorageSettings {
         return new AzureStorageSettings(
             settings.account,
             settings.key,
+            settings.endpoint,
+            settings.secondaryEndpoint,
             settings.endpointSuffix,
             settings.timeout,
             settings.maxRetries,
@@ -160,6 +195,8 @@ public final class AzureStorageSettings {
         return "AzureStorageSettings{" + "account='" + account + '\'' +
                ", key='" + key + '\'' +
                ", timeout=" + timeout +
+               ", endpoint='" + endpoint + '\'' +
+               ", secondaryEndpoint='" + secondaryEndpoint + '\'' +
                ", endpointSuffix='" + endpointSuffix + '\'' +
                ", maxRetries=" + maxRetries +
                ", proxy=" + proxy +
