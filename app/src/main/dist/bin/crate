@@ -164,11 +164,7 @@ if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
     JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
 fi
 
-if [ "$(uname -s)" = "Darwin" ]; then
-    JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
-else
-    JAVA="$CRATE_HOME/jdk/bin/java"
-fi
+JAVA="$CRATE_HOME/jdk/bin/java"
 
 if [ -z "$CRATE_CLASSPATH" ]; then
     echo "ERROR: CRATE_CLASSPATH is not defined or empty" >&2
