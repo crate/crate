@@ -19,6 +19,8 @@ sphinx-autobuild==0.7.1
 alabaster>=0.7,<0.8,!=0.7.5
 setuptools<41
 sphinx==1.7.4
+jinja2<3.0.0
+markupsafe<2.0.0
 
 # used for dns-discovery tests
 dnslib
