@@ -93,6 +93,8 @@ SQL Standard and PostgreSQL Compatibility
  
 - Added a new read-only session setting ``max_identifier_length``.
 
+- Added support for :ref:`INTERVAL <type-interval>` multiplication by integers.
+
 Data Types
 ----------
 
