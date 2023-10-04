@@ -26,7 +26,7 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    <suppress files=".*[/\\]antlr[/\\].*" checks="."/>
+    <suppress files=".*[/\\]generated-sources[/\\].*.java" checks="."/>
     <!-- Keep ES format to avoid conflicts when applying ES patches -->
     <suppress files=".*[/\\]main[/\\]java[/\\]org[\\/]elasticsearch[/\\]snapshots[/\\]SnapshotsService.java" checks="."/>
     <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>

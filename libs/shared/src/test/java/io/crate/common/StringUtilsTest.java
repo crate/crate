@@ -23,7 +23,8 @@ package io.crate.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public final class StringUtilsTest {
 
@@ -44,10 +45,10 @@ public final class StringUtilsTest {
         var parts = StringUtils.splitToList('.', "");
         assertThat(parts).containsExactly("");
     }
-    
+
     @Test
     public void test_tryParseLong() {
-        /* Created after reviewing https://github.com/AdoptOpenJDK/openjdk-jdk/blob/master/test/jdk/java/lang/Long/ParsingTest.java */                 
+        /* Created after reviewing https://github.com/AdoptOpenJDK/openjdk-jdk/blob/master/test/jdk/java/lang/Long/ParsingTest.java */
         boolean wasLong = false;
         long[] outputLong = new long[1];
 
@@ -57,7 +58,7 @@ public final class StringUtilsTest {
 
         wasLong = StringUtils.tryParseLong("9223372036854775808", outputLong);
         assertThat(wasLong).isEqualTo(false);
-        
+
         wasLong = StringUtils.tryParseLong("/", outputLong);
         assertThat(wasLong).isEqualTo(false);
 
@@ -68,6 +69,6 @@ public final class StringUtilsTest {
         assertThat(wasLong).isEqualTo(false);
 
         wasLong = StringUtils.tryParseLong("++", outputLong);
-        assertThat(wasLong).isEqualTo(false);        
+        assertThat(wasLong).isEqualTo(false);
     }
 }
