@@ -72,10 +72,7 @@ class CrateTestShell(CrateShell):
 
     def stmt(self, stmt):
         stmt = stmt.replace('\n', ' ')
-        if stmt.startswith('\\'):
-            self.process(stmt)
-        else:
-            self.execute(stmt)
+        self.process(stmt)
 
 
 cmd = CrateTestShell()
