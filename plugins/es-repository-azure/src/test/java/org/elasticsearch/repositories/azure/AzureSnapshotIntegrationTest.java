@@ -41,6 +41,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import io.crate.testing.Asserts;
 
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
 public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "crate_snapshots";
@@ -73,14 +74,16 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void create_azure_snapshot_and_restore_it() {
+    public void create_azure_snapshot_and_restore_with_endpoint_suffix() {
         execute("CREATE TABLE t1 (x int)");
         assertThat(response.rowCount()).isEqualTo(1L);
 
-        var numberOfDocs = randomLongBetween(0, 10);
+        int numberOfDocs = randomIntBetween(0, 10);
+        Object[][] rows = new Object[numberOfDocs][];
         for (int i = 0; i < numberOfDocs; i++) {
-            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+            rows[i] = new Object[] { randomInt() };
         }
+        execute("INSERT INTO t1 (x) VALUES (?)", rows);
         execute("REFRESH TABLE t1");
 
         execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
@@ -98,7 +101,51 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
         execute("REFRESH TABLE t1");
 
         execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0]).isEqualTo(numberOfDocs);
+        assertThat(response.rows()[0][0]).isEqualTo((long) numberOfDocs);
+
+        execute("DROP SNAPSHOT r1.s1");
+        handler.blobs().keySet().forEach(x -> assertThat(x).doesNotEndWith("dat"));
+    }
+
+    @Test
+    public void create_azure_snapshot_and_restore_with_secondary_endpoint() {
+        execute("CREATE TABLE t1 (x int)");
+        assertThat(response.rowCount()).isEqualTo(1L);
+
+        int numberOfDocs = randomIntBetween(0, 10);
+        Object[][] rows = new Object[numberOfDocs][];
+        for (int i = 0; i < numberOfDocs; i++) {
+            rows[i] = new Object[] { randomInt() };
+        }
+        execute("INSERT INTO t1 (x) VALUES (?)", rows);
+        execute("REFRESH TABLE t1");
+
+        execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
+                "container = '" + CONTAINER_NAME + "', " +
+                "account = 'devstoreaccount1', " +
+                "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
+                "location_mode = 'PRIMARY_ONLY', " +
+                "endpoint = '" + httpServerUrl() + "')");
+        assertThat(response.rowCount()).isEqualTo(1L);
+
+        execute("CREATE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)");
+
+        execute("DROP TABLE t1");
+
+        // secondary endpoint is by read-only
+        execute("CREATE REPOSITORY r2 TYPE AZURE WITH (" +
+                "container = '" + CONTAINER_NAME + "', " +
+                "account = 'devstoreaccount1', " +
+                "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
+                "location_mode = 'SECONDARY_ONLY', " +
+                "endpoint = '" + invalidHttpServerUrl() + "', "+
+                "secondary_endpoint = '" + httpServerUrl() + "')");
+
+        execute("RESTORE SNAPSHOT r2.s1 ALL WITH (wait_for_completion = true)");
+        execute("REFRESH TABLE t1");
+
+        execute("SELECT COUNT(*) FROM t1");
+        assertThat(response.rows()[0][0]).isEqualTo((long) numberOfDocs);
 
         execute("DROP SNAPSHOT r1.s1");
         handler.blobs().keySet().forEach(x -> assertThat(x).doesNotEndWith("dat"));
@@ -120,5 +167,10 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     private String httpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
         return "http://" + InetAddresses.toUriString(address.getAddress()) + ":" + address.getPort();
+    }
+
+    private String invalidHttpServerUrl() {
+        InetSocketAddress address = httpServer.getAddress();
+        return "http://dummy.invalid:" + address.getPort();
     }
 }

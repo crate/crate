@@ -107,6 +107,12 @@ public class AzureRepository extends BlobStoreRepository {
             RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT,
             Setting.Property.NodeScope);
 
+        static final Setting<String> ENDPOINT_SETTING =
+            Setting.simpleString("endpoint", Property.NodeScope);
+
+        static final Setting<String> SECONDARY_ENDPOINT_SETTING =
+            Setting.simpleString("secondary_endpoint", Property.NodeScope);
+
         /**
          * Azure endpoint suffix. Default to core.windows.net (CloudStorageAccount.DEFAULT_DNS).
          */
@@ -148,6 +154,8 @@ public class AzureRepository extends BlobStoreRepository {
                        COMPRESS_SETTING,
                        // client specific repository settings
                        Repository.MAX_RETRIES_SETTING,
+                       Repository.ENDPOINT_SETTING,
+                       Repository.SECONDARY_ENDPOINT_SETTING,
                        Repository.ENDPOINT_SUFFIX_SETTING,
                        Repository.TIMEOUT_SETTING,
                        Repository.PROXY_TYPE_SETTING,
