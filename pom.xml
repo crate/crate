@@ -139,6 +139,10 @@
             <addModule>jdk.management</addModule>
             <addModule>jdk.management.agent</addModule>
             <addModule>jdk.crypto.ec</addModule>
+
+            <!-- These are required to use https://github.com/crate/jmx_exporter -->
+            <addModule>java.instrument</addModule>
+            <addModule>jdk.httpserver</addModule>
           </addModules>
         </configuration>
       </plugin>
