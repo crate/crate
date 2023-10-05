@@ -23,11 +23,13 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
@@ -35,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -48,6 +49,8 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 public final class MappingUtil {
+
+    public static final String DROPPED_COLUMN_NAME_PREFIX = "_dropped_";
 
     private MappingUtil() {}
 
@@ -133,26 +136,35 @@ public final class MappingUtil {
     }
 
     public static Map<String, Object> createMappingForDroppedCols(DocTableInfo tableInfo,
-                                                                  List<Reference> columnsToDrop) {
-
-        List<Reference> references = new ArrayList<>(columnsToDrop);
-        // Add missing parents
-        for (var colToDrop : columnsToDrop) {
-            ColumnIdent parent = colToDrop.column();
-            while ((parent = parent.getParent()) != null) {
-                if (!Symbols.containsColumn(columnsToDrop, parent)
-                    && !Symbols.containsColumn(references, parent)) {
-                    references.add(tableInfo.getReference(parent));
-                }
-            }
-        }
-        HashMap<ColumnIdent, List<Reference>> tree = buildTree(references);
+                                                                  HashMap<ColumnIdent, List<Reference>> tree) {
         Map<String, Map<String, Object>> propertiesMap =
             createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree);
 
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("_meta", Map.of());
         mapping.put("properties", propertiesMap);
+        return mapping;
+    }
+
+
+    /**
+     * Creates a mapping containing only column names, can be nested.
+     */
+    public static Map<String, Object> createMappingToRemove(HashMap<ColumnIdent, List<Reference>> tree,
+                                                            @Nullable ColumnIdent currentNode) {
+        List<Reference> children = tree.get(currentNode);
+        if (children == null) {
+            assert currentNode != null : "Root must have children nodes";
+            return null;
+        }
+
+        Map<String, Object> allColumnsMap = new HashMap<>();
+        for (Reference child: children) {
+            allColumnsMap.put(child.column().leafName(), createMappingToRemove(tree, child.column()));
+        }
+
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("properties", allColumnsMap);
         return mapping;
     }
 
@@ -185,9 +197,18 @@ public final class MappingUtil {
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), addColumnProperties(position, child, tree));
+            allColumnsMap.put(mappingKey(child), addColumnProperties(position, child, tree));
         }
         return allColumnsMap;
+    }
+
+    private static String mappingKey(Reference reference) {
+        if (reference.isDropped()) {
+            assert reference.oid() != COLUMN_OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
+            return String.format(Locale.ENGLISH, "%s%d", DROPPED_COLUMN_NAME_PREFIX, reference.oid());
+        } else {
+            return reference.column().leafName();
+        }
     }
 
     private static Map<String, Object> addColumnProperties(AllocPosition position,

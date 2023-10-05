@@ -108,14 +108,20 @@ public class DDLClusterStateHelpers {
         return metadata.templates().get(templateName);
     }
 
-    private static Map<String, Object> removeFromMapping(Map<String, Object> mapping,
-                                                         Map<String, Object> mappingsToRemove) {
+    public static Map<String, Object> removeFromMapping(Map<String, Object> mapping,
+                                                        Map<String, Object> mappingsToRemove) {
         for (String key : mappingsToRemove.keySet()) {
             if (mapping.containsKey(key)) {
                 if (mapping.get(key) instanceof Map) {
-                    //noinspection unchecked
-                    mapping.put(key, removeFromMapping((Map<String, Object>) mapping.get(key),
-                        (Map<String, Object>) mappingsToRemove.get(key)));
+                    Object mapOrPropertyToRemove = mappingsToRemove.get(key);
+                    if (mapOrPropertyToRemove == null) {
+                        // The whole sub-map needs to be removed.
+                        mapping.remove(key);
+                    } else {
+                        //noinspection unchecked
+                        mapping.put(key, removeFromMapping((Map<String, Object>) mapping.get(key),
+                            (Map<String, Object>) mappingsToRemove.get(key)));
+                    }
                 } else {
                     mapping.remove(key);
                 }
