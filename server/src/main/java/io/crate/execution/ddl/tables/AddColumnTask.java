@@ -67,7 +67,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
 
     private final NodeContext nodeContext;
     private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
-    private final List<Reference> addedColumns = new ArrayList<>();
 
     public AddColumnTask(NodeContext nodeContext, CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService) {
         this.nodeContext = nodeContext;
@@ -84,10 +83,6 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
         if (normalizedColumns == null) {
             return currentState;
         }
-        final List<ColumnIdent> newColumnIdents = request.references().stream()
-            .filter(ref -> currentTable.getReference(ref.column()) == null)
-            .map(Reference::column)
-            .toList();
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         if (currentTable.versionCreated().onOrAfter(Version.V_5_5_0)) {
@@ -130,12 +125,7 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
             (Map<String, Map<String, Object>>) mapping.get("properties")
         );
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        DocTableInfo table = docTableInfoFactory.create(request.relationName(), currentState);
-        for (ColumnIdent columnIdent: newColumnIdents) {
-            Reference ref = table.getReference(columnIdent);
-            assert ref != null : "All new columns must be added to the schema.";
-            addedColumns.add(ref);
-        }
+        docTableInfoFactory.create(request.relationName(), currentState);
         return currentState;
     }
 
@@ -241,13 +231,5 @@ public final class AddColumnTask extends DDLClusterStateTaskExecutor<AddColumnRe
                 return oldMap;
             }
         );
-    }
-
-    /**
-     * @return columns added by the {@link #execute} call.
-     * Columns part of the {@link AddColumnRequest} which already existed are not included.
-     */
-    public List<Reference> addedColumns() {
-        return addedColumns;
     }
 }

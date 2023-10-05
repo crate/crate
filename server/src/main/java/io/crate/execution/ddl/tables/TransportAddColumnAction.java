@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -38,8 +40,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.NodeContext;
-
-import java.io.IOException;
 
 @Singleton
 public class TransportAddColumnAction extends TransportMasterNodeAction<AddColumnRequest, AcknowledgedResponse> {
@@ -72,7 +72,7 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
 
     @Override
     protected AcknowledgedResponse read(StreamInput in) throws IOException {
-        return new AddColumnResponse(in);
+        return new AcknowledgedResponse(in);
     }
 
     @Override
@@ -89,7 +89,7 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
 
                 @Override
                 protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                    return new AddColumnResponse(acknowledged, addColumnTask.addedColumns());
+                    return new AcknowledgedResponse(acknowledged);
                 }
             });
     }

@@ -374,8 +374,10 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new IntArrayList()
             );
 
-            addColumnTask.execute(state, request);
-            List<Reference> addedColumns = addColumnTask.addedColumns();
+            var newState = addColumnTask.execute(state, request);
+            var newTable = new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState);
+
+            List<Reference> addedColumns = columns.stream().map(r -> newTable.getReference(r.column())).toList();
             assertThat(addedColumns).hasSize(3);
             assertThat(addedColumns).satisfiesExactly(
                 ref -> assertThat(ref)
