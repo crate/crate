@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -80,7 +78,7 @@ public final class SymbolVisitors {
         needle.accept(new IntersectionVisitor<>(haystack, consumer), null);
     }
 
-    public static Iterable<AnalyzedRelation> extractAnalyzedRelations(@Nullable Symbol symbol) {
+    public static Iterable<AnalyzedRelation> extractAnalyzedRelations(Symbol symbol) {
         if (symbol == null) {
             return Set.of();
         }
