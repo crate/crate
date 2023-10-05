@@ -65,4 +65,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused privileges checks to be bypassed when using scalar
+  sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
+  etc.
