@@ -231,6 +231,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columns;
     }
 
+    @Override
     public Set<Reference> droppedColumns() {
         return droppedColumns;
     }
