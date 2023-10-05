@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -69,7 +68,6 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.AddColumnRequest;
-import io.crate.execution.ddl.tables.AddColumnResponse;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -555,7 +553,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        AcknowledgedResponse response = null;
         if (!newColumns.isEmpty()) {
             var addColumnRequest = new AddColumnRequest(
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
@@ -563,10 +560,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Map.of(),
                 new IntArrayList(0)
             );
-            response = addColumnAction.execute(addColumnRequest).get();
-        }
-
-        if (response instanceof AddColumnResponse) {
+            addColumnAction.execute(addColumnRequest).get();
             DocTableInfo actualTable = schemas.getTableInfo(relationName, Operation.READ);
             if (rawIndexer != null) {
                 rawIndexer.updateTargets(actualTable::getReference);
