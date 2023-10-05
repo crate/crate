@@ -1,0 +1,52 @@
+.. _version_5.3.7:
+
+==========================
+Version 5.3.7 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+
+.. NOTE::
+
+    In development. 5.3.7 isn't released yet. These are the release notes for
+    the upcoming release.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.3.7.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.3.7.
+
+    A rolling upgrade from 5.2.x to 5.3.4, 5.3.6 or 5.3.7 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.3.0` release notes for a full list of changes in the
+5.3 series.
+
+Fixes
+=====
+
+- Fixed an issue that caused privileges checks to be bypassed when using scalar
+  sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
+  etc.
