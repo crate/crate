@@ -21,28 +21,23 @@
 
 package io.crate.execution.ddl.tables;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
-import java.io.IOException;
-
 @Singleton
-public class TransportAddColumnAction extends TransportMasterNodeAction<AddColumnRequest, AcknowledgedResponse> {
+public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
@@ -54,45 +49,23 @@ public class TransportAddColumnAction extends TransportMasterNodeAction<AddColum
                                     IndicesService indicesService,
                                     ThreadPool threadPool,
                                     NodeContext nodeContext) {
-        super(
-            ACTION_NAME,
+        super(ACTION_NAME,
             transportService,
             clusterService,
             threadPool,
-            AddColumnRequest::new
-        );
+            AddColumnRequest::new,
+            AcknowledgedResponse::new,
+            AcknowledgedResponse::new,
+            "add-column");
         this.nodeContext = nodeContext;
         this.indicesService = indicesService;
     }
 
     @Override
-    protected String executor() {
-        return ThreadPool.Names.SAME;
+    public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
+        return new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
     }
 
-    @Override
-    protected AcknowledgedResponse read(StreamInput in) throws IOException {
-        return new AddColumnResponse(in);
-    }
-
-    @Override
-    protected void masterOperation(AddColumnRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
-        AddColumnTask addColumnTask = new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
-
-        clusterService.submitStateUpdateTask("add-column",
-            new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
-
-                @Override
-                public ClusterState execute(ClusterState currentState) throws Exception {
-                    return addColumnTask.execute(currentState, request);
-                }
-
-                @Override
-                protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                    return new AddColumnResponse(acknowledged, addColumnTask.addedColumns());
-                }
-            });
-    }
 
     @Override
     public ClusterBlockException checkBlock(AddColumnRequest request, ClusterState state) {
