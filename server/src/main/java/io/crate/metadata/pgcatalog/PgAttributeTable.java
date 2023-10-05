@@ -28,6 +28,7 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 
+import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
@@ -45,7 +46,7 @@ public final class PgAttributeTable {
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
             .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
-            .add("attname", STRING, c -> c.ref().column().sqlFqn())
+            .add("attname", STRING, c -> attName(c))
             .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
             .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
@@ -61,7 +62,7 @@ public final class PgAttributeTable {
             .add("atthasmissing", BOOLEAN, c -> false)
             .add("attidentity", STRING, c -> "")
             .add("attgenerated", STRING, c -> c.ref().isGenerated() ? "s" : "")
-            .add("attisdropped", BOOLEAN, c -> false) // don't support dropping columns
+            .add("attisdropped", BOOLEAN, c -> c.ref().isDropped())
             .add("attislocal", BOOLEAN, c -> true)
             .add("attinhcount", INTEGER, c -> 0)
             .add("attcollation", INTEGER, c -> 0)
@@ -72,5 +73,13 @@ public final class PgAttributeTable {
             .add("attfdwoptions", STRING_ARRAY, c -> null)
             .add("attmissingval", STRING_ARRAY, c -> null)
             .build();
+    }
+
+    private static String attName(ColumnContext c) {
+        if (c.ref().isDropped()) {
+            return DROPPED_COLUMN_NAME_PREFIX + c.ref().oid();
+        } else {
+            return c.ref().column().sqlFqn();
+        }
     }
 }
