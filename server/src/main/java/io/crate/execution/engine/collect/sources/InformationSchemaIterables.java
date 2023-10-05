@@ -464,7 +464,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         private final RelationInfo tableInfo;
 
         ColumnsIterator(RelationInfo tableInfo) {
-            columns = stream(tableInfo.spliterator(), false)
+            columns = Stream.concat(stream(tableInfo.spliterator(), false), tableInfo.droppedColumns().stream())
                 .filter(reference -> !reference.column().isSystemColumn()
                                      && reference.valueType() != DataTypes.NOT_SUPPORTED).iterator();
             this.tableInfo = tableInfo;
