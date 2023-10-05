@@ -22,18 +22,25 @@
 package io.crate.expression.symbol;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
-public class SymbolVisitors {
+public final class SymbolVisitors {
+
+    private SymbolVisitors() {}
 
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
+    private static final ExtractAnalyzedRelationsVisitor EXTRACT_ANALYZED_RELATIONS_VISITOR =
+        new ExtractAnalyzedRelationsVisitor();
 
     public static boolean any(Predicate<? super Symbol> predicate, List<? extends Symbol> symbols) {
         for (int i = 0; i < symbols.size(); i++) {
@@ -69,6 +76,15 @@ public class SymbolVisitors {
      */
     public static <T> void intersection(Symbol needle, Collection<T> haystack, Consumer<T> consumer) {
         needle.accept(new IntersectionVisitor<>(haystack, consumer), null);
+    }
+
+    public static Iterable<AnalyzedRelation> extractAnalyzedRelations(Symbol symbol) {
+        if (symbol == null) {
+            return Set.of();
+        }
+        Set<AnalyzedRelation> relations = new HashSet<>();
+        symbol.accept(EXTRACT_ANALYZED_RELATIONS_VISITOR, relations);
+        return relations;
     }
 
     // If `haystack.contains(x)` is true, then `x` has type `T`, and the call to the consumer is safe.
@@ -262,4 +278,13 @@ public class SymbolVisitors {
         }
     }
 
+    private static class ExtractAnalyzedRelationsVisitor
+        extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
+
+        @Override
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<AnalyzedRelation> context) {
+            context.add(selectSymbol.relation());
+            return null;
+        }
+    }
 }
