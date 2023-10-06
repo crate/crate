@@ -68,6 +68,9 @@ public final class AnyNotLikeOperator extends AnyOperator {
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         Iterable<?> values = (Iterable<?>) candidates.value();
         for (Object value : values) {
+            if (value == null) {
+                continue;
+            }
             var likeQuery = caseSensitivity.likeQuery(columnName, (String) value, probe.indexType() != IndexType.NONE);
             if (likeQuery == null) {
                 return null;

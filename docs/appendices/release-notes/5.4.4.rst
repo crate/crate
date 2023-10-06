@@ -107,3 +107,9 @@ Fixes
 - Fixed an issue that caused privileges checks to be bypassed when using scalar
   sub-selects in various clauses of a query: ``SELECT``, ``WHERE``, ``HAVING``,
   etc.
+
+ - Fixed an issue that caused ``any`` operators such as ``!= any``,
+   ``not like any`` or range operators like ``< any`` to throw
+   ``NullPointerExceptions`` or return invalid results when the left hand side
+   argument is a column and the right hand side argument array contains at
+   least one ``null``.
